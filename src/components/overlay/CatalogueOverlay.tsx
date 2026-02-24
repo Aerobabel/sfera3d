@@ -1,5 +1,9 @@
+'use client';
+
 import { Product, Supplier } from "@/lib/types";
 import { X, ShoppingCart } from "lucide-react";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { getLocalizedProduct } from "@/lib/i18n";
 
 interface CatalogueOverlayProps {
     supplier: Supplier;
@@ -9,6 +13,28 @@ interface CatalogueOverlayProps {
 }
 
 export default function CatalogueOverlay({ supplier, products, onClose, onSelectProduct }: CatalogueOverlayProps) {
+    const { language } = useLanguage();
+    const text = {
+        en: {
+            catalogue: 'Catalogue',
+            authorizedCollection: 'Authorized Collection',
+            visual: 'Visual',
+            viewDetails: 'View Details',
+        },
+        ru: {
+            catalogue: 'Каталог',
+            authorizedCollection: 'Официальная коллекция',
+            visual: 'Визуал',
+            viewDetails: 'Открыть детали',
+        },
+        zh: {
+            catalogue: '产品目录',
+            authorizedCollection: '授权产品集合',
+            visual: '预览',
+            viewDetails: '查看详情',
+        },
+    }[language];
+
     return (
         <div className="absolute inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 pointer-events-auto">
             <div className="relative bg-slate-950/40 backdrop-blur-2xl border border-white/10 w-full max-w-4xl max-h-[80vh] rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col">
@@ -29,9 +55,9 @@ export default function CatalogueOverlay({ supplier, products, onClose, onSelect
                         )}
                         <div>
                             <h2 className="text-2xl font-black uppercase tracking-widest text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
-                                {supplier.name} <span className="text-cyan-400 font-light">Catalogue</span>
+                                {supplier.name} <span className="text-cyan-400 font-light">{text.catalogue}</span>
                             </h2>
-                            <p className="text-gray-400 text-[10px] uppercase tracking-widest font-bold mt-1">Authorized Collection</p>
+                            <p className="text-gray-400 text-[10px] uppercase tracking-widest font-bold mt-1">{text.authorizedCollection}</p>
                         </div>
                     </div>
 
@@ -43,10 +69,12 @@ export default function CatalogueOverlay({ supplier, products, onClose, onSelect
                 {/* Grid */}
                 <div className="relative flex-1 overflow-y-auto p-6 custom-scrollbar z-10">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {products.map(product => (
+                        {products.map((rawProduct) => {
+                            const product = getLocalizedProduct(rawProduct, language);
+                            return (
                             <div
                                 key={product.id}
-                                onClick={() => onSelectProduct(product)}
+                                onClick={() => onSelectProduct(rawProduct)}
                                 className="group/item relative bg-white/5 border border-white/5 hover:border-cyan-500/30 hover:bg-white/10 rounded-xl p-4 transition duration-300 cursor-pointer flex flex-col overflow-hidden hover:shadow-[0_0_20px_rgba(6,182,212,0.1)]"
                             >
                                 {/* Hover Gradient Overlay */}
@@ -54,7 +82,7 @@ export default function CatalogueOverlay({ supplier, products, onClose, onSelect
 
                                 {/* Placeholder Image */}
                                 <div className="relative aspect-video bg-black/40 rounded-lg mb-4 flex items-center justify-center border border-white/5 group-hover/item:border-white/10 transition">
-                                    <span className="text-[10px] uppercase font-bold tracking-widest text-gray-600 group-hover/item:text-cyan-400 transition">Visual</span>
+                                    <span className="text-[10px] uppercase font-bold tracking-widest text-gray-600 group-hover/item:text-cyan-400 transition">{text.visual}</span>
                                 </div>
 
                                 <div className="relative flex justify-between items-start mb-2">
@@ -70,10 +98,10 @@ export default function CatalogueOverlay({ supplier, products, onClose, onSelect
 
                                 <button className="relative w-full py-2 bg-white/5 hover:bg-cyan-600 rounded-lg text-xs font-bold text-gray-300 hover:text-white uppercase tracking-wider transition flex items-center justify-center gap-2 group-hover/item:bg-white/10">
                                     <ShoppingCart size={14} />
-                                    View Details
+                                    {text.viewDetails}
                                 </button>
                             </div>
-                        ))}
+                        )})}
                     </div>
                 </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Send, Menu, X, Box, Info } from "lucide-react";
 import Link from 'next/link';
 import { Product, Supplier } from "@/lib/types";
@@ -10,6 +10,8 @@ import ProductCard from "@/components/overlay/ProductCard";
 import CatalogueOverlay from "@/components/overlay/CatalogueOverlay";
 import MobileControls from "@/components/pixelstreaming/MobileControls";
 import MarketplaceCrosshair from "@/components/pixelstreaming/MarketplaceCrosshair";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { AppLanguage, getLocalizedProduct } from "@/lib/i18n";
 
 type MobileInputMode = 'joystick' | 'touch';
 type ToStreamerHandler = (messageData?: Array<number | string>) => void;
@@ -40,6 +42,126 @@ const createClientChatMessage = (role: ChatMessage['role'], text: string): ChatM
     text,
     timestamp: Date.now(),
 });
+
+const EXPERIENCE_COPY: Record<
+    AppLanguage,
+    {
+        welcome: string;
+        fallbackReply: string;
+        connectionIssue: string;
+        focusedTemplate: (name: string, price: string, availability: string, supplier: string) => string;
+        focusedPrompt: string;
+        statusOnline: string;
+        instruction: string;
+        chatToggleShow: string;
+        chatToggleHide: string;
+        menuNavigation: string;
+        menuProducts: string;
+        menuSupplier: string;
+        menuExit: string;
+        assistantTitle: string;
+        assistantSubtitle: string;
+        close: string;
+        typing: string;
+        inputPlaceholder: string;
+        rotateDevice: string;
+        landscapeRequired: string;
+        rotateHint: string;
+        addToCart: (name: string) => string;
+        startSupplierChat: (name: string) => string;
+        chatPrefill: (name: string, product: string) => string;
+        inStock: string;
+        outOfStock: string;
+    }
+> = {
+    en: {
+        welcome: 'Connected. Tap any product in the scene to inspect details, or ask for specs and pricing.',
+        fallbackReply: 'Message received. Select a product to get detailed pricing and specs.',
+        connectionIssue: 'Connection issue. Please retry. You can still select a product to inspect details.',
+        focusedTemplate: (name, price, availability, supplier) =>
+            `Focused on ${name}. Price ${price}, ${availability}, supplied by ${supplier}.`,
+        focusedPrompt: 'Ask for specs or compatibility details.',
+        statusOnline: 'System Online',
+        instruction: 'Long press T to speak with avatars, press F to open doors, X to exit inspection mode.',
+        chatToggleShow: 'Chat',
+        chatToggleHide: 'Hide Chat',
+        menuNavigation: 'Navigation',
+        menuProducts: 'Products',
+        menuSupplier: 'About Supplier',
+        menuExit: 'Exit Experience',
+        assistantTitle: 'AI Concierge',
+        assistantSubtitle: 'Ask about product pricing, specs, stock, or supplier details.',
+        close: 'Close',
+        typing: 'AI is typing...',
+        inputPlaceholder: 'Ask about products, specs, and pricing...',
+        rotateDevice: 'Rotate Device',
+        landscapeRequired: 'Landscape Required',
+        rotateHint: 'Rotate your phone horizontally to continue the Pixel Streaming experience.',
+        addToCart: (name) => `Added ${name} to cart!`,
+        startSupplierChat: (name) => `Starting direct chat channel with ${name}...`,
+        chatPrefill: (name, product) => `@${name} I have a question about ${product}...`,
+        inStock: 'in stock',
+        outOfStock: 'out of stock',
+    },
+    ru: {
+        welcome: 'Подключено. Нажмите на товар в сцене, чтобы открыть детали, или спросите цену и характеристики.',
+        fallbackReply: 'Сообщение получено. Выберите товар для подробной цены и характеристик.',
+        connectionIssue: 'Проблема с подключением. Попробуйте снова. Вы можете выбрать товар в сцене.',
+        focusedTemplate: (name, price, availability, supplier) =>
+            `В фокусе: ${name}. Цена ${price}, ${availability}, поставщик: ${supplier}.`,
+        focusedPrompt: 'Спросите характеристики или совместимость.',
+        statusOnline: 'Система онлайн',
+        instruction: 'Удерживайте T для разговора с аватарами, F для открытия дверей, X для выхода из режима осмотра.',
+        chatToggleShow: 'Чат',
+        chatToggleHide: 'Скрыть чат',
+        menuNavigation: 'Навигация',
+        menuProducts: 'Товары',
+        menuSupplier: 'О поставщике',
+        menuExit: 'Выйти из режима',
+        assistantTitle: 'AI-консьерж',
+        assistantSubtitle: 'Спросите цену, характеристики, наличие или информацию о поставщике.',
+        close: 'Закрыть',
+        typing: 'AI печатает...',
+        inputPlaceholder: 'Спросите о товарах, характеристиках и цене...',
+        rotateDevice: 'Поверните устройство',
+        landscapeRequired: 'Нужен альбомный режим',
+        rotateHint: 'Поверните телефон горизонтально, чтобы продолжить Pixel Streaming.',
+        addToCart: (name) => `${name} добавлен в корзину!`,
+        startSupplierChat: (name) => `Открываем прямой чат с ${name}...`,
+        chatPrefill: (name, product) => `@${name}, у меня вопрос по товару ${product}...`,
+        inStock: 'в наличии',
+        outOfStock: 'нет в наличии',
+    },
+    zh: {
+        welcome: '已连接。点击场景中的产品查看详情，或直接询问参数与价格。',
+        fallbackReply: '消息已发送。请选择产品以获取详细价格和规格。',
+        connectionIssue: '连接异常，请重试。你仍可先在场景中选择产品。',
+        focusedTemplate: (name, price, availability, supplier) =>
+            `当前聚焦：${name}。价格 ${price}，${availability}，供应商：${supplier}。`,
+        focusedPrompt: '可继续询问规格参数或兼容性。',
+        statusOnline: '系统在线',
+        instruction: '长按 T 与角色对话，按 F 开门，按 X 退出检视模式。',
+        chatToggleShow: '聊天',
+        chatToggleHide: '隐藏聊天',
+        menuNavigation: '导航',
+        menuProducts: '产品',
+        menuSupplier: '供应商信息',
+        menuExit: '退出体验',
+        assistantTitle: 'AI 助理',
+        assistantSubtitle: '可询问价格、规格、库存或供应商信息。',
+        close: '关闭',
+        typing: 'AI 正在输入...',
+        inputPlaceholder: '询问产品、规格和价格...',
+        rotateDevice: '请旋转设备',
+        landscapeRequired: '需要横屏',
+        rotateHint: '请将手机横向放置以继续 Pixel Streaming 体验。',
+        addToCart: (name) => `已将 ${name} 加入购物车！`,
+        startSupplierChat: (name) => `正在与 ${name} 建立直接聊天...`,
+        chatPrefill: (name, product) => `@${name} 我想咨询一下 ${product}...`,
+        inStock: '有现货',
+        outOfStock: '缺货',
+    },
+};
 
 const extractProductIdFromUnrealPayload = (payload: unknown): string | null => {
     if (typeof payload === 'string') {
@@ -103,6 +225,8 @@ const resolveDefaultSignalingUrl = () => {
 };
 
 export default function ExperiencePage() {
+    const { language } = useLanguage();
+    const ui = EXPERIENCE_COPY[language];
     const [signalingServerUrl] = useState<string>(() => resolveDefaultSignalingUrl());
     const [chatInput, setChatInput] = useState('');
     const [isChatFocused, setIsChatFocused] = useState(false);
@@ -110,7 +234,7 @@ export default function ExperiencePage() {
         {
             id: 'assistant-welcome',
             role: 'assistant',
-            text: 'Connected. Tap any product in the scene to inspect details, or ask for specs and pricing.',
+            text: ui.welcome,
             timestamp: Date.now(),
         },
     ]);
@@ -181,6 +305,14 @@ export default function ExperiencePage() {
     // Catalogue State
     const [isCatalogueOpen, setIsCatalogueOpen] = useState(false);
     const [catalogueProducts, setCatalogueProducts] = useState<Product[]>([]);
+    const localizedActiveProduct = useMemo(
+        () => (activeProduct ? getLocalizedProduct(activeProduct, language) : null),
+        [activeProduct, language]
+    );
+    const localizedCatalogueProducts = useMemo(
+        () => catalogueProducts.map((product) => getLocalizedProduct(product, language)),
+        [catalogueProducts, language]
+    );
 
     // Video Element Reference for Mobile Controls
     const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
@@ -205,6 +337,7 @@ export default function ExperiencePage() {
                     user: 'Guest',
                     text: trimmed,
                     productId: activeProduct?.id,
+                    language,
                 }),
             });
 
@@ -216,7 +349,7 @@ export default function ExperiencePage() {
             const replyText =
                 typeof data.assistantMessage?.text === 'string' && data.assistantMessage.text.trim().length > 0
                     ? data.assistantMessage.text.trim()
-                    : 'Message received. Select a product to get detailed pricing and specs.';
+                    : ui.fallbackReply;
 
             setChatMessages((previous) => [...previous, createClientChatMessage('assistant', replyText)]);
         } catch {
@@ -224,7 +357,7 @@ export default function ExperiencePage() {
                 ...previous,
                 createClientChatMessage(
                     'assistant',
-                    'Connection issue. Please retry. You can still select a product to inspect details.'
+                    ui.connectionIssue
                 ),
             ]);
         } finally {
@@ -242,25 +375,51 @@ export default function ExperiencePage() {
     }, [chatMessages]);
 
     useEffect(() => {
-        if (!activeProduct) return;
+        setChatMessages((previous) =>
+            previous.map((message) =>
+                message.id === 'assistant-welcome'
+                    ? { ...message, text: ui.welcome }
+                    : message
+            )
+        );
+    }, [ui.welcome]);
 
-        const supplier = getSupplierById(activeProduct.supplierId);
-        const price = new Intl.NumberFormat('en-US', {
+    useEffect(() => {
+        if (!localizedActiveProduct) return;
+
+        const supplier = getSupplierById(localizedActiveProduct.supplierId);
+        const locale =
+            language === 'ru' ? 'ru-RU' : language === 'zh' ? 'zh-CN' : 'en-US';
+        const price = new Intl.NumberFormat(locale, {
             style: 'currency',
-            currency: activeProduct.currency,
+            currency: localizedActiveProduct.currency,
             maximumFractionDigits: 2,
-        }).format(activeProduct.price);
-        const availability = activeProduct.status === 'out_of_stock' ? 'out of stock' : 'in stock';
-        const supplierName = supplier?.name ?? 'the supplier';
+        }).format(localizedActiveProduct.price);
+        const availability =
+            localizedActiveProduct.status === 'out_of_stock'
+                ? ui.outOfStock
+                : ui.inStock;
+        const supplierName =
+            supplier?.name ??
+            (language === 'ru'
+                ? 'поставщик'
+                : language === 'zh'
+                  ? '供应商'
+                  : 'supplier');
 
         setChatMessages((previous) => [
             ...previous,
             createClientChatMessage(
                 'assistant',
-                `Focused on ${activeProduct.name}. Price ${price}, ${availability}, supplied by ${supplierName}. Ask for specs or compatibility details.`
+                `${ui.focusedTemplate(
+                    localizedActiveProduct.name,
+                    price,
+                    availability,
+                    supplierName
+                )} ${ui.focusedPrompt}`
             ),
         ]);
-    }, [activeProduct]);
+    }, [localizedActiveProduct, language, ui]);
 
     // Simulate receiving a "Click" from Unreal
     const simulateUnrealClick = (id: string) => {
@@ -278,8 +437,15 @@ export default function ExperiencePage() {
 
     const handleChatWithSupplier = () => {
         if (!activeSupplier) return;
-        setChatInput(`@${activeSupplier.name} I have a question about ${activeProduct?.name}...`);
-        alert(`Starting direct chat channel with ${activeSupplier.name}...`);
+        const fallbackProductName =
+            language === 'ru' ? 'товару' : language === 'zh' ? '该产品' : 'product';
+        setChatInput(
+            ui.chatPrefill(
+                activeSupplier.name,
+                localizedActiveProduct?.name ?? activeProduct?.name ?? fallbackProductName
+            )
+        );
+        alert(ui.startSupplierChat(activeSupplier.name));
     };
 
     const handleViewCatalogue = () => {
@@ -370,13 +536,13 @@ export default function ExperiencePage() {
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                                 </div>
-                                <span className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em]">System Online</span>
+                                <span className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em]">{ui.statusOnline}</span>
                             </div>
                         </div>
 
                         <div className="flex items-start gap-3">
                             <p className="hidden max-w-[34rem] pt-1 text-right text-[10px] uppercase tracking-[0.14em] text-[#9fcfdf] md:block">
-                                Long press T to speak with avatars, press F to open doors, X to exit inspection mode.
+                                {ui.instruction}
                             </p>
                             {isMobile && (
                                 <button
@@ -384,7 +550,7 @@ export default function ExperiencePage() {
                                     className="group relative px-4 py-2 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-md border border-white/5 rounded-lg transition overflow-hidden"
                                 >
                                     <span className="text-[10px] font-mono text-gray-400 group-hover:text-emerald-300 uppercase tracking-wider transition">
-                                        {isMobileChatOpen ? 'Hide Chat' : 'Chat'}
+                                        {isMobileChatOpen ? ui.chatToggleHide : ui.chatToggleShow}
                                     </span>
                                 </button>
                             )}
@@ -403,16 +569,16 @@ export default function ExperiencePage() {
                     {/* Side Menu (Conditional) */}
                     {isMenuOpen && (
                         <div className="absolute top-24 right-6 pointer-events-auto w-64 p-4 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl space-y-2 animate-in slide-in-from-right-10 fade-in duration-200">
-                            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">Navigation</div>
+                            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">{ui.menuNavigation}</div>
                             <button className="w-full text-left px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10 transition flex items-center gap-2">
-                                <Box size={16} /> Products
+                                <Box size={16} /> {ui.menuProducts}
                             </button>
                             <button className="w-full text-left px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10 transition flex items-center gap-2">
-                                <Info size={16} /> About Supplier
+                                <Info size={16} /> {ui.menuSupplier}
                             </button>
                             <div className="h-px bg-white/10 my-2"></div>
                             <Link href="/" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition">
-                                Exit Experience
+                                {ui.menuExit}
                             </Link>
                         </div>
                     )}
@@ -421,10 +587,16 @@ export default function ExperiencePage() {
                     {activeProduct && !isCatalogueOpen && (
                         <div className="pointer-events-auto">
                             <ProductCard
-                                product={activeProduct}
+                                product={localizedActiveProduct ?? activeProduct}
                                 supplier={activeSupplier}
                                 onClose={handleCloseProductCard}
-                                onAddToCart={() => alert(`Added ${activeProduct.name} to cart!`)}
+                                onAddToCart={() =>
+                                    alert(
+                                        ui.addToCart(
+                                            localizedActiveProduct?.name ?? activeProduct.name
+                                        )
+                                    )
+                                }
                                 onChatWithSupplier={handleChatWithSupplier}
                                 onViewCatalogue={handleViewCatalogue}
                             />
@@ -435,7 +607,7 @@ export default function ExperiencePage() {
                     {isCatalogueOpen && activeSupplier && (
                         <CatalogueOverlay
                             supplier={activeSupplier}
-                            products={catalogueProducts}
+                            products={localizedCatalogueProducts}
                             onClose={() => setIsCatalogueOpen(false)}
                             onSelectProduct={(product) => {
                                 setActiveProduct(product);
@@ -451,9 +623,9 @@ export default function ExperiencePage() {
                             <div className={`w-full md:max-w-lg rounded-2xl border border-[#66d9cb]/30 bg-[linear-gradient(160deg,rgba(5,10,18,0.9),rgba(12,18,28,0.82))] p-4 text-white shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-xl ${isMobile ? 'max-w-[min(92vw,560px)] mx-auto' : ''} ${usingMobileJoysticks ? 'mb-28' : ''}`}>
                                 <div className="mb-3 flex items-start justify-between gap-3">
                                     <div>
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#66d9cb]">AI Concierge</p>
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#66d9cb]">{ui.assistantTitle}</p>
                                         <p className="mt-1 text-xs text-[#bbc6d4]">
-                                            Ask about product pricing, specs, stock, or supplier details.
+                                            {ui.assistantSubtitle}
                                         </p>
                                     </div>
                                     {isMobile && (
@@ -461,7 +633,7 @@ export default function ExperiencePage() {
                                             onClick={() => setIsMobileChatOpen(false)}
                                             className="rounded-md border border-white/15 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-gray-300 hover:bg-white/10 hover:text-white transition"
                                         >
-                                            Close
+                                            {ui.close}
                                         </button>
                                     )}
                                 </div>
@@ -487,7 +659,7 @@ export default function ExperiencePage() {
                                     {isSendingChat && (
                                         <div className="flex items-center gap-2 text-xs text-[#9db1c7]">
                                             <span className="h-2 w-2 animate-pulse rounded-full bg-[#66d9cb]" />
-                                            AI is typing...
+                                            {ui.typing}
                                         </div>
                                     )}
                                 </div>
@@ -502,7 +674,7 @@ export default function ExperiencePage() {
                                             onBlur={() => setIsChatFocused(false)}
                                             onKeyDown={(e) => e.stopPropagation()}
                                             onKeyUp={(e) => e.stopPropagation()}
-                                            placeholder="Ask about products, specs, and pricing..."
+                                            placeholder={ui.inputPlaceholder}
                                             className="w-full border-none bg-transparent px-3 py-2 text-sm text-white placeholder:text-[#70839a] focus:ring-0"
                                         />
                                         <button
@@ -528,10 +700,10 @@ export default function ExperiencePage() {
             {isMobile && !isLandscape && (
                 <div className="absolute inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md p-6 text-center text-white">
                     <div className="max-w-xs">
-                        <p className="text-xs font-mono uppercase tracking-[0.2em] text-cyan-300">Rotate Device</p>
-                        <h2 className="mt-3 text-xl font-semibold">Landscape Required</h2>
+                        <p className="text-xs font-mono uppercase tracking-[0.2em] text-cyan-300">{ui.rotateDevice}</p>
+                        <h2 className="mt-3 text-xl font-semibold">{ui.landscapeRequired}</h2>
                         <p className="mt-2 text-sm text-gray-300">
-                            Rotate your phone horizontally to continue the Pixel Streaming experience.
+                            {ui.rotateHint}
                         </p>
                     </div>
                 </div>

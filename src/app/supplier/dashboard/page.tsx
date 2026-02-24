@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { MessageSquare, LayoutDashboard, Settings, Bell, Search, User } from 'lucide-react';
 import Link from 'next/link';
+import { useLanguage } from '@/components/i18n/LanguageProvider';
 
 type Message = {
     id: string;
@@ -12,6 +13,48 @@ type Message = {
 };
 
 export default function SupplierDashboard() {
+    const { language } = useLanguage();
+    const t = {
+        en: {
+            portal: 'Supplier Portal',
+            liveChat: 'Live Chat',
+            analytics: 'Analytics',
+            settings: 'Settings',
+            admin: 'Admin',
+            inquiries: 'Live Inquiries',
+            noMessages: 'No messages yet',
+            waiting: 'Waiting for users to connect...',
+            onlineNow: 'Online now',
+            reply: 'Reply',
+            resolve: 'Mark as Resolved',
+        },
+        ru: {
+            portal: 'Портал поставщика',
+            liveChat: 'Живой чат',
+            analytics: 'Аналитика',
+            settings: 'Настройки',
+            admin: 'Админ',
+            inquiries: 'Активные обращения',
+            noMessages: 'Сообщений пока нет',
+            waiting: 'Ожидаем подключения пользователей...',
+            onlineNow: 'Сейчас онлайн',
+            reply: 'Ответить',
+            resolve: 'Отметить как решенное',
+        },
+        zh: {
+            portal: '供应商门户',
+            liveChat: '实时聊天',
+            analytics: '数据分析',
+            settings: '设置',
+            admin: '管理员',
+            inquiries: '实时咨询',
+            noMessages: '暂无消息',
+            waiting: '正在等待用户连接...',
+            onlineNow: '当前在线',
+            reply: '回复',
+            resolve: '标记为已处理',
+        },
+    }[language];
     const [messages, setMessages] = useState<Message[]>([]);
 
     // Poll for new messages (simulating real-time)
@@ -37,18 +80,18 @@ export default function SupplierDashboard() {
             <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
                 <div className="p-6">
                     <h2 className="text-2xl font-bold tracking-tighter text-indigo-600">3DSFERA</h2>
-                    <p className="text-xs text-gray-400 font-medium tracking-widest uppercase mt-1">Supplier Portal</p>
+                    <p className="text-xs text-gray-400 font-medium tracking-widest uppercase mt-1">{t.portal}</p>
                 </div>
 
                 <nav className="flex-1 px-4 space-y-1">
                     <Link href="#" className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg bg-indigo-50 text-indigo-700">
-                        <MessageSquare size={18} /> Live Chat
+                        <MessageSquare size={18} /> {t.liveChat}
                     </Link>
                     <Link href="#" className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 transition">
-                        <LayoutDashboard size={18} /> Analytics
+                        <LayoutDashboard size={18} /> {t.analytics}
                     </Link>
                     <Link href="#" className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 transition">
-                        <Settings size={18} /> Settings
+                        <Settings size={18} /> {t.settings}
                     </Link>
                 </nav>
 
@@ -58,8 +101,8 @@ export default function SupplierDashboard() {
                             <User size={16} />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-gray-900">Nike Official</p>
-                            <p className="text-xs text-gray-500">Admin</p>
+                            <p className="text-sm font-medium text-gray-900">Nike</p>
+                            <p className="text-xs text-gray-500">{t.admin}</p>
                         </div>
                     </div>
                 </div>
@@ -69,7 +112,7 @@ export default function SupplierDashboard() {
             <main className="flex-1 flex flex-col">
                 {/* Header */}
                 <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
-                    <h1 className="text-lg font-semibold text-gray-800">Live Inquiries</h1>
+                    <h1 className="text-lg font-semibold text-gray-800">{t.inquiries}</h1>
                     <div className="flex items-center gap-4">
                         <button className="text-gray-400 hover:text-gray-600">
                             <Search size={20} />
@@ -90,8 +133,8 @@ export default function SupplierDashboard() {
                                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
                                     <MessageSquare size={32} />
                                 </div>
-                                <h3 className="text-gray-900 font-medium">No messages yet</h3>
-                                <p className="text-gray-500 text-sm mt-1">Waiting for users to connect...</p>
+                                <h3 className="text-gray-900 font-medium">{t.noMessages}</h3>
+                                <p className="text-gray-500 text-sm mt-1">{t.waiting}</p>
                             </div>
                         ) : (
                             messages.map((msg) => (
@@ -104,7 +147,7 @@ export default function SupplierDashboard() {
                                             <div>
                                                 <p className="text-sm font-semibold text-gray-900">{msg.user}</p>
                                                 <p className="text-xs text-green-600 flex items-center gap-1">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> Online now
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> {t.onlineNow}
                                                 </p>
                                             </div>
                                         </div>
@@ -121,10 +164,10 @@ export default function SupplierDashboard() {
 
                                     <div className="mt-4 pl-11 flex gap-3">
                                         <button className="text-sm px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-sm shadow-indigo-200">
-                                            Reply
+                                            {t.reply}
                                         </button>
                                         <button className="text-sm px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition">
-                                            Mark as Resolved
+                                            {t.resolve}
                                         </button>
                                     </div>
                                 </div>

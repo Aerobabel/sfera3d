@@ -1,5 +1,9 @@
+'use client';
+
 import { Product, Supplier } from "@/lib/types";
 import { X, ShoppingCart, MessageSquare, ExternalLink } from "lucide-react";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { getLocalizedProduct } from "@/lib/i18n";
 
 interface ProductCardProps {
     product: Product;
@@ -11,6 +15,38 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, supplier, onClose, onAddToCart, onChatWithSupplier, onViewCatalogue }: ProductCardProps) {
+    const { language } = useLanguage();
+    const localizedProduct = getLocalizedProduct(product, language);
+    const text = {
+        en: {
+            verified: '3DSFERA VERIFIED',
+            inStock: 'In Stock',
+            specifications: 'Specifications',
+            addToCart: 'Add to Cart',
+            chatSupplier: 'Chat Supplier',
+            details: 'Details',
+            authorizedDealer: 'Authorized Dealer',
+        },
+        ru: {
+            verified: '3DSFERA VERIFIED',
+            inStock: 'В наличии',
+            specifications: 'Характеристики',
+            addToCart: 'В корзину',
+            chatSupplier: 'Чат с поставщиком',
+            details: 'Подробнее',
+            authorizedDealer: 'Официальный дилер',
+        },
+        zh: {
+            verified: '3DSFERA VERIFIED',
+            inStock: '有现货',
+            specifications: '规格参数',
+            addToCart: '加入购物车',
+            chatSupplier: '联系供应商',
+            details: '详情',
+            authorizedDealer: '授权经销商',
+        },
+    }[language];
+
     return (
         <div className="absolute top-24 left-4 md:left-8 z-50 w-80 overflow-hidden rounded-2xl border border-[#66d9cb]/22 bg-[#0d1118]/88 p-6 text-[#f5f1e9] shadow-[0_24px_70px_rgba(0,0,0,0.52)] backdrop-blur-2xl pointer-events-auto md:w-96">
             <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-[radial-gradient(circle_at_center,rgba(102,217,203,0.22),rgba(102,217,203,0)_70%)]" />
@@ -23,11 +59,11 @@ export default function ProductCard({ product, supplier, onClose, onAddToCart, o
                         <div className="mb-2 flex items-center gap-2.5">
                             <div className="h-4 w-4 rounded-sm border border-[#66d9cb]/55 bg-[#66d9cb]/18 shadow-[0_0_10px_rgba(102,217,203,0.32)]" />
                             <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#66d9cb]">
-                                3DSFERA VERIFIED
+                                {text.verified}
                             </span>
                         </div>
                         <h2 className="text-xl font-extrabold uppercase tracking-[0.14em] text-[#f7f4ed]">
-                            {product.name}
+                            {localizedProduct.name}
                         </h2>
                     </div>
                     <button
@@ -43,28 +79,28 @@ export default function ProductCard({ product, supplier, onClose, onAddToCart, o
             <div className="relative mb-7 flex items-center justify-between">
                 <div className="flex items-baseline gap-1.5">
                     <span className="mr-1 self-start text-lg font-semibold text-[#a79f92]">
-                        {product.currency === 'USD' ? '$' : product.currency}
+                        {localizedProduct.currency === 'USD' ? '$' : localizedProduct.currency}
                     </span>
                     <span className="text-5xl font-black tracking-tight text-[#f8f5ee]">
-                        {product.price.toFixed(2)}
+                        {localizedProduct.price.toFixed(2)}
                     </span>
                 </div>
-                {product.status === 'active' ? (
+                {localizedProduct.status === 'active' ? (
                     <div className="rounded-md border border-[#66d9cb]/35 bg-[#66d9cb]/12 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#66d9cb]">
-                        In Stock
+                        {text.inStock}
                     </div>
                 ) : (
                     <div className="rounded-md border border-red-400/35 bg-red-500/12 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-red-300">
-                        {product.status.replace('_', ' ')}
+                        {localizedProduct.status.replace('_', ' ')}
                     </div>
                 )}
             </div>
 
             {/* Description */}
             <div className="relative mb-8">
-                <h3 className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#8f887d]">Specifications</h3>
+                <h3 className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#8f887d]">{text.specifications}</h3>
                 <p className="text-sm leading-relaxed text-[#d1cac0]">
-                    {product.fullDescription}
+                    {localizedProduct.fullDescription}
                 </p>
             </div>
 
@@ -75,7 +111,7 @@ export default function ProductCard({ product, supplier, onClose, onAddToCart, o
                     className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-[#66d9cb] py-3 text-xs font-extrabold uppercase tracking-[0.12em] text-[#08100f] transition hover:bg-[#8de6dc]"
                 >
                     <ShoppingCart size={16} />
-                    Add to Cart
+                    {text.addToCart}
                 </button>
 
                 <button
@@ -83,7 +119,7 @@ export default function ProductCard({ product, supplier, onClose, onAddToCart, o
                     className="flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#d8d1c6] transition hover:border-[#66d9cb]/45 hover:text-white"
                 >
                     <MessageSquare size={14} />
-                    Chat Supplier
+                    {text.chatSupplier}
                 </button>
 
                 <button
@@ -91,7 +127,7 @@ export default function ProductCard({ product, supplier, onClose, onAddToCart, o
                     className="flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#d8d1c6] transition hover:border-[#66d9cb]/45 hover:text-white"
                 >
                     <ExternalLink size={14} />
-                    Details
+                    {text.details}
                 </button>
             </div>
 
@@ -111,7 +147,7 @@ export default function ProductCard({ product, supplier, onClose, onAddToCart, o
                             </div>
                         )}
                         <div className="flex-1">
-                            <div className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.16em] text-[#8f887d]">Authorized Dealer</div>
+                            <div className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.16em] text-[#8f887d]">{text.authorizedDealer}</div>
                             <div className="text-xs font-bold uppercase tracking-[0.08em] text-[#f5f1e9]">{supplier.name}</div>
                         </div>
                     </div>

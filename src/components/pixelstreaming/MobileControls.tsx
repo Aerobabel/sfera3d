@@ -2,6 +2,7 @@
 
 import React, { useCallback, useRef, useEffect } from 'react';
 import VirtualJoystick from './VirtualJoystick';
+import { useLanguage } from '@/components/i18n/LanguageProvider';
 
 interface MobileControlsProps {
     videoElement: HTMLVideoElement | null;
@@ -36,6 +37,12 @@ const applyLookCurve = (value: number) => {
 };
 
 export default function MobileControls({ videoElement }: MobileControlsProps) {
+    const { language } = useLanguage();
+    const text = {
+        en: { move: 'MOVE', look: 'LOOK', interact: 'INTERACT' },
+        ru: { move: 'ДВИЖЕНИЕ', look: 'ОБЗОР', interact: 'ВЗАИМОДЕЙСТВИЕ' },
+        zh: { move: '移动', look: '视角', interact: '交互' },
+    }[language];
     const activeKeys = useRef<Set<string>>(new Set());
 
     // --- Keyboard Simulation Helper(Left Stick) ---
@@ -302,7 +309,7 @@ export default function MobileControls({ videoElement }: MobileControlsProps) {
                 }}
             >
                 <span className="rounded-full border border-white/15 bg-black/45 px-3 py-1 text-[10px] font-semibold tracking-[0.18em] text-white/80 backdrop-blur">
-                    MOVE
+                    {text.move}
                 </span>
                 <div className="pointer-events-auto rounded-2xl border border-white/15 bg-black/35 p-2 shadow-[0_12px_28px_rgba(0,0,0,0.35)] backdrop-blur-md">
                     <VirtualJoystick
@@ -323,7 +330,7 @@ export default function MobileControls({ videoElement }: MobileControlsProps) {
                 }}
             >
                 <span className="rounded-full border border-white/15 bg-black/45 px-3 py-1 text-[10px] font-semibold tracking-[0.18em] text-white/80 backdrop-blur">
-                    LOOK
+                    {text.look}
                 </span>
                 <div className="pointer-events-auto rounded-2xl border border-white/15 bg-black/35 p-2 shadow-[0_12px_28px_rgba(0,0,0,0.35)] backdrop-blur-md">
                     <VirtualJoystick
@@ -346,7 +353,7 @@ export default function MobileControls({ videoElement }: MobileControlsProps) {
                     onPointerDown={handleInteractPress}
                     className="rounded-full border border-cyan-300/40 bg-cyan-400/10 px-5 py-2 text-[11px] font-bold tracking-[0.18em] text-cyan-100 shadow-[0_0_20px_rgba(34,211,238,0.25)] backdrop-blur active:scale-95"
                 >
-                    INTERACT
+                    {text.interact}
                 </button>
             </div>
         </div>

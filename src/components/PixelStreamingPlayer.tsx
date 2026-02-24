@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Config, Flags, PixelStreaming } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
+import { useLanguage } from './i18n/LanguageProvider';
 
 interface PixelStreamingPlayerProps {
     signalingServerUrl: string;
@@ -58,19 +59,68 @@ export default function PixelStreamingPlayer({
     isMobileDevice = false,
     keyboardInputEnabled = true
 }: PixelStreamingPlayerProps) {
+    const { language } = useLanguage();
+    const text = {
+        en: {
+            initializing: 'Initializing...',
+            missingUrl: 'Signaling URL is empty.',
+            missingStatus: 'Missing signaling URL',
+            connecting: (url: string, label: string) => `Connecting to ${url} (${label})...`,
+            connectedWait: 'Connected resources. Waiting for video...',
+            streaming: 'Streaming Active',
+            disconnected: 'Disconnected',
+            webrtcFailed: 'WebRTC Connection Failed. Check console.',
+            setupError: (message: string) => `Setup Error: ${message}`,
+            reload: 'Set & Reload',
+            tryHint: 'Try:',
+            live: 'Live',
+        },
+        ru: {
+            initializing: 'Инициализация...',
+            missingUrl: 'URL сигнального сервера пуст.',
+            missingStatus: 'Нет URL сигнального сервера',
+            connecting: (url: string, label: string) => `Подключение к ${url} (${label})...`,
+            connectedWait: 'Ресурсы подключены. Ожидание видео...',
+            streaming: 'Поток активен',
+            disconnected: 'Отключено',
+            webrtcFailed: 'Ошибка WebRTC. Проверьте консоль.',
+            setupError: (message: string) => `Ошибка запуска: ${message}`,
+            reload: 'Применить и перезагрузить',
+            tryHint: 'Пример:',
+            live: 'Поток',
+        },
+        zh: {
+            initializing: '初始化中...',
+            missingUrl: '信令服务 URL 为空。',
+            missingStatus: '缺少信令服务 URL',
+            connecting: (url: string, label: string) => `正在连接 ${url}（${label}）...`,
+            connectedWait: '连接成功，等待视频流...',
+            streaming: '推流已激活',
+            disconnected: '已断开连接',
+            webrtcFailed: 'WebRTC 连接失败，请检查控制台。',
+            setupError: (message: string) => `初始化错误：${message}`,
+            reload: '设置并刷新',
+            tryHint: '可尝试：',
+            live: '在线',
+        },
+    }[language];
+    const textRef = useRef(text);
     const wrapperRef = useRef<HTMLDivElement>(null);
 
     const [url, setUrl] = useState(initialUrl);
     const [isConnected, setIsConnected] = useState(false);
-    const [status, setStatus] = useState("Initializing...");
+    const [status, setStatus] = useState(text.initializing);
     const [error, setError] = useState<string | null>(null);
-    const [activeUrl, setActiveUrl] = useState(initialUrl);
 
     const psRef = useRef<PixelStreaming | null>(null);
     const connectionGenerationRef = useRef(0);
     const keyboardInputEnabledRef = useRef(keyboardInputEnabled);
     const onPixelStreamingResponseRef = useRef(onPixelStreamingResponse);
     const onVideoInitializedRef = useRef(onVideoInitialized);
+
+    useEffect(() => {
+        textRef.current = text;
+    }, [text]);
 
     useEffect(() => {
         keyboardInputEnabledRef.current = keyboardInputEnabled;
@@ -86,7 +136,6 @@ export default function PixelStreamingPlayer({
 
     useEffect(() => {
         setUrl(initialUrl);
-        setActiveUrl(initialUrl);
     }, [initialUrl]);
 
     useEffect(() => {
@@ -107,11 +156,10 @@ export default function PixelStreamingPlayer({
 
         const connectUrl = normalizeSignalingUrl(url || initialUrl);
         if (!connectUrl) {
-            setError("Signaling URL is empty.");
-            setStatus("Missing signaling URL");
+            setError(textRef.current.missingUrl);
+            setStatus(textRef.current.missingStatus);
             return;
         }
-        setActiveUrl(connectUrl);
 
         const useTouchScreenInput = mobileInputMode === 'touch';
         // Only enable touch-to-mouse emulation on mobile devices.
@@ -120,7 +168,7 @@ export default function PixelStreamingPlayer({
 
         console.log(`Initializing Pixel Streaming with URL: ${connectUrl}`);
         const inputLabel = !isMobileDevice ? 'desktop' : (useTouchScreenInput ? 'touch' : 'joystick');
-        setStatus(`Connecting to ${connectUrl} (${inputLabel})...`);
+        setStatus(textRef.current.connecting(connectUrl, inputLabel));
 
         const config = new Config({
             initialSettings: {
@@ -150,7 +198,7 @@ export default function PixelStreamingPlayer({
                 if (generation !== connectionGenerationRef.current) return;
                 console.log("WebRTC Connected");
                 setIsConnected(true);
-                setStatus("Connected resources. Waiting for video...");
+                setStatus(textRef.current.connectedWait);
             });
 
             ps.addEventListener('webRtcDisconnected', (e: Event) => {
@@ -160,19 +208,19 @@ export default function PixelStreamingPlayer({
                  // Some stacks can report signaling disconnect while media keeps flowing.
                 if (hasLiveVideoStream(wrapperElement)) {
                     setIsConnected(true);
-                    setStatus("Streaming Active");
+                    setStatus(textRef.current.streaming);
                     return;
                 }
 
                 setIsConnected(false);
-                setStatus(`Disconnected`);
+                setStatus(textRef.current.disconnected);
             });
 
             ps.addEventListener('videoInitialized', () => {
                 if (generation !== connectionGenerationRef.current) return;
                 console.log("Video Initialized");
                 setIsConnected(true);
-                setStatus("Streaming Active");
+                setStatus(textRef.current.streaming);
 
                 // Expose the video element if the parent needs it (e.g. for mobile controls)
                 // The video element is created inside the wrapperRef.current
@@ -186,7 +234,7 @@ export default function PixelStreamingPlayer({
                         () => {
                             if (generation !== connectionGenerationRef.current) return;
                             setIsConnected(true);
-                            setStatus("Streaming Active");
+                            setStatus(textRef.current.streaming);
                         },
                         { once: true }
                     );
@@ -204,7 +252,7 @@ export default function PixelStreamingPlayer({
                 if (generation !== connectionGenerationRef.current) return;
                 console.error("WebRTC Failed");
                 setIsConnected(false);
-                setError("WebRTC Connection Failed. Check console.");
+                setError(textRef.current.webrtcFailed);
             });
 
         } catch (err: unknown) {
@@ -212,7 +260,7 @@ export default function PixelStreamingPlayer({
             console.error("Setup Error:", err);
             const errorMessage = err instanceof Error ? err.message : 'Unknown setup error';
             setIsConnected(false);
-            setError(`Setup Error: ${errorMessage}`);
+            setError(textRef.current.setupError(errorMessage));
         }
 
         return () => {
@@ -255,20 +303,12 @@ export default function PixelStreamingPlayer({
                                 onClick={() => window.location.reload()}
                                 className="bg-indigo-600 px-3 py-1 rounded text-xs hover:bg-indigo-500"
                             >
-                                Set & Reload
+                                {text.reload}
                             </button>
                         </div>
                         <p className="text-xs text-gray-400">
-                            Try: <code>ws://127.0.0.1</code> (or <code>wss://127.0.0.1</code> on HTTPS)
+                            {text.tryHint} <code>ws://127.0.0.1</code> / <code>wss://127.0.0.1</code>
                         </p>
-                    </div>
-                </div>
-            )}
-
-            {isConnected && (
-                <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition duration-500 z-50">
-                    <div className="text-xs text-green-500 bg-black/50 px-2 py-1 rounded border border-green-500/30 backdrop-blur">
-                        Live: {activeUrl}
                     </div>
                 </div>
             )}

@@ -1,6 +1,17 @@
+﻿'use client';
+
 import Link from "next/link";
-import { ArrowRight, Building2, Cpu, Globe2, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  Cpu,
+  Globe2,
+  ShieldCheck,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { Manrope, Space_Mono, Syne } from "next/font/google";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 const display = Syne({
   variable: "--font-display",
@@ -20,52 +31,303 @@ const mono = Space_Mono({
   weight: ["400", "700"],
 });
 
-const trustStats = [
-  { value: "42", label: "Active Supplier Halls" },
-  { value: "13 ms", label: "Median Input Latency" },
-  { value: "4K", label: "Cinematic Stream Quality" },
-];
+type PillarKey = "pipeline" | "attendance" | "safe";
 
-const pillars = [
-  {
-    icon: Cpu,
-    title: "Realtime Unreal Pipeline",
-    description:
-      "Products are streamed from Unreal Engine with interactive lighting, reflections, and physical scale.",
-  },
-  {
-    icon: Globe2,
-    title: "Borderless Attendance",
-    description:
-      "Open from desktop, tablet, or mobile browser. No installer, no high-end workstation requirement.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Enterprise Safe",
-    description:
-      "Session isolation, verified supplier channels, and moderated interactions designed for commercial events.",
-  },
-];
+const pillarIcons: Record<PillarKey, LucideIcon> = {
+  pipeline: Cpu,
+  attendance: Globe2,
+  safe: ShieldCheck,
+};
 
-const journey = [
-  {
-    step: "01",
-    title: "Enter a Live Pavilion",
-    description: "Walk curated halls, inspect products, and control the scene with responsive interactions.",
+const copy = {
+  en: {
+    nav: {
+      exhibition: "Exhibition",
+      marketplace: "Marketplace",
+      solutions: "Solutions",
+      about: "About",
+    },
+    cta: {
+      supplier: "Become a Supplier",
+      visit: "Visit Exhibition",
+      startTour: "Start Interactive Tour",
+      photo: "Photo to 3D",
+      visitSection: "Visit Exhibition",
+      explore: "Explore Live",
+      prototype: "Start Prototype",
+    },
+    hero: {
+      tag: "Premium Virtual Marketplace",
+      title: "A flagship digital trade floor built to sell presence, not screenshots.",
+      description:
+        "3DSFERA gives buyers a confident way to discover products and gives suppliers a clear path to start real conversations, build trust, and close better deals from anywhere.",
+    },
+    stats: [
+      { value: "42", label: "Active Supplier Halls" },
+      { value: "13 ms", label: "Median Input Latency" },
+      { value: "4K", label: "Cinematic Stream Quality" },
+    ],
+    sectionA: {
+      tag: "Experience Layer",
+      title: "A polished commercial stage for every supplier booth.",
+      description:
+        "Real-time overlays, AI-assisted chat, and object-level interaction create the feeling of a hosted showroom while preserving web-native accessibility for global attendees.",
+      pillars: [
+        {
+          key: "pipeline" as const,
+          title: "Realtime Unreal Pipeline",
+          description:
+            "Products are streamed from Unreal Engine with interactive lighting, reflections, and physical scale.",
+        },
+        {
+          key: "attendance" as const,
+          title: "Borderless Attendance",
+          description:
+            "Open from desktop, tablet, or mobile browser. No installer, no high-end workstation requirement.",
+        },
+        {
+          key: "safe" as const,
+          title: "Enterprise Safe",
+          description:
+            "Session isolation, verified supplier channels, and moderated interactions designed for commercial events.",
+        },
+      ],
+      signal: {
+        title: "Signal Preview",
+        subtitle: "Live Stage Quality",
+        session: "Session",
+        online: "Online",
+        items: ["Render Pipeline", "Pixel Stream", "Supplier Chat", "Product Overlay"],
+        ready: "Ready",
+        trusted: "Trusted by teams",
+        tags: ["Footwear", "Consumer Tech", "Industrial", "Home & Living"],
+      },
+    },
+    sectionB: {
+      tag: "Conversion Journey",
+      title: "From curiosity to qualified lead in three steps.",
+      steps: [
+        {
+          step: "01",
+          title: "Enter a Live Pavilion",
+          description:
+            "Walk curated halls, inspect products, and control the scene with responsive interactions.",
+        },
+        {
+          step: "02",
+          title: "Focus on Any Object",
+          description:
+            "Use crosshair targeting, open detail cards instantly, and compare specs without context switching.",
+        },
+        {
+          step: "03",
+          title: "Connect and Convert",
+          description:
+            "Launch supplier chat, request catalogs, and move directly from discovery to qualified lead flow.",
+        },
+      ],
+    },
+    sectionC: {
+      tag: "Ready for Launch",
+      title: "Turn your next expo into a premium digital destination.",
+      description:
+        "Bring your suppliers, catalogs, and product scenes into one immersive environment designed for measurable engagement.",
+    },
   },
-  {
-    step: "02",
-    title: "Focus on Any Object",
-    description: "Use crosshair targeting, open detail cards instantly, and compare specs without context switching.",
+  ru: {
+    nav: {
+      exhibition: "Выставка",
+      marketplace: "Маркетплейс",
+      solutions: "Решения",
+      about: "О нас",
+    },
+    cta: {
+      supplier: "Стать поставщиком",
+      visit: "Посетить выставку",
+      startTour: "Начать интерактивный тур",
+      photo: "Фото в 3D",
+      visitSection: "Посетить выставку",
+      explore: "Открыть демо",
+      prototype: "Запустить прототип",
+    },
+    hero: {
+      tag: "Премиальный виртуальный маркетплейс",
+      title: "Цифровая торговая площадка, где продается впечатление, а не скриншоты.",
+      description:
+        "3DSFERA помогает покупателям уверенно выбирать товары, а поставщикам быстро переходить к диалогу, доверию и сделке на любом устройстве.",
+    },
+    stats: [
+      { value: "42", label: "Активных павильона" },
+      { value: "13 мс", label: "Средняя задержка ввода" },
+      { value: "4K", label: "Кинематографическое качество" },
+    ],
+    sectionA: {
+      tag: "Слой опыта",
+      title: "Отполированная коммерческая сцена для каждого поставщика.",
+      description:
+        "Оверлеи в реальном времени, AI-чат и взаимодействие с объектами дают ощущение персонального шоурума без потери доступности в браузере.",
+      pillars: [
+        {
+          key: "pipeline" as const,
+          title: "Realtime Unreal-пайплайн",
+          description:
+            "Товары стримятся из Unreal Engine с интерактивным светом, отражениями и корректным масштабом.",
+        },
+        {
+          key: "attendance" as const,
+          title: "Без границ по устройствам",
+          description:
+            "Открывается на desktop, планшете и телефоне. Без установки и без мощной рабочей станции.",
+        },
+        {
+          key: "safe" as const,
+          title: "Готово для enterprise",
+          description:
+            "Изоляция сессий, проверенные каналы поставщиков и модерация для коммерческих мероприятий.",
+        },
+      ],
+      signal: {
+        title: "Превью сигнала",
+        subtitle: "Качество live-сцены",
+        session: "Сессия",
+        online: "Онлайн",
+        items: ["Рендер-пайплайн", "Pixel Stream", "Чат поставщика", "Оверлей товара"],
+        ready: "Готово",
+        trusted: "Используют команды",
+        tags: ["Обувь", "Потреб. электроника", "Промышленность", "Дом и интерьер"],
+      },
+    },
+    sectionB: {
+      tag: "Путь к сделке",
+      title: "От интереса к квалифицированному лидy за три шага.",
+      steps: [
+        {
+          step: "01",
+          title: "Войти в живой павильон",
+          description:
+            "Проходите по залам, изучайте товары и управляйте сценой в реальном времени.",
+        },
+        {
+          step: "02",
+          title: "Сфокусироваться на объекте",
+          description:
+            "Наводите прицел, мгновенно открывайте карточки и сравнивайте характеристики.",
+        },
+        {
+          step: "03",
+          title: "Связаться и конвертировать",
+          description:
+            "Запускайте чат с поставщиком, запрашивайте каталоги и переходите к сделке.",
+        },
+      ],
+    },
+    sectionC: {
+      tag: "Готово к запуску",
+      title: "Превратите следующую выставку в премиальное цифровое направление.",
+      description:
+        "Объедините поставщиков, каталоги и 3D-сцены в одном иммерсивном пространстве с измеримой вовлеченностью.",
+    },
   },
-  {
-    step: "03",
-    title: "Connect and Convert",
-    description: "Launch supplier chat, request catalogs, and move directly from discovery to qualified lead flow.",
+  zh: {
+    nav: {
+      exhibition: "展览",
+      marketplace: "商城",
+      solutions: "解决方案",
+      about: "关于我们",
+    },
+    cta: {
+      supplier: "成为供应商",
+      visit: "访问展览",
+      startTour: "开始互动导览",
+      photo: "照片转3D",
+      visitSection: "访问展览",
+      explore: "体验在线展厅",
+      prototype: "开始原型",
+    },
+    hero: {
+      tag: "高端虚拟交易平台",
+      title: "旗舰级数字展销空间，销售的是临场感，而不是截图。",
+      description:
+        "3DSFERA 让买家更有把握地选品，也让供应商更快开启高质量沟通、建立信任并达成交易。",
+    },
+    stats: [
+      { value: "42", label: "活跃供应商展馆" },
+      { value: "13 ms", label: "中位输入延迟" },
+      { value: "4K", label: "电影级流媒体画质" },
+    ],
+    sectionA: {
+      tag: "体验层",
+      title: "为每个供应商展位打造精致商业舞台。",
+      description:
+        "实时叠层、AI 对话与对象级交互，兼顾高端展厅体验与网页端全球可访问性。",
+      pillars: [
+        {
+          key: "pipeline" as const,
+          title: "实时 Unreal 管线",
+          description:
+            "产品通过 Unreal Engine 实时渲染与推流，具备交互灯光、反射与真实尺度。",
+        },
+        {
+          key: "attendance" as const,
+          title: "跨设备无门槛访问",
+          description:
+            "支持桌面、平板、手机浏览器访问，无需安装、无需高性能工作站。",
+        },
+        {
+          key: "safe" as const,
+          title: "企业级安全",
+          description:
+            "会话隔离、供应商身份通道与受控互动，适配商业会展场景。",
+        },
+      ],
+      signal: {
+        title: "信号预览",
+        subtitle: "实时舞台质量",
+        session: "会话",
+        online: "在线",
+        items: ["渲染管线", "Pixel Stream", "供应商聊天", "产品叠层"],
+        ready: "就绪",
+        trusted: "被这些行业采用",
+        tags: ["鞋服", "消费电子", "工业", "家居生活"],
+      },
+    },
+    sectionB: {
+      tag: "转化路径",
+      title: "三步把兴趣转化为高质量商机。",
+      steps: [
+        {
+          step: "01",
+          title: "进入实时展馆",
+          description:
+            "浏览精选展区、查看产品，并通过流畅交互控制场景。",
+        },
+        {
+          step: "02",
+          title: "精准聚焦产品",
+          description:
+            "通过准星选择目标，快速打开详情卡并对比参数。",
+        },
+        {
+          step: "03",
+          title: "沟通并促成成交",
+          description:
+            "直接联系供应商、请求资料并从发现走向有效转化。",
+        },
+      ],
+    },
+    sectionC: {
+      tag: "准备上线",
+      title: "把下一场展会升级为高端数字目的地。",
+      description:
+        "将供应商、目录与产品场景整合到同一个沉浸式环境中，提升可量化互动与转化。",
+    },
   },
-];
+} as const;
 
 export default function LandingPage() {
+  const { language } = useLanguage();
+  const t = copy[language];
+
   return (
     <div
       className={`${display.variable} ${body.variable} ${mono.variable} relative min-h-screen overflow-x-clip bg-[#090b10] text-[#f5f1e9] [font-family:var(--font-body)] selection:bg-[#66d9cb] selection:text-[#090b10]`}
@@ -88,16 +350,16 @@ export default function LandingPage() {
 
           <nav className="hidden items-center gap-8 text-sm text-[#d6d1c8] md:flex">
             <a href="#exhibition" className="fade-up delay-1 transition hover:text-white">
-              Exhibition
+              {t.nav.exhibition}
             </a>
             <a href="#marketplace" className="fade-up delay-2 transition hover:text-white">
-              Marketplace
+              {t.nav.marketplace}
             </a>
             <a href="#solutions" className="fade-up delay-3 transition hover:text-white">
-              Solutions
+              {t.nav.solutions}
             </a>
             <a href="#about" className="fade-up delay-3 transition hover:text-white">
-              About
+              {t.nav.about}
             </a>
           </nav>
 
@@ -106,13 +368,13 @@ export default function LandingPage() {
               href="/supplier/dashboard"
               className="rounded-full border border-white/15 px-4 py-2 text-xs font-semibold tracking-wide text-[#f5f1e9] transition hover:border-white/35 hover:bg-white/10 sm:text-sm"
             >
-              Become a Supplier
+              {t.cta.supplier}
             </Link>
             <Link
               href="/experience"
               className="rounded-full bg-[#f6ba4f] px-4 py-2 text-xs font-bold tracking-wide text-[#130f07] transition hover:bg-[#ffd084] sm:text-sm"
             >
-              Visit Exhibition
+              {t.cta.visit}
             </Link>
           </div>
         </div>
@@ -121,16 +383,15 @@ export default function LandingPage() {
       <main className="relative z-10">
         <section id="exhibition" className="mx-auto max-w-7xl px-4 pb-20 pt-20 sm:px-6 lg:px-8 lg:pb-24 lg:pt-24">
           <p className="fade-up [font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.32em] text-[#66d9cb] sm:text-xs">
-            Premium Virtual Marketplace
+            {t.hero.tag}
           </p>
 
           <h1 className="fade-up delay-1 mt-5 max-w-4xl text-4xl leading-[0.95] tracking-tight [font-family:var(--font-display)] sm:text-6xl lg:text-7xl">
-            A flagship digital trade floor built to sell presence, not screenshots.
+            {t.hero.title}
           </h1>
 
           <p className="fade-up delay-2 mt-7 max-w-2xl text-base leading-relaxed text-[#cdc7bc] sm:text-lg">
-            3DSFERA gives buyers a confident way to discover products and gives suppliers a clear path to
-            start real conversations, build trust, and close better deals from anywhere.
+            {t.hero.description}
           </p>
 
           <div className="fade-up delay-3 mt-10 flex flex-wrap items-center gap-3">
@@ -138,18 +399,18 @@ export default function LandingPage() {
               href="/experience"
               className="inline-flex items-center gap-2 rounded-full bg-[#66d9cb] px-6 py-3 text-sm font-bold text-[#08100f] transition hover:bg-[#8de6dc]"
             >
-              Start Interactive Tour <ArrowRight className="h-4 w-4" />
+              {t.cta.startTour} <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/photo-to-3d"
               className="inline-flex items-center gap-2 rounded-full border border-[#f6ba4f]/45 bg-[#f6ba4f]/10 px-6 py-3 text-sm font-semibold text-[#ffe7bc] transition hover:bg-[#f6ba4f]/20"
             >
-              Photo to 3D (RU) <Sparkles className="h-4 w-4" />
+              {t.cta.photo} <Sparkles className="h-4 w-4" />
             </Link>
           </div>
 
           <div className="mt-14 grid gap-4 sm:grid-cols-3">
-            {trustStats.map((stat, index) => (
+            {t.stats.map((stat, index) => (
               <article
                 key={stat.label}
                 className={`fade-up delay-${index + 1} rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl`}
@@ -165,27 +426,27 @@ export default function LandingPage() {
           <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr]">
             <div className="fade-up rounded-3xl border border-white/10 bg-[#11151d]/70 p-7 backdrop-blur-xl sm:p-9">
               <p className="text-[11px] uppercase tracking-[0.24em] text-[#66d9cb] [font-family:var(--font-mono)]">
-                Experience Layer
+                {t.sectionA.tag}
               </p>
               <h2 className="mt-4 text-3xl leading-tight [font-family:var(--font-display)] sm:text-4xl">
-                A polished commercial stage for every supplier booth.
+                {t.sectionA.title}
               </h2>
-              <p className="mt-5 max-w-xl text-[#ccc5b9]">
-                Real-time overlays, AI-assisted chat, and object-level interaction create the feeling of a
-                hosted showroom while preserving web-native accessibility for global attendees.
-              </p>
+              <p className="mt-5 max-w-xl text-[#ccc5b9]">{t.sectionA.description}</p>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                {pillars.map((pillar) => (
-                  <article
-                    key={pillar.title}
-                    className="rounded-2xl border border-white/10 bg-[#0d1016]/90 p-5 transition hover:border-[#66d9cb]/35"
-                  >
-                    <pillar.icon className="h-5 w-5 text-[#66d9cb]" />
-                    <h3 className="mt-3 text-sm font-semibold tracking-wide">{pillar.title}</h3>
-                    <p className="mt-2 text-xs leading-relaxed text-[#b5aea2]">{pillar.description}</p>
-                  </article>
-                ))}
+                {t.sectionA.pillars.map((pillar) => {
+                  const Icon = pillarIcons[pillar.key as PillarKey];
+                  return (
+                    <article
+                      key={pillar.title}
+                      className="rounded-2xl border border-white/10 bg-[#0d1016]/90 p-5 transition hover:border-[#66d9cb]/35"
+                    >
+                      <Icon className="h-5 w-5 text-[#66d9cb]" />
+                      <h3 className="mt-3 text-sm font-semibold tracking-wide">{pillar.title}</h3>
+                      <p className="mt-2 text-xs leading-relaxed text-[#b5aea2]">{pillar.description}</p>
+                    </article>
+                  );
+                })}
               </div>
             </div>
 
@@ -194,32 +455,32 @@ export default function LandingPage() {
               <div className="scan-line absolute left-0 top-0 h-full w-10 bg-gradient-to-r from-transparent via-[#66d9cb]/20 to-transparent" />
               <div className="relative">
                 <p className="text-[11px] uppercase tracking-[0.24em] text-[#f6ba4f] [font-family:var(--font-mono)]">
-                  Signal Preview
+                  {t.sectionA.signal.title}
                 </p>
-                <h3 className="mt-3 text-2xl [font-family:var(--font-display)]">Live Stage Quality</h3>
+                <h3 className="mt-3 text-2xl [font-family:var(--font-display)]">{t.sectionA.signal.subtitle}</h3>
 
                 <div className="mt-6 rounded-2xl border border-white/10 bg-[#090b10]/80 p-4">
                   <div className="mb-3 flex items-center justify-between text-[11px] text-[#bdb5a8]">
-                    <span>Session</span>
+                    <span>{t.sectionA.signal.session}</span>
                     <span className="inline-flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-[#66d9cb] shadow-[0_0_8px_rgba(102,217,203,0.8)]" />
-                      Online
+                      {t.sectionA.signal.online}
                     </span>
                   </div>
                   <div className="space-y-2">
-                    {["Render Pipeline", "Pixel Stream", "Supplier Chat", "Product Overlay"].map((item) => (
+                    {t.sectionA.signal.items.map((item) => (
                       <div key={item} className="flex items-center justify-between rounded-lg bg-white/[0.04] px-3 py-2 text-xs">
                         <span>{item}</span>
-                        <span className="text-[#66d9cb]">Ready</span>
+                        <span className="text-[#66d9cb]">{t.sectionA.signal.ready}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#c7c0b3]">Trusted by teams</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#c7c0b3]">{t.sectionA.signal.trusted}</p>
                   <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-                    {["Footwear", "Consumer Tech", "Industrial", "Home & Living"].map((tag) => (
+                    {t.sectionA.signal.tags.map((tag) => (
                       <span key={tag} className="rounded-full border border-white/15 px-3 py-1 text-[#ddd6ca]">
                         {tag}
                       </span>
@@ -236,22 +497,22 @@ export default function LandingPage() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.24em] text-[#66d9cb] [font-family:var(--font-mono)]">
-                  Conversion Journey
+                  {t.sectionB.tag}
                 </p>
                 <h2 className="mt-3 text-3xl [font-family:var(--font-display)] sm:text-4xl">
-                  From curiosity to qualified lead in three steps.
+                  {t.sectionB.title}
                 </h2>
               </div>
               <Link
                 href="/experience"
                 className="inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-2 text-sm font-semibold transition hover:border-white/40 hover:bg-white/10"
               >
-                Visit Exhibition <ArrowRight className="h-4 w-4" />
+                {t.cta.visitSection} <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
 
             <div className="mt-8 grid gap-4 md:grid-cols-3">
-              {journey.map((item) => (
+              {t.sectionB.steps.map((item) => (
                 <article key={item.step} className="rounded-2xl border border-white/10 bg-[#0b0e13]/80 p-5">
                   <p className="text-xs [font-family:var(--font-mono)] tracking-[0.18em] text-[#f6ba4f]">{item.step}</p>
                   <h3 className="mt-3 text-xl [font-family:var(--font-display)]">{item.title}</h3>
@@ -267,35 +528,31 @@ export default function LandingPage() {
             <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.24em] text-[#66d9cb] [font-family:var(--font-mono)]">
-                  Ready for Launch
+                  {t.sectionC.tag}
                 </p>
                 <h2 className="mt-2 text-3xl [font-family:var(--font-display)] sm:text-4xl">
-                  Turn your next expo into a premium digital destination.
+                  {t.sectionC.title}
                 </h2>
-                <p className="mt-3 max-w-2xl text-[#c9c1b5]">
-                  Bring your suppliers, catalogs, and product scenes into one immersive environment designed for
-                  measurable engagement.
-                </p>
+                <p className="mt-3 max-w-2xl text-[#c9c1b5]">{t.sectionC.description}</p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-3">
                 <Link
                   href="/experience"
                   className="inline-flex items-center gap-2 rounded-full bg-[#f6ba4f] px-6 py-3 text-sm font-bold text-[#120d04] transition hover:bg-[#ffd083]"
                 >
-                  Explore Live <ArrowRight className="h-4 w-4" />
+                  {t.cta.explore} <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href="/photo-to-3d"
                   className="inline-flex items-center gap-2 rounded-full border border-white/20 px-6 py-3 text-sm font-semibold transition hover:border-white/35 hover:bg-white/10"
                 >
-                  <Building2 className="h-4 w-4" /> Start Prototype
+                  <Building2 className="h-4 w-4" /> {t.cta.prototype}
                 </Link>
               </div>
             </div>
           </div>
         </section>
       </main>
-
     </div>
   );
 }
