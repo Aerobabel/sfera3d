@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local temp/cache artifacts
+.npm-cache/
+.tmp_*
