@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Send, Menu, X, Box, Info } from "lucide-react";
 import Link from 'next/link';
 import { Product, Supplier } from "@/lib/types";
@@ -23,7 +23,7 @@ type PixelStreamingWindow = Window & {
 
 type ChatMessage = {
     id: string;
-    role: 'assistant' | 'user';
+    role: 'assistant' | 'user' | 'supplier';
     text: string;
     timestamp: number;
 };
@@ -34,6 +34,22 @@ type ChatApiResponse = {
         text?: string;
         timestamp?: number;
     };
+};
+
+type SupplierMessagePayload = {
+    id: string;
+    supplierId: string;
+    senderRole: 'buyer' | 'supplier';
+    senderName: string;
+    text: string;
+    createdAt: number;
+};
+
+type SupplierChatApiResponse = {
+    success?: boolean;
+    error?: string;
+    messages?: SupplierMessagePayload[];
+    message?: SupplierMessagePayload;
 };
 
 const createClientChatMessage = (role: ChatMessage['role'], text: string): ChatMessage => ({
@@ -58,6 +74,7 @@ const EXPERIENCE_COPY: Record<
         menuNavigation: string;
         menuProducts: string;
         menuSupplier: string;
+        menuLogin: string;
         menuExit: string;
         assistantTitle: string;
         assistantSubtitle: string;
@@ -88,6 +105,7 @@ const EXPERIENCE_COPY: Record<
         menuNavigation: 'Navigation',
         menuProducts: 'Products',
         menuSupplier: 'About Supplier',
+        menuLogin: 'Supplier Login',
         menuExit: 'Exit Experience',
         assistantTitle: 'AI Concierge',
         assistantSubtitle: 'Ask about product pricing, specs, stock, or supplier details.',
@@ -117,6 +135,7 @@ const EXPERIENCE_COPY: Record<
         menuNavigation: 'Навигация',
         menuProducts: 'Товары',
         menuSupplier: 'О поставщике',
+        menuLogin: 'Вход поставщика',
         menuExit: 'Выйти из режима',
         assistantTitle: 'AI-консьерж',
         assistantSubtitle: 'Спросите цену, характеристики, наличие или информацию о поставщике.',
@@ -146,6 +165,7 @@ const EXPERIENCE_COPY: Record<
         menuNavigation: '导航',
         menuProducts: '产品',
         menuSupplier: '供应商信息',
+        menuLogin: '供应商登录',
         menuExit: '退出体验',
         assistantTitle: 'AI 助理',
         assistantSubtitle: '可询问价格、规格、库存或供应商信息。',
@@ -230,7 +250,8 @@ export default function ExperiencePage() {
     const [signalingServerUrl] = useState<string>(() => resolveDefaultSignalingUrl());
     const [chatInput, setChatInput] = useState('');
     const [isChatFocused, setIsChatFocused] = useState(false);
-    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    const [chatMode, setChatMode] = useState<'ai' | 'supplier'>('ai');
+    const [aiChatMessages, setAiChatMessages] = useState<ChatMessage[]>([
         {
             id: 'assistant-welcome',
             role: 'assistant',
@@ -238,7 +259,9 @@ export default function ExperiencePage() {
             timestamp: Date.now(),
         },
     ]);
+    const [supplierChatMessages, setSupplierChatMessages] = useState<ChatMessage[]>([]);
     const [isSendingChat, setIsSendingChat] = useState(false);
+    const [isSyncingSupplierChat, setIsSyncingSupplierChat] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [isLandscape, setIsLandscape] = useState(true);
@@ -317,15 +340,97 @@ export default function ExperiencePage() {
     // Video Element Reference for Mobile Controls
     const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
+    const activeSupplierId = activeSupplier?.id;
+    const chatMessages = chatMode === 'ai' ? aiChatMessages : supplierChatMessages;
+    const isSupplierMode = chatMode === 'supplier';
+    const chatTitle = isSupplierMode ? `${ui.menuSupplier}` : ui.assistantTitle;
+    const chatSubtitle = isSupplierMode
+        ? (activeSupplier ? `${activeSupplier.name}` : ui.assistantSubtitle)
+        : ui.assistantSubtitle;
+    const chatPlaceholder = isSupplierMode
+        ? 'Type message to supplier...'
+        : ui.inputPlaceholder;
+
+    const syncSupplierMessages = useCallback(async () => {
+        if (!activeSupplierId) return;
+        setIsSyncingSupplierChat(true);
+
+        try {
+            const response = await fetch(`/api/supplier-chat?supplierId=${encodeURIComponent(activeSupplierId)}`, {
+                cache: 'no-store',
+            });
+            const data = (await response.json()) as SupplierChatApiResponse;
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Unable to load supplier messages.');
+            }
+
+            const nextMessages = (data.messages ?? []).map((message) => ({
+                id: `supplier-${message.id}`,
+                role: message.senderRole === 'supplier' ? 'supplier' : 'user',
+                text: message.text,
+                timestamp: message.createdAt,
+            })) satisfies ChatMessage[];
+
+            setSupplierChatMessages(nextMessages);
+        } catch {
+            setSupplierChatMessages((previous) =>
+                previous.length > 0
+                    ? previous
+                    : [createClientChatMessage('assistant', ui.connectionIssue)]
+            );
+        } finally {
+            setIsSyncingSupplierChat(false);
+        }
+    }, [activeSupplierId, ui.connectionIssue]);
 
     const sendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         const trimmed = chatInput.trim();
         if (!trimmed || isSendingChat) return;
 
-        setChatMessages((previous) => [...previous, createClientChatMessage('user', trimmed)]);
         setChatInput('');
         setIsSendingChat(true);
+
+        if (isSupplierMode && activeSupplierId) {
+            setSupplierChatMessages((previous) => [
+                ...previous,
+                createClientChatMessage('user', trimmed),
+            ]);
+
+            try {
+                const response = await fetch('/api/supplier-chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        supplierId: activeSupplierId,
+                        senderRole: 'buyer',
+                        senderName: 'Guest',
+                        text: trimmed,
+                    }),
+                });
+
+                const data = (await response.json()) as SupplierChatApiResponse;
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Unable to send message.');
+                }
+
+                await syncSupplierMessages();
+            } catch {
+                setSupplierChatMessages((previous) => [
+                    ...previous,
+                    createClientChatMessage('assistant', ui.connectionIssue),
+                ]);
+            } finally {
+                setIsSendingChat(false);
+            }
+
+            return;
+        }
+
+        setAiChatMessages((previous) => [...previous, createClientChatMessage('user', trimmed)]);
 
         try {
             const response = await fetch('/api/chat', {
@@ -351,9 +456,9 @@ export default function ExperiencePage() {
                     ? data.assistantMessage.text.trim()
                     : ui.fallbackReply;
 
-            setChatMessages((previous) => [...previous, createClientChatMessage('assistant', replyText)]);
+            setAiChatMessages((previous) => [...previous, createClientChatMessage('assistant', replyText)]);
         } catch {
-            setChatMessages((previous) => [
+            setAiChatMessages((previous) => [
                 ...previous,
                 createClientChatMessage(
                     'assistant',
@@ -375,7 +480,7 @@ export default function ExperiencePage() {
     }, [chatMessages]);
 
     useEffect(() => {
-        setChatMessages((previous) =>
+        setAiChatMessages((previous) =>
             previous.map((message) =>
                 message.id === 'assistant-welcome'
                     ? { ...message, text: ui.welcome }
@@ -383,6 +488,19 @@ export default function ExperiencePage() {
             )
         );
     }, [ui.welcome]);
+
+    useEffect(() => {
+        if (!isSupplierMode || !activeSupplierId) return;
+
+        void syncSupplierMessages();
+        const interval = window.setInterval(() => {
+            void syncSupplierMessages();
+        }, 3000);
+
+        return () => {
+            window.clearInterval(interval);
+        };
+    }, [isSupplierMode, activeSupplierId, syncSupplierMessages]);
 
     useEffect(() => {
         if (!localizedActiveProduct) return;
@@ -407,7 +525,7 @@ export default function ExperiencePage() {
                   ? '供应商'
                   : 'supplier');
 
-        setChatMessages((previous) => [
+        setAiChatMessages((previous) => [
             ...previous,
             createClientChatMessage(
                 'assistant',
@@ -439,13 +557,20 @@ export default function ExperiencePage() {
         if (!activeSupplier) return;
         const fallbackProductName =
             language === 'ru' ? 'товару' : language === 'zh' ? '该产品' : 'product';
+        setChatMode('supplier');
+        setIsMobileChatOpen(true);
+        setSupplierChatMessages((previous) =>
+            previous.length > 0
+                ? previous
+                : [createClientChatMessage('assistant', ui.startSupplierChat(activeSupplier.name))]
+        );
         setChatInput(
             ui.chatPrefill(
                 activeSupplier.name,
                 localizedActiveProduct?.name ?? activeProduct?.name ?? fallbackProductName
             )
         );
-        alert(ui.startSupplierChat(activeSupplier.name));
+        void syncSupplierMessages();
     };
 
     const handleViewCatalogue = () => {
@@ -576,6 +701,9 @@ export default function ExperiencePage() {
                             <button className="w-full text-left px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10 transition flex items-center gap-2">
                                 <Info size={16} /> {ui.menuSupplier}
                             </button>
+                            <Link href="/login" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
+                                {ui.menuLogin}
+                            </Link>
                             <div className="h-px bg-white/10 my-2"></div>
                             <Link href="/" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition">
                                 {ui.menuExit}
@@ -623,10 +751,35 @@ export default function ExperiencePage() {
                             <div className={`w-full md:max-w-lg rounded-2xl border border-[#66d9cb]/30 bg-[linear-gradient(160deg,rgba(5,10,18,0.9),rgba(12,18,28,0.82))] p-4 text-white shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-xl ${isMobile ? 'max-w-[min(92vw,560px)] mx-auto' : ''} ${usingMobileJoysticks ? 'mb-28' : ''}`}>
                                 <div className="mb-3 flex items-start justify-between gap-3">
                                     <div>
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#66d9cb]">{ui.assistantTitle}</p>
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#66d9cb]">{chatTitle}</p>
                                         <p className="mt-1 text-xs text-[#bbc6d4]">
-                                            {ui.assistantSubtitle}
+                                            {chatSubtitle}
                                         </p>
+                                        <div className="mt-2 flex items-center gap-2">
+                                            <button
+                                                onClick={() => setChatMode('ai')}
+                                                className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider transition ${chatMode === 'ai'
+                                                    ? 'border-[#66d9cb]/50 bg-[#66d9cb]/20 text-[#66d9cb]'
+                                                    : 'border-white/15 text-gray-300 hover:bg-white/10 hover:text-white'
+                                                    }`}
+                                            >
+                                                AI
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    if (!activeSupplierId) return;
+                                                    setChatMode('supplier');
+                                                    void syncSupplierMessages();
+                                                }}
+                                                disabled={!activeSupplierId}
+                                                className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider transition ${chatMode === 'supplier'
+                                                    ? 'border-[#66d9cb]/50 bg-[#66d9cb]/20 text-[#66d9cb]'
+                                                    : 'border-white/15 text-gray-300 hover:bg-white/10 hover:text-white'
+                                                    } disabled:cursor-not-allowed disabled:opacity-50`}
+                                            >
+                                                {ui.menuSupplier}
+                                            </button>
+                                        </div>
                                     </div>
                                     {isMobile && (
                                         <button
@@ -641,15 +794,20 @@ export default function ExperiencePage() {
                                 <div ref={chatFeedRef} className="mb-3 h-36 space-y-3 overflow-y-auto pr-1 md:h-56">
                                     {chatMessages.map((message) => (
                                         <div key={message.id} className={`flex gap-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                            {message.role === 'assistant' && (
-                                                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#66d9cb]/35 bg-[#66d9cb]/15 text-[10px] font-bold tracking-wide text-[#66d9cb]">
-                                                    AI
+                                            {message.role !== 'user' && (
+                                                <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[10px] font-bold tracking-wide ${message.role === 'supplier'
+                                                    ? 'border-indigo-300/35 bg-indigo-300/15 text-indigo-200'
+                                                    : 'border-[#66d9cb]/35 bg-[#66d9cb]/15 text-[#66d9cb]'
+                                                    }`}>
+                                                    {message.role === 'supplier' ? 'SUP' : 'AI'}
                                                 </div>
                                             )}
                                             <div
                                                 className={`max-w-[84%] rounded-xl px-3 py-2 text-sm leading-relaxed ${message.role === 'assistant'
                                                     ? 'rounded-tl-none border border-[#66d9cb]/20 bg-black/35 text-gray-100'
-                                                    : 'rounded-tr-none bg-[#66d9cb] font-semibold text-[#03100f]'
+                                                    : message.role === 'supplier'
+                                                        ? 'rounded-tl-none border border-indigo-300/30 bg-indigo-400/15 text-indigo-100'
+                                                        : 'rounded-tr-none bg-[#66d9cb] font-semibold text-[#03100f]'
                                                     }`}
                                             >
                                                 {message.text}
@@ -659,7 +817,13 @@ export default function ExperiencePage() {
                                     {isSendingChat && (
                                         <div className="flex items-center gap-2 text-xs text-[#9db1c7]">
                                             <span className="h-2 w-2 animate-pulse rounded-full bg-[#66d9cb]" />
-                                            {ui.typing}
+                                            {isSupplierMode ? ui.menuSupplier : ui.typing}
+                                        </div>
+                                    )}
+                                    {!isSendingChat && isSupplierMode && isSyncingSupplierChat && (
+                                        <div className="flex items-center gap-2 text-xs text-[#9db1c7]">
+                                            <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-300" />
+                                            Syncing supplier chat...
                                         </div>
                                     )}
                                 </div>
@@ -674,7 +838,7 @@ export default function ExperiencePage() {
                                             onBlur={() => setIsChatFocused(false)}
                                             onKeyDown={(e) => e.stopPropagation()}
                                             onKeyUp={(e) => e.stopPropagation()}
-                                            placeholder={ui.inputPlaceholder}
+                                            placeholder={chatPlaceholder}
                                             className="w-full border-none bg-transparent px-3 py-2 text-sm text-white placeholder:text-[#70839a] focus:ring-0"
                                         />
                                         <button
@@ -711,3 +875,4 @@ export default function ExperiencePage() {
         </div>
     );
 }
+

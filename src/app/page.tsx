@@ -48,7 +48,7 @@ const copy = {
       about: "About",
     },
     cta: {
-      supplier: "Become a Supplier",
+      supplier: "Supplier Login",
       visit: "Visit Exhibition",
       startTour: "Start Interactive Tour",
       photo: "Photo to 3D",
@@ -142,7 +142,7 @@ const copy = {
       about: "О нас",
     },
     cta: {
-      supplier: "Стать поставщиком",
+      supplier: "Вход поставщика",
       visit: "Посетить выставку",
       startTour: "Начать интерактивный тур",
       photo: "Фото в 3D",
@@ -236,7 +236,7 @@ const copy = {
       about: "关于我们",
     },
     cta: {
-      supplier: "成为供应商",
+      supplier: "供应商登录",
       visit: "访问展览",
       startTour: "开始互动导览",
       photo: "照片转3D",
@@ -365,7 +365,7 @@ export default function LandingPage() {
 
           <div className="fade-up delay-2 flex items-center gap-2 sm:gap-3">
             <Link
-              href="/supplier/dashboard"
+              href="/login"
               className="rounded-full border border-white/15 px-4 py-2 text-xs font-semibold tracking-wide text-[#f5f1e9] transition hover:border-white/35 hover:bg-white/10 sm:text-sm"
             >
               {t.cta.supplier}
