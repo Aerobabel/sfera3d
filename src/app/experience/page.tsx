@@ -99,15 +99,7 @@ const resolveDefaultSignalingUrl = () => {
     const params = new URLSearchParams(window.location.search);
     const fromQuery = params.get('ps_url')?.trim();
     if (fromQuery) return fromQuery;
-
-    const detectedHost = window.location.hostname || '127.0.0.1';
-    const shouldUseRemoteDefault =
-        detectedHost === '127.0.0.1' ||
-        detectedHost === 'localhost' ||
-        detectedHost === '0.0.0.0';
-    const host = shouldUseRemoteDefault ? remoteDefaultHost : detectedHost;
-    const protocol = host === remoteDefaultHost ? 'wss' : (window.location.protocol === 'https:' ? 'wss' : 'ws');
-    return withOptionalPort(protocol, host);
+    return withOptionalPort('wss', remoteDefaultHost);
 };
 
 export default function ExperiencePage() {
