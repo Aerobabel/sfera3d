@@ -83,6 +83,7 @@ const extractProductIdFromUnrealPayload = (payload: unknown): string | null => {
 };
 
 const resolveDefaultSignalingUrl = () => {
+    const remoteDefaultHost = 'avastatesarah.com';
     const fromEnv = process.env.NEXT_PUBLIC_PIXELSTREAM_SIGNALING_URL?.trim();
     if (fromEnv) return fromEnv;
 
@@ -90,17 +91,22 @@ const resolveDefaultSignalingUrl = () => {
     const withOptionalPort = (protocol: 'ws' | 'wss', host: string) =>
         port ? `${protocol}://${host}:${port}` : `${protocol}://${host}`;
 
-    // `window` is only available in the browser; fall back to loopback for prerender.
+    // `window` is only available in the browser; fall back to production host for prerender.
     if (typeof window === 'undefined') {
-        return withOptionalPort('ws', '127.0.0.1');
+        return withOptionalPort('wss', remoteDefaultHost);
     }
 
     const params = new URLSearchParams(window.location.search);
     const fromQuery = params.get('ps_url')?.trim();
     if (fromQuery) return fromQuery;
 
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const host = window.location.hostname || '127.0.0.1';
+    const detectedHost = window.location.hostname || '127.0.0.1';
+    const shouldUseRemoteDefault =
+        detectedHost === '127.0.0.1' ||
+        detectedHost === 'localhost' ||
+        detectedHost === '0.0.0.0';
+    const host = shouldUseRemoteDefault ? remoteDefaultHost : detectedHost;
+    const protocol = host === remoteDefaultHost ? 'wss' : (window.location.protocol === 'https:' ? 'wss' : 'ws');
     return withOptionalPort(protocol, host);
 };
 
