@@ -79,3 +79,20 @@ body {
 .scan-line {
   animation: sweep 4.6s linear infinite;
 }
+
+@media print {
+  @page {
+    size: auto;
+    margin: 12mm;
+  }
+
+  .pdf-section {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .pdf-break-before {
+    break-before: page;
+    page-break-before: always;
+  }
+}

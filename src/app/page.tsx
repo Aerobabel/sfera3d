@@ -45,11 +45,13 @@ const copy = {
       exhibition: "Exhibition",
       marketplace: "Marketplace",
       solutions: "Solutions",
+      onboarding: "Onboarding",
       about: "About",
     },
     cta: {
       supplier: "Supplier Login",
       visit: "Visit Exhibition",
+      onboarding: "Supplier Onboarding",
       startTour: "Start Interactive Tour",
       photo: "Photo to 3D",
       visitSection: "Visit Exhibition",
@@ -139,11 +141,13 @@ const copy = {
       exhibition: "Выставка",
       marketplace: "Маркетплейс",
       solutions: "Решения",
+      onboarding: "Онбординг",
       about: "О нас",
     },
     cta: {
       supplier: "Вход поставщика",
       visit: "Посетить выставку",
+      onboarding: "Онбординг поставщика",
       startTour: "Начать интерактивный тур",
       photo: "Фото в 3D",
       visitSection: "Посетить выставку",
@@ -233,11 +237,13 @@ const copy = {
       exhibition: "展览",
       marketplace: "商城",
       solutions: "解决方案",
+      onboarding: "入驻规范",
       about: "关于我们",
     },
     cta: {
       supplier: "供应商登录",
       visit: "访问展览",
+      onboarding: "供应商入驻",
       startTour: "开始互动导览",
       photo: "照片转3D",
       visitSection: "访问展览",
@@ -358,6 +364,9 @@ export default function LandingPage() {
             <a href="#solutions" className="fade-up delay-3 transition hover:text-white">
               {t.nav.solutions}
             </a>
+            <Link href="/onboarding" className="fade-up delay-3 transition hover:text-white">
+              {t.nav.onboarding}
+            </Link>
             <a href="#about" className="fade-up delay-3 transition hover:text-white">
               {t.nav.about}
             </a>
@@ -406,6 +415,12 @@ export default function LandingPage() {
               className="inline-flex items-center gap-2 rounded-full border border-[#f6ba4f]/45 bg-[#f6ba4f]/10 px-6 py-3 text-sm font-semibold text-[#ffe7bc] transition hover:bg-[#f6ba4f]/20"
             >
               {t.cta.photo} <Sparkles className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/onboarding"
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-[#f5f1e9] transition hover:border-white/35 hover:bg-white/10"
+            >
+              {t.cta.onboarding}
             </Link>
           </div>
 

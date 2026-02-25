@@ -15,71 +15,60 @@ const OPTIONS: Array<{ value: AppLanguage; label: string }> = [
 export default function LanguageSwitcher() {
   const { language, setLanguage } = useLanguage();
   const pathname = usePathname();
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const hideMobileSwitcher = pathname?.startsWith('/experience') ?? false;
+  const [isOpen, setIsOpen] = useState(false);
+  const hideSwitcher = pathname?.startsWith('/experience') ?? false;
 
   const activeLabel = useMemo(
     () => OPTIONS.find((option) => option.value === language)?.label ?? language.toUpperCase(),
     [language]
   );
 
+  if (hideSwitcher) {
+    return null;
+  }
+
   return (
-    <>
-      <div className="fixed left-1/2 top-3 z-[320] hidden -translate-x-1/2 rounded-full border border-white/15 bg-black/60 p-1 backdrop-blur-xl md:block">
-        <div className="flex items-center gap-1">
-          {OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => setLanguage(option.value)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold tracking-wide transition ${
-                language === option.value
-                  ? 'bg-[#66d9cb] text-[#04110f]'
-                  : 'text-white/80 hover:bg-white/10 hover:text-white'
-              }`}
-              aria-label={`Switch language to ${option.label}`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {!hideMobileSwitcher && (
-        <div className="fixed bottom-4 left-4 z-[320] md:hidden">
-          {isMobileOpen && (
-            <div className="mb-2 rounded-2xl border border-white/15 bg-black/80 p-1 backdrop-blur-xl">
-              <div className="flex flex-col gap-1">
-                {OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      setLanguage(option.value);
-                      setIsMobileOpen(false);
-                    }}
-                    className={`rounded-xl px-3 py-2 text-xs font-semibold tracking-wide transition ${
-                      language === option.value
-                        ? 'bg-[#66d9cb] text-[#04110f]'
-                        : 'text-white/85 hover:bg-white/10 hover:text-white'
-                    }`}
-                    aria-label={`Switch language to ${option.label}`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
+    <div
+      className="pointer-events-none fixed z-[220]"
+      style={{
+        right: "calc(env(safe-area-inset-right, 0px) + 12px)",
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+      }}
+    >
+      <div className="pointer-events-auto flex flex-col items-end gap-2">
+        {isOpen && (
+          <div className="rounded-2xl border border-white/15 bg-black/85 p-1 backdrop-blur-xl shadow-[0_14px_28px_rgba(0,0,0,0.4)]">
+            <div className="flex flex-col gap-1">
+              {OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    setLanguage(option.value);
+                    setIsOpen(false);
+                  }}
+                  className={`rounded-xl px-3 py-2 text-xs font-semibold tracking-wide transition ${
+                    language === option.value
+                      ? "bg-[#66d9cb] text-[#04110f]"
+                      : "text-white/85 hover:bg-white/10 hover:text-white"
+                  }`}
+                  aria-label={`Switch language to ${option.label}`}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-          <button
-            onClick={() => setIsMobileOpen((previous) => !previous)}
-            className="flex items-center gap-2 rounded-full border border-white/20 bg-black/75 px-3 py-2 text-xs font-semibold tracking-wide text-white shadow-lg backdrop-blur-xl transition hover:bg-black/90"
-            aria-label="Open language menu"
-          >
-            <Globe2 size={14} />
-            {activeLabel}
-          </button>
-        </div>
-      )}
-    </>
+        <button
+          onClick={() => setIsOpen((previous) => !previous)}
+          className="flex items-center gap-2 rounded-full border border-white/20 bg-black/75 px-3 py-2 text-xs font-semibold tracking-wide text-white shadow-lg backdrop-blur-xl transition hover:bg-black/90"
+          aria-label="Open language menu"
+        >
+          <Globe2 size={14} />
+          {activeLabel}
+        </button>
+      </div>
+    </div>
   );
 }
