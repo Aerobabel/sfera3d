@@ -3,11 +3,13 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  Building2,
+  BadgeCheck,
+  Clock3,
   Cpu,
   Globe2,
+  Handshake,
   ShieldCheck,
-  Sparkles,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { Manrope, Space_Mono, Syne } from "next/font/google";
@@ -32,11 +34,18 @@ const mono = Space_Mono({
 });
 
 type PillarKey = "pipeline" | "attendance" | "safe";
+type TrustKey = "verified" | "response" | "security";
 
 const pillarIcons: Record<PillarKey, LucideIcon> = {
   pipeline: Cpu,
   attendance: Globe2,
   safe: ShieldCheck,
+};
+
+const trustIcons: Record<TrustKey, LucideIcon> = {
+  verified: BadgeCheck,
+  response: Clock3,
+  security: ShieldCheck,
 };
 
 const copy = {
@@ -53,10 +62,8 @@ const copy = {
       visit: "Visit Exhibition",
       onboarding: "Supplier Onboarding",
       startTour: "Start Interactive Tour",
-      photo: "Photo to 3D",
       visitSection: "Visit Exhibition",
       explore: "Explore Live",
-      prototype: "Start Prototype",
     },
     hero: {
       tag: "Premium Virtual Marketplace",
@@ -69,6 +76,38 @@ const copy = {
       { value: "13 ms", label: "Median Input Latency" },
       { value: "4K", label: "Cinematic Stream Quality" },
     ],
+    trust: {
+      tag: "Trust Layer",
+      title: "Built for confident buyer-supplier decisions.",
+      description:
+        "Every inquiry, listing, and supplier profile is designed to reduce risk and shorten time to deal.",
+      metrics: [
+        { value: "100%", label: "Verified Supplier Profiles" },
+        { value: "< 15m", label: "Median First Reply Time" },
+        { value: "24/7", label: "Session Monitoring" },
+      ],
+      pillars: [
+        {
+          key: "verified" as const,
+          title: "Verified Supplier Identity",
+          description: "Each supplier profile is screened before going live in the marketplace.",
+        },
+        {
+          key: "response" as const,
+          title: "Measured Response SLA",
+          description: "Live chat responsiveness is tracked so buyers know when to expect answers.",
+        },
+        {
+          key: "security" as const,
+          title: "Secure Commercial Sessions",
+          description: "Session-level protection and moderated channels keep conversations business-safe.",
+        },
+      ],
+      buyersTitle: "For Buyers",
+      buyersDescription: "Compare products with confidence and speak directly to accountable suppliers.",
+      suppliersTitle: "For Suppliers",
+      suppliersDescription: "Receive qualified inquiries and reply in a structured, trusted environment.",
+    },
     sectionA: {
       tag: "Experience Layer",
       title: "A polished commercial stage for every supplier booth.",
@@ -149,10 +188,8 @@ const copy = {
       visit: "Посетить выставку",
       onboarding: "Онбординг поставщика",
       startTour: "Начать интерактивный тур",
-      photo: "Фото в 3D",
       visitSection: "Посетить выставку",
       explore: "Открыть демо",
-      prototype: "Запустить прототип",
     },
     hero: {
       tag: "Премиальный виртуальный маркетплейс",
@@ -165,6 +202,38 @@ const copy = {
       { value: "13 мс", label: "Средняя задержка ввода" },
       { value: "4K", label: "Кинематографическое качество" },
     ],
+    trust: {
+      tag: "Слой доверия",
+      title: "Платформа для уверенных решений между покупателем и поставщиком.",
+      description:
+        "Каждый запрос, карточка товара и профиль поставщика устроены так, чтобы снижать риск и ускорять сделку.",
+      metrics: [
+        { value: "100%", label: "Проверенные профили поставщиков" },
+        { value: "< 15м", label: "Среднее время первого ответа" },
+        { value: "24/7", label: "Мониторинг сессий" },
+      ],
+      pillars: [
+        {
+          key: "verified" as const,
+          title: "Проверенная идентификация поставщика",
+          description: "Каждый профиль поставщика проходит проверку перед публикацией в маркетплейсе.",
+        },
+        {
+          key: "response" as const,
+          title: "Измеряемый SLA ответа",
+          description: "Скорость ответа в live-чате отслеживается и прозрачна для покупателя.",
+        },
+        {
+          key: "security" as const,
+          title: "Безопасные коммерческие сессии",
+          description: "Защита на уровне сессии и модерация каналов для делового общения.",
+        },
+      ],
+      buyersTitle: "Для покупателей",
+      buyersDescription: "Сравнивайте товары увереннее и общайтесь напрямую с ответственными поставщиками.",
+      suppliersTitle: "Для поставщиков",
+      suppliersDescription: "Получайте квалифицированные обращения в структурированной доверенной среде.",
+    },
     sectionA: {
       tag: "Слой опыта",
       title: "Отполированная коммерческая сцена для каждого поставщика.",
@@ -245,10 +314,8 @@ const copy = {
       visit: "访问展览",
       onboarding: "供应商入驻",
       startTour: "开始互动导览",
-      photo: "照片转3D",
       visitSection: "访问展览",
       explore: "体验在线展厅",
-      prototype: "开始原型",
     },
     hero: {
       tag: "高端虚拟交易平台",
@@ -261,6 +328,38 @@ const copy = {
       { value: "13 ms", label: "中位输入延迟" },
       { value: "4K", label: "电影级流媒体画质" },
     ],
+    trust: {
+      tag: "信任层",
+      title: "为买卖双方建立更放心的决策环境。",
+      description:
+        "从咨询到商品卡再到供应商主页，所有关键环节都围绕“降低风险、加快成交”设计。",
+      metrics: [
+        { value: "100%", label: "已验证供应商档案" },
+        { value: "< 15m", label: "首次回复中位时间" },
+        { value: "24/7", label: "会话监控" },
+      ],
+      pillars: [
+        {
+          key: "verified" as const,
+          title: "供应商身份已验证",
+          description: "每个供应商在进入在线商城前都经过身份与资料审核。",
+        },
+        {
+          key: "response" as const,
+          title: "可量化回复 SLA",
+          description: "实时聊天响应速度可追踪，买家可预期答复时效。",
+        },
+        {
+          key: "security" as const,
+          title: "安全商务会话",
+          description: "会话级安全与受控沟通通道，保障商业沟通过程可靠。",
+        },
+      ],
+      buyersTitle: "面向买家",
+      buyersDescription: "更放心地比较商品，并与可追责供应商直接沟通。",
+      suppliersTitle: "面向供应商",
+      suppliersDescription: "在可信且结构化的环境中接收高质量询盘并高效回复。",
+    },
     sectionA: {
       tag: "体验层",
       title: "为每个供应商展位打造精致商业舞台。",
@@ -406,21 +505,15 @@ export default function LandingPage() {
           <div className="fade-up delay-3 mt-10 flex flex-wrap items-center gap-3">
             <Link
               href="/experience"
-              className="inline-flex items-center gap-2 rounded-full bg-[#66d9cb] px-6 py-3 text-sm font-bold text-[#08100f] transition hover:bg-[#8de6dc]"
+              className="sfera-btn-primary inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold transition"
             >
               {t.cta.startTour} <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/photo-to-3d"
-              className="inline-flex items-center gap-2 rounded-full border border-[#f6ba4f]/45 bg-[#f6ba4f]/10 px-6 py-3 text-sm font-semibold text-[#ffe7bc] transition hover:bg-[#f6ba4f]/20"
-            >
-              {t.cta.photo} <Sparkles className="h-4 w-4" />
-            </Link>
-            <Link
               href="/onboarding"
-              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-[#f5f1e9] transition hover:border-white/35 hover:bg-white/10"
+              className="sfera-btn-secondary inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition"
             >
-              {t.cta.onboarding}
+              {t.cta.onboarding} <Users className="h-4 w-4" />
             </Link>
           </div>
 
@@ -428,12 +521,61 @@ export default function LandingPage() {
             {t.stats.map((stat, index) => (
               <article
                 key={stat.label}
-                className={`fade-up delay-${index + 1} rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl`}
+                className={`sfera-card fade-up delay-${index + 1} rounded-2xl p-5`}
               >
                 <p className="text-3xl [font-family:var(--font-display)]">{stat.value}</p>
                 <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[#b9b3a8]">{stat.label}</p>
               </article>
             ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
+          <div className="sfera-card rounded-3xl p-7 sm:p-9">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-[#66d9cb] [font-family:var(--font-mono)]">
+              {t.trust.tag}
+            </p>
+            <h2 className="mt-3 text-3xl [font-family:var(--font-display)] sm:text-4xl">
+              {t.trust.title}
+            </h2>
+            <p className="mt-4 max-w-3xl text-[#c8c1b6]">{t.trust.description}</p>
+
+            <div className="mt-7 grid gap-3 sm:grid-cols-3">
+              {t.trust.metrics.map((metric) => (
+                <article key={metric.label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-2xl [font-family:var(--font-display)] text-[#66d9cb]">{metric.value}</p>
+                  <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[#bdb7aa]">{metric.label}</p>
+                </article>
+              ))}
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              {t.trust.pillars.map((pillar) => {
+                const Icon = trustIcons[pillar.key as TrustKey];
+                return (
+                  <article key={pillar.title} className="rounded-2xl border border-white/10 bg-[#0e121a]/75 p-4">
+                    <Icon className="h-5 w-5 text-[#66d9cb]" />
+                    <h3 className="mt-3 text-sm font-semibold text-white">{pillar.title}</h3>
+                    <p className="mt-2 text-xs leading-relaxed text-[#bbb4a9]">{pillar.description}</p>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 grid gap-3 md:grid-cols-2">
+              <article className="rounded-2xl border border-[#66d9cb]/30 bg-[#66d9cb]/8 p-4">
+                <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-[#83f0e2]">
+                  <Handshake className="h-4 w-4" /> {t.trust.buyersTitle}
+                </h3>
+                <p className="mt-2 text-sm text-[#c9f0eb]">{t.trust.buyersDescription}</p>
+              </article>
+              <article className="rounded-2xl border border-[#f6ba4f]/30 bg-[#f6ba4f]/8 p-4">
+                <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-[#ffd995]">
+                  <BadgeCheck className="h-4 w-4" /> {t.trust.suppliersTitle}
+                </h3>
+                <p className="mt-2 text-sm text-[#f2d7a8]">{t.trust.suppliersDescription}</p>
+              </article>
+            </div>
           </div>
         </section>
 
@@ -558,10 +700,10 @@ export default function LandingPage() {
                   {t.cta.explore} <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
-                  href="/photo-to-3d"
+                  href="/onboarding"
                   className="inline-flex items-center gap-2 rounded-full border border-white/20 px-6 py-3 text-sm font-semibold transition hover:border-white/35 hover:bg-white/10"
                 >
-                  <Building2 className="h-4 w-4" /> {t.cta.prototype}
+                  <Users className="h-4 w-4" /> {t.cta.onboarding}
                 </Link>
               </div>
             </div>

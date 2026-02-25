@@ -149,16 +149,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black text-white">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#090b10] text-white">
       <div className="absolute inset-0 z-0">
-        <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-indigo-600/20 blur-3xl mix-blend-screen animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-purple-600/20 blur-3xl mix-blend-screen animate-pulse delay-700" />
+        <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-[#66d9cb]/20 blur-3xl mix-blend-screen animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-[#f6ba4f]/18 blur-3xl mix-blend-screen animate-pulse delay-700" />
+        <div className="absolute inset-0 opacity-[0.16] [background-image:linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:44px_44px]" />
       </div>
 
-      <div className="z-10 w-full max-w-md space-y-8 rounded-2xl border border-white/10 bg-black/40 p-8 shadow-2xl backdrop-blur-xl">
+      <div className="sfera-card z-10 w-full max-w-md space-y-8 rounded-2xl p-8 shadow-2xl">
         <div className="text-center">
           <Link href="/" className="inline-block">
-            <h2 className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-4xl font-black tracking-tighter text-transparent">
+            <h2 className="bg-gradient-to-r from-[#66d9cb] to-[#f6ba4f] bg-clip-text text-4xl font-black tracking-tighter text-transparent">
               3DSFERA
             </h2>
           </Link>
@@ -180,7 +181,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="block w-full rounded-lg border-0 bg-white/5 px-3 py-2.5 text-white ring-1 ring-inset ring-white/10 placeholder:text-gray-500 transition focus:ring-2 focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                className="block w-full rounded-lg border-0 bg-white/5 px-3 py-2.5 text-white ring-1 ring-inset ring-white/10 placeholder:text-gray-500 transition focus:ring-2 focus:ring-[#66d9cb] sm:text-sm sm:leading-6"
                 placeholder="supplier@example.com"
               />
             </div>
@@ -197,7 +198,7 @@ export default function LoginPage() {
                 minLength={6}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="block w-full rounded-lg border-0 bg-white/5 px-3 py-2.5 text-white ring-1 ring-inset ring-white/10 placeholder:text-gray-500 transition focus:ring-2 focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                className="block w-full rounded-lg border-0 bg-white/5 px-3 py-2.5 text-white ring-1 ring-inset ring-white/10 placeholder:text-gray-500 transition focus:ring-2 focus:ring-[#66d9cb] sm:text-sm sm:leading-6"
                 placeholder="********"
               />
             </div>
@@ -210,7 +211,7 @@ export default function LoginPage() {
                 name="remember-me"
                 type="checkbox"
                 defaultChecked
-                className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-gray-900"
+                className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-[#66d9cb] focus:ring-[#66d9cb] focus:ring-offset-gray-900"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-400">
                 {t.remember}
@@ -218,7 +219,7 @@ export default function LoginPage() {
             </div>
 
             <div className="text-sm">
-              <a href="#" className="font-medium text-indigo-400 transition hover:text-indigo-300">
+              <a href="#" className="font-medium text-[#66d9cb] transition hover:text-[#8ee8de]">
                 {t.forgot}
               </a>
             </div>
@@ -240,7 +241,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="group relative flex w-full justify-center rounded-lg bg-indigo-600 px-3 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="sfera-btn-primary group relative flex w-full justify-center rounded-lg px-3 py-3 text-sm font-semibold transition shadow-[0_0_20px_rgba(102,217,203,0.3)] hover:shadow-[0_0_30px_rgba(102,217,203,0.45)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitLabel}
             </button>
@@ -264,7 +265,7 @@ export default function LoginPage() {
 
         <div className="text-center text-xs text-gray-500">
           {t.newSupplier}{" "}
-          <Link href="#" className="text-gray-300 hover:underline">
+          <Link href="/supplier/upload" className="text-gray-300 hover:underline">
             {t.apply}
           </Link>
         </div>

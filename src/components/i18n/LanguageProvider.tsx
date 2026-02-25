@@ -7,7 +7,7 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
 } from "react";
 import {
   AppLanguage,
@@ -22,26 +22,54 @@ type LanguageContextValue = {
 };
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
+const LANGUAGE_EVENT_NAME = "3dsfera-language-change";
 
 const toHtmlLang = (language: AppLanguage) => {
   if (language === "zh") return "zh-CN";
   return language;
 };
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<AppLanguage>(() => {
-    if (typeof window === "undefined") {
-      return DEFAULT_LANGUAGE;
+const readStoredLanguage = () => {
+  if (typeof window === "undefined") return DEFAULT_LANGUAGE;
+  const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  return isAppLanguage(stored) ? stored : DEFAULT_LANGUAGE;
+};
+
+const subscribeToLanguage = (onStoreChange: () => void) => {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === LANGUAGE_STORAGE_KEY) {
+      onStoreChange();
     }
-    const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-    return isAppLanguage(stored) ? stored : DEFAULT_LANGUAGE;
-  });
+  };
+
+  const handleLanguageChange = () => {
+    onStoreChange();
+  };
+
+  window.addEventListener("storage", handleStorage);
+  window.addEventListener(LANGUAGE_EVENT_NAME, handleLanguageChange);
+
+  return () => {
+    window.removeEventListener("storage", handleStorage);
+    window.removeEventListener(LANGUAGE_EVENT_NAME, handleLanguageChange);
+  };
+};
+
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const language = useSyncExternalStore(
+    subscribeToLanguage,
+    readStoredLanguage,
+    () => DEFAULT_LANGUAGE
+  );
 
   const setLanguage = useCallback((nextLanguage: AppLanguage) => {
-    setLanguageState(nextLanguage);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
-    }
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
+    window.dispatchEvent(new Event(LANGUAGE_EVENT_NAME));
   }, []);
 
   useEffect(() => {
