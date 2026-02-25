@@ -53,6 +53,12 @@ const RULE_ICONS: LucideIcon[] = [
 const INTAKE_EMAIL =
   process.env.NEXT_PUBLIC_SUPPLIER_INTAKE_EMAIL?.trim() || "suppliers@3dsfera.com";
 
+const ONBOARDING_PDFS = {
+  en: "/onboarding/english_onboarding.pdf",
+  ru: "/onboarding/russian_onboarding.pdf",
+  zh: "/onboarding/chinese_onboarding.pdf",
+} as const;
+
 const copy = {
   en: {
     nav: {
@@ -61,7 +67,7 @@ const copy = {
       upload: "Upload Package",
       intakeEmail: "Intake email",
       downloadPdf: "Download PDF",
-      pdfHint: "Print window will open. Choose Save as PDF.",
+      pdfHint: "Downloads the prepared PDF for the current language.",
     },
     hero: {
       tag: "Simple Supplier Guide",
@@ -153,7 +159,7 @@ const copy = {
       upload: "Загрузить пакет",
       intakeEmail: "Почта intake",
       downloadPdf: "Скачать PDF",
-      pdfHint: "Откроется окно печати. Выберите «Сохранить как PDF».",
+      pdfHint: "Скачивает готовый PDF для выбранного языка.",
     },
     hero: {
       tag: "Простой гид для поставщика",
@@ -245,7 +251,7 @@ const copy = {
       upload: "上传资料包",
       intakeEmail: "Intake 邮箱",
       downloadPdf: "下载 PDF",
-      pdfHint: "将打开打印窗口，请选择“另存为 PDF”。",
+      pdfHint: "将下载当前语言的已准备 PDF。",
     },
     hero: {
       tag: "供应商简易指南",
@@ -338,14 +344,13 @@ export default function OnboardingPage() {
 
   const handleDownloadPdf = () => {
     if (typeof window === "undefined") return;
-
-    const previousTitle = document.title;
-    document.title = `3DSFERA_Onboarding_Simple_${language.toUpperCase()}`;
-    window.print();
-
-    window.setTimeout(() => {
-      document.title = previousTitle;
-    }, 300);
+    const href = ONBOARDING_PDFS[language];
+    const anchor = document.createElement("a");
+    anchor.href = href;
+    anchor.download = href.split("/").at(-1) ?? `onboarding-${language}.pdf`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
   };
 
   return (
