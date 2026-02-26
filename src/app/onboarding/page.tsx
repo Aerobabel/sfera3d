@@ -71,7 +71,7 @@ const copy = {
     },
     hero: {
       tag: "Simple Supplier Guide",
-      title: "Send us these basics and we can build your 3D marketplace.",
+      title: "Send us these basics and we can build your 3D pavillon.",
       description:
         "No technical setup needed from your side. Just send clear photos and simple product information.",
     },
@@ -163,7 +163,7 @@ const copy = {
     },
     hero: {
       tag: "Простой гид для поставщика",
-      title: "Пришлите эти базовые данные, и мы соберем ваш 3D маркетплейс.",
+      title: "Пришлите эти базовые данные, и мы соберем ваш 3D павильон.",
       description:
         "От вас не нужна сложная техническая настройка. Нужны только понятные фото и простая информация о товаре.",
     },
@@ -255,7 +255,7 @@ const copy = {
     },
     hero: {
       tag: "供应商简易指南",
-      title: "把这些基础资料发给我们，我们就能搭建你的 3D 商城。",
+      title: "把这些基础资料发给我们，我们就能搭建你的 3D 展馆。",
       description:
         "你不需要做复杂技术配置。只要提供清晰照片和简单商品信息即可。",
     },
