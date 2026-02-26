@@ -199,11 +199,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const supabase = getSupabaseAdminClient();
-    const user = await authenticate(request, supabase);
-
-    if (!user) {
-      return jsonError(401, "Unauthorized. Sign in and retry.");
-    }
+    const authenticatedUser = await authenticate(request, supabase);
 
     await ensureIntakeBucket(supabase);
 
@@ -232,10 +228,16 @@ export async function POST(request: Request) {
     }
     const uploadContentType = archiveType || "application/zip";
 
-    const supplierName = toTrimmedString(formData.get("supplierName")) || user.supplierName;
+    const supplierName =
+      toTrimmedString(formData.get("supplierName")) ||
+      authenticatedUser?.supplierName ||
+      "Supplier";
     const companyName = toTrimmedString(formData.get("companyName"));
     const contactName = toTrimmedString(formData.get("contactName"));
-    const contactEmail = toTrimmedString(formData.get("contactEmail")) || user.email;
+    const contactEmail =
+      toTrimmedString(formData.get("contactEmail")) ||
+      authenticatedUser?.email ||
+      "";
     const phone = toTrimmedString(formData.get("phone"));
     const productName = toTrimmedString(formData.get("productName"));
     const sku = toTrimmedString(formData.get("sku"));
@@ -258,7 +260,10 @@ export async function POST(request: Request) {
     const normalizedSku = sku || "package";
 
     const submissionId = crypto.randomUUID();
-    const ownerPrefix = `${SUBMISSIONS_PREFIX}/${user.id}/${submissionId}`;
+    const ownerId = authenticatedUser?.id ?? "public";
+    const ownerPrefix = authenticatedUser
+      ? `${SUBMISSIONS_PREFIX}/${ownerId}/${submissionId}`
+      : `${SUBMISSIONS_PREFIX}/public/${submissionId}`;
     const archiveName = `${sanitizeSegment(normalizedSku)}-submission.zip`;
     const archivePath = `${ownerPrefix}/${archiveName}`;
 
@@ -282,7 +287,7 @@ export async function POST(request: Request) {
 
     const submission: SubmissionRecord = {
       id: submissionId,
-      ownerId: user.id,
+      ownerId,
       supplierName,
       companyName,
       contactName,

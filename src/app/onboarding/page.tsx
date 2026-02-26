@@ -54,9 +54,18 @@ const INTAKE_EMAIL =
   process.env.NEXT_PUBLIC_SUPPLIER_INTAKE_EMAIL?.trim() || "suppliers@3dsfera.org";
 
 const ONBOARDING_PDFS = {
-  en: "/onboarding/english_onboarding.pdf",
-  ru: "/onboarding/russian_onboarding.pdf",
-  zh: "/onboarding/chinese_onboarding.pdf",
+  en: {
+    href: "/api/onboarding-pdf?lang=en",
+    filename: "english_onboarding.pdf",
+  },
+  ru: {
+    href: "/api/onboarding-pdf?lang=ru",
+    filename: "russian_onboarding.pdf",
+  },
+  zh: {
+    href: "/api/onboarding-pdf?lang=zh",
+    filename: "chinese_onboarding.pdf",
+  },
 } as const;
 
 const copy = {
@@ -344,10 +353,10 @@ export default function OnboardingPage() {
 
   const handleDownloadPdf = () => {
     if (typeof window === "undefined") return;
-    const href = ONBOARDING_PDFS[language];
+    const { href, filename } = ONBOARDING_PDFS[language];
     const anchor = document.createElement("a");
     anchor.href = href;
-    anchor.download = href.split("/").at(-1) ?? `onboarding-${language}.pdf`;
+    anchor.download = filename;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();

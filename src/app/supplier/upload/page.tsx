@@ -1,7 +1,6 @@
 'use client';
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
@@ -348,7 +347,6 @@ const copy = {
 export default function SupplierUploadPage() {
   const { language } = useLanguage();
   const t = copy[language];
-  const router = useRouter();
   const mailtoUrl = useMemo(
     () =>
       `mailto:${INTAKE_EMAIL}?subject=${encodeURIComponent(
@@ -357,10 +355,7 @@ export default function SupplierUploadPage() {
     []
   );
 
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState("");
-  const [authError, setAuthError] = useState<string | null>(null);
 
   const [form, setForm] = useState<IntakeFormState>(() =>
     createInitialForm("", "")
@@ -377,7 +372,6 @@ export default function SupplierUploadPage() {
 
   useEffect(() => {
     let active = true;
-    let cleanupAuth: (() => void) | undefined;
 
     const setup = async () => {
       try {
@@ -389,9 +383,6 @@ export default function SupplierUploadPage() {
         if (!active) return;
 
         if (!session) {
-          setIsAuthenticated(false);
-          setToken("");
-          setIsAuthLoading(false);
           return;
         }
 
@@ -409,36 +400,13 @@ export default function SupplierUploadPage() {
             : supplierNameFromEmail(email);
 
         setToken(session.access_token);
-        setIsAuthenticated(true);
         setForm((current) => ({
           ...current,
           supplierName: current.supplierName || supplierName,
           contactEmail: current.contactEmail || email,
         }));
-        setAuthError(null);
-        setIsAuthLoading(false);
-
-        const { data: listener } = supabase.auth.onAuthStateChange(
-          (_event, nextSession) => {
-            if (!nextSession) {
-              setIsAuthenticated(false);
-              setToken("");
-              router.replace("/login");
-              return;
-            }
-
-            setToken(nextSession.access_token);
-            setIsAuthenticated(true);
-          }
-        );
-
-        cleanupAuth = () => {
-          listener.subscription.unsubscribe();
-        };
       } catch {
-        if (!active) return;
-        setAuthError(t.notConfigured);
-        setIsAuthLoading(false);
+        // Public upload works without authenticated browser session.
       }
     };
 
@@ -446,9 +414,8 @@ export default function SupplierUploadPage() {
 
     return () => {
       active = false;
-      cleanupAuth?.();
     };
-  }, [router, t.notConfigured]);
+  }, []);
 
   const loadSubmissions = useCallback(
     async (accessToken: string) => {
@@ -492,11 +459,6 @@ export default function SupplierUploadPage() {
     setSubmitError(null);
     setSubmitSuccess(null);
 
-    if (!token) {
-      setSubmitError(t.signInRequired);
-      return;
-    }
-
     if (!archiveFile) {
       setSubmitError(`${t.archiveLabel}: ${t.required}.`);
       return;
@@ -525,9 +487,7 @@ export default function SupplierUploadPage() {
 
       const response = await fetch("/api/supplier-intake", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData,
       });
 
@@ -550,7 +510,9 @@ export default function SupplierUploadPage() {
         notes: "",
       }));
 
-      await loadSubmissions(token);
+      if (token) {
+        await loadSubmissions(token);
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t.uploadFailed;
       if (message.toLowerCase().includes("maximum allowed size")) {
@@ -631,22 +593,7 @@ export default function SupplierUploadPage() {
             </div>
           </div>
 
-          {isAuthLoading ? (
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-10 text-center">
-              <Loader2 className="mx-auto h-6 w-6 animate-spin text-[#66d9cb]" />
-            </div>
-          ) : !isAuthenticated ? (
-            <div className="rounded-3xl border border-red-400/30 bg-red-500/10 p-6">
-              <p className="text-sm text-red-100">{authError || t.signInRequired}</p>
-              <Link
-                href="/login"
-                className="mt-3 inline-flex rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/10"
-              >
-                {t.signIn}
-              </Link>
-            </div>
-          ) : (
-            <form
+          <form
               onSubmit={handleSubmit}
               className="rounded-3xl border border-white/10 bg-[linear-gradient(155deg,rgba(10,15,23,0.95),rgba(11,16,26,0.92))] p-6 shadow-[0_16px_44px_rgba(0,0,0,0.4)]"
             >
@@ -654,6 +601,10 @@ export default function SupplierUploadPage() {
                 <UploadCloud className="h-5 w-5 text-[#66d9cb]" />
                 <h2 className="text-lg font-semibold">{t.uploadSection}</h2>
               </div>
+
+              <p className="mb-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+                No login required. Send files first and your supplier account can be created after review.
+              </p>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 {fieldConfig.map((field) => {
@@ -746,13 +697,12 @@ export default function SupplierUploadPage() {
                 {isSubmitting ? t.submitting : t.submit}
               </button>
             </form>
-          )}
         </section>
 
         <aside className="rounded-3xl border border-white/10 bg-[linear-gradient(160deg,rgba(11,16,25,0.95),rgba(8,12,20,0.95))] p-6 shadow-[0_16px_44px_rgba(0,0,0,0.4)]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">{t.historySection}</h2>
-            {isAuthenticated && (
+            {token && (
               <button
                 onClick={() => void loadSubmissions(token)}
                 disabled={isLoadingSubmissions}
@@ -762,6 +712,12 @@ export default function SupplierUploadPage() {
               </button>
             )}
           </div>
+
+          {!token && (
+            <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-300">
+              Sign in only if you want to view personal submission history. Upload works without login.
+            </div>
+          )}
 
           {historyError && (
             <div className="mb-4 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-100">
@@ -773,6 +729,10 @@ export default function SupplierUploadPage() {
             <div className="flex items-center gap-2 text-sm text-slate-300">
               <Loader2 className="h-4 w-4 animate-spin text-[#66d9cb]" />
               {t.refresh}
+            </div>
+          ) : !token ? (
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-6 text-sm text-slate-300">
+              Sign in to view submission history.
             </div>
           ) : submissions.length === 0 ? (
             <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-6 text-sm text-slate-300">
