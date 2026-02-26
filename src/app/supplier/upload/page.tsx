@@ -59,7 +59,7 @@ type SupplierIntakePostResponse = {
 
 const MAX_ARCHIVE_MB = 350;
 const DEFAULT_CURRENCY = "USD";
-const FALLBACK_INTAKE_EMAIL = "suppliers@3dsfera.com";
+const FALLBACK_INTAKE_EMAIL = "suppliers@3dsfera.org";
 const INTAKE_EMAIL =
   process.env.NEXT_PUBLIC_SUPPLIER_INTAKE_EMAIL?.trim() || FALLBACK_INTAKE_EMAIL;
 

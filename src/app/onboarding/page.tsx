@@ -51,7 +51,7 @@ const RULE_ICONS: LucideIcon[] = [
 ];
 
 const INTAKE_EMAIL =
-  process.env.NEXT_PUBLIC_SUPPLIER_INTAKE_EMAIL?.trim() || "suppliers@3dsfera.com";
+  process.env.NEXT_PUBLIC_SUPPLIER_INTAKE_EMAIL?.trim() || "suppliers@3dsfera.org";
 
 const ONBOARDING_PDFS = {
   en: "/onboarding/english_onboarding.pdf",
