@@ -7,20 +7,51 @@ from fpdf import FPDF
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "public" / "onboarding"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
+SCRIPT_DIR = Path(__file__).resolve().parent
+CACHE_DIR = SCRIPT_DIR / ".cache"
 
 INTAKE_EMAIL = "suppliers@3dsfera.org"
 
-FONT_PATHS = {
+BASE_FONT_PATHS = {
     "en": Path(r"C:\Windows\Fonts\arial.ttf"),
     "ru": Path(r"C:\Windows\Fonts\arial.ttf"),
     "zh": Path(r"C:\Windows\Fonts\simsunb.ttf"),
 }
+
+ZH_TTC_SOURCE = Path(r"C:\Windows\Fonts\msyh.ttc")
+ZH_EXTRACTED_TTF = CACHE_DIR / "msyh-regular.ttf"
 
 OUTPUT_FILES = {
     "en": "english_onboarding.pdf",
     "ru": "russian_onboarding.pdf",
     "zh": "chinese_onboarding.pdf",
 }
+
+
+def resolve_font_paths() -> Dict[str, Path]:
+    # pyfpdf cannot read TTC directly, so extract YaHei (face 0) once to TTF.
+    font_paths = dict(BASE_FONT_PATHS)
+    if ZH_EXTRACTED_TTF.exists():
+        font_paths["zh"] = ZH_EXTRACTED_TTF
+        return font_paths
+
+    if not ZH_TTC_SOURCE.exists():
+        return font_paths
+
+    try:
+        from fontTools.ttLib import TTCollection  # type: ignore
+
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        collection = TTCollection(str(ZH_TTC_SOURCE))
+        collection.fonts[0].save(str(ZH_EXTRACTED_TTF))
+        font_paths["zh"] = ZH_EXTRACTED_TTF
+    except Exception as error:  # pragma: no cover - best effort fallback
+        print(f"[warn] Falling back to simsunb.ttf for zh font: {error}")
+
+    return font_paths
+
+
+FONT_PATHS = resolve_font_paths()
 
 
 def rgb(hex_color: str) -> Tuple[int, int, int]:

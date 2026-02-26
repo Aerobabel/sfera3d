@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${filename}"`,
-        "Cache-Control": "public, max-age=3600",
+        "Cache-Control": "no-store, max-age=0",
         "X-Content-Type-Options": "nosniff",
       },
     });
