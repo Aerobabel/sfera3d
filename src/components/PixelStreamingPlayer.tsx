@@ -11,11 +11,14 @@ interface PixelStreamingPlayerProps {
     mobileInputMode?: 'joystick' | 'touch';
     isMobileDevice?: boolean;
     keyboardInputEnabled?: boolean;
+    desktopMouseMode?: 'locked' | 'hovering';
 }
 
 type PixelStreamingDebugWindow = Window & {
     ps?: PixelStreaming;
 };
+
+type DesktopMouseMode = 'locked' | 'hovering';
 
 const normalizeSignalingUrl = (inputUrl: string) => {
     let nextUrl = inputUrl.trim();
@@ -51,13 +54,34 @@ const hasLiveVideoStream = (container: HTMLDivElement | null) => {
     return video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && !video.paused && !video.ended;
 };
 
+const resolveDesktopMouseMode = (
+    preferredMode?: DesktopMouseMode
+): DesktopMouseMode => {
+    if (preferredMode) return preferredMode;
+
+    if (typeof window !== 'undefined') {
+        const fromQuery = new URLSearchParams(window.location.search).get('desktop_mouse')?.trim().toLowerCase();
+        if (fromQuery === 'locked' || fromQuery === 'hovering') {
+            return fromQuery;
+        }
+    }
+
+    const fromEnv = process.env.NEXT_PUBLIC_PIXELSTREAM_DESKTOP_MOUSE_MODE?.trim().toLowerCase();
+    if (fromEnv === 'locked' || fromEnv === 'hovering') {
+        return fromEnv;
+    }
+
+    return 'locked';
+};
+
 export default function PixelStreamingPlayer({
     signalingServerUrl: initialUrl,
     onPixelStreamingResponse,
     onVideoInitialized,
     mobileInputMode = 'joystick',
     isMobileDevice = false,
-    keyboardInputEnabled = true
+    keyboardInputEnabled = true,
+    desktopMouseMode: preferredDesktopMouseMode
 }: PixelStreamingPlayerProps) {
     const { language } = useLanguage();
     const text = {
@@ -165,9 +189,13 @@ export default function PixelStreamingPlayer({
         // Only enable touch-to-mouse emulation on mobile devices.
         // Desktop should keep the native mouse path.
         const emulateMouseFromTouches = isMobileDevice && (mobileInputMode === 'touch' || mobileInputMode === 'joystick');
+        const desktopMouseMode = resolveDesktopMouseMode(preferredDesktopMouseMode);
+        const useHoveringMouse = isMobileDevice ? true : desktopMouseMode === 'hovering';
 
         console.log(`Initializing Pixel Streaming with URL: ${connectUrl}`);
-        const inputLabel = !isMobileDevice ? 'desktop' : (useTouchScreenInput ? 'touch' : 'joystick');
+        const inputLabel = !isMobileDevice
+            ? `desktop-${desktopMouseMode}`
+            : (useTouchScreenInput ? 'touch' : 'joystick');
         setStatus(textRef.current.connecting(connectUrl, inputLabel));
 
         const config = new Config({
@@ -176,7 +204,7 @@ export default function PixelStreamingPlayer({
                 AutoConnect: true,
                 ss: connectUrl,
                 StartVideoMuted: true,
-                HoveringMouse: true,
+                HoveringMouse: useHoveringMouse,
                 FakeMouseWithTouches: emulateMouseFromTouches,
                 TouchInput: !emulateMouseFromTouches,
                 MouseInput: true,
@@ -272,7 +300,7 @@ export default function PixelStreamingPlayer({
                 wrapperElement.innerHTML = '';
             }
         };
-    }, [url, initialUrl, mobileInputMode, isMobileDevice]);
+    }, [url, initialUrl, mobileInputMode, isMobileDevice, preferredDesktopMouseMode]);
 
     useEffect(() => {
         const ps = psRef.current;
