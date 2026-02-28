@@ -646,7 +646,7 @@ export default function ExperiencePage() {
                 <div className="flex flex-col h-full justify-between p-4 md:p-6 lg:p-8">
 
                     {/* Header */}
-                    <header className="flex justify-between items-start pointer-events-auto w-full z-50">
+                    <header className="flex justify-between items-start pointer-events-none w-full z-50">
                         <div className="group cursor-default">
                             <div className="flex items-center gap-3">
                                 <div className="h-7 w-7 rounded-md border border-[#66d9cb]/50 bg-[#66d9cb]/15 shadow-[0_0_18px_rgba(102,217,203,0.35)]" />
@@ -665,7 +665,7 @@ export default function ExperiencePage() {
                             </div>
                         </div>
 
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-3 pointer-events-auto">
                             <p className="hidden max-w-[34rem] pt-1 text-right text-[10px] uppercase tracking-[0.14em] text-[#9fcfdf] md:block">
                                 {ui.instruction}
                             </p>
@@ -713,7 +713,7 @@ export default function ExperiencePage() {
 
                     {/* Product Card Overlay */}
                     {activeProduct && !isCatalogueOpen && (
-                        <div className="pointer-events-auto">
+                        <div className="pointer-events-none">
                             <ProductCard
                                 product={localizedActiveProduct ?? activeProduct}
                                 supplier={activeSupplier}
@@ -745,10 +745,10 @@ export default function ExperiencePage() {
                     )}
 
                     {/* Chat / Interaction Area */}
-                    <div className="flex justify-end pointer-events-auto gap-3">
+                    <div className="flex justify-end pointer-events-none gap-3">
                         {/* Chat Box */}
                         {(!isMobile || isMobileChatOpen) && (
-                            <div className={`w-full md:max-w-lg rounded-2xl border border-[#66d9cb]/30 bg-[linear-gradient(160deg,rgba(5,10,18,0.9),rgba(12,18,28,0.82))] p-4 text-white shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-xl ${isMobile ? 'max-w-[min(92vw,560px)] mx-auto' : ''} ${usingMobileJoysticks ? 'mb-28' : ''}`}>
+                            <div className={`pointer-events-auto w-full md:max-w-lg rounded-2xl border border-[#66d9cb]/30 bg-[linear-gradient(160deg,rgba(5,10,18,0.9),rgba(12,18,28,0.82))] p-4 text-white shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-xl ${isMobile ? 'max-w-[min(92vw,560px)] mx-auto' : ''} ${usingMobileJoysticks ? 'mb-28' : ''}`}>
                                 <div className="mb-3 flex items-start justify-between gap-3">
                                     <div>
                                         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#66d9cb]">{chatTitle}</p>
