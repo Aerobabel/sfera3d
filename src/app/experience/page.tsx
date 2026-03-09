@@ -269,6 +269,7 @@ export default function ExperiencePage() {
     const [isLandscape, setIsLandscape] = useState(true);
     const [mobileInputMode] = useState<MobileInputMode>('joystick');
     const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
+    const [isDesktopChatOpen, setIsDesktopChatOpen] = useState(true);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
@@ -352,6 +353,16 @@ export default function ExperiencePage() {
     const chatPlaceholder = isSupplierMode
         ? 'Type message to supplier...'
         : ui.inputPlaceholder;
+    const isChatPanelOpen = isMobile ? isMobileChatOpen : isDesktopChatOpen;
+
+    const toggleChatPanel = () => {
+        if (isMobile) {
+            setIsMobileChatOpen((previous) => !previous);
+            return;
+        }
+
+        setIsDesktopChatOpen((previous) => !previous);
+    };
 
     const syncSupplierMessages = useCallback(async () => {
         if (!activeSupplierId) return;
@@ -561,6 +572,7 @@ export default function ExperiencePage() {
             language === 'ru' ? 'товару' : language === 'zh' ? '该产品' : 'product';
         setChatMode('supplier');
         setIsMobileChatOpen(true);
+        setIsDesktopChatOpen(true);
         setSupplierChatMessages((previous) =>
             previous.length > 0
                 ? previous
@@ -672,16 +684,14 @@ export default function ExperiencePage() {
                             <p className="hidden max-w-[34rem] pt-1 text-right text-[10px] uppercase tracking-[0.14em] text-[#9fcfdf] md:block">
                                 {ui.instruction}
                             </p>
-                            {isMobile && (
-                                <button
-                                    onClick={() => setIsMobileChatOpen((previous) => !previous)}
-                                    className="group relative px-4 py-2 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-md border border-white/5 rounded-lg transition overflow-hidden"
-                                >
-                                    <span className="text-[10px] font-mono text-gray-400 group-hover:text-emerald-300 uppercase tracking-wider transition">
-                                        {isMobileChatOpen ? ui.chatToggleHide : ui.chatToggleShow}
-                                    </span>
-                                </button>
-                            )}
+                            <button
+                                onClick={toggleChatPanel}
+                                className="group relative px-4 py-2 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-md border border-white/5 rounded-lg transition overflow-hidden"
+                            >
+                                <span className="text-[10px] font-mono text-gray-400 group-hover:text-emerald-300 uppercase tracking-wider transition">
+                                    {isChatPanelOpen ? ui.chatToggleHide : ui.chatToggleShow}
+                                </span>
+                            </button>
 
                             {/* Menu Button */}
                             <button
@@ -750,7 +760,7 @@ export default function ExperiencePage() {
                     {/* Chat / Interaction Area */}
                     <div className="flex justify-end pointer-events-none gap-3">
                         {/* Chat Box */}
-                        {(!isMobile || isMobileChatOpen) && (
+                        {isChatPanelOpen && (
                             <div className={`pointer-events-auto w-full md:max-w-lg rounded-2xl border border-[#66d9cb]/30 bg-[linear-gradient(160deg,rgba(5,10,18,0.9),rgba(12,18,28,0.82))] p-4 text-white shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-xl ${isMobile ? 'max-w-[min(92vw,560px)] mx-auto' : ''} ${usingMobileJoysticks ? 'mb-28' : ''}`}>
                                 <div className="mb-3 flex items-start justify-between gap-3">
                                     <div>
