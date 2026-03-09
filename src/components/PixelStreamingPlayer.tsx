@@ -11,6 +11,7 @@ interface PixelStreamingPlayerProps {
     mobileInputMode?: 'joystick' | 'touch';
     isMobileDevice?: boolean;
     keyboardInputEnabled?: boolean;
+    blockedKeyboardCodes?: string[];
     desktopMouseMode?: 'locked' | 'hovering';
 }
 
@@ -81,6 +82,7 @@ export default function PixelStreamingPlayer({
     mobileInputMode = 'joystick',
     isMobileDevice = false,
     keyboardInputEnabled = true,
+    blockedKeyboardCodes = [],
     desktopMouseMode: preferredDesktopMouseMode
 }: PixelStreamingPlayerProps) {
     const { language } = useLanguage();
@@ -139,6 +141,7 @@ export default function PixelStreamingPlayer({
     const psRef = useRef<PixelStreaming | null>(null);
     const connectionGenerationRef = useRef(0);
     const keyboardInputEnabledRef = useRef(keyboardInputEnabled);
+    const blockedKeyboardCodesRef = useRef<Set<string>>(new Set());
     const onPixelStreamingResponseRef = useRef(onPixelStreamingResponse);
     const onVideoInitializedRef = useRef(onVideoInitialized);
 
@@ -151,6 +154,17 @@ export default function PixelStreamingPlayer({
     }, [keyboardInputEnabled]);
 
     useEffect(() => {
+        const nextBlockedCodes = new Set<string>();
+        for (const blockedCode of blockedKeyboardCodes) {
+            const normalized = blockedCode.trim();
+            if (!normalized) continue;
+            nextBlockedCodes.add(normalized);
+            nextBlockedCodes.add(normalized.toLowerCase());
+        }
+        blockedKeyboardCodesRef.current = nextBlockedCodes;
+    }, [blockedKeyboardCodes]);
+
+    useEffect(() => {
         onPixelStreamingResponseRef.current = onPixelStreamingResponse;
     }, [onPixelStreamingResponse]);
 
@@ -161,6 +175,38 @@ export default function PixelStreamingPlayer({
     useEffect(() => {
         setUrl(initialUrl);
     }, [initialUrl]);
+
+    useEffect(() => {
+        // Capture phase runs before Pixel Streaming's own document listeners.
+        const stopBlockedKeysFromReachingStreamer = (event: KeyboardEvent) => {
+            if (!keyboardInputEnabledRef.current) return;
+
+            const blockedCodes = blockedKeyboardCodesRef.current;
+            if (blockedCodes.size === 0) return;
+
+            const eventCode = event.code;
+            const eventKey = event.key;
+            const keyCodeString = String(event.keyCode);
+
+            if (
+                blockedCodes.has(eventCode) ||
+                blockedCodes.has(eventCode.toLowerCase()) ||
+                blockedCodes.has(eventKey) ||
+                blockedCodes.has(eventKey.toLowerCase()) ||
+                blockedCodes.has(keyCodeString)
+            ) {
+                event.stopImmediatePropagation();
+            }
+        };
+
+        document.addEventListener('keydown', stopBlockedKeysFromReachingStreamer, true);
+        document.addEventListener('keyup', stopBlockedKeysFromReachingStreamer, true);
+
+        return () => {
+            document.removeEventListener('keydown', stopBlockedKeysFromReachingStreamer, true);
+            document.removeEventListener('keyup', stopBlockedKeysFromReachingStreamer, true);
+        };
+    }, []);
 
     useEffect(() => {
         const wrapperElement = wrapperRef.current;

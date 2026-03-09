@@ -244,6 +244,8 @@ const resolveDefaultSignalingUrl = () => {
     return withOptionalPort('wss', remoteDefaultHost);
 };
 
+const BLOCKED_UNREAL_KEY_CODES = ['F10'];
+
 export default function ExperiencePage() {
     const { language } = useLanguage();
     const ui = EXPERIENCE_COPY[language];
@@ -637,6 +639,7 @@ export default function ExperiencePage() {
                     mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
                     isMobileDevice={isMobile}
                     keyboardInputEnabled={!isChatFocused}
+                    blockedKeyboardCodes={BLOCKED_UNREAL_KEY_CODES}
                 />
             </div>
 
