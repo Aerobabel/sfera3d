@@ -20,6 +20,7 @@ type SupplierChatTranslationRow = {
 };
 
 const DEFAULT_SUPPLIER_ID = "sup_nonagon";
+const MAX_TRANSLATION_BACKFILL_MESSAGES = 24;
 
 const isMissingRelationError = (error: { code?: string; message?: string } | null | undefined) => {
   if (!error) return false;
@@ -133,6 +134,79 @@ const cacheMessageTranslations = async (
   }
 };
 
+const upsertTranslationRows = async (
+  rows: Array<{
+    message_id: string;
+    language: AppLanguage;
+    translated_text: string;
+  }>
+) => {
+  if (rows.length === 0) return;
+
+  try {
+    const supabase = getSupabaseAdminClient();
+    const { error } = await supabase
+      .from("supplier_message_translations")
+      .upsert(rows, { onConflict: "message_id,language" });
+
+    if (error && !isMissingRelationError(error)) {
+      console.error(error.message);
+    }
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Failed to upsert supplier chat translations.";
+    console.error(message);
+  }
+};
+
+const backfillViewerTranslations = async (
+  viewerLanguage: AppLanguage | null,
+  rows: SupplierChatRow[],
+  existingTranslations: Map<string, string>
+) => {
+  if (!viewerLanguage || rows.length === 0) {
+    return existingTranslations;
+  }
+
+  const missingRows = rows
+    .filter((row) => !existingTranslations.has(row.id))
+    .slice(-MAX_TRANSLATION_BACKFILL_MESSAGES);
+
+  if (missingRows.length === 0) {
+    return existingTranslations;
+  }
+
+  const translationRows: Array<{
+    message_id: string;
+    language: AppLanguage;
+    translated_text: string;
+  }> = [];
+  const hydratedTranslations = new Map(existingTranslations);
+
+  for (const row of missingRows) {
+    const localizations = await buildChatLocalizations(row.message);
+    const translatedForViewer = localizations[viewerLanguage];
+
+    for (const language of CHAT_TRANSLATION_LANGUAGES) {
+      const localizedText = localizations[language];
+      if (!localizedText || localizedText.trim().length === 0) continue;
+
+      translationRows.push({
+        message_id: row.id,
+        language,
+        translated_text: localizedText.trim(),
+      });
+    }
+
+    if (translatedForViewer && translatedForViewer.trim().length > 0) {
+      hydratedTranslations.set(row.id, translatedForViewer.trim());
+    }
+  }
+
+  await upsertTranslationRows(translationRows);
+  return hydratedTranslations;
+};
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const supplierId = searchParams.get("supplierId")?.trim() || DEFAULT_SUPPLIER_ID;
@@ -156,8 +230,13 @@ export async function GET(request: Request) {
 
     const rows = data as SupplierChatRow[];
     const translationMap = await getViewerTranslations(viewerLanguage, rows);
+    const hydratedTranslationMap = await backfillViewerTranslations(
+      viewerLanguage,
+      rows,
+      translationMap
+    );
     const messages = rows.map((row) =>
-      toApiMessage(row, viewerLanguage, translationMap.get(row.id))
+      toApiMessage(row, viewerLanguage, hydratedTranslationMap.get(row.id))
     );
 
     return NextResponse.json({ success: true, messages });

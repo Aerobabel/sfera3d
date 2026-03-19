@@ -125,7 +125,11 @@ export const buildChatLocalizations = async (
   text: string,
   preferredLanguage?: AppLanguage | null
 ): Promise<Partial<Record<AppLanguage, string>>> => {
-  const sourceLanguage = preferredLanguage ?? guessChatLanguage(text);
+  const guessedLanguage = guessChatLanguage(text);
+  const sourceLanguage =
+    preferredLanguage && preferredLanguage === guessedLanguage
+      ? preferredLanguage
+      : guessedLanguage;
   const localizations: Partial<Record<AppLanguage, string>> = {
     [sourceLanguage]: text,
   };
