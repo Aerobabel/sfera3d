@@ -772,15 +772,16 @@ export default function ExperiencePage() {
                         {isChatPanelOpen && (
                             <div className={`pointer-events-auto w-full md:max-w-lg rounded-2xl border border-[#66d9cb]/30 bg-[linear-gradient(160deg,rgba(5,10,18,0.9),rgba(12,18,28,0.82))] p-4 text-white shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-xl ${isMobile ? 'max-w-[min(92vw,560px)] mx-auto' : ''} ${usingMobileJoysticks ? 'mb-28' : ''}`}>
                                 <div className="mb-3">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center justify-between gap-3">
                                         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#66d9cb]">{chatTitle}</p>
                                         <button
                                             onClick={closeChatPanel}
-                                            className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-white/15 text-gray-300 transition hover:bg-white/10 hover:text-white"
+                                            className="inline-flex h-7 items-center justify-center gap-1 rounded-md border border-white/35 bg-white/10 px-2 text-white transition hover:bg-white/20"
                                             aria-label={ui.close}
                                             title={ui.close}
                                         >
                                             <X size={12} />
+                                            <span className="hidden md:inline text-[10px] font-semibold uppercase tracking-wider">{ui.close}</span>
                                         </button>
                                     </div>
                                     <div>
