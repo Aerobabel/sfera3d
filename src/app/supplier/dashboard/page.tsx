@@ -76,6 +76,7 @@ export default function SupplierDashboard() {
       authenticating: 'Authenticating supplier session...',
       requiresLogin: 'Please sign in to access the supplier dashboard.',
       originalLabel: 'Original',
+      translatedLabel: 'Translated',
     },
     ru: {
       portal: 'Портал поставщика',
@@ -106,6 +107,7 @@ export default function SupplierDashboard() {
       authenticating: 'Проверяем сессию поставщика...',
       requiresLogin: 'Для доступа к панели поставщика выполните вход.',
       originalLabel: 'Оригинал',
+      translatedLabel: 'Перевод',
     },
     zh: {
       portal: '供应商门户',
@@ -136,6 +138,7 @@ export default function SupplierDashboard() {
       authenticating: '正在验证供应商会话...',
       requiresLogin: '请先登录后访问供应商后台。',
       originalLabel: '原文',
+      translatedLabel: '翻译',
     },
   }[language];
 
@@ -494,6 +497,11 @@ export default function SupplierDashboard() {
                             </div>
 
                             <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-relaxed text-slate-100">
+                              {msg.isTranslated && (
+                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8ce7dc]">
+                                  {t.translatedLabel}
+                                </p>
+                              )}
                               <p>{msg.text}</p>
                               {msg.originalText && msg.originalText !== msg.text && (
                                 <div className="mt-3 border-t border-white/10 pt-3 text-xs text-slate-400">

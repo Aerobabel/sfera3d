@@ -77,6 +77,7 @@ const EXPERIENCE_COPY: Record<
         inStock: string;
         outOfStock: string;
         originalLabel: string;
+        translatedLabel: string;
     }
 > = {
     en: {
@@ -109,6 +110,7 @@ const EXPERIENCE_COPY: Record<
         inStock: 'in stock',
         outOfStock: 'out of stock',
         originalLabel: 'Original',
+        translatedLabel: 'Translated',
     },
     ru: {
         welcome: 'Подключено. Нажмите на товар в сцене, чтобы открыть детали, или спросите цену и характеристики.',
@@ -140,6 +142,7 @@ const EXPERIENCE_COPY: Record<
         inStock: 'в наличии',
         outOfStock: 'нет в наличии',
         originalLabel: 'Оригинал',
+        translatedLabel: 'Перевод',
     },
     zh: {
         welcome: '已连接。点击场景中的产品查看详情，或直接询问参数与价格。',
@@ -171,6 +174,7 @@ const EXPERIENCE_COPY: Record<
         inStock: '有现货',
         outOfStock: '缺货',
         originalLabel: '原文',
+        translatedLabel: '翻译',
     },
 };
 
@@ -829,6 +833,14 @@ export default function ExperiencePage() {
                                                         : 'rounded-tr-none bg-[#66d9cb] font-semibold text-[#03100f]'
                                                     }`}
                                             >
+                                                {message.isTranslated && (
+                                                    <p className={`mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] ${message.role === 'user'
+                                                        ? 'text-[#0a4741]/80'
+                                                        : 'text-[#8ce7dc]'
+                                                        }`}>
+                                                        {ui.translatedLabel}
+                                                    </p>
+                                                )}
                                                 <p>{message.text}</p>
                                                 {message.originalText && message.originalText !== message.text && (
                                                     <div
