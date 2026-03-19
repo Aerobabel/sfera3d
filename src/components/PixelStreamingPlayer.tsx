@@ -97,9 +97,33 @@ const RECONNECT_MAX_ATTEMPTS = parseNonNegativeInteger(
     0
 );
 
+const stallWatchdogEnabledEnv = process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_ENABLED?.trim().toLowerCase();
+const STALL_WATCHDOG_ENABLED =
+    stallWatchdogEnabledEnv === undefined ||
+    stallWatchdogEnabledEnv === '' ||
+    stallWatchdogEnabledEnv === '1' ||
+    stallWatchdogEnabledEnv === 'true';
+const STALL_WATCHDOG_TIMEOUT_MS = Math.max(
+    5000,
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_TIMEOUT_MS, 15000)
+);
+const STALL_WATCHDOG_INTERVAL_MS = Math.max(
+    1000,
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_INTERVAL_MS, 2000)
+);
+const STALL_WATCHDOG_GRACE_MS = Math.max(
+    2000,
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_GRACE_MS, 7000)
+);
+
 const getReconnectDelayMs = (attempt: number) => {
     const scaledDelay = RECONNECT_BASE_DELAY_MS * Math.pow(2, Math.max(0, attempt - 1));
     return Math.min(scaledDelay, RECONNECT_MAX_DELAY_MS);
+};
+
+type VideoFrameWatchVideo = HTMLVideoElement & {
+    requestVideoFrameCallback?: (callback: VideoFrameRequestCallback) => number;
+    cancelVideoFrameCallback?: (handle: number) => void;
 };
 
 export default function PixelStreamingPlayer({
@@ -175,12 +199,43 @@ export default function PixelStreamingPlayer({
     const reconnectAttemptRef = useRef(0);
     const reconnectTimerRef = useRef<number | null>(null);
     const reconnectRequestedRef = useRef(false);
+    const stallWatchdogTimerRef = useRef<number | null>(null);
+    const stallWatchdogVideoRef = useRef<VideoFrameWatchVideo | null>(null);
+    const stallWatchdogVideoCallbackIdRef = useRef<number | null>(null);
+    const stallWatchdogGraceUntilRef = useRef(0);
+    const lastMediaProgressAtRef = useRef(0);
+    const lastVideoTimeRef = useRef(0);
+    const lastVideoStatsRef = useRef({
+        initialized: false,
+        bytesReceived: 0,
+        framesDecoded: 0,
+        lastPacketReceivedTimestamp: 0
+    });
 
     const clearReconnectTimer = useCallback(() => {
         if (reconnectTimerRef.current !== null) {
             window.clearTimeout(reconnectTimerRef.current);
             reconnectTimerRef.current = null;
         }
+    }, []);
+
+    const clearStallWatchdog = useCallback(() => {
+        if (stallWatchdogTimerRef.current !== null) {
+            window.clearInterval(stallWatchdogTimerRef.current);
+            stallWatchdogTimerRef.current = null;
+        }
+
+        const watchedVideo = stallWatchdogVideoRef.current;
+        if (
+            watchedVideo &&
+            stallWatchdogVideoCallbackIdRef.current !== null &&
+            typeof watchedVideo.cancelVideoFrameCallback === 'function'
+        ) {
+            watchedVideo.cancelVideoFrameCallback(stallWatchdogVideoCallbackIdRef.current);
+        }
+
+        stallWatchdogVideoRef.current = null;
+        stallWatchdogVideoCallbackIdRef.current = null;
     }, []);
 
     useEffect(() => {
@@ -259,12 +314,21 @@ export default function PixelStreamingPlayer({
         connectionGenerationRef.current += 1;
         const generation = connectionGenerationRef.current;
         clearReconnectTimer();
+        clearStallWatchdog();
 
         if (psRef.current) {
             psRef.current.disconnect();
             psRef.current = null;
             wrapperElement.innerHTML = '';
         }
+
+        lastVideoTimeRef.current = 0;
+        lastVideoStatsRef.current = {
+            initialized: false,
+            bytesReceived: 0,
+            framesDecoded: 0,
+            lastPacketReceivedTimestamp: 0
+        };
 
         setIsConnected(false);
         setError(null);
@@ -291,6 +355,7 @@ export default function PixelStreamingPlayer({
 
         const scheduleReconnect = (failureMessage?: string) => {
             if (generation !== connectionGenerationRef.current) return;
+            clearStallWatchdog();
 
             if (!RECONNECT_ENABLED) {
                 setIsConnected(false);
@@ -326,6 +391,60 @@ export default function PixelStreamingPlayer({
             }, delayMs);
         };
 
+        const markMediaProgress = () => {
+            lastMediaProgressAtRef.current = Date.now();
+        };
+
+        const resetWatchdogGraceWindow = () => {
+            const now = Date.now();
+            lastMediaProgressAtRef.current = now;
+            stallWatchdogGraceUntilRef.current = now + STALL_WATCHDOG_GRACE_MS;
+        };
+
+        const attachVideoFrameWatchdog = (videoElement: HTMLVideoElement | null) => {
+            if (!videoElement) return;
+            const candidateVideo = videoElement as VideoFrameWatchVideo;
+            if (typeof candidateVideo.requestVideoFrameCallback !== 'function') {
+                return;
+            }
+
+            stallWatchdogVideoRef.current = candidateVideo;
+            const onVideoFrame: VideoFrameRequestCallback = () => {
+                if (generation !== connectionGenerationRef.current) return;
+                markMediaProgress();
+                if (stallWatchdogVideoRef.current !== candidateVideo) return;
+                stallWatchdogVideoCallbackIdRef.current = candidateVideo.requestVideoFrameCallback?.(onVideoFrame) ?? null;
+            };
+            stallWatchdogVideoCallbackIdRef.current = candidateVideo.requestVideoFrameCallback(onVideoFrame);
+        };
+
+        const startStallWatchdog = () => {
+            if (!STALL_WATCHDOG_ENABLED || stallWatchdogTimerRef.current !== null) return;
+
+            resetWatchdogGraceWindow();
+            stallWatchdogTimerRef.current = window.setInterval(() => {
+                if (generation !== connectionGenerationRef.current) return;
+                if (reconnectTimerRef.current !== null) return;
+                if (document.hidden) return;
+
+                const video = wrapperElement.querySelector('video');
+                if (!(video instanceof HTMLVideoElement)) return;
+                if (video.ended) return;
+
+                if (!video.paused && Number.isFinite(video.currentTime) && video.currentTime > lastVideoTimeRef.current + 0.001) {
+                    lastVideoTimeRef.current = video.currentTime;
+                    markMediaProgress();
+                }
+
+                if (Date.now() < stallWatchdogGraceUntilRef.current) return;
+
+                const noProgressDuration = Date.now() - lastMediaProgressAtRef.current;
+                if (noProgressDuration < STALL_WATCHDOG_TIMEOUT_MS) return;
+
+                scheduleReconnect('Stream stalled. Attempting recovery...');
+            }, STALL_WATCHDOG_INTERVAL_MS);
+        };
+
         const config = new Config({
             initialSettings: {
                 AutoPlayVideo: true,
@@ -355,6 +474,7 @@ export default function PixelStreamingPlayer({
                 console.log("WebRTC Connected");
                 reconnectAttemptRef.current = 0;
                 clearReconnectTimer();
+                resetWatchdogGraceWindow();
                 setIsConnected(true);
                 setStatus(textRef.current.connectedWait);
             });
@@ -378,6 +498,7 @@ export default function PixelStreamingPlayer({
                 console.log("Video Initialized");
                 reconnectAttemptRef.current = 0;
                 clearReconnectTimer();
+                resetWatchdogGraceWindow();
                 setIsConnected(true);
                 setStatus(textRef.current.streaming);
 
@@ -388,16 +509,59 @@ export default function PixelStreamingPlayer({
                     onVideoInitializedRef.current(video as HTMLVideoElement);
                 }
                 if (video) {
+                    lastVideoTimeRef.current = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+                    attachVideoFrameWatchdog(video);
                     video.addEventListener(
                         'playing',
                         () => {
                             if (generation !== connectionGenerationRef.current) return;
+                            resetWatchdogGraceWindow();
                             setIsConnected(true);
                             setStatus(textRef.current.streaming);
                         },
                         { once: true }
                     );
                 }
+            });
+
+            ps.addEventListener('statsReceived', (event: Event) => {
+                if (generation !== connectionGenerationRef.current) return;
+
+                const typedEvent = event as Event & {
+                    data?: {
+                        aggregatedStats?: {
+                            inboundVideoStats?: {
+                                bytesReceived?: number;
+                                framesDecoded?: number;
+                                lastPacketReceivedTimestamp?: number;
+                            };
+                        };
+                    };
+                };
+
+                const videoStats = typedEvent.data?.aggregatedStats?.inboundVideoStats;
+                if (!videoStats) return;
+
+                const bytesReceived = Number(videoStats.bytesReceived ?? 0);
+                const framesDecoded = Number(videoStats.framesDecoded ?? 0);
+                const lastPacketReceivedTimestamp = Number(videoStats.lastPacketReceivedTimestamp ?? 0);
+                const previous = lastVideoStatsRef.current;
+
+                if (
+                    !previous.initialized ||
+                    bytesReceived > previous.bytesReceived ||
+                    framesDecoded > previous.framesDecoded ||
+                    lastPacketReceivedTimestamp > previous.lastPacketReceivedTimestamp
+                ) {
+                    markMediaProgress();
+                }
+
+                lastVideoStatsRef.current = {
+                    initialized: true,
+                    bytesReceived,
+                    framesDecoded,
+                    lastPacketReceivedTimestamp
+                };
             });
 
             ps.addResponseEventListener('handle_responses', (response: string) => {
@@ -420,8 +584,11 @@ export default function PixelStreamingPlayer({
             scheduleReconnect(textRef.current.setupError(errorMessage));
         }
 
+        startStallWatchdog();
+
         return () => {
             clearReconnectTimer();
+            clearStallWatchdog();
             if (psRef.current) {
                 psRef.current.disconnect();
                 psRef.current = null;
@@ -430,7 +597,7 @@ export default function PixelStreamingPlayer({
                 wrapperElement.innerHTML = '';
             }
         };
-    }, [url, initialUrl, mobileInputMode, isMobileDevice, preferredDesktopMouseMode, reconnectNonce, clearReconnectTimer]);
+    }, [url, initialUrl, mobileInputMode, isMobileDevice, preferredDesktopMouseMode, reconnectNonce, clearReconnectTimer, clearStallWatchdog]);
 
     useEffect(() => {
         const ps = psRef.current;
