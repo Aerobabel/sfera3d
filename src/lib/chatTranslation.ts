@@ -110,15 +110,29 @@ const requestTranslationsFromOpenAI = async (
     }),
   });
 
+  const responseText = await response.text();
+
   if (!response.ok) {
+    console.error(
+      `OpenAI chat translation failed with status ${response.status}: ${responseText.slice(0, 240)}`
+    );
     return null;
   }
 
-  const payload = (await response.json()) as unknown;
-  const responseText = extractResponseText(payload);
-  if (!responseText) return null;
+  let payload: unknown;
+  try {
+    payload = JSON.parse(responseText) as unknown;
+  } catch {
+    console.error(
+      `OpenAI chat translation returned non-JSON content: ${responseText.slice(0, 240)}`
+    );
+    return null;
+  }
 
-  return parseTranslationResponse(responseText);
+  const extractedText = extractResponseText(payload);
+  if (!extractedText) return null;
+
+  return parseTranslationResponse(extractedText);
 };
 
 export const buildChatLocalizations = async (
