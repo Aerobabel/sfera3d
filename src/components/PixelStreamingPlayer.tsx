@@ -55,6 +55,22 @@ const hasLiveVideoStream = (container: HTMLDivElement | null) => {
     return video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && !video.paused && !video.ended;
 };
 
+const hasActiveVideoSource = (video: HTMLVideoElement) => {
+    if (video.ended || video.error) return false;
+
+    const mediaStream = video.srcObject;
+    if (!(mediaStream instanceof MediaStream)) {
+        return video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+    }
+
+    const videoTracks = mediaStream.getVideoTracks();
+    if (videoTracks.length === 0) {
+        return mediaStream.active;
+    }
+
+    return mediaStream.active && videoTracks.some((track) => track.readyState === 'live');
+};
+
 const resolveDesktopMouseMode = (
     preferredMode?: DesktopMouseMode
 ): DesktopMouseMode => {
@@ -274,7 +290,10 @@ export default function PixelStreamingPlayer({
     const lastMediaProgressAtRef = useRef(0);
     const lastVideoTimeRef = useRef(0);
     const lastDecodedFrameCountRef = useRef<number | null>(null);
+    const lastPresentedFrameCountRef = useRef<number | null>(null);
+    const lastPresentedMediaTimeRef = useRef<number | null>(null);
     const missingVideoSinceRef = useRef<number | null>(null);
+    const videoInitializedRef = useRef(false);
     const lastVideoStatsRef = useRef({
         initialized: false,
         framesDecoded: 0
@@ -392,7 +411,10 @@ export default function PixelStreamingPlayer({
 
         lastVideoTimeRef.current = 0;
         lastDecodedFrameCountRef.current = null;
+        lastPresentedFrameCountRef.current = null;
+        lastPresentedMediaTimeRef.current = null;
         missingVideoSinceRef.current = null;
+        videoInitializedRef.current = false;
         lastVideoStatsRef.current = {
             initialized: false,
             framesDecoded: 0
@@ -488,9 +510,36 @@ export default function PixelStreamingPlayer({
             }
 
             stallWatchdogVideoRef.current = candidateVideo;
-            const onVideoFrame: VideoFrameRequestCallback = () => {
+            const onVideoFrame: VideoFrameRequestCallback = (_now, metadata) => {
                 if (generation !== connectionGenerationRef.current) return;
-                markMediaProgress();
+                const hasFrameProgress =
+                    (
+                        Number.isFinite(metadata.presentedFrames) &&
+                        (
+                            lastPresentedFrameCountRef.current === null ||
+                            metadata.presentedFrames > lastPresentedFrameCountRef.current
+                        )
+                    ) ||
+                    (
+                        Number.isFinite(metadata.mediaTime) &&
+                        (
+                            lastPresentedMediaTimeRef.current === null ||
+                            metadata.mediaTime > lastPresentedMediaTimeRef.current + 0.0001
+                        )
+                    );
+
+                if (Number.isFinite(metadata.presentedFrames)) {
+                    lastPresentedFrameCountRef.current = metadata.presentedFrames;
+                }
+
+                if (Number.isFinite(metadata.mediaTime)) {
+                    lastPresentedMediaTimeRef.current = metadata.mediaTime;
+                }
+
+                if (hasFrameProgress) {
+                    markMediaProgress();
+                }
+
                 if (stallWatchdogVideoRef.current !== candidateVideo) return;
                 stallWatchdogVideoCallbackIdRef.current = candidateVideo.requestVideoFrameCallback?.(onVideoFrame) ?? null;
             };
@@ -523,9 +572,23 @@ export default function PixelStreamingPlayer({
                     return;
                 }
                 missingVideoSinceRef.current = null;
-                if (video.ended) return;
 
-                if (!video.paused && Number.isFinite(video.currentTime) && video.currentTime > lastVideoTimeRef.current + 0.001) {
+                if (videoInitializedRef.current && !hasActiveVideoSource(video)) {
+                    scheduleReconnect('Video source lost. Reconnecting...');
+                    return;
+                }
+
+                const hasFrameCounters =
+                    lastPresentedFrameCountRef.current !== null ||
+                    lastDecodedFrameCountRef.current !== null ||
+                    lastVideoStatsRef.current.initialized;
+
+                if (
+                    !hasFrameCounters &&
+                    !video.paused &&
+                    Number.isFinite(video.currentTime) &&
+                    video.currentTime > lastVideoTimeRef.current + 0.001
+                ) {
                     lastVideoTimeRef.current = video.currentTime;
                     markMediaProgress();
                 }
@@ -623,6 +686,7 @@ export default function PixelStreamingPlayer({
                 reconnectAttemptRef.current = 0;
                 clearReconnectTimer();
                 resetWatchdogGraceWindow();
+                videoInitializedRef.current = true;
                 setIsConnected(true);
                 setStatus(textRef.current.streaming);
 
