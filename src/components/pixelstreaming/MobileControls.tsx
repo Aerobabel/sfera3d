@@ -16,13 +16,17 @@ interface PixelStreamingWindow extends Window {
     };
 }
 
-const LOOK_DEAD_ZONE = 0.06;
-const LOOK_SMOOTHING = 0.22;
-const LOOK_RESPONSE_EXPONENT = 2.1;
-const LOOK_FINE_ZONE = 0.45;
-const LOOK_FINE_SENSITIVITY_PX = 4.5;
-const LOOK_SENSITIVITY_PX = 10;
-const LOOK_MAX_DELTA_PX = 14;
+// Slower, precision-first profile for touch look input.
+const LOOK_DEAD_ZONE = 0.11;
+const LOOK_SMOOTHING = 0.15;
+const LOOK_RESPONSE_EXPONENT = 2.55;
+const LOOK_FINE_ZONE = 0.62;
+const LOOK_FINE_SENSITIVITY_PX = 2.2;
+const LOOK_SENSITIVITY_PX = 4.8;
+const LOOK_MAX_DELTA_PX = 6;
+const LOOK_FRAME_SCALE_MIN = 0.6;
+const LOOK_FRAME_SCALE_MAX = 1.25;
+const LOOK_ACTIVATION_THRESHOLD = 0.03;
 const HOLD_LEFT_MOUSE_WHILE_LOOKING = false;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -200,7 +204,11 @@ export default function MobileControls({ videoElement }: MobileControlsProps) {
 
         const tick = (timestamp: number) => {
             const previousTimestamp = lastFrameRef.current ?? timestamp;
-            const frameScale = clamp((timestamp - previousTimestamp) / 16.6667, 0.5, 2);
+            const frameScale = clamp(
+                (timestamp - previousTimestamp) / 16.6667,
+                LOOK_FRAME_SCALE_MIN,
+                LOOK_FRAME_SCALE_MAX
+            );
             lastFrameRef.current = timestamp;
 
             smoothedLookVector.current.x += (lookVector.current.x - smoothedLookVector.current.x) * LOOK_SMOOTHING;
@@ -226,7 +234,7 @@ export default function MobileControls({ videoElement }: MobileControlsProps) {
 
     const handleLookJoystick = useCallback((x: number, y: number) => {
         lookVector.current = { x, y };
-        if (Math.abs(x) > 0.01 || Math.abs(y) > 0.01) {
+        if (Math.abs(x) > LOOK_ACTIVATION_THRESHOLD || Math.abs(y) > LOOK_ACTIVATION_THRESHOLD) {
             startLookLoop();
         }
     }, [startLookLoop]);

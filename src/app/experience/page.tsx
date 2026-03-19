@@ -364,6 +364,15 @@ export default function ExperiencePage() {
         setIsDesktopChatOpen((previous) => !previous);
     };
 
+    const closeChatPanel = () => {
+        if (isMobile) {
+            setIsMobileChatOpen(false);
+            return;
+        }
+
+        setIsDesktopChatOpen(false);
+    };
+
     const syncSupplierMessages = useCallback(async () => {
         if (!activeSupplierId) return;
         setIsSyncingSupplierChat(true);
@@ -765,16 +774,14 @@ export default function ExperiencePage() {
                                 <div className="mb-3">
                                     <div className="flex items-center gap-2">
                                         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#66d9cb]">{chatTitle}</p>
-                                        {isMobile && (
-                                            <button
-                                                onClick={() => setIsMobileChatOpen(false)}
-                                                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-white/15 text-gray-300 transition hover:bg-white/10 hover:text-white"
-                                                aria-label={ui.close}
-                                                title={ui.close}
-                                            >
-                                                <X size={12} />
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={closeChatPanel}
+                                            className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-white/15 text-gray-300 transition hover:bg-white/10 hover:text-white"
+                                            aria-label={ui.close}
+                                            title={ui.close}
+                                        >
+                                            <X size={12} />
+                                        </button>
                                     </div>
                                     <div>
                                         <p className="mt-1 text-xs text-[#bbc6d4]">
