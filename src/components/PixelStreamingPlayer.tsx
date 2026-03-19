@@ -101,11 +101,11 @@ const reconnectEnabledEnv = process.env.NEXT_PUBLIC_PIXELSTREAM_RECONNECT_ENABLE
 const RECONNECT_ENABLED = reconnectEnabledEnv === undefined || reconnectEnabledEnv === '' || reconnectEnabledEnv === '1' || reconnectEnabledEnv === 'true';
 const RECONNECT_BASE_DELAY_MS = Math.max(
     300,
-    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_RECONNECT_BASE_DELAY_MS, 1200)
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_RECONNECT_BASE_DELAY_MS, 500)
 );
 const RECONNECT_MAX_DELAY_MS = Math.max(
     RECONNECT_BASE_DELAY_MS,
-    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_RECONNECT_MAX_DELAY_MS, 12000)
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_RECONNECT_MAX_DELAY_MS, 4000)
 );
 // 0 means unlimited retries.
 const RECONNECT_MAX_ATTEMPTS = parseNonNegativeInteger(
@@ -121,15 +121,15 @@ const STALL_WATCHDOG_ENABLED =
     stallWatchdogEnabledEnv === 'true';
 const STALL_WATCHDOG_TIMEOUT_MS = Math.max(
     3000,
-    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_TIMEOUT_MS, 8000)
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_TIMEOUT_MS, 4000)
 );
 const STALL_WATCHDOG_INTERVAL_MS = Math.max(
     500,
-    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_INTERVAL_MS, 2000)
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_INTERVAL_MS, 1000)
 );
 const STALL_WATCHDOG_GRACE_MS = Math.max(
     1000,
-    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_GRACE_MS, 3000)
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_GRACE_MS, 1500)
 );
 const STALL_WATCHDOG_DISCONNECT_RECHECK_MS = 2500;
 const disableInternalReconnectEnv = process.env.NEXT_PUBLIC_PIXELSTREAM_DISABLE_INTERNAL_RECONNECT?.trim().toLowerCase();
