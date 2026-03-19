@@ -1,8 +1,7 @@
 ﻿'use client';
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -76,9 +75,8 @@ const copy = {
 export default function LoginPage() {
   const { language } = useLanguage();
   const t = copy[language];
-  const router = useRouter();
 
-  const [email, setEmail] = useState("nonagon@sfera3d.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUpMode, setIsSignUpMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,6 +87,46 @@ export default function LoginPage() {
     if (isSubmitting) return t.loading;
     return isSignUpMode ? t.signUp : t.signIn;
   }, [isSignUpMode, isSubmitting, t.loading, t.signIn, t.signUp]);
+
+  useEffect(() => {
+    let isMounted = true;
+    let unsubscribe = () => {};
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+
+      const bootstrapSession = async () => {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!isMounted) return;
+        if (session) {
+          window.location.replace("/supplier/dashboard");
+          return;
+        }
+
+        const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+          if (nextSession) {
+            window.location.replace("/supplier/dashboard");
+          }
+        });
+
+        unsubscribe = () => {
+          authListener.subscription.unsubscribe();
+        };
+      };
+
+      void bootstrapSession();
+    } catch {
+      // The page already surfaces missing Supabase config during submit.
+    }
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -123,8 +161,7 @@ export default function LoginPage() {
         if (error) throw error;
 
         if (data.session) {
-          router.push("/supplier/dashboard");
-          router.refresh();
+          window.location.assign("/supplier/dashboard");
           return;
         }
 
@@ -138,8 +175,7 @@ export default function LoginPage() {
       });
       if (error) throw error;
 
-      router.push("/supplier/dashboard");
-      router.refresh();
+      window.location.assign("/supplier/dashboard");
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t.defaultError;
       setErrorMessage(message || t.defaultError);

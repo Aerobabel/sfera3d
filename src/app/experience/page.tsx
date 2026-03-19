@@ -717,9 +717,9 @@ export default function ExperiencePage() {
                             <button className="w-full text-left px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10 transition flex items-center gap-2">
                                 <Info size={16} /> {ui.menuSupplier}
                             </button>
-                            <Link href="/login" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
+                            <a href="/login" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 {ui.menuLogin}
-                            </Link>
+                            </a>
                             <div className="h-px bg-white/10 my-2"></div>
                             <Link href="/" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition">
                                 {ui.menuExit}

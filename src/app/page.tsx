@@ -472,12 +472,12 @@ export default function LandingPage() {
           </nav>
 
           <div className="fade-up delay-2 flex items-center gap-2 sm:gap-3">
-            <Link
+            <a
               href="/login"
               className="rounded-full border border-white/15 px-4 py-2 text-xs font-semibold tracking-wide text-[#f5f1e9] transition hover:border-white/35 hover:bg-white/10 sm:text-sm"
             >
               {t.cta.supplier}
-            </Link>
+            </a>
             <Link
               href="/experience"
               className="rounded-full bg-[#f6ba4f] px-4 py-2 text-xs font-bold tracking-wide text-[#130f07] transition hover:bg-[#ffd084] sm:text-sm"
