@@ -16,7 +16,11 @@ import { useRouter } from 'next/navigation';
 import { IBM_Plex_Mono, Space_Grotesk } from 'next/font/google';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { SupplierChatApiMessage, SupplierChatApiResponse } from '@/lib/supplierChat';
+import {
+  SupplierChatApiMessage,
+  SupplierChatApiResponse,
+  readSupplierChatApiResponse,
+} from '@/lib/supplierChat';
 
 const dashboardDisplay = Space_Grotesk({
   subsets: ['latin'],
@@ -248,7 +252,7 @@ export default function SupplierDashboard() {
         const response = await fetch(`/api/supplier-chat?supplierId=${encodeURIComponent(supplierId)}&viewerLanguage=${encodeURIComponent(language)}`, {
           cache: 'no-store',
         });
-        const data = (await response.json()) as SupplierChatApiResponse;
+        const data = (await readSupplierChatApiResponse(response)) as SupplierChatApiResponse;
 
         if (!response.ok || !data.success) {
           throw new Error(data.error || t.loadFailed);
@@ -306,7 +310,7 @@ export default function SupplierDashboard() {
         }),
       });
 
-      const data = (await response.json()) as { success?: boolean; error?: string };
+      const data = await readSupplierChatApiResponse(response);
       if (!response.ok || !data.success) {
         throw new Error(data.error || t.loadFailed);
       }
@@ -317,7 +321,7 @@ export default function SupplierDashboard() {
       const refresh = await fetch(`/api/supplier-chat?supplierId=${encodeURIComponent(supplierId)}&viewerLanguage=${encodeURIComponent(language)}`, {
         cache: 'no-store',
       });
-      const refreshData = (await refresh.json()) as SupplierChatApiResponse;
+      const refreshData = await readSupplierChatApiResponse(refresh);
       if (refresh.ok && refreshData.success && Array.isArray(refreshData.messages)) {
         setMessages(refreshData.messages);
       }

@@ -19,6 +19,11 @@ type SupplierChatTranslationRow = {
   translated_text: string;
 };
 
+type ViewerTranslationLookup = {
+  viewerTranslations: Map<string, string>;
+  translationCounts: Map<string, number>;
+};
+
 const DEFAULT_SUPPLIER_ID = "sup_nonagon";
 const MAX_TRANSLATION_BACKFILL_MESSAGES = 24;
 
@@ -61,9 +66,12 @@ const toApiMessage = (
 const getViewerTranslations = async (
   viewerLanguage: AppLanguage | null,
   rows: SupplierChatRow[]
-) => {
+) : Promise<ViewerTranslationLookup> => {
   if (!viewerLanguage || rows.length === 0) {
-    return new Map<string, string>();
+    return {
+      viewerTranslations: new Map<string, string>(),
+      translationCounts: new Map<string, number>(),
+    };
   }
 
   try {
@@ -72,28 +80,38 @@ const getViewerTranslations = async (
     const { data, error } = await supabase
       .from("supplier_message_translations")
       .select("message_id,language,translated_text")
-      .in("message_id", messageIds)
-      .eq("language", viewerLanguage);
+      .in("message_id", messageIds);
 
     if (error) {
       if (isMissingRelationError(error)) {
-        return new Map<string, string>();
+        return {
+          viewerTranslations: new Map<string, string>(),
+          translationCounts: new Map<string, number>(),
+        };
       }
 
       throw new Error(error.message);
     }
 
-    return new Map(
-      ((data ?? []) as SupplierChatTranslationRow[]).map((row) => [
-        row.message_id,
-        row.translated_text,
-      ])
-    );
+    const viewerTranslations = new Map<string, string>();
+    const translationCounts = new Map<string, number>();
+
+    for (const row of (data ?? []) as SupplierChatTranslationRow[]) {
+      translationCounts.set(row.message_id, (translationCounts.get(row.message_id) ?? 0) + 1);
+      if (row.language === viewerLanguage) {
+        viewerTranslations.set(row.message_id, row.translated_text);
+      }
+    }
+
+    return { viewerTranslations, translationCounts };
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Failed to load supplier chat translations.";
     console.error(message);
-    return new Map<string, string>();
+    return {
+      viewerTranslations: new Map<string, string>(),
+      translationCounts: new Map<string, number>(),
+    };
   }
 };
 
@@ -162,14 +180,18 @@ const upsertTranslationRows = async (
 const backfillViewerTranslations = async (
   viewerLanguage: AppLanguage | null,
   rows: SupplierChatRow[],
-  existingTranslations: Map<string, string>
+  existingTranslations: Map<string, string>,
+  translationCounts: Map<string, number>
 ) => {
   if (!viewerLanguage || rows.length === 0) {
     return existingTranslations;
   }
 
   const missingRows = rows
-    .filter((row) => !existingTranslations.has(row.id))
+    .filter((row) => {
+      const cachedCount = translationCounts.get(row.id) ?? 0;
+      return !existingTranslations.has(row.id) || cachedCount < CHAT_TRANSLATION_LANGUAGES.length;
+    })
     .slice(-MAX_TRANSLATION_BACKFILL_MESSAGES);
 
   if (missingRows.length === 0) {
@@ -229,11 +251,12 @@ export async function GET(request: Request) {
     }
 
     const rows = data as SupplierChatRow[];
-    const translationMap = await getViewerTranslations(viewerLanguage, rows);
+    const { viewerTranslations, translationCounts } = await getViewerTranslations(viewerLanguage, rows);
     const hydratedTranslationMap = await backfillViewerTranslations(
       viewerLanguage,
       rows,
-      translationMap
+      viewerTranslations,
+      translationCounts
     );
     const messages = rows.map((row) =>
       toApiMessage(row, viewerLanguage, hydratedTranslationMap.get(row.id))

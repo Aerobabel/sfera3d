@@ -12,7 +12,7 @@ import MobileControls from "@/components/pixelstreaming/MobileControls";
 import MarketplaceCrosshair from "@/components/pixelstreaming/MarketplaceCrosshair";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { AppLanguage, getLocalizedProduct } from "@/lib/i18n";
-import { SupplierChatApiResponse } from "@/lib/supplierChat";
+import { readSupplierChatApiResponse } from "@/lib/supplierChat";
 
 type MobileInputMode = 'joystick' | 'touch';
 type ToStreamerHandler = (messageData?: Array<number | string>) => void;
@@ -376,7 +376,7 @@ export default function ExperiencePage() {
             const response = await fetch(`/api/supplier-chat?supplierId=${encodeURIComponent(activeSupplierId)}&viewerLanguage=${encodeURIComponent(language)}`, {
                 cache: 'no-store',
             });
-            const data = (await response.json()) as SupplierChatApiResponse;
+            const data = await readSupplierChatApiResponse(response);
 
             if (!response.ok || !data.success) {
                 throw new Error(data.error || 'Unable to load supplier messages.');
@@ -432,7 +432,7 @@ export default function ExperiencePage() {
                     }),
                 });
 
-                const data = (await response.json()) as SupplierChatApiResponse;
+                const data = await readSupplierChatApiResponse(response);
                 if (!response.ok || !data.success) {
                     throw new Error(data.error || 'Unable to send message.');
                 }

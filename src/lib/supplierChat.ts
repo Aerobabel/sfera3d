@@ -20,3 +20,23 @@ export type SupplierChatApiResponse = {
   messages?: SupplierChatApiMessage[];
   message?: SupplierChatApiMessage;
 };
+
+export const readSupplierChatApiResponse = async (
+  response: Response
+): Promise<SupplierChatApiResponse> => {
+  const raw = await response.text();
+
+  if (!raw.trim()) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(raw) as SupplierChatApiResponse;
+  } catch {
+    const contentType = response.headers.get("content-type") ?? "unknown content type";
+    return {
+      success: false,
+      error: `Supplier chat API returned invalid JSON (${contentType}, HTTP ${response.status}).`,
+    };
+  }
+};
