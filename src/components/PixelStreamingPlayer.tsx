@@ -104,17 +104,18 @@ const STALL_WATCHDOG_ENABLED =
     stallWatchdogEnabledEnv === '1' ||
     stallWatchdogEnabledEnv === 'true';
 const STALL_WATCHDOG_TIMEOUT_MS = Math.max(
-    5000,
-    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_TIMEOUT_MS, 15000)
+    3000,
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_TIMEOUT_MS, 8000)
 );
 const STALL_WATCHDOG_INTERVAL_MS = Math.max(
-    1000,
+    500,
     parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_INTERVAL_MS, 2000)
 );
 const STALL_WATCHDOG_GRACE_MS = Math.max(
-    2000,
-    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_GRACE_MS, 7000)
+    1000,
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_GRACE_MS, 3000)
 );
+const STALL_WATCHDOG_DISCONNECT_RECHECK_MS = 2500;
 
 const getReconnectDelayMs = (attempt: number) => {
     const scaledDelay = RECONNECT_BASE_DELAY_MS * Math.pow(2, Math.max(0, attempt - 1));
@@ -425,7 +426,12 @@ export default function PixelStreamingPlayer({
             stallWatchdogTimerRef.current = window.setInterval(() => {
                 if (generation !== connectionGenerationRef.current) return;
                 if (reconnectTimerRef.current !== null) return;
-                if (document.hidden) return;
+                if (document.hidden) {
+                    // Mobile browsers can freeze timers/media while hidden.
+                    // Re-arm the grace window and evaluate once visible again.
+                    stallWatchdogGraceUntilRef.current = Date.now() + STALL_WATCHDOG_GRACE_MS;
+                    return;
+                }
 
                 const video = wrapperElement.querySelector('video');
                 if (!(video instanceof HTMLVideoElement)) return;
@@ -443,6 +449,19 @@ export default function PixelStreamingPlayer({
 
                 scheduleReconnect('Stream stalled. Attempting recovery...');
             }, STALL_WATCHDOG_INTERVAL_MS);
+        };
+
+        const handleVisibilityOrPageShow = () => {
+            if (generation !== connectionGenerationRef.current) return;
+            if (document.hidden) return;
+
+            const staleForMs = Date.now() - lastMediaProgressAtRef.current;
+            if (staleForMs >= STALL_WATCHDOG_TIMEOUT_MS) {
+                scheduleReconnect('Resuming stream after interruption...');
+                return;
+            }
+
+            resetWatchdogGraceWindow();
         };
 
         const config = new Config({
@@ -487,6 +506,7 @@ export default function PixelStreamingPlayer({
                 if (hasLiveVideoStream(wrapperElement)) {
                     setIsConnected(true);
                     setStatus(textRef.current.streaming);
+                    stallWatchdogGraceUntilRef.current = Date.now() + STALL_WATCHDOG_DISCONNECT_RECHECK_MS;
                     return;
                 }
 
@@ -511,6 +531,16 @@ export default function PixelStreamingPlayer({
                 if (video) {
                     lastVideoTimeRef.current = Number.isFinite(video.currentTime) ? video.currentTime : 0;
                     attachVideoFrameWatchdog(video);
+                    const onPotentialStall = () => {
+                        if (generation !== connectionGenerationRef.current) return;
+                        if (document.hidden) return;
+                        stallWatchdogGraceUntilRef.current = Math.min(
+                            stallWatchdogGraceUntilRef.current,
+                            Date.now() + 1200
+                        );
+                    };
+                    video.addEventListener('stalled', onPotentialStall);
+                    video.addEventListener('waiting', onPotentialStall);
                     video.addEventListener(
                         'playing',
                         () => {
@@ -585,8 +615,12 @@ export default function PixelStreamingPlayer({
         }
 
         startStallWatchdog();
+        document.addEventListener('visibilitychange', handleVisibilityOrPageShow);
+        window.addEventListener('pageshow', handleVisibilityOrPageShow);
 
         return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityOrPageShow);
+            window.removeEventListener('pageshow', handleVisibilityOrPageShow);
             clearReconnectTimer();
             clearStallWatchdog();
             if (psRef.current) {
