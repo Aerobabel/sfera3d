@@ -762,9 +762,21 @@ export default function ExperiencePage() {
                         {/* Chat Box */}
                         {isChatPanelOpen && (
                             <div className={`pointer-events-auto w-full md:max-w-lg rounded-2xl border border-[#66d9cb]/30 bg-[linear-gradient(160deg,rgba(5,10,18,0.9),rgba(12,18,28,0.82))] p-4 text-white shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-xl ${isMobile ? 'max-w-[min(92vw,560px)] mx-auto' : ''} ${usingMobileJoysticks ? 'mb-28' : ''}`}>
-                                <div className="mb-3 flex items-start justify-between gap-3">
-                                    <div>
+                                <div className="mb-3">
+                                    <div className="flex items-center gap-2">
                                         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#66d9cb]">{chatTitle}</p>
+                                        {isMobile && (
+                                            <button
+                                                onClick={() => setIsMobileChatOpen(false)}
+                                                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-white/15 text-gray-300 transition hover:bg-white/10 hover:text-white"
+                                                aria-label={ui.close}
+                                                title={ui.close}
+                                            >
+                                                <X size={12} />
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div>
                                         <p className="mt-1 text-xs text-[#bbc6d4]">
                                             {chatSubtitle}
                                         </p>
@@ -794,14 +806,6 @@ export default function ExperiencePage() {
                                             </button>
                                         </div>
                                     </div>
-                                    {isMobile && (
-                                        <button
-                                            onClick={() => setIsMobileChatOpen(false)}
-                                            className="rounded-md border border-white/15 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-gray-300 hover:bg-white/10 hover:text-white transition"
-                                        >
-                                            {ui.close}
-                                        </button>
-                                    )}
                                 </div>
 
                                 <div ref={chatFeedRef} className="mb-3 h-36 space-y-3 overflow-y-auto pr-1 md:h-56">

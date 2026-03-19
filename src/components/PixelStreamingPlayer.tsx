@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Config, Flags, PixelStreaming } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
 import { useLanguage } from './i18n/LanguageProvider';
 
@@ -75,6 +75,33 @@ const resolveDesktopMouseMode = (
     return 'locked';
 };
 
+const parseNonNegativeInteger = (rawValue: string | undefined, fallback: number) => {
+    if (!rawValue) return fallback;
+    const parsed = Number.parseInt(rawValue.trim(), 10);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+};
+
+const reconnectEnabledEnv = process.env.NEXT_PUBLIC_PIXELSTREAM_RECONNECT_ENABLED?.trim().toLowerCase();
+const RECONNECT_ENABLED = reconnectEnabledEnv === undefined || reconnectEnabledEnv === '' || reconnectEnabledEnv === '1' || reconnectEnabledEnv === 'true';
+const RECONNECT_BASE_DELAY_MS = Math.max(
+    300,
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_RECONNECT_BASE_DELAY_MS, 1200)
+);
+const RECONNECT_MAX_DELAY_MS = Math.max(
+    RECONNECT_BASE_DELAY_MS,
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_RECONNECT_MAX_DELAY_MS, 12000)
+);
+// 0 means unlimited retries.
+const RECONNECT_MAX_ATTEMPTS = parseNonNegativeInteger(
+    process.env.NEXT_PUBLIC_PIXELSTREAM_RECONNECT_MAX_ATTEMPTS,
+    0
+);
+
+const getReconnectDelayMs = (attempt: number) => {
+    const scaledDelay = RECONNECT_BASE_DELAY_MS * Math.pow(2, Math.max(0, attempt - 1));
+    return Math.min(scaledDelay, RECONNECT_MAX_DELAY_MS);
+};
+
 export default function PixelStreamingPlayer({
     signalingServerUrl: initialUrl,
     onPixelStreamingResponse,
@@ -137,6 +164,7 @@ export default function PixelStreamingPlayer({
     const [isConnected, setIsConnected] = useState(false);
     const [status, setStatus] = useState(text.initializing);
     const [error, setError] = useState<string | null>(null);
+    const [reconnectNonce, setReconnectNonce] = useState(0);
 
     const psRef = useRef<PixelStreaming | null>(null);
     const connectionGenerationRef = useRef(0);
@@ -144,6 +172,16 @@ export default function PixelStreamingPlayer({
     const blockedKeyboardCodesRef = useRef<Set<string>>(new Set());
     const onPixelStreamingResponseRef = useRef(onPixelStreamingResponse);
     const onVideoInitializedRef = useRef(onVideoInitialized);
+    const reconnectAttemptRef = useRef(0);
+    const reconnectTimerRef = useRef<number | null>(null);
+    const reconnectRequestedRef = useRef(false);
+
+    const clearReconnectTimer = useCallback(() => {
+        if (reconnectTimerRef.current !== null) {
+            window.clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+        }
+    }, []);
 
     useEffect(() => {
         textRef.current = text;
@@ -212,8 +250,15 @@ export default function PixelStreamingPlayer({
         const wrapperElement = wrapperRef.current;
         if (!wrapperElement) return;
 
+        const isReconnectAttempt = reconnectRequestedRef.current;
+        reconnectRequestedRef.current = false;
+        if (!isReconnectAttempt) {
+            reconnectAttemptRef.current = 0;
+        }
+
         connectionGenerationRef.current += 1;
         const generation = connectionGenerationRef.current;
+        clearReconnectTimer();
 
         if (psRef.current) {
             psRef.current.disconnect();
@@ -244,6 +289,43 @@ export default function PixelStreamingPlayer({
             : (useTouchScreenInput ? 'touch' : 'joystick');
         setStatus(textRef.current.connecting(connectUrl, inputLabel));
 
+        const scheduleReconnect = (failureMessage?: string) => {
+            if (generation !== connectionGenerationRef.current) return;
+
+            if (!RECONNECT_ENABLED) {
+                setIsConnected(false);
+                setStatus(textRef.current.disconnected);
+                if (failureMessage) {
+                    setError(failureMessage);
+                }
+                return;
+            }
+
+            if (reconnectTimerRef.current !== null) return;
+
+            const nextAttempt = reconnectAttemptRef.current + 1;
+            if (RECONNECT_MAX_ATTEMPTS > 0 && nextAttempt > RECONNECT_MAX_ATTEMPTS) {
+                setIsConnected(false);
+                setStatus('Disconnected. Reconnect limit reached.');
+                setError(failureMessage ?? 'Unable to restore connection automatically.');
+                return;
+            }
+
+            reconnectAttemptRef.current = nextAttempt;
+            const delayMs = getReconnectDelayMs(nextAttempt);
+            const waitSeconds = Math.ceil(delayMs / 1000);
+            setIsConnected(false);
+            setError(failureMessage ?? null);
+            setStatus(`Connection lost. Reconnecting in ${waitSeconds}s (attempt ${nextAttempt})...`);
+
+            reconnectTimerRef.current = window.setTimeout(() => {
+                reconnectTimerRef.current = null;
+                if (generation !== connectionGenerationRef.current) return;
+                reconnectRequestedRef.current = true;
+                setReconnectNonce((value) => value + 1);
+            }, delayMs);
+        };
+
         const config = new Config({
             initialSettings: {
                 AutoPlayVideo: true,
@@ -271,6 +353,8 @@ export default function PixelStreamingPlayer({
             ps.addEventListener('webRtcConnected', () => {
                 if (generation !== connectionGenerationRef.current) return;
                 console.log("WebRTC Connected");
+                reconnectAttemptRef.current = 0;
+                clearReconnectTimer();
                 setIsConnected(true);
                 setStatus(textRef.current.connectedWait);
             });
@@ -286,13 +370,14 @@ export default function PixelStreamingPlayer({
                     return;
                 }
 
-                setIsConnected(false);
-                setStatus(textRef.current.disconnected);
+                scheduleReconnect();
             });
 
             ps.addEventListener('videoInitialized', () => {
                 if (generation !== connectionGenerationRef.current) return;
                 console.log("Video Initialized");
+                reconnectAttemptRef.current = 0;
+                clearReconnectTimer();
                 setIsConnected(true);
                 setStatus(textRef.current.streaming);
 
@@ -325,19 +410,18 @@ export default function PixelStreamingPlayer({
             ps.addEventListener('webRtcFailed', () => {
                 if (generation !== connectionGenerationRef.current) return;
                 console.error("WebRTC Failed");
-                setIsConnected(false);
-                setError(textRef.current.webrtcFailed);
+                scheduleReconnect(textRef.current.webrtcFailed);
             });
 
         } catch (err: unknown) {
             if (generation !== connectionGenerationRef.current) return;
             console.error("Setup Error:", err);
             const errorMessage = err instanceof Error ? err.message : 'Unknown setup error';
-            setIsConnected(false);
-            setError(textRef.current.setupError(errorMessage));
+            scheduleReconnect(textRef.current.setupError(errorMessage));
         }
 
         return () => {
+            clearReconnectTimer();
             if (psRef.current) {
                 psRef.current.disconnect();
                 psRef.current = null;
@@ -346,7 +430,7 @@ export default function PixelStreamingPlayer({
                 wrapperElement.innerHTML = '';
             }
         };
-    }, [url, initialUrl, mobileInputMode, isMobileDevice, preferredDesktopMouseMode]);
+    }, [url, initialUrl, mobileInputMode, isMobileDevice, preferredDesktopMouseMode, reconnectNonce, clearReconnectTimer]);
 
     useEffect(() => {
         const ps = psRef.current;
