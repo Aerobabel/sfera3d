@@ -127,6 +127,47 @@ type VideoFrameWatchVideo = HTMLVideoElement & {
     cancelVideoFrameCallback?: (handle: number) => void;
 };
 
+const COMMON_KEY_CODES_TO_RELEASE = [87, 65, 83, 68, 38, 37, 40, 39, 32, 16, 17, 18, 88, 70, 84];
+const NORMALIZED_CENTER = 32768;
+
+const releaseCommonStuckInputs = (ps: PixelStreaming | null) => {
+    if (!ps) return;
+    const handlers = ps.toStreamerHandlers;
+    const keyUpHandler = handlers?.get('KeyUp');
+    const mouseUpHandler = handlers?.get('MouseUp');
+    const mouseLeaveHandler = handlers?.get('MouseLeave');
+
+    if (keyUpHandler) {
+        for (const keyCode of COMMON_KEY_CODES_TO_RELEASE) {
+            keyUpHandler([keyCode]);
+        }
+    }
+
+    if (mouseUpHandler) {
+        mouseUpHandler([0, NORMALIZED_CENTER, NORMALIZED_CENTER]);
+        mouseUpHandler([1, NORMALIZED_CENTER, NORMALIZED_CENTER]);
+        mouseUpHandler([2, NORMALIZED_CENTER, NORMALIZED_CENTER]);
+    }
+
+    mouseLeaveHandler?.();
+};
+
+const getDecodedVideoFrames = (video: HTMLVideoElement): number | null => {
+    if (typeof video.getVideoPlaybackQuality === 'function') {
+        const quality = video.getVideoPlaybackQuality();
+        if (Number.isFinite(quality.totalVideoFrames)) {
+            return quality.totalVideoFrames;
+        }
+    }
+
+    const withWebkitCounter = video as HTMLVideoElement & { webkitDecodedFrameCount?: number };
+    if (typeof withWebkitCounter.webkitDecodedFrameCount === 'number' && Number.isFinite(withWebkitCounter.webkitDecodedFrameCount)) {
+        return withWebkitCounter.webkitDecodedFrameCount;
+    }
+
+    return null;
+};
+
 export default function PixelStreamingPlayer({
     signalingServerUrl: initialUrl,
     onPixelStreamingResponse,
@@ -206,11 +247,10 @@ export default function PixelStreamingPlayer({
     const stallWatchdogGraceUntilRef = useRef(0);
     const lastMediaProgressAtRef = useRef(0);
     const lastVideoTimeRef = useRef(0);
+    const lastDecodedFrameCountRef = useRef<number | null>(null);
     const lastVideoStatsRef = useRef({
         initialized: false,
-        bytesReceived: 0,
-        framesDecoded: 0,
-        lastPacketReceivedTimestamp: 0
+        framesDecoded: 0
     });
 
     const clearReconnectTimer = useCallback(() => {
@@ -324,11 +364,10 @@ export default function PixelStreamingPlayer({
         }
 
         lastVideoTimeRef.current = 0;
+        lastDecodedFrameCountRef.current = null;
         lastVideoStatsRef.current = {
             initialized: false,
-            bytesReceived: 0,
-            framesDecoded: 0,
-            lastPacketReceivedTimestamp: 0
+            framesDecoded: 0
         };
 
         setIsConnected(false);
@@ -357,6 +396,7 @@ export default function PixelStreamingPlayer({
         const scheduleReconnect = (failureMessage?: string) => {
             if (generation !== connectionGenerationRef.current) return;
             clearStallWatchdog();
+            releaseCommonStuckInputs(psRef.current);
 
             if (!RECONNECT_ENABLED) {
                 setIsConnected(false);
@@ -442,6 +482,15 @@ export default function PixelStreamingPlayer({
                     markMediaProgress();
                 }
 
+                const decodedFrames = getDecodedVideoFrames(video);
+                if (decodedFrames !== null) {
+                    const previousDecodedFrames = lastDecodedFrameCountRef.current;
+                    if (previousDecodedFrames === null || decodedFrames > previousDecodedFrames) {
+                        lastDecodedFrameCountRef.current = decodedFrames;
+                        markMediaProgress();
+                    }
+                }
+
                 if (Date.now() < stallWatchdogGraceUntilRef.current) return;
 
                 const noProgressDuration = Date.now() - lastMediaProgressAtRef.current;
@@ -496,6 +545,10 @@ export default function PixelStreamingPlayer({
                 resetWatchdogGraceWindow();
                 setIsConnected(true);
                 setStatus(textRef.current.connectedWait);
+                window.setTimeout(() => {
+                    if (generation !== connectionGenerationRef.current) return;
+                    releaseCommonStuckInputs(ps);
+                }, 0);
             });
 
             ps.addEventListener('webRtcDisconnected', (e: Event) => {
@@ -530,7 +583,9 @@ export default function PixelStreamingPlayer({
                 }
                 if (video) {
                     lastVideoTimeRef.current = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+                    lastDecodedFrameCountRef.current = getDecodedVideoFrames(video);
                     attachVideoFrameWatchdog(video);
+                    releaseCommonStuckInputs(ps);
                     const onPotentialStall = () => {
                         if (generation !== connectionGenerationRef.current) return;
                         if (document.hidden) return;
@@ -572,25 +627,19 @@ export default function PixelStreamingPlayer({
                 const videoStats = typedEvent.data?.aggregatedStats?.inboundVideoStats;
                 if (!videoStats) return;
 
-                const bytesReceived = Number(videoStats.bytesReceived ?? 0);
                 const framesDecoded = Number(videoStats.framesDecoded ?? 0);
-                const lastPacketReceivedTimestamp = Number(videoStats.lastPacketReceivedTimestamp ?? 0);
                 const previous = lastVideoStatsRef.current;
 
                 if (
                     !previous.initialized ||
-                    bytesReceived > previous.bytesReceived ||
-                    framesDecoded > previous.framesDecoded ||
-                    lastPacketReceivedTimestamp > previous.lastPacketReceivedTimestamp
+                    framesDecoded > previous.framesDecoded
                 ) {
                     markMediaProgress();
                 }
 
                 lastVideoStatsRef.current = {
                     initialized: true,
-                    bytesReceived,
-                    framesDecoded,
-                    lastPacketReceivedTimestamp
+                    framesDecoded
                 };
             });
 
