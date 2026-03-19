@@ -300,10 +300,34 @@ export default function MobileControls({ videoElement }: MobileControlsProps) {
         sendCenterInteraction();
     }, [sendCenterInteraction]);
 
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) return;
+            handleStopMove();
+            stopLookLoop();
+        };
+
+        const handlePageHide = () => {
+            handleStopMove();
+            stopLookLoop();
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('pagehide', handlePageHide);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('pagehide', handlePageHide);
+        };
+    }, [handleStopMove, stopLookLoop]);
+
     // Clean up
     useEffect(() => {
-        return () => stopLookLoop();
-    }, [stopLookLoop]);
+        return () => {
+            handleStopMove();
+            stopLookLoop();
+        };
+    }, [handleStopMove, stopLookLoop]);
 
 
     return (

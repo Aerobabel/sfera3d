@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Config, Flags, PixelStreaming } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
+import { Config, Flags, NumericParameters, PixelStreaming } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
 import { useLanguage } from './i18n/LanguageProvider';
 
 interface PixelStreamingPlayerProps {
@@ -116,6 +116,16 @@ const STALL_WATCHDOG_GRACE_MS = Math.max(
     parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_GRACE_MS, 3000)
 );
 const STALL_WATCHDOG_DISCONNECT_RECHECK_MS = 2500;
+const disableInternalReconnectEnv = process.env.NEXT_PUBLIC_PIXELSTREAM_DISABLE_INTERNAL_RECONNECT?.trim().toLowerCase();
+const DISABLE_INTERNAL_RECONNECT =
+    disableInternalReconnectEnv === undefined ||
+    disableInternalReconnectEnv === '' ||
+    disableInternalReconnectEnv === '1' ||
+    disableInternalReconnectEnv === 'true';
+const HARD_RELOAD_FALLBACK_ENABLED = true;
+const HARD_RELOAD_AFTER_ATTEMPTS = 3;
+const HARD_RELOAD_COOLDOWN_MS = 120000;
+const HARD_RELOAD_SESSION_KEY = 'ps_last_hard_reload_at';
 
 const getReconnectDelayMs = (attempt: number) => {
     const scaledDelay = RECONNECT_BASE_DELAY_MS * Math.pow(2, Math.max(0, attempt - 1));
@@ -150,6 +160,22 @@ const releaseCommonStuckInputs = (ps: PixelStreaming | null) => {
     }
 
     mouseLeaveHandler?.();
+};
+
+const canPerformHardReload = () => {
+    try {
+        const lastReloadRaw = window.sessionStorage.getItem(HARD_RELOAD_SESSION_KEY);
+        const lastReloadAt = lastReloadRaw ? Number.parseInt(lastReloadRaw, 10) : 0;
+        if (Number.isFinite(lastReloadAt) && Date.now() - lastReloadAt < HARD_RELOAD_COOLDOWN_MS) {
+            return false;
+        }
+
+        window.sessionStorage.setItem(HARD_RELOAD_SESSION_KEY, String(Date.now()));
+        return true;
+    } catch {
+        // If sessionStorage is unavailable, allow reload once.
+        return true;
+    }
 };
 
 const getDecodedVideoFrames = (video: HTMLVideoElement): number | null => {
@@ -248,6 +274,7 @@ export default function PixelStreamingPlayer({
     const lastMediaProgressAtRef = useRef(0);
     const lastVideoTimeRef = useRef(0);
     const lastDecodedFrameCountRef = useRef<number | null>(null);
+    const missingVideoSinceRef = useRef<number | null>(null);
     const lastVideoStatsRef = useRef({
         initialized: false,
         framesDecoded: 0
@@ -365,6 +392,7 @@ export default function PixelStreamingPlayer({
 
         lastVideoTimeRef.current = 0;
         lastDecodedFrameCountRef.current = null;
+        missingVideoSinceRef.current = null;
         lastVideoStatsRef.current = {
             initialized: false,
             framesDecoded: 0
@@ -414,6 +442,16 @@ export default function PixelStreamingPlayer({
                 setIsConnected(false);
                 setStatus('Disconnected. Reconnect limit reached.');
                 setError(failureMessage ?? 'Unable to restore connection automatically.');
+
+                if (HARD_RELOAD_FALLBACK_ENABLED && canPerformHardReload()) {
+                    window.location.reload();
+                }
+                return;
+            }
+
+            if (HARD_RELOAD_FALLBACK_ENABLED && nextAttempt >= HARD_RELOAD_AFTER_ATTEMPTS && canPerformHardReload()) {
+                setStatus('Connection unstable. Reloading session...');
+                window.location.reload();
                 return;
             }
 
@@ -474,7 +512,17 @@ export default function PixelStreamingPlayer({
                 }
 
                 const video = wrapperElement.querySelector('video');
-                if (!(video instanceof HTMLVideoElement)) return;
+                if (!(video instanceof HTMLVideoElement)) {
+                    if (missingVideoSinceRef.current === null) {
+                        missingVideoSinceRef.current = Date.now();
+                    }
+
+                    if (Date.now() - missingVideoSinceRef.current >= STALL_WATCHDOG_TIMEOUT_MS) {
+                        scheduleReconnect('Stream surface unavailable. Reconnecting...');
+                    }
+                    return;
+                }
+                missingVideoSinceRef.current = null;
                 if (video.ended) return;
 
                 if (!video.paused && Number.isFinite(video.currentTime) && video.currentTime > lastVideoTimeRef.current + 0.001) {
@@ -534,6 +582,9 @@ export default function PixelStreamingPlayer({
 
             psRef.current = ps;
             ps.config.setFlagEnabled(Flags.KeyboardInput, keyboardInputEnabledRef.current);
+            if (DISABLE_INTERNAL_RECONNECT) {
+                ps.config.setNumericSetting(NumericParameters.MaxReconnectAttempts, 0);
+            }
 
             (window as PixelStreamingDebugWindow).ps = ps; // Debugging
 
@@ -654,6 +705,17 @@ export default function PixelStreamingPlayer({
                 if (generation !== connectionGenerationRef.current) return;
                 console.error("WebRTC Failed");
                 scheduleReconnect(textRef.current.webrtcFailed);
+            });
+
+            ps.addEventListener('streamDisconnect', () => {
+                if (generation !== connectionGenerationRef.current) return;
+                scheduleReconnect('Stream disconnected. Reconnecting...');
+            });
+
+            ps.addEventListener('playStreamError', (event: Event) => {
+                if (generation !== connectionGenerationRef.current) return;
+                const typedEvent = event as Event & { data?: { message?: string } };
+                scheduleReconnect(typedEvent.data?.message ?? 'Playback failed. Reconnecting...');
             });
 
         } catch (err: unknown) {
