@@ -12,6 +12,7 @@ import MobileControls from "@/components/pixelstreaming/MobileControls";
 import MarketplaceCrosshair from "@/components/pixelstreaming/MarketplaceCrosshair";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { AppLanguage, getLocalizedProduct } from "@/lib/i18n";
+import { SupplierChatApiResponse } from "@/lib/supplierChat";
 
 type MobileInputMode = 'joystick' | 'touch';
 type ToStreamerHandler = (messageData?: Array<number | string>) => void;
@@ -26,6 +27,8 @@ type ChatMessage = {
     role: 'assistant' | 'user' | 'supplier';
     text: string;
     timestamp: number;
+    originalText?: string;
+    isTranslated?: boolean;
 };
 
 type ChatApiResponse = {
@@ -34,22 +37,6 @@ type ChatApiResponse = {
         text?: string;
         timestamp?: number;
     };
-};
-
-type SupplierMessagePayload = {
-    id: string;
-    supplierId: string;
-    senderRole: 'buyer' | 'supplier';
-    senderName: string;
-    text: string;
-    createdAt: number;
-};
-
-type SupplierChatApiResponse = {
-    success?: boolean;
-    error?: string;
-    messages?: SupplierMessagePayload[];
-    message?: SupplierMessagePayload;
 };
 
 const createClientChatMessage = (role: ChatMessage['role'], text: string): ChatMessage => ({
@@ -89,6 +76,7 @@ const EXPERIENCE_COPY: Record<
         chatPrefill: (name: string, product: string) => string;
         inStock: string;
         outOfStock: string;
+        originalLabel: string;
     }
 > = {
     en: {
@@ -120,6 +108,7 @@ const EXPERIENCE_COPY: Record<
         chatPrefill: (name, product) => `@${name} I have a question about ${product}...`,
         inStock: 'in stock',
         outOfStock: 'out of stock',
+        originalLabel: 'Original',
     },
     ru: {
         welcome: 'Подключено. Нажмите на товар в сцене, чтобы открыть детали, или спросите цену и характеристики.',
@@ -150,6 +139,7 @@ const EXPERIENCE_COPY: Record<
         chatPrefill: (name, product) => `@${name}, у меня вопрос по товару ${product}...`,
         inStock: 'в наличии',
         outOfStock: 'нет в наличии',
+        originalLabel: 'Оригинал',
     },
     zh: {
         welcome: '已连接。点击场景中的产品查看详情，或直接询问参数与价格。',
@@ -180,6 +170,7 @@ const EXPERIENCE_COPY: Record<
         chatPrefill: (name, product) => `@${name} 我想咨询一下 ${product}...`,
         inStock: '有现货',
         outOfStock: '缺货',
+        originalLabel: '原文',
     },
 };
 
@@ -378,7 +369,7 @@ export default function ExperiencePage() {
         setIsSyncingSupplierChat(true);
 
         try {
-            const response = await fetch(`/api/supplier-chat?supplierId=${encodeURIComponent(activeSupplierId)}`, {
+            const response = await fetch(`/api/supplier-chat?supplierId=${encodeURIComponent(activeSupplierId)}&viewerLanguage=${encodeURIComponent(language)}`, {
                 cache: 'no-store',
             });
             const data = (await response.json()) as SupplierChatApiResponse;
@@ -392,6 +383,8 @@ export default function ExperiencePage() {
                 role: message.senderRole === 'supplier' ? 'supplier' : 'user',
                 text: message.text,
                 timestamp: message.createdAt,
+                originalText: message.originalText,
+                isTranslated: message.isTranslated,
             })) satisfies ChatMessage[];
 
             setSupplierChatMessages(nextMessages);
@@ -404,7 +397,7 @@ export default function ExperiencePage() {
         } finally {
             setIsSyncingSupplierChat(false);
         }
-    }, [activeSupplierId, ui.connectionIssue]);
+    }, [activeSupplierId, language, ui.connectionIssue]);
 
     const sendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -431,6 +424,7 @@ export default function ExperiencePage() {
                         senderRole: 'buyer',
                         senderName: 'Guest',
                         text: trimmed,
+                        senderLanguage: language,
                     }),
                 });
 
@@ -835,7 +829,20 @@ export default function ExperiencePage() {
                                                         : 'rounded-tr-none bg-[#66d9cb] font-semibold text-[#03100f]'
                                                     }`}
                                             >
-                                                {message.text}
+                                                <p>{message.text}</p>
+                                                {message.originalText && message.originalText !== message.text && (
+                                                    <div
+                                                        className={`mt-2 border-t pt-2 text-xs ${message.role === 'user'
+                                                            ? 'border-[#04110f]/15 text-[#083734]'
+                                                            : 'border-white/10 text-slate-300'
+                                                            }`}
+                                                    >
+                                                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] opacity-75">
+                                                            {ui.originalLabel}
+                                                        </p>
+                                                        <p>{message.originalText}</p>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

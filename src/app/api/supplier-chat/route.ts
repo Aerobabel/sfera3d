@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { buildChatLocalizations, CHAT_TRANSLATION_LANGUAGES, resolveChatLanguage } from "@/lib/chatTranslation";
+import { AppLanguage } from "@/lib/i18n";
+import { SupplierChatApiMessage } from "@/lib/supplierChat";
 
 type SupplierChatRow = {
   id: string;
@@ -10,27 +13,130 @@ type SupplierChatRow = {
   created_at: string;
 };
 
-type SupplierChatApiMessage = {
-  id: string;
-  supplierId: string;
-  senderRole: "buyer" | "supplier";
-  senderName: string;
-  text: string;
-  createdAt: number;
+type SupplierChatTranslationRow = {
+  message_id: string;
+  language: AppLanguage;
+  translated_text: string;
 };
 
-const toApiMessage = (row: SupplierChatRow): SupplierChatApiMessage => ({
-  id: row.id,
-  supplierId: row.supplier_id,
-  senderRole: row.sender_role,
-  senderName: row.sender_name,
-  text: row.message,
-  createdAt: Date.parse(row.created_at),
-});
+const DEFAULT_SUPPLIER_ID = "sup_nonagon";
+
+const isMissingRelationError = (error: { code?: string; message?: string } | null | undefined) => {
+  if (!error) return false;
+  return (
+    error.code === "PGRST205" ||
+    error.code === "42P01" ||
+    /does not exist/i.test(error.message ?? "") ||
+    /Could not find the table/i.test(error.message ?? "")
+  );
+};
+
+const toApiMessage = (
+  row: SupplierChatRow,
+  viewerLanguage?: AppLanguage | null,
+  translatedText?: string
+): SupplierChatApiMessage => {
+  const originalText = row.message;
+  const isTranslated = Boolean(
+    viewerLanguage &&
+      translatedText &&
+      translatedText.trim().length > 0 &&
+      translatedText.trim() !== originalText.trim()
+  );
+
+  return {
+    id: row.id,
+    supplierId: row.supplier_id,
+    senderRole: row.sender_role,
+    senderName: row.sender_name,
+    text: isTranslated ? translatedText!.trim() : originalText,
+    createdAt: Date.parse(row.created_at),
+    originalText: isTranslated ? originalText : undefined,
+    viewerLanguage: viewerLanguage ?? undefined,
+    isTranslated,
+  };
+};
+
+const getViewerTranslations = async (
+  viewerLanguage: AppLanguage | null,
+  rows: SupplierChatRow[]
+) => {
+  if (!viewerLanguage || rows.length === 0) {
+    return new Map<string, string>();
+  }
+
+  try {
+    const supabase = getSupabaseAdminClient();
+    const messageIds = rows.map((row) => row.id);
+    const { data, error } = await supabase
+      .from("supplier_message_translations")
+      .select("message_id,language,translated_text")
+      .in("message_id", messageIds)
+      .eq("language", viewerLanguage);
+
+    if (error) {
+      if (isMissingRelationError(error)) {
+        return new Map<string, string>();
+      }
+
+      throw new Error(error.message);
+    }
+
+    return new Map(
+      ((data ?? []) as SupplierChatTranslationRow[]).map((row) => [
+        row.message_id,
+        row.translated_text,
+      ])
+    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Failed to load supplier chat translations.";
+    console.error(message);
+    return new Map<string, string>();
+  }
+};
+
+const cacheMessageTranslations = async (
+  messageId: string,
+  text: string,
+  senderLanguage: AppLanguage | null
+) => {
+  try {
+    const localizations = await buildChatLocalizations(text, senderLanguage);
+    const rows = CHAT_TRANSLATION_LANGUAGES.map((language) => {
+      const localizedText = localizations[language];
+      if (!localizedText || localizedText.trim().length === 0) {
+        return null;
+      }
+
+      return {
+        message_id: messageId,
+        language,
+        translated_text: localizedText.trim(),
+      };
+    }).filter(Boolean);
+
+    if (rows.length === 0) return;
+
+    const supabase = getSupabaseAdminClient();
+    const { error } = await supabase
+      .from("supplier_message_translations")
+      .upsert(rows, { onConflict: "message_id,language" });
+
+    if (error && !isMissingRelationError(error)) {
+      console.error(error.message);
+    }
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Failed to cache supplier chat translations.";
+    console.error(message);
+  }
+};
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const supplierId = searchParams.get("supplierId")?.trim() || "sup_nonagon";
+  const supplierId = searchParams.get("supplierId")?.trim() || DEFAULT_SUPPLIER_ID;
+  const viewerLanguage = resolveChatLanguage(searchParams.get("viewerLanguage"));
 
   try {
     const supabase = getSupabaseAdminClient();
@@ -48,7 +154,12 @@ export async function GET(request: Request) {
       );
     }
 
-    const messages = (data as SupplierChatRow[]).map(toApiMessage);
+    const rows = data as SupplierChatRow[];
+    const translationMap = await getViewerTranslations(viewerLanguage, rows);
+    const messages = rows.map((row) =>
+      toApiMessage(row, viewerLanguage, translationMap.get(row.id))
+    );
+
     return NextResponse.json({ success: true, messages });
   } catch (error: unknown) {
     const errorMessage =
@@ -70,6 +181,7 @@ export async function POST(request: Request) {
     senderRole?: unknown;
     senderName?: unknown;
     text?: unknown;
+    senderLanguage?: unknown;
   };
 
   const supplierId =
@@ -84,6 +196,7 @@ export async function POST(request: Request) {
       ? "Supplier"
       : "Buyer";
   const text = typeof body.text === "string" ? body.text.trim() : "";
+  const senderLanguage = resolveChatLanguage(body.senderLanguage);
 
   if (!supplierId) {
     return NextResponse.json(
@@ -126,7 +239,12 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ success: true, message: toApiMessage(data as SupplierChatRow) });
+    await cacheMessageTranslations(data.id, text, senderLanguage);
+
+    return NextResponse.json({
+      success: true,
+      message: toApiMessage(data as SupplierChatRow, senderLanguage),
+    });
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : "Failed to create supplier message.";

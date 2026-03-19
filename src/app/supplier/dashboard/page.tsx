@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { IBM_Plex_Mono, Space_Grotesk } from 'next/font/google';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { SupplierChatApiMessage, SupplierChatApiResponse } from '@/lib/supplierChat';
 
 const dashboardDisplay = Space_Grotesk({
   subsets: ['latin'],
@@ -29,20 +30,7 @@ const dashboardMono = IBM_Plex_Mono({
   variable: '--font-dashboard-mono',
 });
 
-type SupplierMessage = {
-  id: string;
-  supplierId: string;
-  senderRole: 'buyer' | 'supplier';
-  senderName: string;
-  text: string;
-  createdAt: number;
-};
-
-type SupplierChatGetResponse = {
-  success?: boolean;
-  messages?: SupplierMessage[];
-  error?: string;
-};
+type SupplierMessage = SupplierChatApiMessage;
 
 const supplierNameFromEmail = (email: string | null | undefined) => {
   if (!email) return 'Nonagon Tech';
@@ -87,6 +75,7 @@ export default function SupplierDashboard() {
       signOut: 'Sign out',
       authenticating: 'Authenticating supplier session...',
       requiresLogin: 'Please sign in to access the supplier dashboard.',
+      originalLabel: 'Original',
     },
     ru: {
       portal: 'Портал поставщика',
@@ -116,6 +105,7 @@ export default function SupplierDashboard() {
       signOut: 'Выйти',
       authenticating: 'Проверяем сессию поставщика...',
       requiresLogin: 'Для доступа к панели поставщика выполните вход.',
+      originalLabel: 'Оригинал',
     },
     zh: {
       portal: '供应商门户',
@@ -145,6 +135,7 @@ export default function SupplierDashboard() {
       signOut: '退出登录',
       authenticating: '正在验证供应商会话...',
       requiresLogin: '请先登录后访问供应商后台。',
+      originalLabel: '原文',
     },
   }[language];
 
@@ -251,10 +242,10 @@ export default function SupplierDashboard() {
 
     const fetchMessages = async () => {
       try {
-        const response = await fetch(`/api/supplier-chat?supplierId=${encodeURIComponent(supplierId)}`, {
+        const response = await fetch(`/api/supplier-chat?supplierId=${encodeURIComponent(supplierId)}&viewerLanguage=${encodeURIComponent(language)}`, {
           cache: 'no-store',
         });
-        const data = (await response.json()) as SupplierChatGetResponse;
+        const data = (await response.json()) as SupplierChatApiResponse;
 
         if (!response.ok || !data.success) {
           throw new Error(data.error || t.loadFailed);
@@ -278,7 +269,7 @@ export default function SupplierDashboard() {
       isStopped = true;
       window.clearInterval(interval);
     };
-  }, [authReady, supplierId, t.loadFailed]);
+  }, [authReady, language, supplierId, t.loadFailed]);
 
   const handleSignOut = async () => {
     try {
@@ -308,6 +299,7 @@ export default function SupplierDashboard() {
           senderRole: 'supplier',
           senderName: supplierName,
           text: trimmed,
+          senderLanguage: language,
         }),
       });
 
@@ -319,10 +311,10 @@ export default function SupplierDashboard() {
       setReplyText('');
       setErrorMessage(null);
 
-      const refresh = await fetch(`/api/supplier-chat?supplierId=${encodeURIComponent(supplierId)}`, {
+      const refresh = await fetch(`/api/supplier-chat?supplierId=${encodeURIComponent(supplierId)}&viewerLanguage=${encodeURIComponent(language)}`, {
         cache: 'no-store',
       });
-      const refreshData = (await refresh.json()) as SupplierChatGetResponse;
+      const refreshData = (await refresh.json()) as SupplierChatApiResponse;
       if (refresh.ok && refreshData.success && Array.isArray(refreshData.messages)) {
         setMessages(refreshData.messages);
       }
@@ -501,9 +493,17 @@ export default function SupplierDashboard() {
                               </span>
                             </div>
 
-                            <p className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-relaxed text-slate-100">
-                              {msg.text}
-                            </p>
+                            <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-relaxed text-slate-100">
+                              <p>{msg.text}</p>
+                              {msg.originalText && msg.originalText !== msg.text && (
+                                <div className="mt-3 border-t border-white/10 pt-3 text-xs text-slate-400">
+                                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                                    {t.originalLabel}
+                                  </p>
+                                  <p>{msg.originalText}</p>
+                                </div>
+                              )}
+                            </div>
                           </article>
                         </div>
                       ))}
