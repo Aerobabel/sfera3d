@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -21,6 +21,8 @@ type PixelStreamingWindow = Window & {
         toStreamerHandlers?: Map<string, ToStreamerHandler>;
     };
 };
+
+const PIXEL_STREAM_CENTER = 32768;
 
 type ChatMessage = {
     id: string;
@@ -559,10 +561,33 @@ export default function ExperiencePage() {
         ]);
     }, [localizedActiveProduct, language, ui]);
 
+    const forceUnrealMouseRelease = useCallback(() => {
+        const psWindow = window as PixelStreamingWindow;
+        const mouseUpHandler = psWindow.ps?.toStreamerHandlers?.get('MouseUp');
+        const mouseLeaveHandler = psWindow.ps?.toStreamerHandlers?.get('MouseLeave');
+
+        mouseUpHandler?.([0, PIXEL_STREAM_CENTER, PIXEL_STREAM_CENTER]);
+        mouseUpHandler?.([1, PIXEL_STREAM_CENTER, PIXEL_STREAM_CENTER]);
+        mouseUpHandler?.([2, PIXEL_STREAM_CENTER, PIXEL_STREAM_CENTER]);
+        mouseLeaveHandler?.();
+    }, []);
+
+    const stabilizeUnrealMouseAfterSelection = useCallback(() => {
+        const _release = () => { try { document.exitPointerLock?.(); } catch {} };
+        _release();
+        const releaseOnMouseUp = () => {
+            _release();
+            document.removeEventListener('mouseup', releaseOnMouseUp);
+        };
+        document.addEventListener('mouseup', releaseOnMouseUp);
+    }, []);
+
     // Simulate receiving a "Click" from Unreal
-    const simulateUnrealClick = (id: string) => {
+    const simulateUnrealClick = useCallback((id: string) => {
         const product = getProductById(id);
         if (product) {
+            forceUnrealMouseRelease();
+            stabilizeUnrealMouseAfterSelection();
             setActiveProduct(product);
             // Fetch supplier
             const supplier = getSupplierById(product.supplierId);
@@ -571,7 +596,7 @@ export default function ExperiencePage() {
         }
 
         console.warn('No product mapping found for Unreal ID:', id);
-    };
+    }, [forceUnrealMouseRelease, stabilizeUnrealMouseAfterSelection]);
 
     const handleChatWithSupplier = () => {
         if (!activeSupplier) return;
@@ -601,7 +626,7 @@ export default function ExperiencePage() {
         setIsCatalogueOpen(true);
     };
 
-    const sendUnrealExitFocus = () => {
+    const sendUnrealExitFocus = useCallback(() => {
         const psWindow = window as PixelStreamingWindow;
         const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
         const keyUpHandler = psWindow.ps?.toStreamerHandlers?.get('KeyUp');
@@ -621,12 +646,33 @@ export default function ExperiencePage() {
         };
         document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
         document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
-    };
+    }, []);
 
-    const handleCloseProductCard = () => {
+    const handleCloseProductCard = useCallback(() => {
+        forceUnrealMouseRelease();
         setActiveProduct(null);
         sendUnrealExitFocus();
-    };
+
+        const video = document.querySelector<HTMLVideoElement>('#player-container video');
+        if (video && video.parentElement) {
+            video.parentElement.focus();
+            try { video.parentElement.requestPointerLock(); } catch {}
+        } else {
+            document.getElementById('player-container')?.requestPointerLock?.();
+        }
+    }, [forceUnrealMouseRelease, sendUnrealExitFocus]);
+
+    // Sync inspection mode exit with Unreal when the user presses 'X'
+    useEffect(() => {
+        if (!activeProduct) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key.toLowerCase() === 'x') {
+                handleCloseProductCard();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown, true);
+        return () => document.removeEventListener('keydown', handleKeyDown, true);
+    }, [activeProduct, handleCloseProductCard]);
 
     const handlePixelStreamingResponse = (jsonString: string) => {
         let payload: unknown = jsonString;
