@@ -561,21 +561,13 @@ export default function ExperiencePage() {
         ]);
     }, [localizedActiveProduct, language, ui]);
 
-    const stabilizeUnrealMouseAfterSelection = useCallback(() => {
-        const _release = () => { try { document.exitPointerLock?.(); } catch {} };
-        _release();
-        const releaseOnMouseUp = () => {
-            _release();
-            document.removeEventListener('mouseup', releaseOnMouseUp);
-        };
-        document.addEventListener('mouseup', releaseOnMouseUp);
-    }, []);
-
     // Simulate receiving a "Click" from Unreal
     const simulateUnrealClick = useCallback((id: string) => {
         const product = getProductById(id);
         if (product) {
-            stabilizeUnrealMouseAfterSelection();
+            // Gracefully unlock the mouse so the user can actually interact with the React Product UI
+            try { document.exitPointerLock?.(); } catch {}
+
             setActiveProduct(product);
             // Fetch supplier
             const supplier = getSupplierById(product.supplierId);
@@ -584,7 +576,7 @@ export default function ExperiencePage() {
         }
 
         console.warn('No product mapping found for Unreal ID:', id);
-    }, [stabilizeUnrealMouseAfterSelection]);
+    }, []);
 
     const handleChatWithSupplier = () => {
         if (!activeSupplier) return;
@@ -639,14 +631,6 @@ export default function ExperiencePage() {
     const handleCloseProductCard = useCallback(() => {
         setActiveProduct(null);
         sendUnrealExitFocus();
-
-        const video = document.querySelector<HTMLVideoElement>('#player-container video');
-        if (video && video.parentElement) {
-            video.parentElement.focus();
-            try { video.parentElement.requestPointerLock(); } catch {}
-        } else {
-            document.getElementById('player-container')?.requestPointerLock?.();
-        }
     }, [sendUnrealExitFocus]);
 
     // Sync inspection mode exit with Unreal when the user presses 'X'
