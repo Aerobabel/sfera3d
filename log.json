@@ -1,0 +1,5 @@
+﻿{hash:1015dfd,date:Thu Mar 19 12:29:56 2026 +0300,msg:Repair supplier chat translation caching}
+{hash:abcbf42,date:Thu Mar 19 12:17:14 2026 +0300,msg:Handle non-JSON translation responses}
+{hash:952ea85,date:Thu Mar 19 12:05:06 2026 +0300,msg:Add translated message badges}
+{hash:07fb22f,date:Thu Mar 19 11:55:15 2026 +0300,msg:Fix supplier chat translation detection}
+{hash:99a1d6a,date:Thu Mar 19 11:38:28 2026 +0300,msg:Fix supplier login navigation}

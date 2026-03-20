@@ -1,0 +1,3 @@
+﻿{hash:65f121e,date:Mon Mar 9 18:57:38 2026 +0300,msg:feat(experience): add desktop toggle for AI concierge panel}
+{hash:bd0d4d2,date:Mon Mar 9 18:45:11 2026 +0300,msg:fix(pixelstreaming): stop forwarding F10 to Unreal}
+{hash:d766caf,date:Sat Feb 28 13:07:23 2026 +0300,msg:Tighten desktop overlay hit areas}

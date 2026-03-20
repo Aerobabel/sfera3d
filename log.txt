@@ -1,0 +1,5 @@
+﻿65f121e feat(experience): add desktop toggle for AI concierge panel
+bd0d4d2 fix(pixelstreaming): stop forwarding F10 to Unreal
+d766caf Tighten desktop overlay hit areas
+3765c9b Use locked mouse mode for desktop streaming
+33237f0 fix: render Chinese onboarding PDF correctly and force fresh downloads

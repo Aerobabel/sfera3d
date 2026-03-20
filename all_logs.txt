@@ -1,0 +1,15 @@
+﻿65f121e (HEAD -> master, origin/master) feat(experience): add desktop toggle for AI concierge panel
+bd0d4d2 fix(pixelstreaming): stop forwarding F10 to Unreal
+d766caf Tighten desktop overlay hit areas
+3765c9b Use locked mouse mode for desktop streaming
+33237f0 fix: render Chinese onboarding PDF correctly and force fresh downloads
+53d675c feat: improve onboarding pdf delivery and supplier intake flow
+f82c8dc chore: switch supplier intake email to 3dsfera.org
+c8b3e13 chore: rename onboarding marketplace wording to pavilion
+2fb6b1e feat: add language-specific onboarding PDF downloads
+9f87a5c feat: add supplier intake upload flow and package-based onboarding
+5277668 Improve onboarding visuals and PDF layout; reposition language switcher
+bf77d23 Fix mobile language switcher overlap in experience
+0028557 Add Supabase auth/chat flow and redesign supplier dashboard
+7e5364d Add RU/ZH/EN localization with default RU and remove stream URL badge
+321d537 fix: force default signaling endpoint to avastatesarah wss

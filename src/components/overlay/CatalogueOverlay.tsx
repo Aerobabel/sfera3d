@@ -36,7 +36,13 @@ export default function CatalogueOverlay({ supplier, products, onClose, onSelect
     }[language];
 
     return (
-        <div className="absolute inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 pointer-events-auto">
+        <div 
+            className="absolute inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 pointer-events-auto"
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+        >
             <div className="relative bg-slate-950/40 backdrop-blur-2xl border border-white/10 w-full max-w-4xl max-h-[80vh] rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col">
 
                 {/* Ambient Glow */}

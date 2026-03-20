@@ -48,7 +48,13 @@ export default function ProductCard({ product, supplier, onClose, onAddToCart, o
     }[language];
 
     return (
-        <div className="absolute top-24 left-4 md:left-8 z-50 w-80 overflow-hidden rounded-2xl border border-[#66d9cb]/22 bg-[#0d1118]/88 p-6 text-[#f5f1e9] shadow-[0_24px_70px_rgba(0,0,0,0.52)] backdrop-blur-2xl pointer-events-auto md:w-96">
+        <div 
+            className="absolute top-24 left-4 md:left-8 z-50 w-80 overflow-hidden rounded-2xl border border-[#66d9cb]/22 bg-[#0d1118]/88 p-6 text-[#f5f1e9] shadow-[0_24px_70px_rgba(0,0,0,0.52)] backdrop-blur-2xl pointer-events-auto md:w-96"
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+        >
             <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-[radial-gradient(circle_at_center,rgba(102,217,203,0.22),rgba(102,217,203,0)_70%)]" />
             <div className="pointer-events-none absolute -bottom-20 -left-20 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,rgba(246,186,79,0.16),rgba(246,186,79,0)_72%)]" />
 
