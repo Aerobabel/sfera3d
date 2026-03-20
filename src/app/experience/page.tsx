@@ -561,22 +561,6 @@ export default function ExperiencePage() {
         ]);
     }, [localizedActiveProduct, language, ui]);
 
-    const forceUnrealMouseRelease = useCallback(() => {
-        const psWindow = window as PixelStreamingWindow;
-        const mouseUpHandler = psWindow.ps?.toStreamerHandlers?.get('MouseUp');
-        const mouseLeaveHandler = psWindow.ps?.toStreamerHandlers?.get('MouseLeave');
-
-        // We MUST send a logical mouse release to Unreal so it doesn't think Left-Click is held indefinitely.
-        // HOWEVER, sending MouseUp at the exact center crosshair where the MouseDown occurred
-        // causes Unreal to register a complete "Click" on the 3D product, instantly reopening the UI!
-        // To safely break the click sequence and free the game without hitting the product,
-        // we push the MouseUp release far into the top-left corner (0, 0) of the game canvas.
-        mouseUpHandler?.([0, 0, 0]);
-        mouseUpHandler?.([1, 0, 0]);
-        mouseUpHandler?.([2, 0, 0]);
-        mouseLeaveHandler?.();
-    }, []);
-
     const stabilizeUnrealMouseAfterSelection = useCallback(() => {
         const _release = () => { try { document.exitPointerLock?.(); } catch {} };
         _release();
@@ -591,7 +575,6 @@ export default function ExperiencePage() {
     const simulateUnrealClick = useCallback((id: string) => {
         const product = getProductById(id);
         if (product) {
-            forceUnrealMouseRelease();
             stabilizeUnrealMouseAfterSelection();
             setActiveProduct(product);
             // Fetch supplier
@@ -601,7 +584,7 @@ export default function ExperiencePage() {
         }
 
         console.warn('No product mapping found for Unreal ID:', id);
-    }, [forceUnrealMouseRelease, stabilizeUnrealMouseAfterSelection]);
+    }, [stabilizeUnrealMouseAfterSelection]);
 
     const handleChatWithSupplier = () => {
         if (!activeSupplier) return;
@@ -654,7 +637,6 @@ export default function ExperiencePage() {
     }, []);
 
     const handleCloseProductCard = useCallback(() => {
-        forceUnrealMouseRelease();
         setActiveProduct(null);
         sendUnrealExitFocus();
 
@@ -665,7 +647,7 @@ export default function ExperiencePage() {
         } else {
             document.getElementById('player-container')?.requestPointerLock?.();
         }
-    }, [forceUnrealMouseRelease, sendUnrealExitFocus]);
+    }, [sendUnrealExitFocus]);
 
     // Sync inspection mode exit with Unreal when the user presses 'X'
     useEffect(() => {
