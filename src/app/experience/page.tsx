@@ -566,9 +566,14 @@ export default function ExperiencePage() {
         const mouseUpHandler = psWindow.ps?.toStreamerHandlers?.get('MouseUp');
         const mouseLeaveHandler = psWindow.ps?.toStreamerHandlers?.get('MouseLeave');
 
-        mouseUpHandler?.([0, PIXEL_STREAM_CENTER, PIXEL_STREAM_CENTER]);
-        mouseUpHandler?.([1, PIXEL_STREAM_CENTER, PIXEL_STREAM_CENTER]);
-        mouseUpHandler?.([2, PIXEL_STREAM_CENTER, PIXEL_STREAM_CENTER]);
+        // We MUST send a logical mouse release to Unreal so it doesn't think Left-Click is held indefinitely.
+        // HOWEVER, sending MouseUp at the exact center crosshair where the MouseDown occurred
+        // causes Unreal to register a complete "Click" on the 3D product, instantly reopening the UI!
+        // To safely break the click sequence and free the game without hitting the product,
+        // we push the MouseUp release far into the top-left corner (0, 0) of the game canvas.
+        mouseUpHandler?.([0, 0, 0]);
+        mouseUpHandler?.([1, 0, 0]);
+        mouseUpHandler?.([2, 0, 0]);
         mouseLeaveHandler?.();
     }, []);
 
