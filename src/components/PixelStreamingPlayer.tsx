@@ -850,7 +850,8 @@ export default function PixelStreamingPlayer({
             {/* The Wrapper where Pixel Streaming will inject the video */}
             <div
                 ref={wrapperRef}
-                className="w-full h-full [&>video]:w-full [&>video]:h-full [&>video]:object-cover"
+                tabIndex={0}
+                className="w-full h-full [&>video]:w-full [&>video]:h-full [&>video]:object-cover outline-none focus:outline-none"
             />
         </div>
     );
