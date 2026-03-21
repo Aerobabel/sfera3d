@@ -252,12 +252,26 @@ function LoginPageContent() {
         if (!isMounted) return;
 
         if (session) {
+          const sessionRole = getUserRole(session.user);
+          const isSupplierLoginRequest = requestedAudience === "supplier";
+
+          if (isSupplierLoginRequest && sessionRole !== "supplier") {
+            return;
+          }
+
           await finishAuthentication(session);
           return;
         }
 
         const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
           if (!nextSession) return;
+
+          const nextSessionRole = getUserRole(nextSession.user);
+          const isSupplierLoginRequest = requestedAudience === "supplier";
+
+          if (isSupplierLoginRequest && nextSessionRole !== "supplier") {
+            return;
+          }
 
           void finishAuthentication(nextSession).catch(() => {
             setErrorMessage(t.defaultError);
@@ -279,7 +293,7 @@ function LoginPageContent() {
       isMounted = false;
       unsubscribe();
     };
-  }, [finishAuthentication, t.defaultError]);
+  }, [finishAuthentication, requestedAudience, t.defaultError]);
 
   const otpSubmitLabel = useMemo(() => {
     if (isSubmitting) return t.loading;
