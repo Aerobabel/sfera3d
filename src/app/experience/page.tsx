@@ -11,8 +11,10 @@ import CatalogueOverlay from "@/components/overlay/CatalogueOverlay";
 import MobileControls from "@/components/pixelstreaming/MobileControls";
 import MarketplaceCrosshair from "@/components/pixelstreaming/MarketplaceCrosshair";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { clearServerAuthSession } from "@/lib/auth/browser";
 import { AppLanguage, getLocalizedProduct } from "@/lib/i18n";
 import { readSupplierChatApiResponse } from "@/lib/supplierChat";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type MobileInputMode = 'joystick' | 'touch';
 type ToStreamerHandler = (messageData?: Array<number | string>) => void;
@@ -246,6 +248,10 @@ const BLOCKED_UNREAL_KEY_CODES = ['F10'];
 export default function ExperiencePage() {
     const { language } = useLanguage();
     const ui = EXPERIENCE_COPY[language];
+    const signedInAsLabel =
+        language === 'ru' ? 'Ð’Ñ‹ Ð²Ð¾ÑˆÐ»Ð¸ ÐºÐ°Ðº' : language === 'zh' ? 'å½“å‰è´¦å·' : 'Signed in as';
+    const signOutLabel =
+        language === 'ru' ? 'Ð’Ñ‹Ð¹Ñ‚Ð¸' : language === 'zh' ? 'é€€å‡ºç™»å½•' : 'Sign out';
     const [signalingServerUrl] = useState<string>(() => resolveDefaultSignalingUrl());
     const [chatInput, setChatInput] = useState('');
     const [isChatFocused, setIsChatFocused] = useState(false);
@@ -267,6 +273,8 @@ export default function ExperiencePage() {
     const [mobileInputMode] = useState<MobileInputMode>('joystick');
     const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
     const [isDesktopChatOpen, setIsDesktopChatOpen] = useState(true);
+    const [viewerEmail, setViewerEmail] = useState<string | null>(null);
+    const [isSigningOut, setIsSigningOut] = useState(false);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
@@ -321,6 +329,31 @@ export default function ExperiencePage() {
         });
     }, [isMobile]);
 
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadViewerSession = async () => {
+            try {
+                const supabase = getSupabaseBrowserClient();
+                const {
+                    data: { session },
+                } = await supabase.auth.getSession();
+
+                if (!isMounted) return;
+                setViewerEmail(session?.user.email ?? null);
+            } catch {
+                if (!isMounted) return;
+                setViewerEmail(null);
+            }
+        };
+
+        void loadViewerSession();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
     // Product Interaction State
     const [activeProduct, setActiveProduct] = useState<Product | null>(null);
     const [activeSupplier, setActiveSupplier] = useState<Supplier | undefined>(undefined);
@@ -368,6 +401,27 @@ export default function ExperiencePage() {
         }
 
         setIsDesktopChatOpen(false);
+    };
+
+    const handleSignOut = async () => {
+        if (isSigningOut) return;
+
+        setIsSigningOut(true);
+
+        try {
+            const supabase = getSupabaseBrowserClient();
+            await supabase.auth.signOut();
+        } catch {
+            // Ignore and still clear the server cookie.
+        }
+
+        try {
+            await clearServerAuthSession();
+        } catch {
+            // Ignore and still redirect.
+        }
+
+        window.location.assign('/login?role=user');
     };
 
     const syncSupplierMessages = useCallback(async () => {
@@ -738,9 +792,26 @@ export default function ExperiencePage() {
                             <button className="w-full text-left px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10 transition flex items-center gap-2">
                                 <Info size={16} /> {ui.menuSupplier}
                             </button>
-                            <a href="/login" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
+                            <a href="/login?role=supplier" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 {ui.menuLogin}
                             </a>
+                            {viewerEmail && (
+                                <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300">
+                                    <span className="block text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                                        {signedInAsLabel}
+                                    </span>
+                                    <span className="mt-1 block break-all text-sm text-white">
+                                        {viewerEmail}
+                                    </span>
+                                </div>
+                            )}
+                            <button
+                                onClick={() => void handleSignOut()}
+                                disabled={isSigningOut}
+                                className="w-full text-left px-3 py-2 rounded-lg text-sm text-amber-200 hover:bg-amber-500/10 transition disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {signOutLabel}
+                            </button>
                             <div className="h-px bg-white/10 my-2"></div>
                             <Link href="/" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition">
                                 {ui.menuExit}

@@ -402,7 +402,7 @@ export default function OnboardingPage() {
               {t.nav.back}
             </Link>
             <a
-              href="/login"
+              href="/login?role=supplier"
               className="rounded-full bg-[#f6ba4f] px-3 py-2 text-[11px] font-bold tracking-wide text-[#130f07] transition hover:bg-[#ffd084] sm:px-4 sm:text-xs"
             >
               {t.nav.login}

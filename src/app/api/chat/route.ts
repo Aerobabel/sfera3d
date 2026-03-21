@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { authenticateAppRequest } from '@/lib/auth/server';
 import { getProductById, getSupplierById, PRODUCTS } from '@/lib/db';
 import { Product } from '@/lib/types';
 import { AppLanguage, getLocalizedProduct, isAppLanguage } from '@/lib/i18n';
@@ -177,10 +178,25 @@ export async function POST(request: Request) {
         productId?: unknown;
         language?: unknown;
     };
-    const user = typeof payload.user === 'string' && payload.user.trim().length > 0 ? payload.user.trim() : 'Guest';
     const text = typeof payload.text === 'string' ? payload.text.trim() : '';
     const productId = typeof payload.productId === 'string' ? payload.productId : undefined;
     const language = isAppLanguage(payload.language) ? payload.language : 'ru';
+    const authenticatedUser = await authenticateAppRequest(request);
+
+    if (!authenticatedUser) {
+        return NextResponse.json(
+            {
+                success: false,
+                error:
+                    language === 'ru'
+                        ? 'Требуется вход в аккаунт.'
+                        : language === 'zh'
+                          ? '需要先登录账号。'
+                          : 'You must be signed in.',
+            },
+            { status: 401 }
+        );
+    }
 
     if (!text) {
         return NextResponse.json(
@@ -199,7 +215,7 @@ export async function POST(request: Request) {
 
     const newMessage: StoredMessage = {
         id: Date.now().toString(),
-        user,
+        user: authenticatedUser.displayName,
         text: text,
         timestamp: Date.now(),
         role: 'user',
@@ -224,6 +240,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, userMessage: newMessage, assistantMessage });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+    const authenticatedUser = await authenticateAppRequest(request);
+    if (!authenticatedUser) {
+        return NextResponse.json(
+            { success: false, error: 'Unauthorized.', messages: [] },
+            { status: 401 }
+        );
+    }
+
     return NextResponse.json({ messages });
 }

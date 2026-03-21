@@ -473,7 +473,7 @@ export default function LandingPage() {
 
           <div className="fade-up delay-2 flex items-center gap-2 sm:gap-3">
             <a
-              href="/login"
+              href="/login?role=supplier"
               className="rounded-full border border-white/15 px-4 py-2 text-xs font-semibold tracking-wide text-[#f5f1e9] transition hover:border-white/35 hover:bg-white/10 sm:text-sm"
             >
               {t.cta.supplier}

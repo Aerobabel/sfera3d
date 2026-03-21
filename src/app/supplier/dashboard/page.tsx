@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { IBM_Plex_Mono, Space_Grotesk } from 'next/font/google';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
+import { clearServerAuthSession } from '@/lib/auth/browser';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   SupplierChatApiMessage,
@@ -197,7 +198,7 @@ export default function SupplierDashboard() {
         } = await supabase.auth.getSession();
 
         if (!session) {
-          router.replace('/login');
+          router.replace('/login?role=supplier');
           return;
         }
 
@@ -214,7 +215,9 @@ export default function SupplierDashboard() {
 
         const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
           if (!nextSession) {
-            router.replace('/login');
+            void clearServerAuthSession().finally(() => {
+              router.replace('/login?role=supplier');
+            });
           }
         });
 
@@ -286,7 +289,13 @@ export default function SupplierDashboard() {
       // Ignore and still redirect.
     }
 
-    router.replace('/login');
+    try {
+      await clearServerAuthSession();
+    } catch {
+      // Ignore and still redirect.
+    }
+
+    router.replace('/login?role=supplier');
   };
 
   const sendReply = async () => {

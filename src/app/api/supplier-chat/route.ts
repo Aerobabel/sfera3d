@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authenticateAppRequest } from "@/lib/auth/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { buildChatLocalizations, CHAT_TRANSLATION_LANGUAGES, resolveChatLanguage } from "@/lib/chatTranslation";
 import { AppLanguage } from "@/lib/i18n";
@@ -26,6 +27,7 @@ type ViewerTranslationLookup = {
 
 const DEFAULT_SUPPLIER_ID = "sup_nonagon";
 const MAX_TRANSLATION_BACKFILL_MESSAGES = 24;
+const UNAUTHORIZED_ERROR = "Unauthorized. Sign in and retry.";
 
 const isMissingRelationError = (error: { code?: string; message?: string } | null | undefined) => {
   if (!error) return false;
@@ -230,9 +232,32 @@ const backfillViewerTranslations = async (
 };
 
 export async function GET(request: Request) {
+  const authenticatedUser = await authenticateAppRequest(request);
+  if (!authenticatedUser) {
+    return NextResponse.json(
+      { success: false, error: UNAUTHORIZED_ERROR, messages: [] },
+      { status: 401 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
-  const supplierId = searchParams.get("supplierId")?.trim() || DEFAULT_SUPPLIER_ID;
+  const requestedSupplierId = searchParams.get("supplierId")?.trim() || DEFAULT_SUPPLIER_ID;
   const viewerLanguage = resolveChatLanguage(searchParams.get("viewerLanguage"));
+  const supplierId =
+    authenticatedUser.role === "supplier"
+      ? authenticatedUser.supplierId?.trim() || requestedSupplierId
+      : requestedSupplierId;
+
+  if (
+    authenticatedUser.role === "supplier" &&
+    authenticatedUser.supplierId &&
+    requestedSupplierId !== authenticatedUser.supplierId
+  ) {
+    return NextResponse.json(
+      { success: false, error: "Forbidden.", messages: [] },
+      { status: 403 }
+    );
+  }
 
   try {
     const supabase = getSupabaseAdminClient();
@@ -275,6 +300,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const authenticatedUser = await authenticateAppRequest(request);
+  if (!authenticatedUser) {
+    return NextResponse.json(
+      { success: false, error: UNAUTHORIZED_ERROR },
+      { status: 401 }
+    );
+  }
+
   const payload: unknown = await request.json();
   const body = (payload && typeof payload === "object"
     ? payload
@@ -286,19 +319,33 @@ export async function POST(request: Request) {
     senderLanguage?: unknown;
   };
 
-  const supplierId =
+  const requestedSupplierId =
     typeof body.supplierId === "string" && body.supplierId.trim().length > 0
       ? body.supplierId.trim()
       : "";
-  const senderRole = body.senderRole === "supplier" ? "supplier" : "buyer";
+  const supplierId =
+    authenticatedUser.role === "supplier"
+      ? authenticatedUser.supplierId?.trim() || requestedSupplierId || DEFAULT_SUPPLIER_ID
+      : requestedSupplierId;
+  const senderRole = authenticatedUser.role === "supplier" ? "supplier" : "buyer";
   const senderName =
-    typeof body.senderName === "string" && body.senderName.trim().length > 0
-      ? body.senderName.trim()
-      : senderRole === "supplier"
-      ? "Supplier"
-      : "Buyer";
+    senderRole === "supplier"
+      ? authenticatedUser.supplierName || authenticatedUser.displayName
+      : authenticatedUser.displayName;
   const text = typeof body.text === "string" ? body.text.trim() : "";
   const senderLanguage = resolveChatLanguage(body.senderLanguage);
+
+  if (
+    authenticatedUser.role === "supplier" &&
+    authenticatedUser.supplierId &&
+    requestedSupplierId &&
+    requestedSupplierId !== authenticatedUser.supplierId
+  ) {
+    return NextResponse.json(
+      { success: false, error: "Forbidden." },
+      { status: 403 }
+    );
+  }
 
   if (!supplierId) {
     return NextResponse.json(
