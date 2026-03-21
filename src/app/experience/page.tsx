@@ -248,10 +248,24 @@ const BLOCKED_UNREAL_KEY_CODES = ['F10'];
 export default function ExperiencePage() {
     const { language } = useLanguage();
     const ui = EXPERIENCE_COPY[language];
-    const signedInAsLabel =
-        language === 'ru' ? 'Ð’Ñ‹ Ð²Ð¾ÑˆÐ»Ð¸ ÐºÐ°Ðº' : language === 'zh' ? 'å½“å‰è´¦å·' : 'Signed in as';
-    const signOutLabel =
-        language === 'ru' ? 'Ð’Ñ‹Ð¹Ñ‚Ð¸' : language === 'zh' ? 'é€€å‡ºç™»å½•' : 'Sign out';
+    const accountLabel =
+        language === 'ru'
+            ? '\u0412\u044B \u0432\u043E\u0448\u043B\u0438 \u043A\u0430\u043A'
+            : language === 'zh'
+              ? '\u5F53\u524D\u8D26\u53F7'
+              : 'Signed in as';
+    const accountSignOutLabel =
+        language === 'ru'
+            ? '\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430'
+            : language === 'zh'
+              ? '\u9000\u51FA\u767B\u5F55'
+              : 'Sign out';
+    const returnHomeLabel =
+        language === 'ru'
+            ? '\u041D\u0430 \u0433\u043B\u0430\u0432\u043D\u0443\u044E'
+            : language === 'zh'
+              ? '\u8FD4\u56DE\u9996\u9875'
+              : 'Back to Home';
     const [signalingServerUrl] = useState<string>(() => resolveDefaultSignalingUrl());
     const [chatInput, setChatInput] = useState('');
     const [isChatFocused, setIsChatFocused] = useState(false);
@@ -798,7 +812,7 @@ export default function ExperiencePage() {
                             {viewerEmail && (
                                 <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300">
                                     <span className="block text-[10px] uppercase tracking-[0.18em] text-slate-500">
-                                        {signedInAsLabel}
+                                        {accountLabel}
                                     </span>
                                     <span className="mt-1 block break-all text-sm text-white">
                                         {viewerEmail}
@@ -810,11 +824,11 @@ export default function ExperiencePage() {
                                 disabled={isSigningOut}
                                 className="w-full text-left px-3 py-2 rounded-lg text-sm text-amber-200 hover:bg-amber-500/10 transition disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                {signOutLabel}
+                                {accountSignOutLabel}
                             </button>
                             <div className="h-px bg-white/10 my-2"></div>
                             <Link href="/" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition">
-                                {ui.menuExit}
+                                {returnHomeLabel}
                             </Link>
                         </div>
                     )}
