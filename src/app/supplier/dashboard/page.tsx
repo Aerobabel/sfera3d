@@ -38,7 +38,7 @@ const dashboardMono = IBM_Plex_Mono({
 type SupplierMessage = SupplierChatApiMessage;
 
 const supplierNameFromEmail = (email: string | null | undefined) => {
-  if (!email) return 'Nonagon Tech';
+  if (!email) return 'Supplier';
   const localPart = email.split('@')[0] ?? 'Supplier';
   return localPart
     .split(/[._-]/g)
@@ -46,6 +46,33 @@ const supplierNameFromEmail = (email: string | null | undefined) => {
     .map((chunk) => chunk[0].toUpperCase() + chunk.slice(1))
     .join(' ');
 };
+
+const readStringMetadata = (metadata: Record<string, unknown>, key: string) => {
+  const value = metadata[key];
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+};
+
+const titleFromSlug = (value: string) =>
+  value
+    .split(/[._-\s]+/g)
+    .filter(Boolean)
+    .map((chunk) => chunk[0].toUpperCase() + chunk.slice(1))
+    .join(' ');
+
+const pavilionNameFromMetadata = (metadata: Record<string, unknown>) => {
+  const explicitName = readStringMetadata(metadata, 'pavilion_name');
+  if (explicitName) return explicitName;
+
+  const pavilionId = readStringMetadata(metadata, 'pavilion_id');
+  if (!pavilionId) return null;
+
+  const normalized = pavilionId.replace(/^pav[_-]?/i, '');
+  const title = titleFromSlug(normalized);
+  return title ? `${title} Pavilion` : null;
+};
+
+const supplierIdFromMetadata = (metadata: Record<string, unknown>) =>
+  readStringMetadata(metadata, 'supplier_id') || 'sup_nonagon';
 
 export default function SupplierDashboard() {
   const { language } = useLanguage();
@@ -58,7 +85,7 @@ export default function SupplierDashboard() {
       analytics: 'Analytics',
       settings: 'Settings',
       admin: 'Supplier',
-      inquiries: 'Nonagon Live Inquiries',
+      inquiries: 'Live Inquiries',
       controlCenter: 'Control Center',
       messageQueue: 'Message Queue',
       noMessages: 'No messages yet',
@@ -72,11 +99,11 @@ export default function SupplierDashboard() {
       todayVolume: 'Messages today',
       avgReply: 'Avg reply SLA',
       lastMessage: 'Last message',
-      queueHint: 'High-touch supplier support for Nonagon product inquiries.',
+      queueHint: 'High-touch supplier support for live buyer inquiries.',
       notConfigured:
         'Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.',
       loadFailed: 'Failed to load messages.',
-      supplierPavilion: 'Nonagon Pavilion',
+      supplierPavilion: 'Supplier Pavilion',
       signOut: 'Sign out',
       authenticating: 'Authenticating supplier session...',
       requiresLogin: 'Please sign in to access the supplier dashboard.',
@@ -89,7 +116,7 @@ export default function SupplierDashboard() {
       analytics: 'Аналитика',
       settings: 'Настройки',
       admin: 'Поставщик',
-      inquiries: 'Входящие Nonagon в реальном времени',
+      inquiries: 'Живые обращения',
       controlCenter: 'Центр управления',
       messageQueue: 'Очередь сообщений',
       noMessages: 'Сообщений пока нет',
@@ -103,11 +130,11 @@ export default function SupplierDashboard() {
       todayVolume: 'Сообщений сегодня',
       avgReply: 'Средний SLA ответа',
       lastMessage: 'Последнее сообщение',
-      queueHint: 'Премиальная поддержка поставщика для запросов по товарам Nonagon.',
+      queueHint: 'Премиальная поддержка поставщика для обращений покупателей в реальном времени.',
       notConfigured:
         'Supabase не настроен. Добавьте NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_ANON_KEY.',
       loadFailed: 'Не удалось загрузить сообщения.',
-      supplierPavilion: 'Павильон Nonagon',
+      supplierPavilion: 'Павильон поставщика',
       signOut: 'Выйти',
       authenticating: 'Проверяем сессию поставщика...',
       requiresLogin: 'Для доступа к панели поставщика выполните вход.',
@@ -120,7 +147,7 @@ export default function SupplierDashboard() {
       analytics: '数据分析',
       settings: '设置',
       admin: '供应商',
-      inquiries: 'Nonagon 实时咨询',
+      inquiries: '实时咨询',
       controlCenter: '控制中心',
       messageQueue: '消息队列',
       noMessages: '暂无消息',
@@ -134,11 +161,11 @@ export default function SupplierDashboard() {
       todayVolume: '今日消息量',
       avgReply: '平均回复 SLA',
       lastMessage: '最近消息',
-      queueHint: '为 Nonagon 产品咨询提供高质量供应商支持。',
+      queueHint: '为实时买家咨询提供高质量供应商支持。',
       notConfigured:
         'Supabase 未配置。请添加 NEXT_PUBLIC_SUPABASE_URL 和 NEXT_PUBLIC_SUPABASE_ANON_KEY。',
       loadFailed: '消息加载失败。',
-      supplierPavilion: 'Nonagon 展馆',
+      supplierPavilion: '供应商展馆',
       signOut: '退出登录',
       authenticating: '正在验证供应商会话...',
       requiresLogin: '请先登录后访问供应商后台。',
@@ -148,14 +175,14 @@ export default function SupplierDashboard() {
   }[language];
 
   const [messages, setMessages] = useState<SupplierMessage[]>([]);
-  const [supplierName, setSupplierName] = useState('Nonagon Tech');
+  const [supplierName, setSupplierName] = useState('Supplier');
+  const [supplierPavilionName, setSupplierPavilionName] = useState<string | null>(null);
   const [supplierEmail, setSupplierEmail] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
-
-  const supplierId = 'sup_nonagon';
+  const [supplierId, setSupplierId] = useState('sup_nonagon');
 
   const latestBuyerMessageId = useMemo(() => {
     const buyerMessages = messages.filter((message) => message.senderRole === 'buyer');
@@ -202,13 +229,19 @@ export default function SupplierDashboard() {
           return;
         }
 
+        const metadata =
+          session.user.user_metadata && typeof session.user.user_metadata === 'object'
+            ? (session.user.user_metadata as Record<string, unknown>)
+            : {};
         const displayNameFromMetadata =
-          typeof session.user.user_metadata?.supplier_name === 'string'
-            ? session.user.user_metadata.supplier_name
-            : supplierNameFromEmail(session.user.email);
+          readStringMetadata(metadata, 'supplier_name') || supplierNameFromEmail(session.user.email);
+        const supplierPavilionName = pavilionNameFromMetadata(metadata);
+        const resolvedSupplierId = supplierIdFromMetadata(metadata);
 
         if (mounted) {
-          setSupplierName(displayNameFromMetadata || 'Nonagon Tech');
+          setSupplierName(displayNameFromMetadata || 'Supplier');
+          setSupplierPavilionName(supplierPavilionName);
+          setSupplierId(resolvedSupplierId);
           setSupplierEmail(session.user.email ?? null);
           setAuthReady(true);
         }
@@ -374,7 +407,7 @@ export default function SupplierDashboard() {
             <h2 className="text-3xl font-bold tracking-tight text-[#66d9cb]">3DSFERA</h2>
             <p className="mt-1 text-[11px] uppercase tracking-[0.24em] text-slate-400">{t.portal}</p>
             <p className="mt-4 inline-flex rounded-full border border-[#66d9cb]/35 bg-[#66d9cb]/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#78e9dc]">
-              {t.supplierPavilion}
+              {supplierPavilionName || t.supplierPavilion}
             </p>
           </div>
 

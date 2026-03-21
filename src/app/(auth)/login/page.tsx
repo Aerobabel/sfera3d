@@ -19,13 +19,6 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 type AuthMethod = "password" | "otp";
 type OtpVerificationType = "email" | "signup";
 
-const supplierMetadata = {
-  supplier_id: "sup_nonagon",
-  supplier_name: "Nonagon Tech",
-  pavilion_id: "pav_nonagon",
-  role: "supplier",
-} as const;
-
 const nameFromEmail = (email: string) => {
   const localPart = email.split("@")[0] ?? "Guest";
   return localPart
@@ -35,9 +28,28 @@ const nameFromEmail = (email: string) => {
     .join(" ");
 };
 
+const slugFromEmail = (email: string, fallback: string) => {
+  const localPart = (email.split("@")[0] ?? "").toLowerCase();
+  const slug = localPart.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return slug || fallback;
+};
+
+const getSupplierMetadata = (email: string) => {
+  const supplierName = nameFromEmail(email) || "Supplier";
+  const supplierSlug = slugFromEmail(email, "supplier");
+
+  return {
+    supplier_id: `sup_${supplierSlug}`,
+    supplier_name: supplierName,
+    pavilion_id: `pav_${supplierSlug}`,
+    pavilion_name: `${supplierName} Pavilion`,
+    role: "supplier",
+  } as const;
+};
+
 const getAudienceMetadata = (audience: AppAudience, email: string) => {
   if (audience === "supplier") {
-    return supplierMetadata;
+    return getSupplierMetadata(email);
   }
 
   return {
@@ -56,7 +68,7 @@ const copy = {
     password: "Password",
     otpCode: "Email code",
     passwordMethod: "Password",
-    otpMethod: "Email OTP",
+    otpMethod: "Email code or link",
     signIn: "Sign in",
     signUp: "Create account",
     sendOtp: "Send code",
@@ -64,7 +76,7 @@ const copy = {
     verifyOtp: "Verify code",
     loading: "Processing...",
     passwordSignUpVisitor: "Create a visitor account with email and password.",
-    passwordSignUpSupplier: "Create a supplier account for the Nonagon Tech pavilion.",
+    passwordSignUpSupplier: "Create a supplier account for your pavilion.",
     otpHintVisitor: "Email OTP can sign in existing visitors or create a new visitor account automatically.",
     otpHintSupplier: "Email OTP works only for existing supplier accounts.",
     otpSent:
@@ -91,7 +103,7 @@ const copy = {
     password: "Пароль",
     otpCode: "Код из email",
     passwordMethod: "Пароль",
-    otpMethod: "Email OTP",
+    otpMethod: "Код или ссылка по email",
     signIn: "Войти",
     signUp: "Создать аккаунт",
     sendOtp: "Отправить код",
@@ -99,7 +111,7 @@ const copy = {
     verifyOtp: "Подтвердить код",
     loading: "Обработка...",
     passwordSignUpVisitor: "Создайте аккаунт посетителя по email и паролю.",
-    passwordSignUpSupplier: "Создайте аккаунт поставщика для павильона Nonagon Tech.",
+    passwordSignUpSupplier: "Создайте аккаунт поставщика для своего павильона.",
     otpHintVisitor:
       "Вход по email-коду подходит для посетителей и может автоматически создать новый аккаунт.",
     otpHintSupplier: "Вход по email-коду доступен только для существующих аккаунтов поставщиков.",
@@ -128,7 +140,7 @@ const copy = {
     password: "密码",
     otpCode: "邮箱验证码",
     passwordMethod: "密码",
-    otpMethod: "邮箱 OTP",
+    otpMethod: "邮箱验证码或链接",
     signIn: "登录",
     signUp: "创建账号",
     sendOtp: "发送验证码",
@@ -136,7 +148,7 @@ const copy = {
     verifyOtp: "验证验证码",
     loading: "处理中...",
     passwordSignUpVisitor: "使用邮箱和密码创建访客账号。",
-    passwordSignUpSupplier: "为 Nonagon Tech 展馆创建供应商账号。",
+    passwordSignUpSupplier: "为您的展馆创建供应商账号。",
     otpHintVisitor: "邮箱 OTP 适用于访客登录，也可以自动创建新访客账号。",
     otpHintSupplier: "邮箱 OTP 仅适用于现有供应商账号。",
     otpSent: "请检查收件箱。在这里输入验证码，或直接使用邮件中的 magic link。",
@@ -168,6 +180,21 @@ function LoginPageSkeleton() {
     </div>
   );
 }
+
+const getAuthRedirectOrigin = () => {
+  const configuredUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+
+  if (configuredUrl) {
+    try {
+      return new URL(configuredUrl).origin;
+    } catch {
+      // Fall back to the current browser origin when the override is invalid.
+    }
+  }
+
+  if (typeof window === "undefined") return undefined;
+  return window.location.origin;
+};
 
 function LoginPageContent() {
   const { language } = useLanguage();
@@ -205,9 +232,10 @@ function LoginPageContent() {
   }, [audience, requestedNext]);
 
   const buildEmailRedirectTo = useCallback(() => {
-    if (typeof window === "undefined") return undefined;
+    const origin = getAuthRedirectOrigin();
+    if (!origin) return undefined;
 
-    const url = new URL("/login", window.location.origin);
+    const url = new URL("/login", origin);
     url.searchParams.set("role", audience);
     url.searchParams.set("next", redirectPath);
     return url.toString();
