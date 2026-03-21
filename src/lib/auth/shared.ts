@@ -147,7 +147,21 @@ export const getUserRole = (
   user: Pick<User, "user_metadata"> | { user_metadata?: unknown } | null | undefined
 ): AppAuthRole => {
   const metadata = getUserMetadata(user);
-  return metadata.role === "supplier" ? "supplier" : "buyer";
+  if (metadata.role === "supplier") {
+    return "supplier";
+  }
+
+  const supplierSignals = [
+    metadata.supplier_id,
+    metadata.supplier_name,
+    metadata.pavilion_id,
+  ];
+
+  return supplierSignals.some(
+    (value) => typeof value === "string" && value.trim().length > 0
+  )
+    ? "supplier"
+    : "buyer";
 };
 
 export const getSupplierIdFromUser = (

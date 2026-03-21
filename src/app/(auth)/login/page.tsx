@@ -5,7 +5,7 @@ import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "
 import { useSearchParams } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { syncServerAuthSession } from "@/lib/auth/browser";
+import { clearServerAuthSession, syncServerAuthSession } from "@/lib/auth/browser";
 import {
   getAudienceFromRole,
   getDefaultRedirectPath,
@@ -256,6 +256,18 @@ function LoginPageContent() {
           const isSupplierLoginRequest = requestedAudience === "supplier";
 
           if (isSupplierLoginRequest && sessionRole !== "supplier") {
+            try {
+              await supabase.auth.signOut();
+            } catch {
+              // Ignore and still clear the server session cookie.
+            }
+
+            try {
+              await clearServerAuthSession();
+            } catch {
+              // Ignore and continue showing the supplier login form.
+            }
+
             return;
           }
 
@@ -311,9 +323,33 @@ function LoginPageContent() {
         throw new Error(t.defaultError);
       }
 
+      const sessionRole = getUserRole(session.user);
+      if (requestedAudience === "supplier" && sessionRole !== "supplier") {
+        try {
+          const supabase = getSupabaseBrowserClient();
+          await supabase.auth.signOut();
+        } catch {
+          // Ignore and still clear the server session cookie.
+        }
+
+        try {
+          await clearServerAuthSession();
+        } catch {
+          // Ignore and still surface the auth error.
+        }
+
+        throw new Error(
+          language === "ru"
+            ? "Этот аккаунт не распознан как аккаунт поставщика."
+            : language === "zh"
+              ? "这个账号没有被识别为供应商账号。"
+              : "This account is not recognized as a supplier account."
+        );
+      }
+
       await finishAuthentication(session);
     },
-    [finishAuthentication, t.defaultError]
+    [finishAuthentication, language, requestedAudience, t.defaultError]
   );
 
   const sendOtp = useCallback(async () => {
