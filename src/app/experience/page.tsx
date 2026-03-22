@@ -701,11 +701,20 @@ export default function ExperiencePage() {
         sendUnrealExitFocus();
 
         // Automatically re-lock the pointer so the user doesn't have to click to regain control.
-        // This prevents an accidental click from triggering another inspection.
+        // We MUST lock on the `videoElementParent` so the epicgames-ps library recognizes the lock state
+        // and attaches the `mousemove` handlers correctly for camera orbit.
         try {
-            const video = document.querySelector('#player-container video');
-            if (video && typeof video.requestPointerLock === 'function') {
-                video.requestPointerLock();
+            const psWindow = window as PixelStreamingWindow;
+            const videoElementParent = psWindow.ps?.videoElementParent;
+            
+            if (videoElementParent && typeof videoElementParent.requestPointerLock === 'function') {
+                videoElementParent.requestPointerLock();
+            } else {
+                // Fallback to video element if library isn't available
+                const video = document.querySelector('#player-container video');
+                if (video && typeof video.requestPointerLock === 'function') {
+                    video.requestPointerLock();
+                }
             }
         } catch (err) {
             console.warn('Could not automatically lock pointer:', err);
