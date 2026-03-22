@@ -734,6 +734,17 @@ export default function ExperiencePage() {
         return () => document.removeEventListener('keydown', handleKeyDown, true);
     }, [activeProduct, handleCloseProductCard]);
 
+    // Ensure Unreal Engine state matches React state on video connection/reconnection
+    // If the user's connection dropped while inspecting, Unreal remains stuck in inspection
+    // while React resets to `activeProduct: null` and the Info Tab vanishes.
+    // Sending an 'X' (exit focus) immediately upon video initialization forcefully clears
+    // any residual inspection state in Unreal.
+    useEffect(() => {
+        if (videoElement) {
+            sendUnrealExitFocus();
+        }
+    }, [videoElement, sendUnrealExitFocus]);
+
     const handlePixelStreamingResponse = (jsonString: string) => {
         let payload: unknown = jsonString;
 
