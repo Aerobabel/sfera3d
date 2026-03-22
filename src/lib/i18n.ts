@@ -35,6 +35,12 @@ const PRODUCT_LOCALIZATION: Record<AppLanguage, Record<string, LocalizedProductT
       fullDescription:
         "Молниеносная загрузка благодаря сверхбыстрому SSD, глубокое погружение с тактильной отдачей, адаптивными триггерами и 3D-звуком.",
     },
+    prod_001: {
+      name: "Монитор Pro 001",
+      shortDescription: "Профессиональный монитор.",
+      fullDescription:
+        "Монитор с высокой частотой обновления в павильоне Nonagon. Свяжитесь с поставщиком для подробных характеристик и совместимости.",
+    },
     monitor_001: {
       name: "Монитор 001",
       shortDescription: "Монитор.",
@@ -90,6 +96,12 @@ const PRODUCT_LOCALIZATION: Record<AppLanguage, Record<string, LocalizedProductT
       shortDescription: "突破想象的游戏体验。",
       fullDescription:
         "借助超高速 SSD 实现闪电加载，通过触觉反馈、自适应扳机和 3D 音频获得更强沉浸感。",
+    },
+    prod_001: {
+      name: "专业显示器 001",
+      shortDescription: "专业级显示器。",
+      fullDescription:
+        "位于 Nonagon 展馆的高刷新率显示器。可与供应商沟通详细参数与兼容性。",
     },
     monitor_001: {
       name: "显示器 001",

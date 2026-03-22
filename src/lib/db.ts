@@ -74,6 +74,17 @@ export const PRODUCTS: Product[] = [
         status: 'active',
     },
     {
+        id: 'prod_001',
+        supplierId: 'sup_nonagon',
+        pavilionId: 'pav_nonagon',
+        name: 'Monitor Pro 001',
+        price: 299.00,
+        currency: 'USD',
+        shortDescription: 'A professional monitor.',
+        fullDescription: 'A high-refresh-rate monitor in the Nonagon pavilion. Chat with the supplier for detailed specs and compatibility.',
+        status: 'active',
+    },
+    {
         id: 'monitor_001',
         supplierId: 'sup_nonagon',
         pavilionId: 'pav_nonagon',

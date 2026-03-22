@@ -699,6 +699,17 @@ export default function ExperiencePage() {
     const handleCloseProductCard = useCallback(() => {
         setActiveProduct(null);
         sendUnrealExitFocus();
+
+        // Automatically re-lock the pointer so the user doesn't have to click to regain control.
+        // This prevents an accidental click from triggering another inspection.
+        try {
+            const video = document.querySelector('#player-container video');
+            if (video && typeof video.requestPointerLock === 'function') {
+                video.requestPointerLock();
+            }
+        } catch (err) {
+            console.warn('Could not automatically lock pointer:', err);
+        }
     }, [sendUnrealExitFocus]);
 
     // Sync inspection mode exit with Unreal when the user presses 'X'
