@@ -21,6 +21,7 @@ type ToStreamerHandler = (messageData?: Array<number | string>) => void;
 type PixelStreamingWindow = Window & {
     ps?: {
         toStreamerHandlers?: Map<string, ToStreamerHandler>;
+        videoElementParent?: HTMLElement;
     };
 };
 
