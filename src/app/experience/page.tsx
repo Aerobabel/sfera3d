@@ -396,10 +396,15 @@ export default function ExperiencePage() {
     const handleStartExperience = useCallback(() => {
         if (hasStartedExperience) return;
 
-        // Unmute video stream to satisfy browser autoplay requirements
-        if (videoElement) {
-            videoElement.muted = false;
-        }
+        // Unmute ALL media streams to satisfy browser autoplay requirements
+        // Pixel Streaming sometimes creates a separate <audio> element for the audio track.
+        const mediaElements = document.querySelectorAll('video, audio');
+        mediaElements.forEach((el) => {
+            const mediaEl = el as HTMLMediaElement;
+            mediaEl.muted = false;
+            mediaEl.volume = 1.0;
+            mediaEl.play().catch(() => {}); // Attempt to kickstart playback if stalled
+        });
 
         const psWindow = window as PixelStreamingWindow;
         const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
