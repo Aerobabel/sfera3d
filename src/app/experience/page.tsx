@@ -83,6 +83,7 @@ const EXPERIENCE_COPY: Record<
         outOfStock: string;
         originalLabel: string;
         translatedLabel: string;
+        tapToStart: string;
     }
 > = {
     en: {
@@ -116,6 +117,7 @@ const EXPERIENCE_COPY: Record<
         outOfStock: 'out of stock',
         originalLabel: 'Original',
         translatedLabel: 'Translated',
+        tapToStart: 'Tap anywhere to start experience',
     },
     ru: {
         welcome: 'Подключено. Нажмите на товар в сцене, чтобы открыть детали, или спросите цену и характеристики.',
@@ -148,6 +150,7 @@ const EXPERIENCE_COPY: Record<
         outOfStock: 'нет в наличии',
         originalLabel: 'Оригинал',
         translatedLabel: 'Перевод',
+        tapToStart: 'Нажмите в любом месте, чтобы начать',
     },
     zh: {
         welcome: '已连接。点击场景中的产品查看详情，或直接询问参数与价格。',
@@ -180,6 +183,7 @@ const EXPERIENCE_COPY: Record<
         outOfStock: '缺货',
         originalLabel: '原文',
         translatedLabel: '翻译',
+        tapToStart: '点击任意位置开始体验',
     },
 };
 
@@ -387,6 +391,42 @@ export default function ExperiencePage() {
 
     // Video Element Reference for Mobile Controls
     const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
+    const [hasStartedExperience, setHasStartedExperience] = useState(false);
+
+    const handleStartExperience = useCallback(() => {
+        if (hasStartedExperience) return;
+
+        // Unmute video stream to satisfy browser autoplay requirements
+        if (videoElement) {
+            videoElement.muted = false;
+        }
+
+        const psWindow = window as PixelStreamingWindow;
+        const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
+        const keyUpHandler = psWindow.ps?.toStreamerHandlers?.get('KeyUp');
+
+        let keyCode = 50; // '2' for en
+        if (language === 'zh') keyCode = 48; // '0' for zh
+        else if (language === 'ru') keyCode = 49; // '1' for ru
+
+        if (keyDownHandler && keyUpHandler) {
+            keyDownHandler([keyCode, 0]);
+            keyUpHandler([keyCode]);
+        } else {
+            const keyString = String.fromCharCode(keyCode);
+            const keyboardEventInit: KeyboardEventInit = {
+                key: keyString,
+                code: `Digit${keyString}`,
+                bubbles: true,
+                cancelable: true,
+            };
+            document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
+            document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
+        }
+
+        setHasStartedExperience(true);
+    }, [hasStartedExperience, videoElement, language]);
+
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
     const activeSupplierId = activeSupplier?.id;
     const chatMessages = chatMode === 'ai' ? aiChatMessages : supplierChatMessages;
@@ -778,6 +818,18 @@ export default function ExperiencePage() {
                     blockedKeyboardCodes={BLOCKED_UNREAL_KEY_CODES}
                 />
             </div>
+
+            {/* Tap To Start Overlay */}
+            {videoElement && !hasStartedExperience && (
+                <div 
+                    className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-[2px] cursor-pointer pointer-events-auto transition-opacity duration-1000"
+                    onClick={handleStartExperience}
+                >
+                    <div className="text-center animate-pulse">
+                        <div className="text-white text-xl md:text-2xl font-light tracking-[0.2em] uppercase">{ui.tapToStart}</div>
+                    </div>
+                </div>
+            )}
 
             {/* Overlay UI (Z-Index 10) */}
             <div className="absolute inset-0 z-10 pointer-events-none">
