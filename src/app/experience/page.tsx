@@ -392,53 +392,77 @@ export default function ExperiencePage() {
     // Video Element Reference for Mobile Controls
     const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
     const [hasStartedExperience, setHasStartedExperience] = useState(false);
-    const greetingSentRef = useRef(false);
 
     const handleStartExperience = useCallback(() => {
         if (hasStartedExperience) return;
-        setHasStartedExperience(true);
-    }, [hasStartedExperience]);
 
-    // Send the Metahuman greeting trigger ONLY AFTER the video element has successfully initialized
-    useEffect(() => {
-        if (hasStartedExperience && videoElement && !greetingSentRef.current) {
-            greetingSentRef.current = true;
-            
-            const psWindow = window as PixelStreamingWindow;
-            const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
-            const keyUpHandler = psWindow.ps?.toStreamerHandlers?.get('KeyUp');
+        // Unmute ALL media streams to satisfy browser autoplay requirements
+        const mediaElements = document.querySelectorAll('video, audio');
+        mediaElements.forEach((el) => {
+            const mediaEl = el as HTMLMediaElement;
+            mediaEl.muted = false;
+            mediaEl.volume = 1.0;
+            mediaEl.play().catch(() => {}); // Attempt to kickstart playback if stalled
+        });
 
-            let keyCode = 50; // '2' for en
-            if (language === 'zh') keyCode = 48; // '0' for zh
-            else if (language === 'ru') keyCode = 49; // '1' for ru
-
-            if (keyDownHandler && keyUpHandler) {
-                keyDownHandler([keyCode, 0]);
-                keyUpHandler([keyCode]);
-            } else {
-                const keyString = String.fromCharCode(keyCode);
-                const keyboardEventInit: KeyboardEventInit = {
-                    key: keyString,
-                    code: `Digit${keyString}`,
-                    bubbles: true,
-                    cancelable: true,
-                };
-                document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
-                document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
-            }
-            
-            // Automatically request pointer lock so the user doesn't have to click a second time.
-            try {
-                const parent = psWindow.ps?.videoElementParent;
-                if (parent && typeof parent.requestPointerLock === 'function') {
-                    parent.requestPointerLock();
-                } else if (typeof videoElement.requestPointerLock === 'function') {
-                    videoElement.requestPointerLock();
+        // HACK: Epic Games Pixel Streaming library sometimes creates the <audio> tracking element
+        // but completely forgets to append it to the DOM! This leaves it as an orphan node in memory.
+        // Because it's not in the DOM, `document.querySelectorAll` above misses it!
+        // We must reach into the library's internal state, pull out the audio element, unmute it, and attach it to the body.
+        try {
+            const psAny = (window as any).ps;
+            const orphanedAudio = psAny?.webRtcController?.audioElement || psAny?.webRtcPlayer?.audioElement;
+            if (orphanedAudio instanceof HTMLMediaElement) {
+                if (!document.body.contains(orphanedAudio)) {
+                    orphanedAudio.style.display = 'none';
+                    document.body.appendChild(orphanedAudio);
                 }
-            } catch (err) {
-                console.warn('Could not automatically lock pointer:', err);
+                orphanedAudio.muted = false;
+                orphanedAudio.volume = 1.0;
+                orphanedAudio.play().catch(() => {});
             }
+        } catch (e) {
+            console.warn("Failed to catch orphaned audio element", e);
         }
+
+        const psWindow = window as PixelStreamingWindow;
+        const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
+        const keyUpHandler = psWindow.ps?.toStreamerHandlers?.get('KeyUp');
+
+        let keyCode = 50; // '2' for en
+        if (language === 'zh') keyCode = 48; // '0' for zh
+        else if (language === 'ru') keyCode = 49; // '1' for ru
+
+        if (keyDownHandler && keyUpHandler) {
+            keyDownHandler([keyCode, 0]);
+            keyUpHandler([keyCode]);
+        } else {
+            const keyString = String.fromCharCode(keyCode);
+            const keyboardEventInit: KeyboardEventInit = {
+                key: keyString,
+                code: `Digit${keyString}`,
+                bubbles: true,
+                cancelable: true,
+            };
+            document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
+            document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
+        }
+
+        // Automatically request pointer lock so the user doesn't have to click a second time.
+        // We MUST lock on the `videoElementParent` so the epicgames-ps library recognizes the lock state
+        // and attaches the `mousemove` handlers correctly for camera orbit.
+        try {
+            const parent = psWindow.ps?.videoElementParent;
+            if (parent && typeof parent.requestPointerLock === 'function') {
+                parent.requestPointerLock();
+            } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
+                videoElement.requestPointerLock();
+            }
+        } catch (err) {
+            console.warn('Could not automatically lock pointer:', err);
+        }
+
+        setHasStartedExperience(true);
     }, [hasStartedExperience, videoElement, language]);
 
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
@@ -822,21 +846,19 @@ export default function ExperiencePage() {
             {/* Video Container (Pixel Streaming) */}
             <div id="player-container" className="absolute inset-0 z-0">
                 {/* Default to UE Pixel Streaming signaling server on loopback: ws://127.0.0.1 */}
-                {hasStartedExperience && (
-                    <PixelStreamingPlayer
-                        signalingServerUrl={signalingServerUrl}
-                        onPixelStreamingResponse={handlePixelStreamingResponse}
-                        onVideoInitialized={setVideoElement}
-                        mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
-                        isMobileDevice={isMobile}
-                        keyboardInputEnabled={!isChatFocused}
-                        blockedKeyboardCodes={BLOCKED_UNREAL_KEY_CODES}
-                    />
-                )}
+                <PixelStreamingPlayer
+                    signalingServerUrl={signalingServerUrl}
+                    onPixelStreamingResponse={handlePixelStreamingResponse}
+                    onVideoInitialized={setVideoElement}
+                    mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
+                    isMobileDevice={isMobile}
+                    keyboardInputEnabled={!isChatFocused}
+                    blockedKeyboardCodes={BLOCKED_UNREAL_KEY_CODES}
+                />
             </div>
 
             {/* Tap To Start Overlay */}
-            {!hasStartedExperience && (
+            {videoElement && !hasStartedExperience && (
                 <div 
                     className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-[2px] cursor-pointer pointer-events-auto transition-opacity duration-1000"
                     onClick={handleStartExperience}
