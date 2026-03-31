@@ -630,6 +630,7 @@ export default function PixelStreamingPlayer({
                 AutoConnect: true,
                 ss: connectUrl,
                 StartVideoMuted: true,
+                UseMic: true,
                 HoveringMouse: useHoveringMouse,
                 FakeMouseWithTouches: emulateMouseFromTouches,
                 TouchInput: !emulateMouseFromTouches,

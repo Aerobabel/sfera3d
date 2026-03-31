@@ -448,6 +448,20 @@ export default function ExperiencePage() {
             document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
         }
 
+        // Automatically request pointer lock so the user doesn't have to click a second time.
+        // We MUST lock on the `videoElementParent` so the epicgames-ps library recognizes the lock state
+        // and attaches the `mousemove` handlers correctly for camera orbit.
+        try {
+            const parent = psWindow.ps?.videoElementParent;
+            if (parent && typeof parent.requestPointerLock === 'function') {
+                parent.requestPointerLock();
+            } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
+                videoElement.requestPointerLock();
+            }
+        } catch (err) {
+            console.warn('Could not automatically lock pointer:', err);
+        }
+
         setHasStartedExperience(true);
     }, [hasStartedExperience, videoElement, language]);
 
