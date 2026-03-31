@@ -397,7 +397,6 @@ export default function ExperiencePage() {
         if (hasStartedExperience) return;
 
         // Unmute ALL media streams to satisfy browser autoplay requirements
-        // Pixel Streaming sometimes creates a separate <audio> element for the audio track.
         const mediaElements = document.querySelectorAll('video, audio');
         mediaElements.forEach((el) => {
             const mediaEl = el as HTMLMediaElement;
@@ -405,6 +404,26 @@ export default function ExperiencePage() {
             mediaEl.volume = 1.0;
             mediaEl.play().catch(() => {}); // Attempt to kickstart playback if stalled
         });
+
+        // HACK: Epic Games Pixel Streaming library sometimes creates the <audio> tracking element
+        // but completely forgets to append it to the DOM! This leaves it as an orphan node in memory.
+        // Because it's not in the DOM, `document.querySelectorAll` above misses it!
+        // We must reach into the library's internal state, pull out the audio element, unmute it, and attach it to the body.
+        try {
+            const psAny = (window as any).ps;
+            const orphanedAudio = psAny?.webRtcController?.audioElement || psAny?.webRtcPlayer?.audioElement;
+            if (orphanedAudio instanceof HTMLMediaElement) {
+                if (!document.body.contains(orphanedAudio)) {
+                    orphanedAudio.style.display = 'none';
+                    document.body.appendChild(orphanedAudio);
+                }
+                orphanedAudio.muted = false;
+                orphanedAudio.volume = 1.0;
+                orphanedAudio.play().catch(() => {});
+            }
+        } catch (e) {
+            console.warn("Failed to catch orphaned audio element", e);
+        }
 
         const psWindow = window as PixelStreamingWindow;
         const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
