@@ -403,34 +403,52 @@ export default function ExperiencePage() {
             psAny?.config?.setFlagEnabled?.('StartVideoMuted', false);
         } catch (_) { /* best-effort */ }
 
-        // Unmute ALL media streams to satisfy browser autoplay requirements
-        const mediaElements = document.querySelectorAll('video, audio');
-        mediaElements.forEach((el) => {
-            const mediaEl = el as HTMLMediaElement;
-            mediaEl.muted = false;
-            mediaEl.volume = 1.0;
-            mediaEl.play().catch(() => {}); // Attempt to kickstart playback if stalled
-        });
+        // Unmute all media elements currently in the DOM.
+        const unmuteAllDOM = () => {
+            document.querySelectorAll('video, audio').forEach((el) => {
+                const m = el as HTMLMediaElement;
+                m.muted = false;
+                m.volume = 1.0;
+                m.play().catch(() => {});
+            });
+        };
+        unmuteAllDOM();
 
-        // HACK: Epic Games Pixel Streaming library creates an <audio> element via
-        // document.createElement('Audio') in StreamController but never appends it to the DOM.
-        // Because it's not in the DOM, `document.querySelectorAll` above misses it.
-        try {
-            const psAny = (window as any).ps;
-            const orphanedAudio =
-                psAny?._webRtcController?.streamController?.audioElement;
-            if (orphanedAudio instanceof HTMLMediaElement) {
-                if (!document.body.contains(orphanedAudio)) {
-                    orphanedAudio.style.display = 'none';
-                    document.body.appendChild(orphanedAudio);
+        // The Epic Games UE 5.4 Pixel Streaming library creates an <audio> element
+        // (StreamController.audioElement) that is never appended to the DOM.
+        // Its srcObject is set asynchronously when the WebRTC audio track arrives
+        // via ontrack, which may happen BEFORE or AFTER this user click.
+        // We poll briefly to catch both cases.
+        const ensureAudioPlaying = () => {
+            try {
+                const psAny = (window as any).ps;
+                const audioEl =
+                    psAny?._webRtcController?.streamController?.audioElement;
+                if (audioEl instanceof HTMLMediaElement) {
+                    if (!document.body.contains(audioEl)) {
+                        audioEl.style.display = 'none';
+                        document.body.appendChild(audioEl);
+                    }
+                    audioEl.muted = false;
+                    audioEl.volume = 1.0;
+                    if (audioEl.srcObject) {
+                        audioEl.play().catch(() => {});
+                    }
                 }
-                orphanedAudio.muted = false;
-                orphanedAudio.volume = 1.0;
-                orphanedAudio.play().catch(() => {});
-            }
-        } catch (e) {
-            console.warn("Failed to catch orphaned audio element", e);
-        }
+            } catch (_) { /* best-effort */ }
+            // Also catch any new DOM media elements the library may have added.
+            unmuteAllDOM();
+        };
+
+        // Run immediately, then poll every 500ms for 5 seconds to catch
+        // late-arriving audio tracks.
+        ensureAudioPlaying();
+        let attempts = 0;
+        const audioPoller = window.setInterval(() => {
+            attempts++;
+            ensureAudioPlaying();
+            if (attempts >= 10) window.clearInterval(audioPoller);
+        }, 500);
 
         const psWindow = window as PixelStreamingWindow;
         const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
