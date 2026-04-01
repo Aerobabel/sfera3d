@@ -405,13 +405,15 @@ export default function ExperiencePage() {
             mediaEl.play().catch(() => {}); // Attempt to kickstart playback if stalled
         });
 
-        // HACK: Epic Games Pixel Streaming library sometimes creates the <audio> tracking element
-        // but completely forgets to append it to the DOM! This leaves it as an orphan node in memory.
-        // Because it's not in the DOM, `document.querySelectorAll` above misses it!
-        // We must reach into the library's internal state, pull out the audio element, unmute it, and attach it to the body.
+        // HACK: Epic Games Pixel Streaming library creates an <audio> element via
+        // document.createElement('Audio') in StreamController but never appends it to the DOM.
+        // Because it's not in the DOM, `document.querySelectorAll` above misses it.
+        // The actual path in the UE 5.4 library is:
+        //   PixelStreaming._webRtcController.streamController.audioElement
         try {
             const psAny = (window as any).ps;
-            const orphanedAudio = psAny?.webRtcController?.audioElement || psAny?.webRtcPlayer?.audioElement;
+            const orphanedAudio =
+                psAny?._webRtcController?.streamController?.audioElement;
             if (orphanedAudio instanceof HTMLMediaElement) {
                 if (!document.body.contains(orphanedAudio)) {
                     orphanedAudio.style.display = 'none';
