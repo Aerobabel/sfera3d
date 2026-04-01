@@ -396,6 +396,13 @@ export default function ExperiencePage() {
     const handleStartExperience = useCallback(() => {
         if (hasStartedExperience) return;
 
+        // Flip the library's StartVideoMuted flag so that any subsequent
+        // playStream() / play() calls inside the library no longer re-mute.
+        try {
+            const psAny = (window as any).ps;
+            psAny?.config?.setFlagEnabled?.('StartVideoMuted', false);
+        } catch (_) { /* best-effort */ }
+
         // Unmute ALL media streams to satisfy browser autoplay requirements
         const mediaElements = document.querySelectorAll('video, audio');
         mediaElements.forEach((el) => {
@@ -408,8 +415,6 @@ export default function ExperiencePage() {
         // HACK: Epic Games Pixel Streaming library creates an <audio> element via
         // document.createElement('Audio') in StreamController but never appends it to the DOM.
         // Because it's not in the DOM, `document.querySelectorAll` above misses it.
-        // The actual path in the UE 5.4 library is:
-        //   PixelStreaming._webRtcController.streamController.audioElement
         try {
             const psAny = (window as any).ps;
             const orphanedAudio =
