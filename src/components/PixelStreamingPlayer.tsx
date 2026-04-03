@@ -13,6 +13,7 @@ interface PixelStreamingPlayerProps {
     keyboardInputEnabled?: boolean;
     blockedKeyboardCodes?: string[];
     desktopMouseMode?: 'locked' | 'hovering';
+    mouseSensitivity?: number;
 }
 
 type PixelStreamingDebugWindow = Window & {
@@ -218,7 +219,8 @@ export default function PixelStreamingPlayer({
     isMobileDevice = false,
     keyboardInputEnabled = true,
     blockedKeyboardCodes = [],
-    desktopMouseMode: preferredDesktopMouseMode
+    desktopMouseMode: preferredDesktopMouseMode,
+    mouseSensitivity = 1.0
 }: PixelStreamingPlayerProps) {
     const { language } = useLanguage();
     const text = {
@@ -280,6 +282,7 @@ export default function PixelStreamingPlayer({
     const blockedKeyboardCodesRef = useRef<Set<string>>(new Set());
     const onPixelStreamingResponseRef = useRef(onPixelStreamingResponse);
     const onVideoInitializedRef = useRef(onVideoInitialized);
+    const mouseSensitivityRef = useRef(mouseSensitivity);
     const reconnectAttemptRef = useRef(0);
     const reconnectTimerRef = useRef<number | null>(null);
     const reconnectRequestedRef = useRef(false);
@@ -351,6 +354,10 @@ export default function PixelStreamingPlayer({
     useEffect(() => {
         onVideoInitializedRef.current = onVideoInitialized;
     }, [onVideoInitialized]);
+
+    useEffect(() => {
+        mouseSensitivityRef.current = mouseSensitivity;
+    }, [mouseSensitivity]);
 
     useEffect(() => {
         setUrl(initialUrl);
@@ -651,9 +658,36 @@ export default function PixelStreamingPlayer({
 
             (window as PixelStreamingDebugWindow).ps = ps; // Debugging
 
+            // Wrap the MouseMove handler to apply user sensitivity multiplier.
+            const wrapMouseMoveForSensitivity = () => {
+                const handlers = ps.toStreamerHandlers;
+                const originalMouseMove = handlers?.get('MouseMove');
+                if (!originalMouseMove || !handlers) return;
+
+                const wrappedMouseMove: typeof originalMouseMove = (messageData) => {
+                    if (messageData && messageData.length >= 4) {
+                        const s = mouseSensitivityRef.current;
+                        if (s !== 1) {
+                            messageData[2] = Math.round((messageData[2] as number) * s);
+                            messageData[3] = Math.round((messageData[3] as number) * s);
+                        }
+                    }
+                    originalMouseMove(messageData);
+                };
+
+                handlers.set('MouseMove', wrappedMouseMove);
+            };
+
+            // The toStreamerHandlers map is populated after WebRTC connects,
+            // so wrap it once the connection is ready.
+            const originalWebRtcConnectedWrap = () => {
+                wrapMouseMoveForSensitivity();
+            };
+
             ps.addEventListener('webRtcConnected', () => {
                 if (generation !== connectionGenerationRef.current) return;
                 console.log("WebRTC Connected");
+                originalWebRtcConnectedWrap();
                 reconnectAttemptRef.current = 0;
                 clearReconnectTimer();
                 resetWatchdogGraceWindow();

@@ -6,6 +6,7 @@ import { useLanguage } from '@/components/i18n/LanguageProvider';
 
 interface MobileControlsProps {
     videoElement: HTMLVideoElement | null;
+    lookSensitivity?: number;
 }
 
 type ToStreamerHandler = (messageData?: Array<number | string>) => void;
@@ -40,7 +41,7 @@ const applyLookCurve = (value: number) => {
     return Math.sign(value) * curved;
 };
 
-export default function MobileControls({ videoElement }: MobileControlsProps) {
+export default function MobileControls({ videoElement, lookSensitivity = 1.0 }: MobileControlsProps) {
     const { language } = useLanguage();
     const text = {
         en: { move: 'MOVE', look: 'LOOK', interact: 'INTERACT' },
@@ -218,8 +219,8 @@ export default function MobileControls({ videoElement }: MobileControlsProps) {
             const y = applyLookCurve(smoothedLookVector.current.y);
 
             if (x !== 0 || y !== 0) {
-                const xSensitivity = Math.abs(x) < LOOK_FINE_ZONE ? LOOK_FINE_SENSITIVITY_PX : LOOK_SENSITIVITY_PX;
-                const ySensitivity = Math.abs(y) < LOOK_FINE_ZONE ? LOOK_FINE_SENSITIVITY_PX : LOOK_SENSITIVITY_PX;
+                const xSensitivity = (Math.abs(x) < LOOK_FINE_ZONE ? LOOK_FINE_SENSITIVITY_PX : LOOK_SENSITIVITY_PX) * lookSensitivity;
+                const ySensitivity = (Math.abs(y) < LOOK_FINE_ZONE ? LOOK_FINE_SENSITIVITY_PX : LOOK_SENSITIVITY_PX) * lookSensitivity;
 
                 const deltaX = clamp(x * xSensitivity * frameScale, -LOOK_MAX_DELTA_PX, LOOK_MAX_DELTA_PX);
                 const deltaY = clamp(y * ySensitivity * frameScale, -LOOK_MAX_DELTA_PX, LOOK_MAX_DELTA_PX);
@@ -230,7 +231,7 @@ export default function MobileControls({ videoElement }: MobileControlsProps) {
         };
 
         lookRafRef.current = requestAnimationFrame(tick);
-    }, [getToStreamerHandler, sendLookDelta]);
+    }, [getToStreamerHandler, sendLookDelta, lookSensitivity]);
 
     const handleLookJoystick = useCallback((x: number, y: number) => {
         lookVector.current = { x, y };

@@ -10,6 +10,7 @@ import ProductCard from "@/components/overlay/ProductCard";
 import CatalogueOverlay from "@/components/overlay/CatalogueOverlay";
 import MobileControls from "@/components/pixelstreaming/MobileControls";
 import MarketplaceCrosshair from "@/components/pixelstreaming/MarketplaceCrosshair";
+import SensitivitySlider from "@/components/pixelstreaming/SensitivitySlider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { clearServerAuthSession } from "@/lib/auth/browser";
 import { AppLanguage, getLocalizedProduct } from "@/lib/i18n";
@@ -287,6 +288,15 @@ export default function ExperiencePage() {
     const [isSendingChat, setIsSendingChat] = useState(false);
     const [isSyncingSupplierChat, setIsSyncingSupplierChat] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [mouseSensitivity, setMouseSensitivity] = useState(() => {
+        if (typeof window === 'undefined') return 1.0;
+        const stored = localStorage.getItem('ps_mouse_sensitivity');
+        if (stored) {
+            const parsed = parseFloat(stored);
+            if (Number.isFinite(parsed) && parsed >= 0.1 && parsed <= 1.0) return parsed;
+        }
+        return 1.0;
+    });
     const [isMobile, setIsMobile] = useState(false);
     const [isLandscape, setIsLandscape] = useState(true);
     const [mobileInputMode] = useState<MobileInputMode>('joystick');
@@ -295,6 +305,11 @@ export default function ExperiencePage() {
     const [viewerEmail, setViewerEmail] = useState<string | null>(null);
     const [isSigningOut, setIsSigningOut] = useState(false);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
+
+    const handleSensitivityChange = useCallback((value: number) => {
+        setMouseSensitivity(value);
+        try { localStorage.setItem('ps_mouse_sensitivity', String(value)); } catch {}
+    }, []);
 
     useEffect(() => {
         // Simple mobile detection
@@ -879,6 +894,7 @@ export default function ExperiencePage() {
                     isMobileDevice={isMobile}
                     keyboardInputEnabled={!isChatFocused}
                     blockedKeyboardCodes={BLOCKED_UNREAL_KEY_CODES}
+                    mouseSensitivity={mouseSensitivity}
                 />
             </div>
 
@@ -931,6 +947,9 @@ export default function ExperiencePage() {
                                     {isChatPanelOpen ? ui.chatToggleHide : ui.chatToggleShow}
                                 </span>
                             </button>
+
+                            {/* Sensitivity Slider */}
+                            <SensitivitySlider value={mouseSensitivity} onChange={handleSensitivityChange} />
 
                             {/* Menu Button */}
                             <button
@@ -1151,7 +1170,7 @@ export default function ExperiencePage() {
 
             {/* Mobile Controls (Z-Index 50 - Topmost) */}
             {isMobile && isLandscape && mobileInputMode === 'joystick' && (
-                <MobileControls videoElement={videoElement} />
+                <MobileControls videoElement={videoElement} lookSensitivity={mouseSensitivity} />
             )}
 
             {isMobile && !isLandscape && (
