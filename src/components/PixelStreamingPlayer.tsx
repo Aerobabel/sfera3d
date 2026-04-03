@@ -661,7 +661,8 @@ export default function PixelStreamingPlayer({
                 FakeMouseWithTouches: emulateMouseFromTouches,
                 TouchInput: !emulateMouseFromTouches,
                 MouseInput: true,
-                KeyboardInput: true
+                KeyboardInput: true,
+                UseMic: true,
             }
         });
 
@@ -715,6 +716,9 @@ export default function PixelStreamingPlayer({
                 resetWatchdogGraceWindow();
                 setIsConnected(true);
                 setStatus(textRef.current.connectedWait);
+                // Mic is included in SDP (UseMic: true) but should start muted.
+                // The user explicitly activates it by holding T.
+                try { ps.muteMicrophone(); } catch { /* best-effort */ }
                 window.setTimeout(() => {
                     if (generation !== connectionGenerationRef.current) return;
                     releaseCommonStuckInputs(ps);

@@ -31,9 +31,15 @@ type PixelStreamingWindow = Window & {
                 audioElement?: HTMLMediaElement | null;
             };
         };
+        unmuteMicrophone?: (forceEnable?: boolean) => void;
+        muteMicrophone?: () => void;
     };
 };
 const DEFAULT_MOUSE_SENSITIVITY = 0.7;
+// Tracks whether the language key has been sent to Unreal in this browser session.
+// sessionStorage persists across hard reloads (location.reload) but clears on tab close,
+// preventing the intro script from replaying on every reconnect-triggered reload.
+const LANG_SENT_SESSION_KEY = 'ps_lang_sent';
 
 type ChatMessage = {
     id: string;
@@ -414,6 +420,7 @@ export default function ExperiencePage() {
     // Video Element Reference for Mobile Controls
     const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
     const [hasStartedExperience, setHasStartedExperience] = useState(false);
+    const [isPointerLocked, setIsPointerLocked] = useState(false);
 
     const handleStartExperience = useCallback(() => {
         if (hasStartedExperience) return;
@@ -473,26 +480,35 @@ export default function ExperiencePage() {
         }, 500);
 
         const psWindow = window as PixelStreamingWindow;
-        const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
-        const keyUpHandler = psWindow.ps?.toStreamerHandlers?.get('KeyUp');
 
-        let keyCode = 50; // '2' for en
-        if (language === 'zh') keyCode = 48; // '0' for zh
-        else if (language === 'ru') keyCode = 49; // '1' for ru
+        // Only send the language key once per browser session (persists across hard reloads
+        // triggered by the reconnect logic, but resets when the user closes the tab).
+        // This prevents the Unreal intro script from replaying on every auto-reload.
+        const sentLang = sessionStorage.getItem(LANG_SENT_SESSION_KEY);
+        if (sentLang !== language) {
+            const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
+            const keyUpHandler = psWindow.ps?.toStreamerHandlers?.get('KeyUp');
 
-        if (keyDownHandler && keyUpHandler) {
-            keyDownHandler([keyCode, 0]);
-            keyUpHandler([keyCode]);
-        } else {
-            const keyString = String.fromCharCode(keyCode);
-            const keyboardEventInit: KeyboardEventInit = {
-                key: keyString,
-                code: `Digit${keyString}`,
-                bubbles: true,
-                cancelable: true,
-            };
-            document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
-            document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
+            let keyCode = 50; // '2' for en
+            if (language === 'zh') keyCode = 48; // '0' for zh
+            else if (language === 'ru') keyCode = 49; // '1' for ru
+
+            if (keyDownHandler && keyUpHandler) {
+                keyDownHandler([keyCode, 0]);
+                keyUpHandler([keyCode]);
+            } else {
+                const keyString = String.fromCharCode(keyCode);
+                const keyboardEventInit: KeyboardEventInit = {
+                    key: keyString,
+                    code: `Digit${keyString}`,
+                    bubbles: true,
+                    cancelable: true,
+                };
+                document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
+                document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
+            }
+
+            try { sessionStorage.setItem(LANG_SENT_SESSION_KEY, language); } catch { /* best-effort */ }
         }
 
         // Automatically request pointer lock so the user doesn't have to click a second time.
@@ -870,6 +886,89 @@ export default function ExperiencePage() {
         }
     }, [videoElement, sendUnrealExitFocus]);
 
+    // Re-establish audio on every (re)connect after the user has already started the experience.
+    // The Pixel Streaming library creates a fresh <audio> element for each new WebRTC session,
+    // so we must re-append and re-play it whenever `videoElement` changes (i.e. after reconnect).
+    useEffect(() => {
+        if (!videoElement || !hasStartedExperience) return;
+
+        const ensureAudioPlaying = () => {
+            try {
+                const psWindow = window as PixelStreamingWindow;
+                const audioEl = psWindow.ps?._webRtcController?.streamController?.audioElement;
+                if (audioEl instanceof HTMLMediaElement) {
+                    if (!document.body.contains(audioEl)) {
+                        audioEl.style.display = 'none';
+                        document.body.appendChild(audioEl);
+                    }
+                    audioEl.muted = false;
+                    audioEl.volume = 1.0;
+                    if (audioEl.srcObject) {
+                        audioEl.play().catch(() => {});
+                    }
+                }
+            } catch { /* best-effort */ }
+            // Catch any other DOM media elements the library may have added.
+            document.querySelectorAll('video, audio').forEach((el) => {
+                const m = el as HTMLMediaElement;
+                m.muted = false;
+                m.volume = 1.0;
+                m.play().catch(() => {});
+            });
+        };
+
+        ensureAudioPlaying();
+        let attempts = 0;
+        const audioPoller = window.setInterval(() => {
+            attempts++;
+            ensureAudioPlaying();
+            if (attempts >= 10) window.clearInterval(audioPoller);
+        }, 500);
+
+        return () => window.clearInterval(audioPoller);
+    }, [videoElement, hasStartedExperience]);
+
+    // Track pointer lock state so we can show a "click to re-lock" hint when
+    // the lock is unexpectedly lost (e.g. user presses ESC or browser loses focus).
+    useEffect(() => {
+        const handleLockChange = () => {
+            setIsPointerLocked(!!document.pointerLockElement);
+        };
+        document.addEventListener('pointerlockchange', handleLockChange);
+        document.addEventListener('mozpointerlockchange', handleLockChange);
+        return () => {
+            document.removeEventListener('pointerlockchange', handleLockChange);
+            document.removeEventListener('mozpointerlockchange', handleLockChange);
+        };
+    }, []);
+
+    // T key: unmute microphone on hold, mute on release so ConvAI can receive audio.
+    // The key event itself is already forwarded to Unreal by the Pixel Streaming library.
+    useEffect(() => {
+        if (!hasStartedExperience) return;
+
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.code !== 'KeyT' || e.repeat || isChatFocused) return;
+            try {
+                (window as PixelStreamingWindow).ps?.unmuteMicrophone?.();
+            } catch { /* best-effort */ }
+        };
+
+        const onKeyUp = (e: KeyboardEvent) => {
+            if (e.code !== 'KeyT') return;
+            try {
+                (window as PixelStreamingWindow).ps?.muteMicrophone?.();
+            } catch { /* best-effort */ }
+        };
+
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+        return () => {
+            document.removeEventListener('keydown', onKeyDown);
+            document.removeEventListener('keyup', onKeyUp);
+        };
+    }, [hasStartedExperience, isChatFocused]);
+
     const handlePixelStreamingResponse = (jsonString: string) => {
         let payload: unknown = jsonString;
 
@@ -891,7 +990,24 @@ export default function ExperiencePage() {
     return (
         <div className="relative h-screen w-screen bg-gray-900 overflow-hidden font-sans">
             {/* Video Container (Pixel Streaming) */}
-            <div id="player-container" className="absolute inset-0 z-0">
+            <div
+                id="player-container"
+                className="absolute inset-0 z-0"
+                onClick={() => {
+                    // Re-acquire pointer lock on any click inside the video area when
+                    // experience is running and pointer is not already locked (e.g. after ESC).
+                    if (!hasStartedExperience || isPointerLocked || activeProduct || isMobile) return;
+                    try {
+                        const psWindow = window as PixelStreamingWindow;
+                        const parent = psWindow.ps?.videoElementParent;
+                        if (parent && typeof parent.requestPointerLock === 'function') {
+                            parent.requestPointerLock();
+                        } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
+                            videoElement.requestPointerLock();
+                        }
+                    } catch { /* best-effort */ }
+                }}
+            >
                 {/* Default to UE Pixel Streaming signaling server on loopback: ws://127.0.0.1 */}
                 <PixelStreamingPlayer
                     signalingServerUrl={signalingServerUrl}
@@ -907,12 +1023,21 @@ export default function ExperiencePage() {
 
             {/* Tap To Start Overlay */}
             {videoElement && !hasStartedExperience && (
-                <div 
+                <div
                     className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-[2px] cursor-pointer pointer-events-auto transition-opacity duration-1000"
                     onClick={handleStartExperience}
                 >
                     <div className="text-center animate-pulse">
                         <div className="text-white text-xl md:text-2xl font-light tracking-[0.2em] uppercase">{ui.tapToStart}</div>
+                    </div>
+                </div>
+            )}
+
+            {/* Click-to-relock hint: shown when pointer lock is lost unexpectedly mid-session */}
+            {hasStartedExperience && !isPointerLocked && !activeProduct && !isMobile && !isChatFocused && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[90] pointer-events-none animate-pulse">
+                    <div className="px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white/70 text-xs tracking-widest uppercase">
+                        Click to resume mouse control
                     </div>
                 </div>
             )}
