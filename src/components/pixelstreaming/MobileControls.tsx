@@ -31,6 +31,14 @@ const LOOK_ACTIVATION_THRESHOLD = 0.03;
 const HOLD_LEFT_MOUSE_WHILE_LOOKING = false;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const KEY_DEFINITIONS = {
+    w: { code: 'KeyW', keyCode: 87 },
+    a: { code: 'KeyA', keyCode: 65 },
+    s: { code: 'KeyS', keyCode: 83 },
+    d: { code: 'KeyD', keyCode: 68 },
+    f: { code: 'KeyF', keyCode: 70 }
+} as const;
+
 const applyLookCurve = (value: number) => {
     const magnitude = Math.abs(value);
     if (magnitude <= LOOK_DEAD_ZONE) return 0;
@@ -41,7 +49,7 @@ const applyLookCurve = (value: number) => {
     return Math.sign(value) * curved;
 };
 
-export default function MobileControls({ videoElement, lookSensitivity = 1.0 }: MobileControlsProps) {
+export default function MobileControls({ videoElement, lookSensitivity = 0.7 }: MobileControlsProps) {
     const { language } = useLanguage();
     const text = {
         en: { move: 'MOVE', look: 'LOOK', interact: 'INTERACT' },
@@ -51,7 +59,7 @@ export default function MobileControls({ videoElement, lookSensitivity = 1.0 }: 
     const activeKeys = useRef<Set<string>>(new Set());
 
     // --- Keyboard Simulation Helper(Left Stick) ---
-    const simulateKey = (key: string, type: 'keydown' | 'keyup') => {
+    const simulateKey = useCallback((key: string, type: 'keydown' | 'keyup') => {
         if (type === 'keydown') {
             if (activeKeys.current.has(key)) return;
             activeKeys.current.add(key);
@@ -60,24 +68,27 @@ export default function MobileControls({ videoElement, lookSensitivity = 1.0 }: 
             activeKeys.current.delete(key);
         }
 
-        let code = '';
-        let keyCode = 0;
-        if (key === 'w') { code = 'KeyW'; keyCode = 87; }
-        else if (key === 's') { code = 'KeyS'; keyCode = 83; }
-        else if (key === 'a') { code = 'KeyA'; keyCode = 65; }
-        else if (key === 'd') { code = 'KeyD'; keyCode = 68; }
+        const keyDefinition = KEY_DEFINITIONS[key as keyof typeof KEY_DEFINITIONS];
+        if (!keyDefinition) {
+            return;
+        }
 
         const event = new KeyboardEvent(type, {
             key: key,
-            code: code,
-            keyCode: keyCode,
-            which: keyCode,
+            code: keyDefinition.code,
+            keyCode: keyDefinition.keyCode,
+            which: keyDefinition.keyCode,
             bubbles: true,
             cancelable: true,
             view: window
         });
         document.dispatchEvent(event);
-    };
+    }, []);
+
+    const tapKey = useCallback((key: keyof typeof KEY_DEFINITIONS) => {
+        simulateKey(key, 'keydown');
+        simulateKey(key, 'keyup');
+    }, [simulateKey]);
 
     // --- Left Stick (Movement: WASD) ---
     const handleMoveJoystick = useCallback((x: number, y: number) => {
@@ -91,11 +102,11 @@ export default function MobileControls({ videoElement, lookSensitivity = 1.0 }: 
         if (x < -threshold) { simulateKey('a', 'keydown'); simulateKey('d', 'keyup'); }
         else if (x > threshold) { simulateKey('d', 'keydown'); simulateKey('a', 'keyup'); }
         else { simulateKey('a', 'keyup'); simulateKey('d', 'keyup'); }
-    }, []);
+    }, [simulateKey]);
 
     const handleStopMove = useCallback(() => {
         ['w', 'a', 's', 'd'].forEach(key => simulateKey(key, 'keyup'));
-    }, []);
+    }, [simulateKey]);
 
 
     // --- Right Stick (Look: direct MouseMove to Pixel Streaming) ---
@@ -244,62 +255,19 @@ export default function MobileControls({ videoElement, lookSensitivity = 1.0 }: 
         stopLookLoop();
     }, [stopLookLoop]);
 
-    const sendCenterInteraction = useCallback(() => {
-        const target = getLookTarget();
-        if (!target) return;
+    const handleInteractPress = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        const keyDownHandler = getToStreamerHandler('KeyDown');
+        const keyUpHandler = getToStreamerHandler('KeyUp');
 
-        const mouseEnterHandler = getToStreamerHandler('MouseEnter');
-        const mouseDownHandler = getToStreamerHandler('MouseDown');
-        const mouseUpHandler = getToStreamerHandler('MouseUp');
-
-        // Normalized center coordinates expected by Pixel Streaming mouse handlers.
-        const center = 32768;
-
-        if (mouseDownHandler && mouseUpHandler) {
-            mouseEnterHandler?.();
-            mouseDownHandler([0, center, center]);
-            mouseUpHandler([0, center, center]);
+        if (keyDownHandler && keyUpHandler) {
+            keyDownHandler([70, 0]);
+            keyUpHandler([70]);
             return;
         }
 
-        // Fallback for environments where direct toStreamer handlers are unavailable.
-        const rect = target.getBoundingClientRect();
-        const clientX = rect.left + rect.width / 2;
-        const clientY = rect.top + rect.height / 2;
-
-        target.dispatchEvent(new MouseEvent('mousedown', {
-            bubbles: true,
-            cancelable: true,
-            view: window,
-            button: 0,
-            buttons: 1,
-            clientX,
-            clientY
-        }));
-        target.dispatchEvent(new MouseEvent('mouseup', {
-            bubbles: true,
-            cancelable: true,
-            view: window,
-            button: 0,
-            buttons: 0,
-            clientX,
-            clientY
-        }));
-        target.dispatchEvent(new MouseEvent('click', {
-            bubbles: true,
-            cancelable: true,
-            view: window,
-            button: 0,
-            buttons: 0,
-            clientX,
-            clientY
-        }));
-    }, [getLookTarget, getToStreamerHandler]);
-
-    const handleInteractPress = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
-        event.preventDefault();
-        sendCenterInteraction();
-    }, [sendCenterInteraction]);
+        tapKey('f');
+    }, [getToStreamerHandler, tapKey]);
 
     useEffect(() => {
         const handleVisibilityChange = () => {
@@ -375,7 +343,7 @@ export default function MobileControls({ videoElement, lookSensitivity = 1.0 }: 
                 </div>
             </div>
 
-            {/* Center Action Button - click the crosshair target */}
+            {/* Center Action Button - send the Unreal interact key */}
             <div
                 className="absolute left-1/2 -translate-x-1/2 pointer-events-auto"
                 style={{

@@ -49,7 +49,7 @@ export default function ProductCard({ product, supplier, onClose, onAddToCart, o
 
     return (
         <div 
-            className="absolute top-24 left-4 md:left-8 z-50 w-80 overflow-hidden rounded-2xl border border-[#66d9cb]/22 bg-[#0d1118]/88 p-6 text-[#f5f1e9] shadow-[0_24px_70px_rgba(0,0,0,0.52)] backdrop-blur-2xl pointer-events-auto md:w-96"
+            className="absolute top-20 left-3 right-3 z-50 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-[#66d9cb]/22 bg-[#0d1118]/88 p-4 text-[#f5f1e9] shadow-[0_24px_70px_rgba(0,0,0,0.52)] backdrop-blur-2xl pointer-events-auto md:top-24 md:left-8 md:right-auto md:max-h-[calc(100vh-8rem)] md:w-96 md:p-6"
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
             onWheel={(e) => e.stopPropagation()}
@@ -68,7 +68,7 @@ export default function ProductCard({ product, supplier, onClose, onAddToCart, o
                                 {text.verified}
                             </span>
                         </div>
-                        <h2 className="text-xl font-extrabold uppercase tracking-[0.14em] text-[#f7f4ed]">
+                        <h2 className="text-lg font-extrabold uppercase tracking-[0.14em] text-[#f7f4ed] sm:text-xl">
                             {localizedProduct.name}
                         </h2>
                     </div>
@@ -82,12 +82,12 @@ export default function ProductCard({ product, supplier, onClose, onAddToCart, o
             </div>
 
             {/* Price */}
-            <div className="relative mb-7 flex items-center justify-between">
+            <div className="relative mb-6 flex flex-col gap-3 sm:mb-7 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-baseline gap-1.5">
                     <span className="mr-1 self-start text-lg font-semibold text-[#a79f92]">
                         {localizedProduct.currency === 'USD' ? '$' : localizedProduct.currency}
                     </span>
-                    <span className="text-5xl font-black tracking-tight text-[#f8f5ee]">
+                    <span className="text-4xl font-black tracking-tight text-[#f8f5ee] sm:text-5xl">
                         {localizedProduct.price.toFixed(2)}
                     </span>
                 </div>
@@ -111,10 +111,10 @@ export default function ProductCard({ product, supplier, onClose, onAddToCart, o
             </div>
 
             {/* Actions */}
-            <div className="relative mb-8 grid grid-cols-2 gap-3">
+            <div className="relative mb-6 grid grid-cols-1 gap-3 sm:mb-8 sm:grid-cols-2">
                 <button
                     onClick={onAddToCart}
-                    className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-[#66d9cb] py-3 text-xs font-extrabold uppercase tracking-[0.12em] text-[#08100f] transition hover:bg-[#8de6dc]"
+                    className="flex items-center justify-center gap-2 rounded-xl bg-[#66d9cb] py-3 text-xs font-extrabold uppercase tracking-[0.12em] text-[#08100f] transition hover:bg-[#8de6dc] sm:col-span-2"
                 >
                     <ShoppingCart size={16} />
                     {text.addToCart}

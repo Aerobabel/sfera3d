@@ -23,10 +23,17 @@ type PixelStreamingWindow = Window & {
     ps?: {
         toStreamerHandlers?: Map<string, ToStreamerHandler>;
         videoElementParent?: HTMLElement;
+        config?: {
+            setFlagEnabled?: (flagName: string, enabled: boolean) => void;
+        };
+        _webRtcController?: {
+            streamController?: {
+                audioElement?: HTMLMediaElement | null;
+            };
+        };
     };
 };
-
-const PIXEL_STREAM_CENTER = 32768;
+const DEFAULT_MOUSE_SENSITIVITY = 0.7;
 
 type ChatMessage = {
     id: string;
@@ -289,13 +296,13 @@ export default function ExperiencePage() {
     const [isSyncingSupplierChat, setIsSyncingSupplierChat] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [mouseSensitivity, setMouseSensitivity] = useState(() => {
-        if (typeof window === 'undefined') return 1.0;
+        if (typeof window === 'undefined') return DEFAULT_MOUSE_SENSITIVITY;
         const stored = localStorage.getItem('ps_mouse_sensitivity');
         if (stored) {
             const parsed = parseFloat(stored);
             if (Number.isFinite(parsed) && parsed >= 0.1 && parsed <= 1.0) return parsed;
         }
-        return 1.0;
+        return DEFAULT_MOUSE_SENSITIVITY;
     });
     const [isMobile, setIsMobile] = useState(false);
     const [isLandscape, setIsLandscape] = useState(true);
@@ -414,9 +421,9 @@ export default function ExperiencePage() {
         // Flip the library's StartVideoMuted flag so that any subsequent
         // playStream() / play() calls inside the library no longer re-mute.
         try {
-            const psAny = (window as any).ps;
-            psAny?.config?.setFlagEnabled?.('StartVideoMuted', false);
-        } catch (_) { /* best-effort */ }
+            const psWindow = window as PixelStreamingWindow;
+            psWindow.ps?.config?.setFlagEnabled?.('StartVideoMuted', false);
+        } catch { /* best-effort */ }
 
         // Unmute all media elements currently in the DOM.
         const unmuteAllDOM = () => {
@@ -436,9 +443,9 @@ export default function ExperiencePage() {
         // We poll briefly to catch both cases.
         const ensureAudioPlaying = () => {
             try {
-                const psAny = (window as any).ps;
+                const psWindow = window as PixelStreamingWindow;
                 const audioEl =
-                    psAny?._webRtcController?.streamController?.audioElement;
+                    psWindow.ps?._webRtcController?.streamController?.audioElement;
                 if (audioEl instanceof HTMLMediaElement) {
                     if (!document.body.contains(audioEl)) {
                         audioEl.style.display = 'none';
@@ -450,7 +457,7 @@ export default function ExperiencePage() {
                         audioEl.play().catch(() => {});
                     }
                 }
-            } catch (_) { /* best-effort */ }
+            } catch { /* best-effort */ }
             // Also catch any new DOM media elements the library may have added.
             unmuteAllDOM();
         };

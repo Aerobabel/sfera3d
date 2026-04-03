@@ -220,7 +220,7 @@ export default function PixelStreamingPlayer({
     keyboardInputEnabled = true,
     blockedKeyboardCodes = [],
     desktopMouseMode: preferredDesktopMouseMode,
-    mouseSensitivity = 1.0
+    mouseSensitivity = 0.7
 }: PixelStreamingPlayerProps) {
     const { language } = useLanguage();
     const text = {
@@ -443,6 +443,26 @@ export default function PixelStreamingPlayer({
         const emulateMouseFromTouches = isMobileDevice && (mobileInputMode === 'touch' || mobileInputMode === 'joystick');
         const desktopMouseMode = resolveDesktopMouseMode(preferredDesktopMouseMode);
         const useHoveringMouse = isMobileDevice ? true : desktopMouseMode === 'hovering';
+        const syncLockedMouseState = () => {
+            if (useHoveringMouse) return;
+
+            const lockDocument = document as Document & {
+                mozPointerLockElement?: Element | null;
+            };
+            const pointerLockElement =
+                lockDocument.pointerLockElement ?? lockDocument.mozPointerLockElement ?? null;
+
+            if (pointerLockElement !== wrapperElement) return;
+
+            document.dispatchEvent(new Event('pointerlockchange'));
+            document.dispatchEvent(new Event('mozpointerlockchange'));
+        };
+        const queueLockedMouseResync = () => {
+            window.setTimeout(() => {
+                if (generation !== connectionGenerationRef.current) return;
+                syncLockedMouseState();
+            }, 0);
+        };
 
         console.log(`Initializing Pixel Streaming with URL: ${connectUrl}`);
         const inputLabel = !isMobileDevice
@@ -657,6 +677,7 @@ export default function PixelStreamingPlayer({
             }
 
             (window as PixelStreamingDebugWindow).ps = ps; // Debugging
+            queueLockedMouseResync();
 
             // Wrap the MouseMove handler to apply user sensitivity multiplier.
             const wrapMouseMoveForSensitivity = () => {
@@ -688,6 +709,7 @@ export default function PixelStreamingPlayer({
                 if (generation !== connectionGenerationRef.current) return;
                 console.log("WebRTC Connected");
                 originalWebRtcConnectedWrap();
+                queueLockedMouseResync();
                 reconnectAttemptRef.current = 0;
                 clearReconnectTimer();
                 resetWatchdogGraceWindow();
@@ -720,6 +742,7 @@ export default function PixelStreamingPlayer({
                 reconnectAttemptRef.current = 0;
                 clearReconnectTimer();
                 resetWatchdogGraceWindow();
+                queueLockedMouseResync();
                 videoInitializedRef.current = true;
                 setIsConnected(true);
                 setStatus(textRef.current.streaming);
