@@ -102,11 +102,11 @@ const reconnectEnabledEnv = process.env.NEXT_PUBLIC_PIXELSTREAM_RECONNECT_ENABLE
 const RECONNECT_ENABLED = reconnectEnabledEnv === undefined || reconnectEnabledEnv === '' || reconnectEnabledEnv === '1' || reconnectEnabledEnv === 'true';
 const RECONNECT_BASE_DELAY_MS = Math.max(
     300,
-    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_RECONNECT_BASE_DELAY_MS, 500)
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_RECONNECT_BASE_DELAY_MS, 1500)
 );
 const RECONNECT_MAX_DELAY_MS = Math.max(
     RECONNECT_BASE_DELAY_MS,
-    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_RECONNECT_MAX_DELAY_MS, 4000)
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_RECONNECT_MAX_DELAY_MS, 8000)
 );
 // 0 means unlimited retries.
 const RECONNECT_MAX_ATTEMPTS = parseNonNegativeInteger(
@@ -122,7 +122,7 @@ const STALL_WATCHDOG_ENABLED =
     stallWatchdogEnabledEnv === 'true';
 const STALL_WATCHDOG_TIMEOUT_MS = Math.max(
     3000,
-    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_TIMEOUT_MS, 4000)
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_TIMEOUT_MS, 10000)
 );
 const STALL_WATCHDOG_INTERVAL_MS = Math.max(
     500,
@@ -130,9 +130,9 @@ const STALL_WATCHDOG_INTERVAL_MS = Math.max(
 );
 const STALL_WATCHDOG_GRACE_MS = Math.max(
     1000,
-    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_GRACE_MS, 1500)
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_GRACE_MS, 4000)
 );
-const STALL_WATCHDOG_DISCONNECT_RECHECK_MS = 2500;
+const STALL_WATCHDOG_DISCONNECT_RECHECK_MS = 5000;
 const disableInternalReconnectEnv = process.env.NEXT_PUBLIC_PIXELSTREAM_DISABLE_INTERNAL_RECONNECT?.trim().toLowerCase();
 const DISABLE_INTERNAL_RECONNECT =
     disableInternalReconnectEnv === undefined ||
@@ -140,8 +140,8 @@ const DISABLE_INTERNAL_RECONNECT =
     disableInternalReconnectEnv === '1' ||
     disableInternalReconnectEnv === 'true';
 const HARD_RELOAD_FALLBACK_ENABLED = true;
-const HARD_RELOAD_AFTER_ATTEMPTS = 3;
-const HARD_RELOAD_COOLDOWN_MS = 120000;
+const HARD_RELOAD_AFTER_ATTEMPTS = 8;
+const HARD_RELOAD_COOLDOWN_MS = 300000; // 5 minutes between hard reloads
 const HARD_RELOAD_SESSION_KEY = 'ps_last_hard_reload_at';
 
 const getReconnectDelayMs = (attempt: number) => {
