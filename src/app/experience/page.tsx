@@ -33,7 +33,7 @@ type PixelStreamingWindow = Window & {
         };
     };
 };
-const DEFAULT_MOUSE_SENSITIVITY = 1.0;
+const DEFAULT_MOUSE_SENSITIVITY = 0.85;
 
 type ChatMessage = {
     id: string;

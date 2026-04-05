@@ -222,7 +222,7 @@ export default function PixelStreamingPlayer({
     keyboardInputEnabled = true,
     blockedKeyboardCodes = [],
     desktopMouseMode: preferredDesktopMouseMode,
-    mouseSensitivity = 1.0
+    mouseSensitivity = 0.85
 }: PixelStreamingPlayerProps) {
     const { language } = useLanguage();
     const text = {

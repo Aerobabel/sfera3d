@@ -11,7 +11,7 @@ interface SensitivitySliderProps {
 const MIN = 0.1;
 const MAX = 2.0;
 const STEP = 0.05;
-const DEFAULT = 1.0;
+const DEFAULT = 0.85;
 
 const LABELS = {
     en: { sensitivity: 'SENSITIVITY', reset: 'Reset' },
