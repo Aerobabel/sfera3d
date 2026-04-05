@@ -222,7 +222,7 @@ export default function PixelStreamingPlayer({
     keyboardInputEnabled = true,
     blockedKeyboardCodes = [],
     desktopMouseMode: preferredDesktopMouseMode,
-    mouseSensitivity = 0.7
+    mouseSensitivity = 1.0
 }: PixelStreamingPlayerProps) {
     const { language } = useLanguage();
     const text = {
@@ -705,8 +705,12 @@ export default function PixelStreamingPlayer({
                         dx = Math.max(-MAX_MOUSE_DELTA, Math.min(MAX_MOUSE_DELTA, dx));
                         dy = Math.max(-MAX_MOUSE_DELTA, Math.min(MAX_MOUSE_DELTA, dy));
                         const s = mouseSensitivityRef.current;
-                        messageData[2] = Math.round(dx * s);
-                        messageData[3] = Math.round(dy * s);
+                        if (s !== 1) {
+                            dx = Math.round(dx * s);
+                            dy = Math.round(dy * s);
+                        }
+                        messageData[2] = dx;
+                        messageData[3] = dy;
                     }
                     originalMouseMove(messageData);
                 };

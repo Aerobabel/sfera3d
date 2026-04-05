@@ -33,7 +33,7 @@ type PixelStreamingWindow = Window & {
         };
     };
 };
-const DEFAULT_MOUSE_SENSITIVITY = 0.7;
+const DEFAULT_MOUSE_SENSITIVITY = 1.0;
 
 type ChatMessage = {
     id: string;
@@ -300,7 +300,7 @@ export default function ExperiencePage() {
         const stored = localStorage.getItem('ps_mouse_sensitivity');
         if (stored) {
             const parsed = parseFloat(stored);
-            if (Number.isFinite(parsed) && parsed >= 0.1 && parsed <= 1.0) return parsed;
+            if (Number.isFinite(parsed) && parsed >= 0.1 && parsed <= 2.0) return parsed;
         }
         return DEFAULT_MOUSE_SENSITIVITY;
     });
