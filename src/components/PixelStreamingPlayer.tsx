@@ -300,6 +300,11 @@ export default function PixelStreamingPlayer({
     const lastPresentedMediaTimeRef = useRef<number | null>(null);
     const missingVideoSinceRef = useRef<number | null>(null);
     const videoInitializedRef = useRef(false);
+    // Set when the user presses Escape to intentionally release pointer lock.
+    const userReleasedPointerLockRef = useRef(false);
+    // Set when we want to re-acquire pointer lock after an unexpected release;
+    // cleared by scheduleReconnect so a real disconnect cancels the re-lock.
+    const wantsToRelockRef = useRef(false);
     const lastVideoStatsRef = useRef({
         initialized: false,
         framesDecoded: 0
@@ -477,6 +482,7 @@ export default function PixelStreamingPlayer({
             if (generation !== connectionGenerationRef.current) return;
             clearStallWatchdog();
             releaseCommonStuckInputs(psRef.current);
+            wantsToRelockRef.current = false; // cancel any pending re-lock — stream is actually going down
 
             if (!RECONNECT_ENABLED) {
                 setIsConnected(false);
@@ -894,8 +900,42 @@ export default function PixelStreamingPlayer({
             if (!locked) {
                 // Pointer lock was lost — release all stuck inputs.
                 releaseCommonStuckInputs(psRef.current);
+
+                // If the stream is still active (video initialized, not yet in a
+                // reconnect cycle) and the user did NOT press Escape, the library
+                // likely dropped the lock just before firing its disconnect event.
+                // Schedule a re-acquire; scheduleReconnect will cancel it if the
+                // disconnect event fires within the delay window.
+                if (
+                    !useHoveringMouse &&
+                    !userReleasedPointerLockRef.current &&
+                    videoInitializedRef.current &&
+                    reconnectTimerRef.current === null
+                ) {
+                    wantsToRelockRef.current = true;
+                    window.setTimeout(() => {
+                        if (generation !== connectionGenerationRef.current) return;
+                        if (!wantsToRelockRef.current) return; // cancelled by a real disconnect
+                        wantsToRelockRef.current = false;
+                        const checkDoc = document as Document & { mozPointerLockElement?: Element | null };
+                        if (checkDoc.pointerLockElement ?? checkDoc.mozPointerLockElement ?? null) return; // already re-locked
+                        try { wrapperElement.requestPointerLock(); } catch { /* best-effort */ }
+                    }, 50);
+                }
+            } else {
+                // Lock acquired — clear user-release intent so future unexpected
+                // losses are treated as library-initiated again.
+                userReleasedPointerLockRef.current = false;
+                wantsToRelockRef.current = false;
             }
         };
+
+        // Detect intentional Escape presses so we don't fight the user by
+        // immediately re-acquiring pointer lock after they release it.
+        const handleEscapeKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') userReleasedPointerLockRef.current = true;
+        };
+        document.addEventListener('keydown', handleEscapeKey, true);
 
         const handleWindowBlur = () => {
             handleInputLoss();
@@ -915,6 +955,7 @@ export default function PixelStreamingPlayer({
         window.addEventListener('pageshow', handleVisibilityOrPageShow);
 
         return () => {
+            document.removeEventListener('keydown', handleEscapeKey, true);
             document.removeEventListener('pointerlockchange', handlePointerLockChange);
             document.removeEventListener('mozpointerlockchange', handlePointerLockChange);
             window.removeEventListener('blur', handleWindowBlur);
