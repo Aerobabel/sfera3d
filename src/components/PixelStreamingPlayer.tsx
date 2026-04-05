@@ -156,6 +156,8 @@ type VideoFrameWatchVideo = HTMLVideoElement & {
 
 const COMMON_KEY_CODES_TO_RELEASE = [87, 65, 83, 68, 38, 37, 40, 39, 32, 16, 17, 18, 88, 70, 84];
 const NORMALIZED_CENTER = 32768;
+const POINTER_LOCK_GRACE_MS = 200;
+const MAX_MOUSE_DELTA = 120;
 
 const releaseCommonStuckInputs = (ps: PixelStreaming | null) => {
     if (!ps) return;
@@ -290,6 +292,7 @@ export default function PixelStreamingPlayer({
     const stallWatchdogVideoRef = useRef<VideoFrameWatchVideo | null>(null);
     const stallWatchdogVideoCallbackIdRef = useRef<number | null>(null);
     const stallWatchdogGraceUntilRef = useRef(0);
+    const pointerLockGraceUntilRef = useRef(0);
     const lastMediaProgressAtRef = useRef(0);
     const lastVideoTimeRef = useRef(0);
     const lastDecodedFrameCountRef = useRef<number | null>(null);
@@ -687,11 +690,23 @@ export default function PixelStreamingPlayer({
 
                 const wrappedMouseMove: typeof originalMouseMove = (messageData) => {
                     if (messageData && messageData.length >= 4) {
-                        const s = mouseSensitivityRef.current;
-                        if (s !== 1) {
-                            messageData[2] = Math.round((messageData[2] as number) * s);
-                            messageData[3] = Math.round((messageData[3] as number) * s);
+                        // Zero out deltas briefly after pointer lock changes to
+                        // prevent the camera from jumping due to accumulated
+                        // browser mouse movement.
+                        if (Date.now() < pointerLockGraceUntilRef.current) {
+                            messageData[2] = 0;
+                            messageData[3] = 0;
+                            originalMouseMove(messageData);
+                            return;
                         }
+                        let dx = messageData[2] as number;
+                        let dy = messageData[3] as number;
+                        // Clamp to prevent large jumps from accumulated deltas.
+                        dx = Math.max(-MAX_MOUSE_DELTA, Math.min(MAX_MOUSE_DELTA, dx));
+                        dy = Math.max(-MAX_MOUSE_DELTA, Math.min(MAX_MOUSE_DELTA, dy));
+                        const s = mouseSensitivityRef.current;
+                        messageData[2] = Math.round(dx * s);
+                        messageData[3] = Math.round(dy * s);
                     }
                     originalMouseMove(messageData);
                 };
@@ -739,6 +754,7 @@ export default function PixelStreamingPlayer({
             ps.addEventListener('videoInitialized', () => {
                 if (generation !== connectionGenerationRef.current) return;
                 console.log("Video Initialized");
+                const wasReconnect = isReconnectAttempt;
                 reconnectAttemptRef.current = 0;
                 clearReconnectTimer();
                 resetWatchdogGraceWindow();
@@ -746,6 +762,16 @@ export default function PixelStreamingPlayer({
                 videoInitializedRef.current = true;
                 setIsConnected(true);
                 setStatus(textRef.current.streaming);
+
+                // Re-acquire pointer lock after a reconnect so the user
+                // doesn't have to click again to regain camera control.
+                if (!useHoveringMouse && wasReconnect) {
+                    pointerLockGraceUntilRef.current = Date.now() + POINTER_LOCK_GRACE_MS;
+                    window.setTimeout(() => {
+                        if (generation !== connectionGenerationRef.current) return;
+                        try { wrapperElement.requestPointerLock(); } catch { /* best-effort */ }
+                    }, 300);
+                }
 
                 // Expose the video element if the parent needs it (e.g. for mobile controls)
                 // The video element is created inside the wrapperRef.current
@@ -846,11 +872,49 @@ export default function PixelStreamingPlayer({
             scheduleReconnect(textRef.current.setupError(errorMessage));
         }
 
+        // Release all held keys/mouse buttons whenever the browser loses
+        // focus, the tab becomes hidden, or pointer lock changes. This
+        // prevents the "running forward forever" and similar stuck-input bugs
+        // that happen when keyup events are swallowed by the browser.
+        const handleInputLoss = () => {
+            if (generation !== connectionGenerationRef.current) return;
+            releaseCommonStuckInputs(psRef.current);
+        };
+
+        const handlePointerLockChange = () => {
+            if (generation !== connectionGenerationRef.current) return;
+            pointerLockGraceUntilRef.current = Date.now() + POINTER_LOCK_GRACE_MS;
+
+            const lockDocument = document as Document & { mozPointerLockElement?: Element | null };
+            const locked = lockDocument.pointerLockElement ?? lockDocument.mozPointerLockElement ?? null;
+            if (!locked) {
+                // Pointer lock was lost — release all stuck inputs.
+                releaseCommonStuckInputs(psRef.current);
+            }
+        };
+
+        const handleWindowBlur = () => {
+            handleInputLoss();
+        };
+
+        const handleVisibilityHidden = () => {
+            if (document.hidden) handleInputLoss();
+        };
+
+        document.addEventListener('pointerlockchange', handlePointerLockChange);
+        document.addEventListener('mozpointerlockchange', handlePointerLockChange);
+        window.addEventListener('blur', handleWindowBlur);
+        document.addEventListener('visibilitychange', handleVisibilityHidden);
+
         startStallWatchdog();
         document.addEventListener('visibilitychange', handleVisibilityOrPageShow);
         window.addEventListener('pageshow', handleVisibilityOrPageShow);
 
         return () => {
+            document.removeEventListener('pointerlockchange', handlePointerLockChange);
+            document.removeEventListener('mozpointerlockchange', handlePointerLockChange);
+            window.removeEventListener('blur', handleWindowBlur);
+            document.removeEventListener('visibilitychange', handleVisibilityHidden);
             document.removeEventListener('visibilitychange', handleVisibilityOrPageShow);
             window.removeEventListener('pageshow', handleVisibilityOrPageShow);
             clearReconnectTimer();

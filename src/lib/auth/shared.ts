@@ -94,7 +94,7 @@ export const writeSessionCookies = (
     name: REFRESH_TOKEN_COOKIE,
     value: refreshToken,
     ...baseCookieOptions,
-    maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE,
+    // No maxAge — session cookie only; expires when the browser closes.
   });
 };
 
