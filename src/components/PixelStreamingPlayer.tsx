@@ -43,6 +43,125 @@ const normalizeSignalingUrl = (inputUrl: string) => {
     return nextUrl;
 };
 
+const normalizeIceServerUrls = (urls: RTCIceServer['urls']) => {
+    if (Array.isArray(urls)) {
+        return urls
+            .map((url) => (typeof url === 'string' ? url.trim() : ''))
+            .filter((url): url is string => url.length > 0);
+    }
+
+    if (typeof urls === 'string') {
+        const nextUrl = urls.trim();
+        return nextUrl ? [nextUrl] : [];
+    }
+
+    return [];
+};
+
+const normalizeIceServers = (iceServers: RTCIceServer[] | undefined) => {
+    if (!iceServers) return undefined;
+
+    return iceServers
+        .map<RTCIceServer | null>((iceServer) => {
+            const urls = normalizeIceServerUrls(iceServer.urls);
+            if (urls.length === 0) return null;
+            return {
+                ...iceServer,
+                urls
+            };
+        })
+        .filter((iceServer): iceServer is RTCIceServer => iceServer !== null);
+};
+
+const parseForcedIceServers = (rawValue: string | undefined) => {
+    if (!rawValue) return null;
+
+    try {
+        const parsed = JSON.parse(rawValue) as unknown;
+        if (!Array.isArray(parsed)) {
+            console.warn('[PixelStreaming] Ignoring NEXT_PUBLIC_PIXELSTREAM_FORCE_ICE_SERVERS because it is not a JSON array.');
+            return null;
+        }
+
+        const forcedIceServers = parsed
+            .map<RTCIceServer | null>((entry) => {
+                if (!entry || typeof entry !== 'object') return null;
+
+                const candidate = entry as Record<string, unknown>;
+                const urls = normalizeIceServerUrls(candidate.urls as RTCIceServer['urls']);
+                if (urls.length === 0) return null;
+
+                const iceServer: RTCIceServer = { urls };
+
+                if (typeof candidate.username === 'string' && candidate.username.trim()) {
+                    iceServer.username = candidate.username.trim();
+                }
+
+                if (typeof candidate.credential === 'string' && candidate.credential.trim()) {
+                    iceServer.credential = candidate.credential.trim();
+                }
+
+                return iceServer;
+            })
+            .filter((iceServer): iceServer is RTCIceServer => iceServer !== null);
+
+        if (forcedIceServers.length === 0) {
+            console.warn('[PixelStreaming] Ignoring NEXT_PUBLIC_PIXELSTREAM_FORCE_ICE_SERVERS because no valid ICE servers were found.');
+            return null;
+        }
+
+        return forcedIceServers;
+    } catch (error) {
+        console.warn('[PixelStreaming] Failed to parse NEXT_PUBLIC_PIXELSTREAM_FORCE_ICE_SERVERS.', error);
+        return null;
+    }
+};
+
+const parseIceTransportPolicy = (rawValue: string | undefined) => {
+    const nextValue = rawValue?.trim().toLowerCase();
+    return nextValue === 'all' || nextValue === 'relay' ? nextValue : undefined;
+};
+
+const summarizeRtcConfiguration = (peerConnectionOptions: RTCConfiguration | undefined) => ({
+    iceTransportPolicy: peerConnectionOptions?.iceTransportPolicy ?? 'all',
+    iceServers: (peerConnectionOptions?.iceServers ?? []).flatMap((iceServer) =>
+        normalizeIceServerUrls(iceServer.urls)
+    )
+});
+
+const FORCED_ICE_SERVERS = parseForcedIceServers(
+    process.env.NEXT_PUBLIC_PIXELSTREAM_FORCE_ICE_SERVERS
+);
+const FORCED_ICE_TRANSPORT_POLICY = parseIceTransportPolicy(
+    process.env.NEXT_PUBLIC_PIXELSTREAM_FORCE_ICE_TRANSPORT_POLICY
+);
+const HAS_CUSTOM_RTC_OVERRIDES =
+    Boolean(FORCED_ICE_SERVERS && FORCED_ICE_SERVERS.length > 0) ||
+    FORCED_ICE_TRANSPORT_POLICY !== undefined;
+
+const resolvePeerConnectionOptions = (
+    peerConnectionOptions: RTCConfiguration | undefined
+): RTCConfiguration => {
+    const normalizedIceServers = normalizeIceServers(peerConnectionOptions?.iceServers);
+    const nextPeerConnectionOptions: RTCConfiguration = {
+        ...(peerConnectionOptions ?? {})
+    };
+
+    if (normalizedIceServers) {
+        nextPeerConnectionOptions.iceServers = normalizedIceServers;
+    }
+
+    if (FORCED_ICE_SERVERS) {
+        nextPeerConnectionOptions.iceServers = FORCED_ICE_SERVERS;
+    }
+
+    if (FORCED_ICE_TRANSPORT_POLICY) {
+        nextPeerConnectionOptions.iceTransportPolicy = FORCED_ICE_TRANSPORT_POLICY;
+    }
+
+    return nextPeerConnectionOptions;
+};
+
 const hasLiveVideoStream = (container: HTMLDivElement | null) => {
     if (!container) return false;
     const video = container.querySelector('video');
@@ -678,6 +797,27 @@ export default function PixelStreamingPlayer({
             if (DISABLE_INTERNAL_RECONNECT) {
                 ps.config.setNumericSetting(NumericParameters.MaxReconnectAttempts, 0);
             }
+
+            const originalOnConfig = ps.webSocketController.onConfig.bind(ps.webSocketController);
+            ps.webSocketController.onConfig = (messageConfig) => {
+                console.info(
+                    '[PixelStreaming] Signalling RTC configuration received',
+                    summarizeRtcConfiguration(messageConfig.peerConnectionOptions)
+                );
+
+                messageConfig.peerConnectionOptions = resolvePeerConnectionOptions(
+                    messageConfig.peerConnectionOptions
+                );
+
+                if (HAS_CUSTOM_RTC_OVERRIDES) {
+                    console.info(
+                        '[PixelStreaming] Applying frontend RTC override',
+                        summarizeRtcConfiguration(messageConfig.peerConnectionOptions)
+                    );
+                }
+
+                originalOnConfig(messageConfig);
+            };
 
             (window as PixelStreamingDebugWindow).ps = ps; // Debugging
             queueLockedMouseResync();

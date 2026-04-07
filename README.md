@@ -31,6 +31,19 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+### 5. Optional: force frontend ICE servers
+
+If the signalling server sends the wrong WebRTC config, the frontend can override it before creating the peer connection.
+
+Add these optional values to `.env.local`:
+
+```bash
+NEXT_PUBLIC_PIXELSTREAM_FORCE_ICE_TRANSPORT_POLICY=relay
+NEXT_PUBLIC_PIXELSTREAM_FORCE_ICE_SERVERS=[{"urls":["stun:stun.example.com:3478"]},{"urls":["turn:turn.example.com:3478?transport=tcp"],"username":"turn_username","credential":"turn_password"}]
+```
+
+After redeploying, open the browser console or `chrome://webrtc-internals` and verify the applied ICE URLs match your TURN provider.
+
 ## Supplier Auth + Nonagon Chat
 
 - Supplier login/signup page: `/login`
