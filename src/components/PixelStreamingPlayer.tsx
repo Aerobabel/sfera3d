@@ -252,6 +252,14 @@ const STALL_WATCHDOG_GRACE_MS = Math.max(
     parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_GRACE_MS, 1500)
 );
 const STALL_WATCHDOG_DISCONNECT_RECHECK_MS = 2500;
+const SIGNALING_OPEN_TIMEOUT_MS = Math.max(
+    4000,
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_SIGNALING_OPEN_TIMEOUT_MS, 8000)
+);
+const SIGNALING_CONFIG_TIMEOUT_MS = Math.max(
+    4000,
+    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_SIGNALING_CONFIG_TIMEOUT_MS, 12000)
+);
 const disableInternalReconnectEnv = process.env.NEXT_PUBLIC_PIXELSTREAM_DISABLE_INTERNAL_RECONNECT?.trim().toLowerCase();
 const DISABLE_INTERNAL_RECONNECT =
     disableInternalReconnectEnv === undefined ||
@@ -592,8 +600,29 @@ export default function PixelStreamingPlayer({
             : (useTouchScreenInput ? 'touch' : 'joystick');
         setStatus(textRef.current.connecting(connectUrl, inputLabel));
 
+        let signalingTimeoutId: number | null = null;
+        let hasSignallingSocketOpened = false;
+        let hasSignallingConfig = false;
+
+        const clearSignalingTimeout = () => {
+            if (signalingTimeoutId !== null) {
+                window.clearTimeout(signalingTimeoutId);
+                signalingTimeoutId = null;
+            }
+        };
+
+        const armSignalingTimeout = (delayMs: number, onTimeout: () => void) => {
+            clearSignalingTimeout();
+            signalingTimeoutId = window.setTimeout(() => {
+                signalingTimeoutId = null;
+                if (generation !== connectionGenerationRef.current) return;
+                onTimeout();
+            }, delayMs);
+        };
+
         const scheduleReconnect = (failureMessage?: string) => {
             if (generation !== connectionGenerationRef.current) return;
+            clearSignalingTimeout();
             clearStallWatchdog();
             releaseCommonStuckInputs(psRef.current);
 
@@ -776,7 +805,7 @@ export default function PixelStreamingPlayer({
         const config = new Config({
             initialSettings: {
                 AutoPlayVideo: true,
-                AutoConnect: true,
+                AutoConnect: false,
                 ss: connectUrl,
                 StartVideoMuted: true,
                 HoveringMouse: useHoveringMouse,
@@ -798,8 +827,24 @@ export default function PixelStreamingPlayer({
                 ps.config.setNumericSetting(NumericParameters.MaxReconnectAttempts, 0);
             }
 
+            const handleWebSocketOpen = () => {
+                if (generation !== connectionGenerationRef.current) return;
+                hasSignallingSocketOpened = true;
+                setError(null);
+                setStatus(`Signalling connected to ${connectUrl}. Waiting for stream configuration...`);
+                armSignalingTimeout(SIGNALING_CONFIG_TIMEOUT_MS, () => {
+                    scheduleReconnect('Connected to the signalling server, but no stream configuration arrived.');
+                });
+            };
+
+            const handleWebSocketClose = () => {
+                clearSignalingTimeout();
+            };
+
             const originalOnConfig = ps.webSocketController.onConfig.bind(ps.webSocketController);
             ps.webSocketController.onConfig = (messageConfig) => {
+                hasSignallingConfig = true;
+                clearSignalingTimeout();
                 console.info(
                     '[PixelStreaming] Signalling RTC configuration received',
                     summarizeRtcConfiguration(messageConfig.peerConnectionOptions)
@@ -818,6 +863,8 @@ export default function PixelStreamingPlayer({
 
                 originalOnConfig(messageConfig);
             };
+            ps.webSocketController.onOpen.addEventListener('open', handleWebSocketOpen);
+            ps.webSocketController.onClose.addEventListener('close', handleWebSocketClose);
 
             (window as PixelStreamingDebugWindow).ps = ps; // Debugging
             queueLockedMouseResync();
@@ -866,6 +913,7 @@ export default function PixelStreamingPlayer({
 
             ps.addEventListener('webRtcConnected', () => {
                 if (generation !== connectionGenerationRef.current) return;
+                clearSignalingTimeout();
                 console.log("WebRTC Connected");
                 originalWebRtcConnectedWrap();
                 queueLockedMouseResync();
@@ -882,6 +930,7 @@ export default function PixelStreamingPlayer({
 
             ps.addEventListener('webRtcDisconnected', (e: Event) => {
                 if (generation !== connectionGenerationRef.current) return;
+                clearSignalingTimeout();
                 console.log("Disconnected", e);
 
                  // Some stacks can report signaling disconnect while media keeps flowing.
@@ -951,6 +1000,42 @@ export default function PixelStreamingPlayer({
                 }
             });
 
+            ps.addEventListener('streamerListMessage', (event: Event) => {
+                if (generation !== connectionGenerationRef.current) return;
+
+                const typedEvent = event as Event & {
+                    data?: {
+                        messageStreamerList?: {
+                            ids?: string[];
+                        };
+                        autoSelectedStreamerId?: string | null;
+                        wantedStreamerId?: string | null;
+                    };
+                };
+
+                const streamerIds = typedEvent.data?.messageStreamerList?.ids ?? [];
+                const autoSelectedStreamerId = typedEvent.data?.autoSelectedStreamerId ?? null;
+                const wantedStreamerId = typedEvent.data?.wantedStreamerId ?? null;
+
+                if (autoSelectedStreamerId) {
+                    setError(null);
+                    setStatus(`Streamer ${autoSelectedStreamerId} selected. Negotiating WebRTC session...`);
+                    return;
+                }
+
+                if (streamerIds.length === 0) {
+                    const wantedMessage = wantedStreamerId
+                        ? `Requested streamer "${wantedStreamerId}" is not available on the signalling server yet.`
+                        : 'The signalling server is reachable, but there is no active Unreal streamer connected.';
+                    setError(wantedMessage);
+                    setStatus('Connected to signalling server. Waiting for an available streamer...');
+                    return;
+                }
+
+                setError('Multiple streamers are available, but none was auto-selected.');
+                setStatus('Connected to signalling server. Waiting for streamer selection...');
+            });
+
             ps.addEventListener('statsReceived', (event: Event) => {
                 if (generation !== connectionGenerationRef.current) return;
 
@@ -994,23 +1079,35 @@ export default function PixelStreamingPlayer({
 
             ps.addEventListener('webRtcFailed', () => {
                 if (generation !== connectionGenerationRef.current) return;
+                clearSignalingTimeout();
                 console.error("WebRTC Failed");
                 scheduleReconnect(textRef.current.webrtcFailed);
             });
 
             ps.addEventListener('streamDisconnect', () => {
                 if (generation !== connectionGenerationRef.current) return;
+                clearSignalingTimeout();
                 scheduleReconnect('Stream disconnected. Reconnecting...');
             });
 
             ps.addEventListener('playStreamError', (event: Event) => {
                 if (generation !== connectionGenerationRef.current) return;
+                clearSignalingTimeout();
                 const typedEvent = event as Event & { data?: { message?: string } };
                 scheduleReconnect(typedEvent.data?.message ?? 'Playback failed. Reconnecting...');
             });
 
+            armSignalingTimeout(SIGNALING_OPEN_TIMEOUT_MS, () => {
+                const timeoutMessage = hasSignallingSocketOpened || hasSignallingConfig
+                    ? 'Connected to signalling, but the stream did not begin in time.'
+                    : `Timed out while opening the signalling connection to ${connectUrl}.`;
+                scheduleReconnect(timeoutMessage);
+            });
+            ps.connect();
+
         } catch (err: unknown) {
             if (generation !== connectionGenerationRef.current) return;
+            clearSignalingTimeout();
             console.error("Setup Error:", err);
             const errorMessage = err instanceof Error ? err.message : 'Unknown setup error';
             scheduleReconnect(textRef.current.setupError(errorMessage));
@@ -1061,6 +1158,7 @@ export default function PixelStreamingPlayer({
             document.removeEventListener('visibilitychange', handleVisibilityHidden);
             document.removeEventListener('visibilitychange', handleVisibilityOrPageShow);
             window.removeEventListener('pageshow', handleVisibilityOrPageShow);
+            clearSignalingTimeout();
             clearReconnectTimer();
             clearStallWatchdog();
             if (psRef.current) {
