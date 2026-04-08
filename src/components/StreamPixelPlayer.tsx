@@ -435,11 +435,13 @@ export default function StreamPixelPlayer({
                     wrapperElement.appendChild(appStream.rootElement);
                 }
 
-                // Block the SDK's built-in "Click To Restart" / "Click to try again"
-                // clickable overlays. With MaxReconnectAttempts: 0 the SDK still renders
-                // these, and each user click creates a brand-new session on the
-                // Streampixel backend, causing the session leaks seen in the dashboard.
-                const neutralizeClickableOverlays = () => {
+                // Suppress the SDK's built-in overlays. These include:
+                //  - "Click To Restart" / "Click to try again" clickable overlays that
+                //    create new backend sessions on every click (session leak).
+                //  - Full-screen centered text overlays ("DISCONNECTED: APPLICATION NOT
+                //    FOUND", "No streamers available", etc.) that cover our own UI.
+                // We hide them entirely and surface the info via our diagnostics panel.
+                const suppressSdkOverlays = () => {
                     wrapperElement
                         .querySelectorAll<HTMLElement>('[class*="clickableState"], [class*="clickable"]')
                         .forEach((el) => {
@@ -448,11 +450,32 @@ export default function StreamPixelPlayer({
                                 pushDiagnosticEvent('blocked SDK clickable overlay');
                             }
                         });
+
+                    // The SDK renders centered text overlays as direct children
+                    // (typically divs with inline styles for centering). Hide any
+                    // non-video, non-canvas overlay elements so our diagnostics
+                    // panel is the single source of status information.
+                    wrapperElement
+                        .querySelectorAll<HTMLElement>('div')
+                        .forEach((el) => {
+                            if (el === wrapperElement) return;
+                            // Keep elements that contain the video player.
+                            if (el.querySelector('video') || el.querySelector('canvas')) return;
+                            // Target SDK overlay text containers — they use centered
+                            // positioning and uppercase text for status messages.
+                            const text = el.textContent?.trim() ?? '';
+                            const isStatusOverlay =
+                                /DISCONNECTED|CLICK TO RESTART|No streamer|Application Not Found|You are in Queue/i.test(text);
+                            if (isStatusOverlay && el.style.display !== 'none') {
+                                el.style.display = 'none';
+                                pushDiagnosticEvent('hid SDK status overlay');
+                            }
+                        });
                 };
 
                 domObserver = new MutationObserver(() => {
                     if (cancelled) return;
-                    neutralizeClickableOverlays();
+                    suppressSdkOverlays();
                     syncStreamTextSnapshot();
                     syncVideoElement();
                 });
@@ -580,14 +603,14 @@ export default function StreamPixelPlayer({
             <div ref={wrapperRef} className="h-full w-full" />
 
             {(!isStreaming || error) && (
-                <div className="pointer-events-none absolute left-4 top-4 max-w-sm rounded-xl border border-white/10 bg-black/65 px-4 py-3 text-xs text-slate-200 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md">
+                <div className="pointer-events-none absolute left-4 top-4 z-20 max-w-sm rounded-xl border border-white/10 bg-black/65 px-4 py-3 text-xs text-slate-200 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md">
                     <p className="font-semibold uppercase tracking-[0.18em] text-cyan-300">Stream</p>
                     <p className="mt-2 leading-relaxed">{error ?? status}</p>
                 </div>
             )}
 
             {(!isStreaming || error) && (
-                <div className="pointer-events-none absolute bottom-4 left-4 max-w-md rounded-xl border border-cyan-400/20 bg-slate-950/78 px-4 py-3 text-[11px] text-slate-200 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-md">
+                <div className="pointer-events-none absolute bottom-4 left-4 z-20 max-w-md rounded-xl border border-cyan-400/20 bg-slate-950/78 px-4 py-3 text-[11px] text-slate-200 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-md">
                     <p className="font-semibold uppercase tracking-[0.18em] text-cyan-300">FastView Diagnostics</p>
                     <div className="mt-3 space-y-1 text-slate-300">
                         <p><span className="text-slate-500">App ID:</span> {appId}</p>

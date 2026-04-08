@@ -1003,8 +1003,8 @@ export default function ExperiencePage() {
                 )}
             </div>
 
-            {/* Tap To Start Overlay */}
-            {videoElement && !hasStartedExperience && (
+            {/* Tap To Start Overlay — Epic Pixel Streaming only; FastView auto-starts */}
+            {!isFastViewRoute && videoElement && !hasStartedExperience && (
                 <div 
                     className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-[2px] cursor-pointer pointer-events-auto transition-opacity duration-1000"
                     onClick={handleStartExperience}
@@ -1015,8 +1015,8 @@ export default function ExperiencePage() {
                 </div>
             )}
 
-            {/* Click-to-Resume Overlay — shown after closing a product card */}
-            {needsPointerResume && hasStartedExperience && !activeProduct && (
+            {/* Click-to-Resume Overlay — shown after closing a product card (Epic PS only) */}
+            {!isFastViewRoute && needsPointerResume && hasStartedExperience && !activeProduct && (
                 <div
                     className="absolute inset-0 z-[5] cursor-pointer pointer-events-auto"
                     onClick={handleResumePointer}
@@ -1053,7 +1053,7 @@ export default function ExperiencePage() {
 
             {/* Overlay UI (Z-Index 10) */}
             <div className="absolute inset-0 z-10 pointer-events-none">
-                <MarketplaceCrosshair />
+                {!isFastViewRoute && <MarketplaceCrosshair />}
                 <div className="flex flex-col h-full justify-between p-4 md:p-6 lg:p-8">
 
                     {/* Header */}
@@ -1077,20 +1077,26 @@ export default function ExperiencePage() {
                         </div>
 
                         <div className="flex items-start gap-3 pointer-events-auto">
-                            <p className="hidden max-w-[34rem] pt-1 text-right text-[10px] uppercase tracking-[0.14em] text-[#9fcfdf] md:block">
-                                {ui.instruction}
-                            </p>
-                            <button
-                                onClick={toggleChatPanel}
-                                className="group relative px-4 py-2 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-md border border-white/5 rounded-lg transition overflow-hidden"
-                            >
-                                <span className="text-[10px] font-mono text-gray-400 group-hover:text-emerald-300 uppercase tracking-wider transition">
-                                    {isChatPanelOpen ? ui.chatToggleHide : ui.chatToggleShow}
-                                </span>
-                            </button>
+                            {!isFastViewRoute && (
+                                <p className="hidden max-w-[34rem] pt-1 text-right text-[10px] uppercase tracking-[0.14em] text-[#9fcfdf] md:block">
+                                    {ui.instruction}
+                                </p>
+                            )}
+                            {!isFastViewRoute && (
+                                <button
+                                    onClick={toggleChatPanel}
+                                    className="group relative px-4 py-2 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-md border border-white/5 rounded-lg transition overflow-hidden"
+                                >
+                                    <span className="text-[10px] font-mono text-gray-400 group-hover:text-emerald-300 uppercase tracking-wider transition">
+                                        {isChatPanelOpen ? ui.chatToggleHide : ui.chatToggleShow}
+                                    </span>
+                                </button>
+                            )}
 
-                            {/* Sensitivity Slider */}
-                            <SensitivitySlider value={mouseSensitivity} onChange={handleSensitivityChange} />
+                            {/* Sensitivity Slider — Epic Pixel Streaming only */}
+                            {!isFastViewRoute && (
+                                <SensitivitySlider value={mouseSensitivity} onChange={handleSensitivityChange} />
+                            )}
 
                             {/* Menu Button */}
                             <button
@@ -1181,10 +1187,10 @@ export default function ExperiencePage() {
                         />
                     )}
 
-                    {/* Chat / Interaction Area */}
+                    {/* Chat / Interaction Area — Epic Pixel Streaming only */}
                     <div className="flex justify-end pointer-events-none gap-3">
                         {/* Chat Box */}
-                        {isChatPanelOpen && (
+                        {!isFastViewRoute && isChatPanelOpen && (
                             <div className={`pointer-events-auto w-full md:max-w-lg rounded-2xl border border-[#66d9cb]/30 bg-[linear-gradient(160deg,rgba(5,10,18,0.9),rgba(12,18,28,0.82))] p-4 text-white shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-xl ${isMobile ? 'max-w-[min(92vw,560px)] mx-auto' : ''} ${usingMobileJoysticks ? 'mb-28' : ''}`}>
                                 <div className="mb-3">
                                     <div className="flex items-center justify-between gap-3">
@@ -1317,8 +1323,8 @@ export default function ExperiencePage() {
                 </div>
             </div >
 
-            {/* Mobile Controls (Z-Index 50 - Topmost) */}
-            {isMobile && isLandscape && mobileInputMode === 'joystick' && (
+            {/* Mobile Controls (Z-Index 50 - Topmost) — Epic Pixel Streaming only */}
+            {!isFastViewRoute && isMobile && isLandscape && mobileInputMode === 'joystick' && (
                 <MobileControls videoElement={videoElement} lookSensitivity={mouseSensitivity} />
             )}
 
