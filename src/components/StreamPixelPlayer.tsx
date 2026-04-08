@@ -44,7 +44,9 @@ type StreamPixelController = {
 type StreamPixelAppStream = {
     rootElement?: HTMLElement;
     stream?: StreamPixelStream;
+    onConnectAction?: (() => void) | null;
     onVideoInitialized?: (() => void) | null;
+    onWebRtcSdp?: (() => void) | null;
     onWebRtcConnecting?: (() => void) | null;
     onWebRtcConnected?: (() => void) | null;
 };
@@ -140,10 +142,20 @@ export default function StreamPixelPlayer({
     const mouseSensitivityRef = useRef(mouseSensitivity);
     const textRef = useRef(text);
     const teardownRef = useRef<(() => void) | null>(null);
+    const lastDiagnosticMessageRef = useRef('');
+    const lastStreamTextRef = useRef('');
+    const hasVideoElementRef = useRef(false);
 
     const [status, setStatus] = useState('Initializing...');
     const [error, setError] = useState<string | null>(null);
     const [isStreaming, setIsStreaming] = useState(false);
+    const [diagnosticEvents, setDiagnosticEvents] = useState<string[]>([]);
+    const [streamTextSnapshot, setStreamTextSnapshot] = useState('');
+    const [hasVideoElement, setHasVideoElement] = useState(false);
+    const [hasSdpSignal, setHasSdpSignal] = useState(false);
+    const [hasConnectAction, setHasConnectAction] = useState(false);
+    const [hasWebRtcConnected, setHasWebRtcConnected] = useState(false);
+    const [hasVideoInitialized, setHasVideoInitialized] = useState(false);
 
     useEffect(() => {
         textRef.current = text;
@@ -240,6 +252,7 @@ export default function StreamPixelPlayer({
         let responseListener: ((response: string) => void) | null = null;
         let syncTimer: number | null = null;
         let exposedStream: StreamPixelStream | null = null;
+        let domObserver: MutationObserver | null = null;
         let hasTornDown = false;
 
         const desktopMouseMode = resolveDesktopMouseMode(preferredDesktopMouseMode);
@@ -258,15 +271,57 @@ export default function StreamPixelPlayer({
         setIsStreaming(false);
         setError(null);
         setStatus(textRef.current.connecting(trimmedAppId, inputLabel));
+        setDiagnosticEvents([]);
+        setStreamTextSnapshot('');
+        setHasVideoElement(false);
+        setHasSdpSignal(false);
+        setHasConnectAction(false);
+        setHasWebRtcConnected(false);
+        setHasVideoInitialized(false);
+        lastDiagnosticMessageRef.current = '';
+        lastStreamTextRef.current = '';
+        hasVideoElementRef.current = false;
+
+        const pushDiagnosticEvent = (message: string) => {
+            if (!message || lastDiagnosticMessageRef.current === message) return;
+
+            lastDiagnosticMessageRef.current = message;
+            const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+            const entry = `${timestamp} ${message}`;
+
+            console.info(`[FastView] ${message}`);
+            setDiagnosticEvents((previous) => [...previous.slice(-7), entry]);
+        };
+
+        pushDiagnosticEvent(`init ${trimmedAppId} (${inputLabel})`);
 
         const syncVideoElement = () => {
             const videoElement = wrapperElement.querySelector('video');
+            const hasDetectedVideoElement = videoElement instanceof HTMLVideoElement;
+
+            if (hasVideoElementRef.current !== hasDetectedVideoElement) {
+                hasVideoElementRef.current = hasDetectedVideoElement;
+                setHasVideoElement(hasDetectedVideoElement);
+                pushDiagnosticEvent(hasDetectedVideoElement ? 'video element detected' : 'video element removed');
+            }
+
             if (videoElement instanceof HTMLVideoElement) {
                 onVideoInitializedRef.current?.(videoElement);
                 return true;
             }
 
             return false;
+        };
+
+        const syncStreamTextSnapshot = () => {
+            const normalizedText = wrapperElement.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+            const nextSnapshot = normalizedText.slice(0, 180);
+
+            if (!nextSnapshot || lastStreamTextRef.current === nextSnapshot) return;
+
+            lastStreamTextRef.current = nextSnapshot;
+            setStreamTextSnapshot(nextSnapshot);
+            pushDiagnosticEvent(`stream text: ${nextSnapshot}`);
         };
 
         const teardown = () => {
@@ -276,6 +331,11 @@ export default function StreamPixelPlayer({
             if (syncTimer !== null) {
                 window.clearInterval(syncTimer);
                 syncTimer = null;
+            }
+
+            if (domObserver) {
+                domObserver.disconnect();
+                domObserver = null;
             }
 
             if (responseListener) {
@@ -375,6 +435,19 @@ export default function StreamPixelPlayer({
                     wrapperElement.appendChild(appStream.rootElement);
                 }
 
+                domObserver = new MutationObserver(() => {
+                    if (cancelled) return;
+                    syncStreamTextSnapshot();
+                    syncVideoElement();
+                });
+                domObserver.observe(wrapperElement, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true,
+                });
+                syncStreamTextSnapshot();
+                syncVideoElement();
+
                 const stream = appStream?.stream;
                 if (!stream) {
                     throw new Error('StreamPixel stream was not created.');
@@ -388,17 +461,47 @@ export default function StreamPixelPlayer({
                 stream.config?.setFlagEnabled?.('FakeMouseWithTouches', emulateMouseFromTouches);
                 stream.config?.setFlagEnabled?.('StartVideoMuted', true);
 
-                exposedStream = Object.create(stream) as StreamPixelStream;
-                exposedStream.videoElementParent =
+                const resolvedVideoElementParent =
                     appStream?.rootElement instanceof HTMLElement
                         ? appStream.rootElement
                         : stream.videoElementParent ?? wrapperElement;
 
+                exposedStream = {
+                    get toStreamerHandlers() {
+                        return stream.toStreamerHandlers;
+                    },
+                    get videoElementParent() {
+                        return resolvedVideoElementParent;
+                    },
+                    get config() {
+                        return stream.config;
+                    },
+                    get _webRtcController() {
+                        return stream._webRtcController;
+                    },
+                    disconnect: () => {
+                        stream.disconnect?.();
+                    },
+                };
+
                 (window as StreamPixelCompatibleWindow).ps = exposedStream;
+
+                appStream.onConnectAction = () => {
+                    if (cancelled) return;
+                    setHasConnectAction(true);
+                    pushDiagnosticEvent('sdk requested connect action');
+                };
+
+                appStream.onWebRtcSdp = () => {
+                    if (cancelled) return;
+                    setHasSdpSignal(true);
+                    pushDiagnosticEvent('webrtc SDP stage reached');
+                };
 
                 appStream.onWebRtcConnecting = () => {
                     if (cancelled) return;
                     setStatus(textRef.current.connecting(trimmedAppId, inputLabel));
+                    pushDiagnosticEvent('webrtc connecting');
                 };
 
                 appStream.onWebRtcConnected = () => {
@@ -406,8 +509,11 @@ export default function StreamPixelPlayer({
                     setIsStreaming(false);
                     setError(null);
                     setStatus(textRef.current.connectedWait);
+                    setHasWebRtcConnected(true);
+                    pushDiagnosticEvent('webrtc connected, waiting for video');
                     wrapMouseMoveForSensitivity(stream);
                     syncVideoElement();
+                    syncStreamTextSnapshot();
                 };
 
                 appStream.onVideoInitialized = () => {
@@ -415,11 +521,15 @@ export default function StreamPixelPlayer({
                     setIsStreaming(true);
                     setError(null);
                     setStatus(textRef.current.streaming);
+                    setHasVideoInitialized(true);
+                    pushDiagnosticEvent('video initialized');
                     wrapMouseMoveForSensitivity(stream);
                     syncVideoElement();
+                    syncStreamTextSnapshot();
                 };
 
                 responseListener = (response: string) => {
+                    pushDiagnosticEvent('received Unreal response');
                     onPixelStreamingResponseRef.current?.(response);
                 };
                 pixelStreaming?.addResponseEventListener?.('handle_responses', responseListener);
@@ -428,6 +538,7 @@ export default function StreamPixelPlayer({
                     if (cancelled) return;
                     wrapMouseMoveForSensitivity(stream);
                     syncVideoElement();
+                    syncStreamTextSnapshot();
                 }, 500);
             } catch (caughtError) {
                 if (cancelled) return;
@@ -436,6 +547,7 @@ export default function StreamPixelPlayer({
                 setIsStreaming(false);
                 setError(textRef.current.setupError(message));
                 setStatus(textRef.current.setupError(message));
+                pushDiagnosticEvent(`setup error: ${message}`);
             }
         };
 
@@ -455,6 +567,32 @@ export default function StreamPixelPlayer({
                 <div className="pointer-events-none absolute left-4 top-4 max-w-sm rounded-xl border border-white/10 bg-black/65 px-4 py-3 text-xs text-slate-200 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md">
                     <p className="font-semibold uppercase tracking-[0.18em] text-cyan-300">Stream</p>
                     <p className="mt-2 leading-relaxed">{error ?? status}</p>
+                </div>
+            )}
+
+            {(!isStreaming || error) && (
+                <div className="pointer-events-none absolute bottom-4 left-4 max-w-md rounded-xl border border-cyan-400/20 bg-slate-950/78 px-4 py-3 text-[11px] text-slate-200 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-md">
+                    <p className="font-semibold uppercase tracking-[0.18em] text-cyan-300">FastView Diagnostics</p>
+                    <div className="mt-3 space-y-1 text-slate-300">
+                        <p><span className="text-slate-500">App ID:</span> {appId}</p>
+                        <p><span className="text-slate-500">Status:</span> {status}</p>
+                        <p><span className="text-slate-500">Wrapper text:</span> {streamTextSnapshot || 'none'}</p>
+                        <p><span className="text-slate-500">Video element:</span> {hasVideoElement ? 'detected' : 'missing'}</p>
+                        <p><span className="text-slate-500">Connect action:</span> {hasConnectAction ? 'yes' : 'no'}</p>
+                        <p><span className="text-slate-500">SDP stage:</span> {hasSdpSignal ? 'yes' : 'no'}</p>
+                        <p><span className="text-slate-500">WebRTC connected:</span> {hasWebRtcConnected ? 'yes' : 'no'}</p>
+                        <p><span className="text-slate-500">Video initialized:</span> {hasVideoInitialized ? 'yes' : 'no'}</p>
+                    </div>
+                    {diagnosticEvents.length > 0 && (
+                        <div className="mt-3 border-t border-white/10 pt-3">
+                            <p className="font-semibold uppercase tracking-[0.16em] text-slate-400">Recent Events</p>
+                            <div className="mt-2 space-y-1 text-slate-300">
+                                {diagnosticEvents.map((event) => (
+                                    <p key={event}>{event}</p>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
