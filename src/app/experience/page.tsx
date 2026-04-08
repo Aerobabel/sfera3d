@@ -2,7 +2,7 @@
 
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Send, Menu, X, Box, Info } from "lucide-react";
+import { Send, Menu, X, Box, Info, Monitor } from "lucide-react";
 import Link from 'next/link';
 import { Product, Supplier } from "@/lib/types";
 import { getProductById, getSupplierById, getProductsBySupplier } from "@/lib/db";
@@ -34,6 +34,31 @@ type PixelStreamingWindow = Window & {
     };
 };
 const DEFAULT_MOUSE_SENSITIVITY = 0.85;
+
+const COMMON_KEY_CODES_TO_RELEASE = [87, 65, 83, 68, 38, 37, 40, 39, 32, 16, 17, 18, 88, 70, 84];
+const NORMALIZED_CENTER = 32768;
+
+const releaseAllInputs = () => {
+    const psWindow = window as PixelStreamingWindow;
+    const handlers = psWindow.ps?.toStreamerHandlers;
+    const keyUpHandler = handlers?.get('KeyUp');
+    const mouseUpHandler = handlers?.get('MouseUp');
+    const mouseLeaveHandler = handlers?.get('MouseLeave');
+
+    if (keyUpHandler) {
+        for (const keyCode of COMMON_KEY_CODES_TO_RELEASE) {
+            keyUpHandler([keyCode]);
+        }
+    }
+
+    if (mouseUpHandler) {
+        mouseUpHandler([0, NORMALIZED_CENTER, NORMALIZED_CENTER]);
+        mouseUpHandler([1, NORMALIZED_CENTER, NORMALIZED_CENTER]);
+        mouseUpHandler([2, NORMALIZED_CENTER, NORMALIZED_CENTER]);
+    }
+
+    mouseLeaveHandler?.();
+};
 
 type ChatMessage = {
     id: string;
@@ -92,6 +117,8 @@ const EXPERIENCE_COPY: Record<
         originalLabel: string;
         translatedLabel: string;
         tapToStart: string;
+        clickToResume: string;
+        livePreview: string;
     }
 > = {
     en: {
@@ -126,6 +153,8 @@ const EXPERIENCE_COPY: Record<
         originalLabel: 'Original',
         translatedLabel: 'Translated',
         tapToStart: 'Tap anywhere to start experience',
+        clickToResume: 'Click to resume',
+        livePreview: 'Live Preview',
     },
     ru: {
         welcome: 'Подключено. Нажмите на товар в сцене, чтобы открыть детали, или спросите цену и характеристики.',
@@ -159,6 +188,8 @@ const EXPERIENCE_COPY: Record<
         originalLabel: 'Оригинал',
         translatedLabel: 'Перевод',
         tapToStart: 'Нажмите в любом месте, чтобы начать',
+        clickToResume: 'Нажмите для продолжения',
+        livePreview: 'Предпросмотр',
     },
     zh: {
         welcome: '已连接。点击场景中的产品查看详情，或直接询问参数与价格。',
@@ -192,6 +223,8 @@ const EXPERIENCE_COPY: Record<
         originalLabel: '原文',
         translatedLabel: '翻译',
         tapToStart: '点击任意位置开始体验',
+        clickToResume: '点击以继续',
+        livePreview: '实时预览',
     },
 };
 
@@ -311,6 +344,8 @@ export default function ExperiencePage() {
     const [isDesktopChatOpen, setIsDesktopChatOpen] = useState(true);
     const [viewerEmail, setViewerEmail] = useState<string | null>(null);
     const [isSigningOut, setIsSigningOut] = useState(false);
+    const [needsPointerResume, setNeedsPointerResume] = useState(false);
+    const [isStreamPixelOpen, setIsStreamPixelOpen] = useState(false);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
 
     const handleSensitivityChange = useCallback((value: number) => {
@@ -825,27 +860,23 @@ export default function ExperiencePage() {
     const handleCloseProductCard = useCallback(() => {
         setActiveProduct(null);
         sendUnrealExitFocus();
+        // Show the resume overlay instead of force-locking pointer.
+        // This lets the user scroll the chat / use menu before resuming,
+        // while preventing the next click from accidentally selecting a
+        // product in UE.
+        setNeedsPointerResume(true);
+    }, [sendUnrealExitFocus]);
 
-        // Automatically re-lock the pointer so the user doesn't have to click to regain control.
-        // We MUST lock on the `videoElementParent` so the epicgames-ps library recognizes the lock state
-        // and attaches the `mousemove` handlers correctly for camera orbit.
+    const handleResumePointer = useCallback(() => {
+        setNeedsPointerResume(false);
         try {
             const psWindow = window as PixelStreamingWindow;
             const videoElementParent = psWindow.ps?.videoElementParent;
-            
             if (videoElementParent && typeof videoElementParent.requestPointerLock === 'function') {
                 videoElementParent.requestPointerLock();
-            } else {
-                // Fallback to video element if library isn't available
-                const video = document.querySelector('#player-container video');
-                if (video && typeof video.requestPointerLock === 'function') {
-                    video.requestPointerLock();
-                }
             }
-        } catch (err) {
-            console.warn('Could not automatically lock pointer:', err);
-        }
-    }, [sendUnrealExitFocus]);
+        } catch { /* best-effort */ }
+    }, []);
 
     // Sync inspection mode exit with Unreal when the user presses 'X'
     useEffect(() => {
@@ -858,6 +889,15 @@ export default function ExperiencePage() {
         document.addEventListener('keydown', handleKeyDown, true);
         return () => document.removeEventListener('keydown', handleKeyDown, true);
     }, [activeProduct, handleCloseProductCard]);
+
+    // Release all held keys/mouse buttons whenever an overlay takes focus.
+    // This prevents the "running forward forever" bug caused by keyup events
+    // being swallowed when a product card, menu, or chat input opens.
+    useEffect(() => {
+        if (activeProduct || isMenuOpen || isCatalogueOpen || isChatFocused) {
+            releaseAllInputs();
+        }
+    }, [activeProduct, isMenuOpen, isCatalogueOpen, isChatFocused]);
 
     // Ensure Unreal Engine state matches React state on video connection/reconnection
     // If the user's connection dropped while inspecting, Unreal remains stuck in inspection
@@ -914,6 +954,42 @@ export default function ExperiencePage() {
                     <div className="text-center animate-pulse">
                         <div className="text-white text-xl md:text-2xl font-light tracking-[0.2em] uppercase">{ui.tapToStart}</div>
                     </div>
+                </div>
+            )}
+
+            {/* Click-to-Resume Overlay — shown after closing a product card */}
+            {needsPointerResume && hasStartedExperience && !activeProduct && (
+                <div
+                    className="absolute inset-0 z-[5] cursor-pointer pointer-events-auto"
+                    onClick={handleResumePointer}
+                >
+                    <div className="absolute bottom-24 left-1/2 -translate-x-1/2 px-5 py-2 rounded-full bg-black/50 backdrop-blur-md border border-white/10 animate-pulse">
+                        <span className="text-xs font-mono text-gray-300 uppercase tracking-[0.16em]">{ui.clickToResume}</span>
+                    </div>
+                </div>
+            )}
+
+            {/* StreamPixel Live Preview Overlay */}
+            {isStreamPixelOpen && (
+                <div className="absolute inset-0 z-[200] flex flex-col bg-black">
+                    <div className="flex items-center justify-between px-4 py-3 bg-black/90 border-b border-white/10">
+                        <div className="flex items-center gap-2">
+                            <Monitor size={16} className="text-[#66d9cb]" />
+                            <span className="text-sm font-semibold text-white uppercase tracking-wider">{ui.livePreview}</span>
+                        </div>
+                        <button
+                            onClick={() => setIsStreamPixelOpen(false)}
+                            className="rounded-full border border-white/10 bg-white/5 p-2 transition hover:border-white/25 hover:bg-white/10"
+                        >
+                            <X size={16} className="text-gray-300" />
+                        </button>
+                    </div>
+                    <iframe
+                        src="https://share.streampixel.io/69d615b641d102927ca911f3"
+                        className="flex-1 w-full border-0"
+                        allow="autoplay; fullscreen; microphone; camera; clipboard-write"
+                        allowFullScreen
+                    />
                 </div>
             )}
 
@@ -978,6 +1054,12 @@ export default function ExperiencePage() {
                             </button>
                             <button className="w-full text-left px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10 transition flex items-center gap-2">
                                 <Info size={16} /> {ui.menuSupplier}
+                            </button>
+                            <button
+                                onClick={() => { setIsStreamPixelOpen(true); setIsMenuOpen(false); }}
+                                className="w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition flex items-center gap-2"
+                            >
+                                <Monitor size={16} /> {ui.livePreview}
                             </button>
                             <a href="/login?role=supplier" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 {ui.menuLogin}

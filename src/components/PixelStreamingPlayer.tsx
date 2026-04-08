@@ -870,10 +870,15 @@ export default function PixelStreamingPlayer({
             queueLockedMouseResync();
 
             // Wrap the MouseMove handler to apply user sensitivity multiplier.
+            // Guard: only wrap once per PS instance to prevent sensitivity from
+            // compounding on repeated webRtcConnected events (0.85^N -> 0).
+            let hasWrappedMouseMove = false;
             const wrapMouseMoveForSensitivity = () => {
+                if (hasWrappedMouseMove) return;
                 const handlers = ps.toStreamerHandlers;
                 const originalMouseMove = handlers?.get('MouseMove');
                 if (!originalMouseMove || !handlers) return;
+                hasWrappedMouseMove = true;
 
                 const wrappedMouseMove: typeof originalMouseMove = (messageData) => {
                     if (messageData && messageData.length >= 4) {
