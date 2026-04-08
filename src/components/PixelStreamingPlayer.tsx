@@ -43,125 +43,6 @@ const normalizeSignalingUrl = (inputUrl: string) => {
     return nextUrl;
 };
 
-const normalizeIceServerUrls = (urls: RTCIceServer['urls']) => {
-    if (Array.isArray(urls)) {
-        return urls
-            .map((url) => (typeof url === 'string' ? url.trim() : ''))
-            .filter((url): url is string => url.length > 0);
-    }
-
-    if (typeof urls === 'string') {
-        const nextUrl = urls.trim();
-        return nextUrl ? [nextUrl] : [];
-    }
-
-    return [];
-};
-
-const normalizeIceServers = (iceServers: RTCIceServer[] | undefined) => {
-    if (!iceServers) return undefined;
-
-    return iceServers
-        .map<RTCIceServer | null>((iceServer) => {
-            const urls = normalizeIceServerUrls(iceServer.urls);
-            if (urls.length === 0) return null;
-            return {
-                ...iceServer,
-                urls
-            };
-        })
-        .filter((iceServer): iceServer is RTCIceServer => iceServer !== null);
-};
-
-const parseForcedIceServers = (rawValue: string | undefined) => {
-    if (!rawValue) return null;
-
-    try {
-        const parsed = JSON.parse(rawValue) as unknown;
-        if (!Array.isArray(parsed)) {
-            console.warn('[PixelStreaming] Ignoring NEXT_PUBLIC_PIXELSTREAM_FORCE_ICE_SERVERS because it is not a JSON array.');
-            return null;
-        }
-
-        const forcedIceServers = parsed
-            .map<RTCIceServer | null>((entry) => {
-                if (!entry || typeof entry !== 'object') return null;
-
-                const candidate = entry as Record<string, unknown>;
-                const urls = normalizeIceServerUrls(candidate.urls as RTCIceServer['urls']);
-                if (urls.length === 0) return null;
-
-                const iceServer: RTCIceServer = { urls };
-
-                if (typeof candidate.username === 'string' && candidate.username.trim()) {
-                    iceServer.username = candidate.username.trim();
-                }
-
-                if (typeof candidate.credential === 'string' && candidate.credential.trim()) {
-                    iceServer.credential = candidate.credential.trim();
-                }
-
-                return iceServer;
-            })
-            .filter((iceServer): iceServer is RTCIceServer => iceServer !== null);
-
-        if (forcedIceServers.length === 0) {
-            console.warn('[PixelStreaming] Ignoring NEXT_PUBLIC_PIXELSTREAM_FORCE_ICE_SERVERS because no valid ICE servers were found.');
-            return null;
-        }
-
-        return forcedIceServers;
-    } catch (error) {
-        console.warn('[PixelStreaming] Failed to parse NEXT_PUBLIC_PIXELSTREAM_FORCE_ICE_SERVERS.', error);
-        return null;
-    }
-};
-
-const parseIceTransportPolicy = (rawValue: string | undefined) => {
-    const nextValue = rawValue?.trim().toLowerCase();
-    return nextValue === 'all' || nextValue === 'relay' ? nextValue : undefined;
-};
-
-const summarizeRtcConfiguration = (peerConnectionOptions: RTCConfiguration | undefined) => ({
-    iceTransportPolicy: peerConnectionOptions?.iceTransportPolicy ?? 'all',
-    iceServers: (peerConnectionOptions?.iceServers ?? []).flatMap((iceServer) =>
-        normalizeIceServerUrls(iceServer.urls)
-    )
-});
-
-const FORCED_ICE_SERVERS = parseForcedIceServers(
-    process.env.NEXT_PUBLIC_PIXELSTREAM_FORCE_ICE_SERVERS
-);
-const FORCED_ICE_TRANSPORT_POLICY = parseIceTransportPolicy(
-    process.env.NEXT_PUBLIC_PIXELSTREAM_FORCE_ICE_TRANSPORT_POLICY
-);
-const HAS_CUSTOM_RTC_OVERRIDES =
-    Boolean(FORCED_ICE_SERVERS && FORCED_ICE_SERVERS.length > 0) ||
-    FORCED_ICE_TRANSPORT_POLICY !== undefined;
-
-const resolvePeerConnectionOptions = (
-    peerConnectionOptions: RTCConfiguration | undefined
-): RTCConfiguration => {
-    const normalizedIceServers = normalizeIceServers(peerConnectionOptions?.iceServers);
-    const nextPeerConnectionOptions: RTCConfiguration = {
-        ...(peerConnectionOptions ?? {})
-    };
-
-    if (normalizedIceServers) {
-        nextPeerConnectionOptions.iceServers = normalizedIceServers;
-    }
-
-    if (FORCED_ICE_SERVERS) {
-        nextPeerConnectionOptions.iceServers = FORCED_ICE_SERVERS;
-    }
-
-    if (FORCED_ICE_TRANSPORT_POLICY) {
-        nextPeerConnectionOptions.iceTransportPolicy = FORCED_ICE_TRANSPORT_POLICY;
-    }
-
-    return nextPeerConnectionOptions;
-};
-
 const hasLiveVideoStream = (container: HTMLDivElement | null) => {
     if (!container) return false;
     const video = container.querySelector('video');
@@ -252,14 +133,6 @@ const STALL_WATCHDOG_GRACE_MS = Math.max(
     parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_STALL_WATCHDOG_GRACE_MS, 1500)
 );
 const STALL_WATCHDOG_DISCONNECT_RECHECK_MS = 2500;
-const SIGNALING_OPEN_TIMEOUT_MS = Math.max(
-    4000,
-    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_SIGNALING_OPEN_TIMEOUT_MS, 8000)
-);
-const SIGNALING_CONFIG_TIMEOUT_MS = Math.max(
-    4000,
-    parseNonNegativeInteger(process.env.NEXT_PUBLIC_PIXELSTREAM_SIGNALING_CONFIG_TIMEOUT_MS, 12000)
-);
 const disableInternalReconnectEnv = process.env.NEXT_PUBLIC_PIXELSTREAM_DISABLE_INTERNAL_RECONNECT?.trim().toLowerCase();
 const DISABLE_INTERNAL_RECONNECT =
     disableInternalReconnectEnv === undefined ||
@@ -600,29 +473,8 @@ export default function PixelStreamingPlayer({
             : (useTouchScreenInput ? 'touch' : 'joystick');
         setStatus(textRef.current.connecting(connectUrl, inputLabel));
 
-        let signalingTimeoutId: number | null = null;
-        let hasSignallingSocketOpened = false;
-        let hasSignallingConfig = false;
-
-        const clearSignalingTimeout = () => {
-            if (signalingTimeoutId !== null) {
-                window.clearTimeout(signalingTimeoutId);
-                signalingTimeoutId = null;
-            }
-        };
-
-        const armSignalingTimeout = (delayMs: number, onTimeout: () => void) => {
-            clearSignalingTimeout();
-            signalingTimeoutId = window.setTimeout(() => {
-                signalingTimeoutId = null;
-                if (generation !== connectionGenerationRef.current) return;
-                onTimeout();
-            }, delayMs);
-        };
-
         const scheduleReconnect = (failureMessage?: string) => {
             if (generation !== connectionGenerationRef.current) return;
-            clearSignalingTimeout();
             clearStallWatchdog();
             releaseCommonStuckInputs(psRef.current);
 
@@ -805,7 +657,7 @@ export default function PixelStreamingPlayer({
         const config = new Config({
             initialSettings: {
                 AutoPlayVideo: true,
-                AutoConnect: false,
+                AutoConnect: true,
                 ss: connectUrl,
                 StartVideoMuted: true,
                 HoveringMouse: useHoveringMouse,
@@ -826,45 +678,6 @@ export default function PixelStreamingPlayer({
             if (DISABLE_INTERNAL_RECONNECT) {
                 ps.config.setNumericSetting(NumericParameters.MaxReconnectAttempts, 0);
             }
-
-            const handleWebSocketOpen = () => {
-                if (generation !== connectionGenerationRef.current) return;
-                hasSignallingSocketOpened = true;
-                setError(null);
-                setStatus(`Signalling connected to ${connectUrl}. Waiting for stream configuration...`);
-                armSignalingTimeout(SIGNALING_CONFIG_TIMEOUT_MS, () => {
-                    scheduleReconnect('Connected to the signalling server, but no stream configuration arrived.');
-                });
-            };
-
-            const handleWebSocketClose = () => {
-                clearSignalingTimeout();
-            };
-
-            const originalOnConfig = ps.webSocketController.onConfig.bind(ps.webSocketController);
-            ps.webSocketController.onConfig = (messageConfig) => {
-                hasSignallingConfig = true;
-                clearSignalingTimeout();
-                console.info(
-                    '[PixelStreaming] Signalling RTC configuration received',
-                    summarizeRtcConfiguration(messageConfig.peerConnectionOptions)
-                );
-
-                messageConfig.peerConnectionOptions = resolvePeerConnectionOptions(
-                    messageConfig.peerConnectionOptions
-                );
-
-                if (HAS_CUSTOM_RTC_OVERRIDES) {
-                    console.info(
-                        '[PixelStreaming] Applying frontend RTC override',
-                        summarizeRtcConfiguration(messageConfig.peerConnectionOptions)
-                    );
-                }
-
-                originalOnConfig(messageConfig);
-            };
-            ps.webSocketController.onOpen.addEventListener('open', handleWebSocketOpen);
-            ps.webSocketController.onClose.addEventListener('close', handleWebSocketClose);
 
             (window as PixelStreamingDebugWindow).ps = ps; // Debugging
             queueLockedMouseResync();
@@ -918,7 +731,6 @@ export default function PixelStreamingPlayer({
 
             ps.addEventListener('webRtcConnected', () => {
                 if (generation !== connectionGenerationRef.current) return;
-                clearSignalingTimeout();
                 console.log("WebRTC Connected");
                 originalWebRtcConnectedWrap();
                 queueLockedMouseResync();
@@ -935,7 +747,6 @@ export default function PixelStreamingPlayer({
 
             ps.addEventListener('webRtcDisconnected', (e: Event) => {
                 if (generation !== connectionGenerationRef.current) return;
-                clearSignalingTimeout();
                 console.log("Disconnected", e);
 
                  // Some stacks can report signaling disconnect while media keeps flowing.
@@ -1005,42 +816,6 @@ export default function PixelStreamingPlayer({
                 }
             });
 
-            ps.addEventListener('streamerListMessage', (event: Event) => {
-                if (generation !== connectionGenerationRef.current) return;
-
-                const typedEvent = event as Event & {
-                    data?: {
-                        messageStreamerList?: {
-                            ids?: string[];
-                        };
-                        autoSelectedStreamerId?: string | null;
-                        wantedStreamerId?: string | null;
-                    };
-                };
-
-                const streamerIds = typedEvent.data?.messageStreamerList?.ids ?? [];
-                const autoSelectedStreamerId = typedEvent.data?.autoSelectedStreamerId ?? null;
-                const wantedStreamerId = typedEvent.data?.wantedStreamerId ?? null;
-
-                if (autoSelectedStreamerId) {
-                    setError(null);
-                    setStatus(`Streamer ${autoSelectedStreamerId} selected. Negotiating WebRTC session...`);
-                    return;
-                }
-
-                if (streamerIds.length === 0) {
-                    const wantedMessage = wantedStreamerId
-                        ? `Requested streamer "${wantedStreamerId}" is not available on the signalling server yet.`
-                        : 'The signalling server is reachable, but there is no active Unreal streamer connected.';
-                    setError(wantedMessage);
-                    setStatus('Connected to signalling server. Waiting for an available streamer...');
-                    return;
-                }
-
-                setError('Multiple streamers are available, but none was auto-selected.');
-                setStatus('Connected to signalling server. Waiting for streamer selection...');
-            });
-
             ps.addEventListener('statsReceived', (event: Event) => {
                 if (generation !== connectionGenerationRef.current) return;
 
@@ -1084,35 +859,23 @@ export default function PixelStreamingPlayer({
 
             ps.addEventListener('webRtcFailed', () => {
                 if (generation !== connectionGenerationRef.current) return;
-                clearSignalingTimeout();
                 console.error("WebRTC Failed");
                 scheduleReconnect(textRef.current.webrtcFailed);
             });
 
             ps.addEventListener('streamDisconnect', () => {
                 if (generation !== connectionGenerationRef.current) return;
-                clearSignalingTimeout();
                 scheduleReconnect('Stream disconnected. Reconnecting...');
             });
 
             ps.addEventListener('playStreamError', (event: Event) => {
                 if (generation !== connectionGenerationRef.current) return;
-                clearSignalingTimeout();
                 const typedEvent = event as Event & { data?: { message?: string } };
                 scheduleReconnect(typedEvent.data?.message ?? 'Playback failed. Reconnecting...');
             });
 
-            armSignalingTimeout(SIGNALING_OPEN_TIMEOUT_MS, () => {
-                const timeoutMessage = hasSignallingSocketOpened || hasSignallingConfig
-                    ? 'Connected to signalling, but the stream did not begin in time.'
-                    : `Timed out while opening the signalling connection to ${connectUrl}.`;
-                scheduleReconnect(timeoutMessage);
-            });
-            ps.connect();
-
         } catch (err: unknown) {
             if (generation !== connectionGenerationRef.current) return;
-            clearSignalingTimeout();
             console.error("Setup Error:", err);
             const errorMessage = err instanceof Error ? err.message : 'Unknown setup error';
             scheduleReconnect(textRef.current.setupError(errorMessage));
@@ -1163,7 +926,6 @@ export default function PixelStreamingPlayer({
             document.removeEventListener('visibilitychange', handleVisibilityHidden);
             document.removeEventListener('visibilitychange', handleVisibilityOrPageShow);
             window.removeEventListener('pageshow', handleVisibilityOrPageShow);
-            clearSignalingTimeout();
             clearReconnectTimer();
             clearStallWatchdog();
             if (psRef.current) {
