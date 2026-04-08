@@ -52,6 +52,7 @@ const copy = {
   en: {
     nav: {
       exhibition: "Exhibition",
+      fastview: "FastView",
       marketplace: "Marketplace",
       solutions: "Solutions",
       onboarding: "Onboarding",
@@ -59,6 +60,7 @@ const copy = {
     },
     cta: {
       supplier: "Supplier Login",
+      fastview: "Open FastView",
       visit: "Visit Exhibition",
       onboarding: "Supplier Onboarding",
       startTour: "Start Interactive Tour",
@@ -178,6 +180,7 @@ const copy = {
   ru: {
     nav: {
       exhibition: "Выставка",
+      fastview: "FastView",
       marketplace: "Маркетплейс",
       solutions: "Решения",
       onboarding: "Онбординг",
@@ -185,6 +188,7 @@ const copy = {
     },
     cta: {
       supplier: "Вход поставщика",
+      fastview: "Открыть FastView",
       visit: "Посетить выставку",
       onboarding: "Онбординг поставщика",
       startTour: "Начать интерактивный тур",
@@ -304,6 +308,7 @@ const copy = {
   zh: {
     nav: {
       exhibition: "展览",
+      fastview: "FastView",
       marketplace: "商城",
       solutions: "解决方案",
       onboarding: "入驻规范",
@@ -311,6 +316,7 @@ const copy = {
     },
     cta: {
       supplier: "供应商登录",
+      fastview: "打开 FastView",
       visit: "访问展览",
       onboarding: "供应商入驻",
       startTour: "开始互动导览",
@@ -457,6 +463,9 @@ export default function LandingPage() {
             <a href="#exhibition" className="fade-up delay-1 transition hover:text-white">
               {t.nav.exhibition}
             </a>
+            <Link href="/fastview" className="fade-up delay-2 transition hover:text-white">
+              {t.nav.fastview}
+            </Link>
             <a href="#marketplace" className="fade-up delay-2 transition hover:text-white">
               {t.nav.marketplace}
             </a>
@@ -508,6 +517,12 @@ export default function LandingPage() {
               className="sfera-btn-primary inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold transition"
             >
               {t.cta.startTour} <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/fastview"
+              className="sfera-btn-ghost inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition"
+            >
+              {t.cta.fastview} <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/onboarding"
@@ -698,6 +713,12 @@ export default function LandingPage() {
                   className="inline-flex items-center gap-2 rounded-full bg-[#f6ba4f] px-6 py-3 text-sm font-bold text-[#120d04] transition hover:bg-[#ffd083]"
                 >
                   {t.cta.explore} <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/fastview"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 px-6 py-3 text-sm font-semibold transition hover:border-white/35 hover:bg-white/10"
+                >
+                  {t.cta.fastview} <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href="/onboarding"

@@ -1,9 +1,11 @@
 'use client';
 
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
+import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Send, Menu, X, Box, Info, Monitor } from "lucide-react";
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
 import { getProductById, getSupplierById, getProductsBySupplier } from "@/lib/db";
 import ProductCard from "@/components/overlay/ProductCard";
@@ -289,9 +291,30 @@ const resolveDefaultSignalingUrl = () => {
     return withOptionalPort('wss', remoteDefaultHost);
 };
 
+const DEFAULT_FASTVIEW_APP_ID = '69d615b641d102927ca911f3';
+
+const buildStreamPixelPreviewUrl = (appId: string) => `https://share.streampixel.io/${appId}`;
+
+const extractAppIdFromStreamPixelUrl = (input: string) => {
+    if (!input) return '';
+
+    try {
+        return new URL(input).pathname.replace(/^\/+|\/+$/g, '');
+    } catch {
+        return '';
+    }
+};
+
+const resolveDefaultFastViewAppId = () =>
+    process.env.NEXT_PUBLIC_FASTVIEW_APP_ID?.trim() ||
+    extractAppIdFromStreamPixelUrl(process.env.NEXT_PUBLIC_FASTVIEW_STREAM_URL?.trim() || '') ||
+    DEFAULT_FASTVIEW_APP_ID;
+
 const BLOCKED_UNREAL_KEY_CODES = ['F10'];
 
 export default function ExperiencePage() {
+    const pathname = usePathname();
+    const isFastViewRoute = pathname === '/fastview';
     const { language } = useLanguage();
     const ui = EXPERIENCE_COPY[language];
     const accountLabel =
@@ -313,6 +336,7 @@ export default function ExperiencePage() {
               ? '\u8FD4\u56DE\u9996\u9875'
               : 'Back to Home';
     const [signalingServerUrl] = useState<string>(() => resolveDefaultSignalingUrl());
+    const [fastViewAppId] = useState<string>(() => resolveDefaultFastViewAppId());
     const [chatInput, setChatInput] = useState('');
     const [isChatFocused, setIsChatFocused] = useState(false);
     const [chatMode, setChatMode] = useState<'ai' | 'supplier'>('ai');
@@ -548,6 +572,10 @@ export default function ExperiencePage() {
     }, [hasStartedExperience, videoElement, language]);
 
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
+    const streamPixelPreviewUrl = useMemo(
+        () => process.env.NEXT_PUBLIC_FASTVIEW_STREAM_URL?.trim() || buildStreamPixelPreviewUrl(fastViewAppId),
+        [fastViewAppId]
+    );
     const activeSupplierId = activeSupplier?.id;
     const chatMessages = chatMode === 'ai' ? aiChatMessages : supplierChatMessages;
     const isSupplierMode = chatMode === 'supplier';
@@ -932,17 +960,32 @@ export default function ExperiencePage() {
         <div className="relative h-screen w-screen bg-gray-900 overflow-hidden font-sans">
             {/* Video Container (Pixel Streaming) */}
             <div id="player-container" className="absolute inset-0 z-0">
-                {/* Default to UE Pixel Streaming signaling server on loopback: ws://127.0.0.1 */}
-                <PixelStreamingPlayer
-                    signalingServerUrl={signalingServerUrl}
-                    onPixelStreamingResponse={handlePixelStreamingResponse}
-                    onVideoInitialized={setVideoElement}
-                    mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
-                    isMobileDevice={isMobile}
-                    keyboardInputEnabled={!isChatFocused}
-                    blockedKeyboardCodes={BLOCKED_UNREAL_KEY_CODES}
-                    mouseSensitivity={mouseSensitivity}
-                />
+                {isFastViewRoute ? (
+                    <StreamPixelPlayer
+                        appId={fastViewAppId}
+                        onPixelStreamingResponse={handlePixelStreamingResponse}
+                        onVideoInitialized={setVideoElement}
+                        mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
+                        isMobileDevice={isMobile}
+                        keyboardInputEnabled={!isChatFocused}
+                        blockedKeyboardCodes={BLOCKED_UNREAL_KEY_CODES}
+                        mouseSensitivity={mouseSensitivity}
+                    />
+                ) : (
+                    <>
+                        {/* Default to UE Pixel Streaming signaling server on loopback: ws://127.0.0.1 */}
+                        <PixelStreamingPlayer
+                            signalingServerUrl={signalingServerUrl}
+                            onPixelStreamingResponse={handlePixelStreamingResponse}
+                            onVideoInitialized={setVideoElement}
+                            mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
+                            isMobileDevice={isMobile}
+                            keyboardInputEnabled={!isChatFocused}
+                            blockedKeyboardCodes={BLOCKED_UNREAL_KEY_CODES}
+                            mouseSensitivity={mouseSensitivity}
+                        />
+                    </>
+                )}
             </div>
 
             {/* Tap To Start Overlay */}
@@ -970,7 +1013,7 @@ export default function ExperiencePage() {
             )}
 
             {/* StreamPixel Live Preview Overlay */}
-            {isStreamPixelOpen && (
+            {!isFastViewRoute && isStreamPixelOpen && (
                 <div className="absolute inset-0 z-[200] flex flex-col bg-black">
                     <div className="flex items-center justify-between px-4 py-3 bg-black/90 border-b border-white/10">
                         <div className="flex items-center gap-2">
@@ -985,7 +1028,7 @@ export default function ExperiencePage() {
                         </button>
                     </div>
                     <iframe
-                        src="https://share.streampixel.io/69d615b641d102927ca911f3"
+                        src={streamPixelPreviewUrl}
                         className="flex-1 w-full border-0"
                         allow="autoplay; fullscreen; microphone; camera; clipboard-write"
                         allowFullScreen
@@ -1055,12 +1098,14 @@ export default function ExperiencePage() {
                             <button className="w-full text-left px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10 transition flex items-center gap-2">
                                 <Info size={16} /> {ui.menuSupplier}
                             </button>
-                            <button
-                                onClick={() => { setIsStreamPixelOpen(true); setIsMenuOpen(false); }}
-                                className="w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition flex items-center gap-2"
-                            >
-                                <Monitor size={16} /> {ui.livePreview}
-                            </button>
+                            {!isFastViewRoute && (
+                                <button
+                                    onClick={() => { setIsStreamPixelOpen(true); setIsMenuOpen(false); }}
+                                    className="w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition flex items-center gap-2"
+                                >
+                                    <Monitor size={16} /> {ui.livePreview}
+                                </button>
+                            )}
                             <a href="/login?role=supplier" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 {ui.menuLogin}
                             </a>
