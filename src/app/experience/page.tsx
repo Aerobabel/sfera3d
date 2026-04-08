@@ -310,6 +310,20 @@ const resolveDefaultFastViewAppId = () =>
     extractAppIdFromStreamPixelUrl(process.env.NEXT_PUBLIC_FASTVIEW_STREAM_URL?.trim() || '') ||
     DEFAULT_FASTVIEW_APP_ID;
 
+const detectMobileDevice = () => {
+    if (typeof window === 'undefined') return false;
+
+    const legacyWindow = window as Window & { opera?: string; MSStream?: unknown };
+    const userAgent = navigator.userAgent || navigator.vendor || legacyWindow.opera || '';
+    const isForceMobile = new URLSearchParams(window.location.search).get('force_mobile') === 'true';
+
+    return Boolean(
+        isForceMobile ||
+        /android/i.test(userAgent) ||
+        (/iPad|iPhone|iPod/.test(userAgent) && !legacyWindow.MSStream)
+    );
+};
+
 const BLOCKED_UNREAL_KEY_CODES = ['F10'];
 
 export default function ExperiencePage() {
@@ -361,7 +375,7 @@ export default function ExperiencePage() {
         }
         return DEFAULT_MOUSE_SENSITIVITY;
     });
-    const [isMobile, setIsMobile] = useState(false);
+    const [isMobile, setIsMobile] = useState(() => detectMobileDevice());
     const [isLandscape, setIsLandscape] = useState(true);
     const [mobileInputMode] = useState<MobileInputMode>('joystick');
     const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
@@ -378,17 +392,7 @@ export default function ExperiencePage() {
     }, []);
 
     useEffect(() => {
-        // Simple mobile detection
-        const checkMobile = () => {
-            const legacyWindow = window as Window & { opera?: string; MSStream?: unknown };
-            const userAgent = navigator.userAgent || navigator.vendor || legacyWindow.opera || '';
-            const isForceMobile = new URLSearchParams(window.location.search).get('force_mobile') === 'true';
-
-            if (isForceMobile || /android/i.test(userAgent) || /iPad|iPhone|iPod/.test(userAgent) && !legacyWindow.MSStream) {
-                setIsMobile(true);
-            }
-        };
-        checkMobile();
+        setIsMobile(detectMobileDevice());
     }, []);
 
     useEffect(() => {

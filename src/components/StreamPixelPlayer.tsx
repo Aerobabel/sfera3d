@@ -139,6 +139,7 @@ export default function StreamPixelPlayer({
     const onVideoInitializedRef = useRef(onVideoInitialized);
     const mouseSensitivityRef = useRef(mouseSensitivity);
     const textRef = useRef(text);
+    const teardownRef = useRef<(() => void) | null>(null);
 
     const [status, setStatus] = useState('Initializing...');
     const [error, setError] = useState<string | null>(null);
@@ -175,6 +176,22 @@ export default function StreamPixelPlayer({
     useEffect(() => {
         mouseSensitivityRef.current = mouseSensitivity;
     }, [mouseSensitivity]);
+
+    useEffect(() => {
+        const disconnectForPageExit = () => {
+            teardownRef.current?.();
+        };
+
+        window.addEventListener('pagehide', disconnectForPageExit);
+        window.addEventListener('beforeunload', disconnectForPageExit);
+        window.addEventListener('unload', disconnectForPageExit);
+
+        return () => {
+            window.removeEventListener('pagehide', disconnectForPageExit);
+            window.removeEventListener('beforeunload', disconnectForPageExit);
+            window.removeEventListener('unload', disconnectForPageExit);
+        };
+    }, []);
 
     useEffect(() => {
         const stopBlockedKeysFromReachingStreamer = (event: KeyboardEvent) => {
@@ -223,6 +240,7 @@ export default function StreamPixelPlayer({
         let responseListener: ((response: string) => void) | null = null;
         let syncTimer: number | null = null;
         let exposedStream: StreamPixelStream | null = null;
+        let hasTornDown = false;
 
         const desktopMouseMode = resolveDesktopMouseMode(preferredDesktopMouseMode);
         const useTouchScreenInput = mobileInputMode === 'touch';
@@ -250,6 +268,39 @@ export default function StreamPixelPlayer({
 
             return false;
         };
+
+        const teardown = () => {
+            if (hasTornDown) return;
+            hasTornDown = true;
+
+            if (syncTimer !== null) {
+                window.clearInterval(syncTimer);
+                syncTimer = null;
+            }
+
+            if (responseListener) {
+                controllerRef.current?.removeResponseEventListener?.('handle_responses');
+                responseListener = null;
+            }
+
+            controllerRef.current?.disconnect?.();
+            streamRef.current?.disconnect?.();
+            controllerRef.current = null;
+            streamRef.current = null;
+
+            const psWindow = window as StreamPixelCompatibleWindow;
+            if (psWindow.ps === exposedStream) {
+                delete psWindow.ps;
+            }
+
+            wrapperElement.innerHTML = '';
+
+            if (teardownRef.current === teardown) {
+                teardownRef.current = null;
+            }
+        };
+
+        teardownRef.current = teardown;
 
         let hasWrappedMouseMove = false;
         const wrapMouseMoveForSensitivity = (stream: StreamPixelStream) => {
@@ -299,6 +350,7 @@ export default function StreamPixelPlayer({
                     AutoPlayVideo: true,
                     StartVideoMuted: true,
                     AutoConnect: true,
+                    MaxReconnectAttempts: 0,
                     useMic: false,
                     appId: trimmedAppId,
                     region,
@@ -391,26 +443,7 @@ export default function StreamPixelPlayer({
 
         return () => {
             cancelled = true;
-
-            if (syncTimer !== null) {
-                window.clearInterval(syncTimer);
-            }
-
-            if (responseListener) {
-                controllerRef.current?.removeResponseEventListener?.('handle_responses');
-            }
-
-            controllerRef.current?.disconnect?.();
-            streamRef.current?.disconnect?.();
-            controllerRef.current = null;
-            streamRef.current = null;
-
-            const psWindow = window as StreamPixelCompatibleWindow;
-            if (psWindow.ps === exposedStream) {
-                delete psWindow.ps;
-            }
-
-            wrapperElement.innerHTML = '';
+            teardown();
         };
     }, [appId, isMobileDevice, mobileInputMode, preferredDesktopMouseMode]);
 
