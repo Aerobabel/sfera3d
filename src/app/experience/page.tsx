@@ -535,45 +535,49 @@ export default function ExperiencePage() {
             if (attempts >= 10) window.clearInterval(audioPoller);
         }, 500);
 
-        const psWindow = window as PixelStreamingWindow;
-        const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
-        const keyUpHandler = psWindow.ps?.toStreamerHandlers?.get('KeyUp');
+        // Language keycodes and pointer lock are Epic Pixel Streaming specific;
+        // skip them on the FastView (StreamPixel) route.
+        if (!isFastViewRoute) {
+            const psWindow = window as PixelStreamingWindow;
+            const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
+            const keyUpHandler = psWindow.ps?.toStreamerHandlers?.get('KeyUp');
 
-        let keyCode = 50; // '2' for en
-        if (language === 'zh') keyCode = 48; // '0' for zh
-        else if (language === 'ru') keyCode = 49; // '1' for ru
+            let keyCode = 50; // '2' for en
+            if (language === 'zh') keyCode = 48; // '0' for zh
+            else if (language === 'ru') keyCode = 49; // '1' for ru
 
-        if (keyDownHandler && keyUpHandler) {
-            keyDownHandler([keyCode, 0]);
-            keyUpHandler([keyCode]);
-        } else {
-            const keyString = String.fromCharCode(keyCode);
-            const keyboardEventInit: KeyboardEventInit = {
-                key: keyString,
-                code: `Digit${keyString}`,
-                bubbles: true,
-                cancelable: true,
-            };
-            document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
-            document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
-        }
-
-        // Automatically request pointer lock so the user doesn't have to click a second time.
-        // We MUST lock on the `videoElementParent` so the epicgames-ps library recognizes the lock state
-        // and attaches the `mousemove` handlers correctly for camera orbit.
-        try {
-            const parent = psWindow.ps?.videoElementParent;
-            if (parent && typeof parent.requestPointerLock === 'function') {
-                parent.requestPointerLock();
-            } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
-                videoElement.requestPointerLock();
+            if (keyDownHandler && keyUpHandler) {
+                keyDownHandler([keyCode, 0]);
+                keyUpHandler([keyCode]);
+            } else {
+                const keyString = String.fromCharCode(keyCode);
+                const keyboardEventInit: KeyboardEventInit = {
+                    key: keyString,
+                    code: `Digit${keyString}`,
+                    bubbles: true,
+                    cancelable: true,
+                };
+                document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
+                document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
             }
-        } catch (err) {
-            console.warn('Could not automatically lock pointer:', err);
+
+            // Automatically request pointer lock so the user doesn't have to click a second time.
+            // We MUST lock on the `videoElementParent` so the epicgames-ps library recognizes the lock state
+            // and attaches the `mousemove` handlers correctly for camera orbit.
+            try {
+                const parent = psWindow.ps?.videoElementParent;
+                if (parent && typeof parent.requestPointerLock === 'function') {
+                    parent.requestPointerLock();
+                } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
+                    videoElement.requestPointerLock();
+                }
+            } catch (err) {
+                console.warn('Could not automatically lock pointer:', err);
+            }
         }
 
         setHasStartedExperience(true);
-    }, [hasStartedExperience, videoElement, language]);
+    }, [hasStartedExperience, videoElement, language, isFastViewRoute]);
 
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
     const streamPixelPreviewUrl = useMemo(
@@ -868,6 +872,9 @@ export default function ExperiencePage() {
     };
 
     const sendUnrealExitFocus = useCallback(() => {
+        // Exit-focus key is Epic Pixel Streaming specific; no-op on FastView.
+        if (isFastViewRoute) return;
+
         const psWindow = window as PixelStreamingWindow;
         const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
         const keyUpHandler = psWindow.ps?.toStreamerHandlers?.get('KeyUp');
@@ -887,7 +894,7 @@ export default function ExperiencePage() {
         };
         document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
         document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
-    }, []);
+    }, [isFastViewRoute]);
 
     const handleCloseProductCard = useCallback(() => {
         setActiveProduct(null);
@@ -901,6 +908,8 @@ export default function ExperiencePage() {
 
     const handleResumePointer = useCallback(() => {
         setNeedsPointerResume(false);
+        // Pointer lock is Epic Pixel Streaming specific; skip on FastView.
+        if (isFastViewRoute) return;
         try {
             const psWindow = window as PixelStreamingWindow;
             const videoElementParent = psWindow.ps?.videoElementParent;
@@ -908,7 +917,7 @@ export default function ExperiencePage() {
                 videoElementParent.requestPointerLock();
             }
         } catch { /* best-effort */ }
-    }, []);
+    }, [isFastViewRoute]);
 
     // Sync inspection mode exit with Unreal when the user presses 'X'
     useEffect(() => {
@@ -925,11 +934,13 @@ export default function ExperiencePage() {
     // Release all held keys/mouse buttons whenever an overlay takes focus.
     // This prevents the "running forward forever" bug caused by keyup events
     // being swallowed when a product card, menu, or chat input opens.
+    // Skip on FastView — StreamPixel manages its own input state.
     useEffect(() => {
+        if (isFastViewRoute) return;
         if (activeProduct || isMenuOpen || isCatalogueOpen || isChatFocused) {
             releaseAllInputs();
         }
-    }, [activeProduct, isMenuOpen, isCatalogueOpen, isChatFocused]);
+    }, [activeProduct, isMenuOpen, isCatalogueOpen, isChatFocused, isFastViewRoute]);
 
     // Ensure Unreal Engine state matches React state on video connection/reconnection
     // If the user's connection dropped while inspecting, Unreal remains stuck in inspection

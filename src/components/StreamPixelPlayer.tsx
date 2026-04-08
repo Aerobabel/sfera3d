@@ -435,8 +435,24 @@ export default function StreamPixelPlayer({
                     wrapperElement.appendChild(appStream.rootElement);
                 }
 
+                // Block the SDK's built-in "Click To Restart" / "Click to try again"
+                // clickable overlays. With MaxReconnectAttempts: 0 the SDK still renders
+                // these, and each user click creates a brand-new session on the
+                // Streampixel backend, causing the session leaks seen in the dashboard.
+                const neutralizeClickableOverlays = () => {
+                    wrapperElement
+                        .querySelectorAll<HTMLElement>('[class*="clickableState"], [class*="clickable"]')
+                        .forEach((el) => {
+                            if (el.style.pointerEvents !== 'none') {
+                                el.style.pointerEvents = 'none';
+                                pushDiagnosticEvent('blocked SDK clickable overlay');
+                            }
+                        });
+                };
+
                 domObserver = new MutationObserver(() => {
                     if (cancelled) return;
+                    neutralizeClickableOverlays();
                     syncStreamTextSnapshot();
                     syncVideoElement();
                 });
