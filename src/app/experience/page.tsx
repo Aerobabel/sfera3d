@@ -914,10 +914,12 @@ export default function ExperiencePage() {
 
     // Simulate receiving a "Click" from Unreal
     const simulateUnrealClick = useCallback((id: string) => {
-        // After closing a product card on FastView the SDK re-locks the pointer
-        // on the user's next click, which Unreal also interprets as a product
-        // selection — ignore it briefly to break the re-selection cycle.
-        if (Date.now() < suppressProductSelectionUntilRef.current) return;
+        const now = Date.now();
+        const until = suppressProductSelectionUntilRef.current;
+        if (now < until) {
+            console.info(`[suppress] blocked product selection "${id}" (${Math.round(until - now)}ms left)`);
+            return;
+        }
 
         const product = getProductById(id);
         if (product) {
@@ -987,39 +989,22 @@ export default function ExperiencePage() {
     const handleCloseProductCard = useCallback(() => {
         setActiveProduct(null);
         sendUnrealExitFocus();
-        if (isFastViewRoute) {
-            // Suppress product selections until pointer lock is re-acquired.
-            // The click-to-resume overlay is pointer-events:none so the user's
-            // click goes straight to the SDK which handles re-locking.
-            suppressProductSelectionUntilRef.current = Infinity;
-            setNeedsPointerResume(true);
+        suppressProductSelectionUntilRef.current = Date.now() + 3000;
+        setNeedsPointerResume(true);
+    }, [sendUnrealExitFocus]);
 
-            const onLock = () => {
-                if (document.pointerLockElement) {
-                    setNeedsPointerResume(false);
-                    // Keep suppressing briefly for any in-flight UE response.
-                    setTimeout(() => {
-                        suppressProductSelectionUntilRef.current = 0;
-                    }, 600);
-                    document.removeEventListener('pointerlockchange', onLock);
-                }
-            };
-            document.addEventListener('pointerlockchange', onLock);
-
-            // Safety: clear after 10s.
-            setTimeout(() => {
-                suppressProductSelectionUntilRef.current = 0;
-                setNeedsPointerResume(false);
-                document.removeEventListener('pointerlockchange', onLock);
-            }, 10_000);
-        } else {
-            setNeedsPointerResume(true);
-        }
-    }, [sendUnrealExitFocus, isFastViewRoute]);
+    // Auto-hide click-to-resume overlay when the SDK re-locks the pointer.
+    useEffect(() => {
+        if (!isFastViewRoute || !needsPointerResume) return;
+        const onLock = () => {
+            if (document.pointerLockElement) setNeedsPointerResume(false);
+        };
+        document.addEventListener('pointerlockchange', onLock);
+        return () => document.removeEventListener('pointerlockchange', onLock);
+    }, [isFastViewRoute, needsPointerResume]);
 
     const handleResumePointer = useCallback(() => {
         setNeedsPointerResume(false);
-        // Epic PS only — manually re-lock pointer.
         try {
             const psWindow = window as PixelStreamingWindow;
             const parent = psWindow.ps?.videoElementParent;
