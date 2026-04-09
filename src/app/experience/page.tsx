@@ -437,6 +437,7 @@ export default function ExperiencePage() {
     const [viewerEmail, setViewerEmail] = useState<string | null>(null);
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [needsPointerResume, setNeedsPointerResume] = useState(false);
+    const suppressProductSelectionUntilRef = useRef(0);
     const [isStreamPixelOpen, setIsStreamPixelOpen] = useState(false);
     const [fastViewError, setFastViewError] = useState<string | null>(null);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
@@ -616,15 +617,19 @@ export default function ExperiencePage() {
             document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
         }
 
-        try {
-            const parent = psWindow.ps?.videoElementParent;
-            if (parent && typeof parent.requestPointerLock === 'function') {
-                parent.requestPointerLock();
-            } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
-                videoElement.requestPointerLock();
+        // Pointer lock is Epic Pixel Streaming specific (locked mouse mode);
+        // FastView SDK manages its own pointer lock internally.
+        if (!isFastViewRoute) {
+            try {
+                const parent = psWindow.ps?.videoElementParent;
+                if (parent && typeof parent.requestPointerLock === 'function') {
+                    parent.requestPointerLock();
+                } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
+                    videoElement.requestPointerLock();
+                }
+            } catch (err) {
+                console.warn('Could not automatically lock pointer:', err);
             }
-        } catch (err) {
-            console.warn('Could not automatically lock pointer:', err);
         }
 
         setHasStartedExperience(true);
@@ -895,6 +900,11 @@ export default function ExperiencePage() {
 
     // Simulate receiving a "Click" from Unreal
     const simulateUnrealClick = useCallback((id: string) => {
+        // After closing a product card on FastView the SDK re-locks the pointer
+        // on the user's next click, which Unreal also interprets as a product
+        // selection — ignore it briefly to break the re-selection cycle.
+        if (Date.now() < suppressProductSelectionUntilRef.current) return;
+
         const product = getProductById(id);
         if (product) {
             // Gracefully unlock the mouse so the user can actually interact with the React Product UI
@@ -963,11 +973,18 @@ export default function ExperiencePage() {
     const handleCloseProductCard = useCallback(() => {
         setActiveProduct(null);
         sendUnrealExitFocus();
-        setNeedsPointerResume(true);
+        if (isFastViewRoute) {
+            // Suppress Unreal product selections briefly so the SDK's
+            // pointer-lock re-acquisition click doesn't re-select the product.
+            suppressProductSelectionUntilRef.current = Date.now() + 800;
+        } else {
+            setNeedsPointerResume(true);
+        }
     }, [sendUnrealExitFocus, isFastViewRoute]);
 
     const handleResumePointer = useCallback(() => {
         setNeedsPointerResume(false);
+        if (isFastViewRoute) return;
         try {
             const psWindow = window as PixelStreamingWindow;
             const videoElementParent = psWindow.ps?.videoElementParent;
@@ -975,7 +992,7 @@ export default function ExperiencePage() {
                 videoElementParent.requestPointerLock();
             }
         } catch { /* best-effort */ }
-    }, []);
+    }, [isFastViewRoute]);
 
     // Sync inspection mode exit with Unreal when the user presses 'X'
     useEffect(() => {
@@ -1148,7 +1165,7 @@ export default function ExperiencePage() {
             )}
 
             {/* Click-to-Resume Overlay — shown after closing a product card (Epic PS only) */}
-            {needsPointerResume && hasStartedExperience && !activeProduct && (
+            {!isFastViewRoute && needsPointerResume && hasStartedExperience && !activeProduct && (
                 <div
                     className="absolute inset-0 z-[5] cursor-pointer pointer-events-auto"
                     onClick={handleResumePointer}
