@@ -617,15 +617,20 @@ export default function ExperiencePage() {
             document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
         }
 
-        try {
-            const parent = psWindow.ps?.videoElementParent;
-            if (parent && typeof parent.requestPointerLock === 'function') {
-                parent.requestPointerLock();
-            } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
-                videoElement.requestPointerLock();
+        // Request pointer lock for Epic PS only. The FastView SDK manages
+        // its own pointer lock internally — manual calls desync its state
+        // and break mouse input until Escape + re-click.
+        if (!isFastViewRoute) {
+            try {
+                const parent = psWindow.ps?.videoElementParent;
+                if (parent && typeof parent.requestPointerLock === 'function') {
+                    parent.requestPointerLock();
+                } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
+                    videoElement.requestPointerLock();
+                }
+            } catch (err) {
+                console.warn('Could not automatically lock pointer:', err);
             }
-        } catch (err) {
-            console.warn('Could not automatically lock pointer:', err);
         }
 
         setHasStartedExperience(true);
@@ -970,18 +975,26 @@ export default function ExperiencePage() {
         setActiveProduct(null);
         sendUnrealExitFocus();
         if (isFastViewRoute) {
-            // Re-lock the pointer immediately so the user can orbit right away
-            // without a separate click (which would re-select the product under
-            // the crosshair). The close action (button click / X key) provides
-            // the browser user-activation needed for requestPointerLock().
-            suppressProductSelectionUntilRef.current = Date.now() + 2000;
-            try {
-                const psWindow = window as PixelStreamingWindow;
-                const parent = psWindow.ps?.videoElementParent;
-                if (parent && typeof parent.requestPointerLock === 'function') {
-                    parent.requestPointerLock();
+            // Don't call requestPointerLock() — the SDK must initiate the lock
+            // itself so its internal state stays consistent. Suppress Unreal
+            // product selections until the SDK re-acquires pointer lock on the
+            // user's next click.
+            suppressProductSelectionUntilRef.current = Infinity;
+
+            // Clear suppression as soon as the SDK re-acquires pointer lock.
+            const onPointerLockChange = () => {
+                if (document.pointerLockElement) {
+                    suppressProductSelectionUntilRef.current = 0;
+                    document.removeEventListener('pointerlockchange', onPointerLockChange);
                 }
-            } catch { /* best-effort */ }
+            };
+            document.addEventListener('pointerlockchange', onPointerLockChange);
+
+            // Safety: clear after 10s if pointer lock is never re-acquired.
+            setTimeout(() => {
+                suppressProductSelectionUntilRef.current = 0;
+                document.removeEventListener('pointerlockchange', onPointerLockChange);
+            }, 10_000);
         } else {
             setNeedsPointerResume(true);
         }
