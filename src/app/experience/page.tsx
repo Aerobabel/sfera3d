@@ -617,19 +617,15 @@ export default function ExperiencePage() {
             document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
         }
 
-        // Pointer lock is Epic Pixel Streaming specific (locked mouse mode);
-        // FastView SDK manages its own pointer lock internally.
-        if (!isFastViewRoute) {
-            try {
-                const parent = psWindow.ps?.videoElementParent;
-                if (parent && typeof parent.requestPointerLock === 'function') {
-                    parent.requestPointerLock();
-                } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
-                    videoElement.requestPointerLock();
-                }
-            } catch (err) {
-                console.warn('Could not automatically lock pointer:', err);
+        try {
+            const parent = psWindow.ps?.videoElementParent;
+            if (parent && typeof parent.requestPointerLock === 'function') {
+                parent.requestPointerLock();
+            } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
+                videoElement.requestPointerLock();
             }
+        } catch (err) {
+            console.warn('Could not automatically lock pointer:', err);
         }
 
         setHasStartedExperience(true);
@@ -974,9 +970,18 @@ export default function ExperiencePage() {
         setActiveProduct(null);
         sendUnrealExitFocus();
         if (isFastViewRoute) {
-            // Suppress Unreal product selections briefly so the SDK's
-            // pointer-lock re-acquisition click doesn't re-select the product.
-            suppressProductSelectionUntilRef.current = Date.now() + 800;
+            // Re-lock the pointer immediately so the user can orbit right away
+            // without a separate click (which would re-select the product under
+            // the crosshair). The close action (button click / X key) provides
+            // the browser user-activation needed for requestPointerLock().
+            suppressProductSelectionUntilRef.current = Date.now() + 2000;
+            try {
+                const psWindow = window as PixelStreamingWindow;
+                const parent = psWindow.ps?.videoElementParent;
+                if (parent && typeof parent.requestPointerLock === 'function') {
+                    parent.requestPointerLock();
+                }
+            } catch { /* best-effort */ }
         } else {
             setNeedsPointerResume(true);
         }
