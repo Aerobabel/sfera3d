@@ -617,20 +617,26 @@ export default function ExperiencePage() {
             document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
         }
 
-        // Request pointer lock for Epic PS only. The FastView SDK manages
-        // its own pointer lock internally — manual calls desync its state
-        // and break mouse input until Escape + re-click.
-        if (!isFastViewRoute) {
-            try {
+        // Lock the pointer so the user can orbit immediately.
+        // FastView: lock to videoElement.parentElement — the exact element
+        // the SDK's MouseControllerLocked watches (videoPlayer.getVideoParentElement()).
+        // Epic PS: lock to window.ps.videoElementParent as before.
+        try {
+            if (isFastViewRoute) {
+                const sdkVideoParent = videoElement?.parentElement;
+                if (sdkVideoParent && typeof sdkVideoParent.requestPointerLock === 'function') {
+                    sdkVideoParent.requestPointerLock();
+                }
+            } else {
                 const parent = psWindow.ps?.videoElementParent;
                 if (parent && typeof parent.requestPointerLock === 'function') {
                     parent.requestPointerLock();
                 } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
                     videoElement.requestPointerLock();
                 }
-            } catch (err) {
-                console.warn('Could not automatically lock pointer:', err);
             }
+        } catch (err) {
+            console.warn('Could not automatically lock pointer:', err);
         }
 
         setHasStartedExperience(true);
@@ -974,48 +980,36 @@ export default function ExperiencePage() {
     const handleCloseProductCard = useCallback(() => {
         setActiveProduct(null);
         sendUnrealExitFocus();
+        setNeedsPointerResume(true);
         if (isFastViewRoute) {
-            // Suppress product selections until the SDK re-acquires pointer
-            // lock AND a grace period passes (the UE response from the
-            // lock-acquisition click arrives async over WebRTC).
             suppressProductSelectionUntilRef.current = Infinity;
-            setNeedsPointerResume(true);
-
-            const onPointerLockChange = () => {
-                if (document.pointerLockElement) {
-                    setNeedsPointerResume(false);
-                    // Keep suppressing for 600ms after lock — the UE response
-                    // from the lock click hasn't arrived yet.
-                    setTimeout(() => {
-                        suppressProductSelectionUntilRef.current = 0;
-                    }, 600);
-                    document.removeEventListener('pointerlockchange', onPointerLockChange);
-                }
-            };
-            document.addEventListener('pointerlockchange', onPointerLockChange);
-
-            // Safety: clear after 10s if pointer lock is never re-acquired.
-            setTimeout(() => {
-                suppressProductSelectionUntilRef.current = 0;
-                setNeedsPointerResume(false);
-                document.removeEventListener('pointerlockchange', onPointerLockChange);
-            }, 10_000);
-        } else {
-            setNeedsPointerResume(true);
         }
     }, [sendUnrealExitFocus, isFastViewRoute]);
 
     const handleResumePointer = useCallback(() => {
         setNeedsPointerResume(false);
-        if (isFastViewRoute) return;
+        // Suppress product selections briefly — the overlay caught the click
+        // so nothing reaches UE, but keep as a safety net.
+        if (isFastViewRoute) {
+            suppressProductSelectionUntilRef.current = Date.now() + 600;
+        }
         try {
-            const psWindow = window as PixelStreamingWindow;
-            const videoElementParent = psWindow.ps?.videoElementParent;
-            if (videoElementParent && typeof videoElementParent.requestPointerLock === 'function') {
-                videoElementParent.requestPointerLock();
+            if (isFastViewRoute) {
+                // Lock to videoElement.parentElement — the exact element the
+                // SDK's MouseControllerLocked uses for pointer lock checks.
+                const sdkVideoParent = videoElement?.parentElement;
+                if (sdkVideoParent && typeof sdkVideoParent.requestPointerLock === 'function') {
+                    sdkVideoParent.requestPointerLock();
+                }
+            } else {
+                const psWindow = window as PixelStreamingWindow;
+                const parent = psWindow.ps?.videoElementParent;
+                if (parent && typeof parent.requestPointerLock === 'function') {
+                    parent.requestPointerLock();
+                }
             }
         } catch { /* best-effort */ }
-    }, [isFastViewRoute]);
+    }, [isFastViewRoute, videoElement]);
 
     // Sync inspection mode exit with Unreal when the user presses 'X'
     useEffect(() => {
@@ -1187,13 +1181,12 @@ export default function ExperiencePage() {
                 </div>
             )}
 
-            {/* Click-to-Resume Overlay — shown after closing a product card.
-                Epic PS: pointer-events-auto catches click → manual re-lock.
-                FastView: pointer-events-none lets click pass to SDK for re-lock. */}
+            {/* Click-to-Resume Overlay — catches click so it doesn't reach
+                UE (preventing product re-selection), then re-locks pointer. */}
             {needsPointerResume && hasStartedExperience && !activeProduct && (
                 <div
-                    className={`absolute inset-0 z-[5] ${isFastViewRoute ? 'pointer-events-none' : 'cursor-pointer pointer-events-auto'}`}
-                    onClick={isFastViewRoute ? undefined : handleResumePointer}
+                    className="absolute inset-0 z-[5] cursor-pointer pointer-events-auto"
+                    onClick={handleResumePointer}
                 >
                     <div className="absolute bottom-24 left-1/2 -translate-x-1/2 px-5 py-2 rounded-full bg-black/50 backdrop-blur-md border border-white/10 animate-pulse">
                         <span className="text-xs font-mono text-gray-300 uppercase tracking-[0.16em]">{ui.clickToResume}</span>
