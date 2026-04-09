@@ -348,6 +348,11 @@ export default function StreamPixelPlayer({
             controllerRef.current = null;
             streamRef.current = null;
 
+            // Reset the SDK singleton guard so a subsequent mount can
+            // call StreamPixelApplication again (React Strict Mode, HMR, etc.)
+            (globalThis as Record<string, unknown>).__resetStreamPixelSdk
+                && ((globalThis as Record<string, unknown>).__resetStreamPixelSdk as () => void)();
+
             const psWindow = window as StreamPixelCompatibleWindow;
             if (psWindow.ps === exposedStream) {
                 delete psWindow.ps;
@@ -404,6 +409,11 @@ export default function StreamPixelPlayer({
                 if (typeof streamPixelApplication !== 'function') {
                     throw new Error('StreamPixelApplication export not found.');
                 }
+
+                // Reset the SDK singleton guard in case it's still set from a
+                // previous mount (module stays cached across React re-mounts).
+                (globalThis as Record<string, unknown>).__resetStreamPixelSdk
+                    && ((globalThis as Record<string, unknown>).__resetStreamPixelSdk as () => void)();
 
                 pushDiagnosticEvent('calling StreamPixelApplication (v1.3 async)...');
 
