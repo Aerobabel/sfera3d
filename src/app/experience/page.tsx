@@ -987,34 +987,47 @@ export default function ExperiencePage() {
     const handleCloseProductCard = useCallback(() => {
         setActiveProduct(null);
         sendUnrealExitFocus();
-        setNeedsPointerResume(true);
         if (isFastViewRoute) {
+            // Suppress product selections until pointer lock is re-acquired.
+            // The click-to-resume overlay is pointer-events:none so the user's
+            // click goes straight to the SDK which handles re-locking.
             suppressProductSelectionUntilRef.current = Infinity;
+            setNeedsPointerResume(true);
+
+            const onLock = () => {
+                if (document.pointerLockElement) {
+                    setNeedsPointerResume(false);
+                    // Keep suppressing briefly for any in-flight UE response.
+                    setTimeout(() => {
+                        suppressProductSelectionUntilRef.current = 0;
+                    }, 600);
+                    document.removeEventListener('pointerlockchange', onLock);
+                }
+            };
+            document.addEventListener('pointerlockchange', onLock);
+
+            // Safety: clear after 10s.
+            setTimeout(() => {
+                suppressProductSelectionUntilRef.current = 0;
+                setNeedsPointerResume(false);
+                document.removeEventListener('pointerlockchange', onLock);
+            }, 10_000);
+        } else {
+            setNeedsPointerResume(true);
         }
     }, [sendUnrealExitFocus, isFastViewRoute]);
 
     const handleResumePointer = useCallback(() => {
         setNeedsPointerResume(false);
-        if (isFastViewRoute) {
-            suppressProductSelectionUntilRef.current = Date.now() + 600;
-        }
+        // Epic PS only — manually re-lock pointer.
         try {
-            if (isFastViewRoute) {
-                // Use the exact element captured from the SDK's first pointer
-                // lock — guaranteed to match the SDK's internal check.
-                const lockTarget = sdkPointerLockElementRef.current;
-                if (lockTarget && typeof (lockTarget as HTMLElement).requestPointerLock === 'function') {
-                    (lockTarget as HTMLElement).requestPointerLock();
-                }
-            } else {
-                const psWindow = window as PixelStreamingWindow;
-                const parent = psWindow.ps?.videoElementParent;
-                if (parent && typeof parent.requestPointerLock === 'function') {
-                    parent.requestPointerLock();
-                }
+            const psWindow = window as PixelStreamingWindow;
+            const parent = psWindow.ps?.videoElementParent;
+            if (parent && typeof parent.requestPointerLock === 'function') {
+                parent.requestPointerLock();
             }
         } catch { /* best-effort */ }
-    }, [isFastViewRoute]);
+    }, []);
 
     // Sync inspection mode exit with Unreal when the user presses 'X'
     useEffect(() => {
@@ -1186,12 +1199,15 @@ export default function ExperiencePage() {
                 </div>
             )}
 
-            {/* Click-to-Resume Overlay — catches click so it doesn't reach
-                UE (preventing product re-selection), then re-locks pointer. */}
+            {/* Click-to-Resume Overlay.
+                Epic PS: pointer-events-auto catches click, manually re-locks.
+                FastView: pointer-events-none — click passes to SDK for re-lock,
+                suppression blocks UE product selection, overlay auto-hides on
+                pointerlockchange. */}
             {needsPointerResume && hasStartedExperience && !activeProduct && (
                 <div
-                    className="absolute inset-0 z-[5] cursor-pointer pointer-events-auto"
-                    onClick={handleResumePointer}
+                    className={`absolute inset-0 z-[5] ${isFastViewRoute ? 'pointer-events-none' : 'cursor-pointer pointer-events-auto'}`}
+                    onClick={isFastViewRoute ? undefined : handleResumePointer}
                 >
                     <div className="absolute bottom-24 left-1/2 -translate-x-1/2 px-5 py-2 rounded-full bg-black/50 backdrop-blur-md border border-white/10 animate-pulse">
                         <span className="text-xs font-mono text-gray-300 uppercase tracking-[0.16em]">{ui.clickToResume}</span>
