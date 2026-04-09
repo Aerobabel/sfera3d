@@ -975,16 +975,20 @@ export default function ExperiencePage() {
         setActiveProduct(null);
         sendUnrealExitFocus();
         if (isFastViewRoute) {
-            // Don't call requestPointerLock() — the SDK must initiate the lock
-            // itself so its internal state stays consistent. Suppress Unreal
-            // product selections until the SDK re-acquires pointer lock on the
-            // user's next click.
+            // Suppress product selections until the SDK re-acquires pointer
+            // lock AND a grace period passes (the UE response from the
+            // lock-acquisition click arrives async over WebRTC).
             suppressProductSelectionUntilRef.current = Infinity;
+            setNeedsPointerResume(true);
 
-            // Clear suppression as soon as the SDK re-acquires pointer lock.
             const onPointerLockChange = () => {
                 if (document.pointerLockElement) {
-                    suppressProductSelectionUntilRef.current = 0;
+                    setNeedsPointerResume(false);
+                    // Keep suppressing for 600ms after lock — the UE response
+                    // from the lock click hasn't arrived yet.
+                    setTimeout(() => {
+                        suppressProductSelectionUntilRef.current = 0;
+                    }, 600);
                     document.removeEventListener('pointerlockchange', onPointerLockChange);
                 }
             };
@@ -993,6 +997,7 @@ export default function ExperiencePage() {
             // Safety: clear after 10s if pointer lock is never re-acquired.
             setTimeout(() => {
                 suppressProductSelectionUntilRef.current = 0;
+                setNeedsPointerResume(false);
                 document.removeEventListener('pointerlockchange', onPointerLockChange);
             }, 10_000);
         } else {
@@ -1182,11 +1187,13 @@ export default function ExperiencePage() {
                 </div>
             )}
 
-            {/* Click-to-Resume Overlay — shown after closing a product card (Epic PS only) */}
-            {!isFastViewRoute && needsPointerResume && hasStartedExperience && !activeProduct && (
+            {/* Click-to-Resume Overlay — shown after closing a product card.
+                Epic PS: pointer-events-auto catches click → manual re-lock.
+                FastView: pointer-events-none lets click pass to SDK for re-lock. */}
+            {needsPointerResume && hasStartedExperience && !activeProduct && (
                 <div
-                    className="absolute inset-0 z-[5] cursor-pointer pointer-events-auto"
-                    onClick={handleResumePointer}
+                    className={`absolute inset-0 z-[5] ${isFastViewRoute ? 'pointer-events-none' : 'cursor-pointer pointer-events-auto'}`}
+                    onClick={isFastViewRoute ? undefined : handleResumePointer}
                 >
                     <div className="absolute bottom-24 left-1/2 -translate-x-1/2 px-5 py-2 rounded-full bg-black/50 backdrop-blur-md border border-white/10 animate-pulse">
                         <span className="text-xs font-mono text-gray-300 uppercase tracking-[0.16em]">{ui.clickToResume}</span>
