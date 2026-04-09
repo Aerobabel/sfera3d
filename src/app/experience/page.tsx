@@ -438,6 +438,7 @@ export default function ExperiencePage() {
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [needsPointerResume, setNeedsPointerResume] = useState(false);
     const suppressProductSelectionUntilRef = useRef(0);
+    const sdkPointerLockElementRef = useRef<Element | null>(null);
     const [isStreamPixelOpen, setIsStreamPixelOpen] = useState(false);
     const [fastViewError, setFastViewError] = useState<string | null>(null);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
@@ -450,6 +451,18 @@ export default function ExperiencePage() {
     useEffect(() => {
         setIsMobile(detectMobileDevice());
     }, []);
+
+    // Capture the exact element the SDK locks the pointer to on its first
+    // lock so we can re-lock to the same element after closing product cards.
+    useEffect(() => {
+        if (!isFastViewRoute) return;
+        const capture = () => {
+            const el = document.pointerLockElement;
+            if (el) sdkPointerLockElementRef.current = el;
+        };
+        document.addEventListener('pointerlockchange', capture);
+        return () => document.removeEventListener('pointerlockchange', capture);
+    }, [isFastViewRoute]);
 
     useEffect(() => {
         const updateOrientation = () => {
@@ -617,26 +630,20 @@ export default function ExperiencePage() {
             document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
         }
 
-        // Lock the pointer so the user can orbit immediately.
-        // FastView: lock to videoElement.parentElement — the exact element
-        // the SDK's MouseControllerLocked watches (videoPlayer.getVideoParentElement()).
-        // Epic PS: lock to window.ps.videoElementParent as before.
-        try {
-            if (isFastViewRoute) {
-                const sdkVideoParent = videoElement?.parentElement;
-                if (sdkVideoParent && typeof sdkVideoParent.requestPointerLock === 'function') {
-                    sdkVideoParent.requestPointerLock();
-                }
-            } else {
+        // Epic PS: lock pointer manually on start.
+        // FastView: let the SDK handle the first lock on the user's next
+        // click so we can capture the exact element via pointerlockchange.
+        if (!isFastViewRoute) {
+            try {
                 const parent = psWindow.ps?.videoElementParent;
                 if (parent && typeof parent.requestPointerLock === 'function') {
                     parent.requestPointerLock();
                 } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
                     videoElement.requestPointerLock();
                 }
+            } catch (err) {
+                console.warn('Could not automatically lock pointer:', err);
             }
-        } catch (err) {
-            console.warn('Could not automatically lock pointer:', err);
         }
 
         setHasStartedExperience(true);
@@ -988,18 +995,16 @@ export default function ExperiencePage() {
 
     const handleResumePointer = useCallback(() => {
         setNeedsPointerResume(false);
-        // Suppress product selections briefly — the overlay caught the click
-        // so nothing reaches UE, but keep as a safety net.
         if (isFastViewRoute) {
             suppressProductSelectionUntilRef.current = Date.now() + 600;
         }
         try {
             if (isFastViewRoute) {
-                // Lock to videoElement.parentElement — the exact element the
-                // SDK's MouseControllerLocked uses for pointer lock checks.
-                const sdkVideoParent = videoElement?.parentElement;
-                if (sdkVideoParent && typeof sdkVideoParent.requestPointerLock === 'function') {
-                    sdkVideoParent.requestPointerLock();
+                // Use the exact element captured from the SDK's first pointer
+                // lock — guaranteed to match the SDK's internal check.
+                const lockTarget = sdkPointerLockElementRef.current;
+                if (lockTarget && typeof (lockTarget as HTMLElement).requestPointerLock === 'function') {
+                    (lockTarget as HTMLElement).requestPointerLock();
                 }
             } else {
                 const psWindow = window as PixelStreamingWindow;
@@ -1009,7 +1014,7 @@ export default function ExperiencePage() {
                 }
             }
         } catch { /* best-effort */ }
-    }, [isFastViewRoute, videoElement]);
+    }, [isFastViewRoute]);
 
     // Sync inspection mode exit with Unreal when the user presses 'X'
     useEffect(() => {
