@@ -616,19 +616,15 @@ export default function ExperiencePage() {
             document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
         }
 
-        // Pointer lock is Epic Pixel Streaming specific (locked mouse mode);
-        // FastView uses hovering mouse so skip the lock request.
-        if (!isFastViewRoute) {
-            try {
-                const parent = psWindow.ps?.videoElementParent;
-                if (parent && typeof parent.requestPointerLock === 'function') {
-                    parent.requestPointerLock();
-                } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
-                    videoElement.requestPointerLock();
-                }
-            } catch (err) {
-                console.warn('Could not automatically lock pointer:', err);
+        try {
+            const parent = psWindow.ps?.videoElementParent;
+            if (parent && typeof parent.requestPointerLock === 'function') {
+                parent.requestPointerLock();
+            } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
+                videoElement.requestPointerLock();
             }
+        } catch (err) {
+            console.warn('Could not automatically lock pointer:', err);
         }
 
         setHasStartedExperience(true);
@@ -967,18 +963,11 @@ export default function ExperiencePage() {
     const handleCloseProductCard = useCallback(() => {
         setActiveProduct(null);
         sendUnrealExitFocus();
-        // On Epic PS (locked pointer), show the resume overlay so the user
-        // can interact with chat/menu before re-locking. On FastView
-        // (hovering mouse), no resume overlay needed.
-        if (!isFastViewRoute) {
-            setNeedsPointerResume(true);
-        }
+        setNeedsPointerResume(true);
     }, [sendUnrealExitFocus, isFastViewRoute]);
 
     const handleResumePointer = useCallback(() => {
         setNeedsPointerResume(false);
-        // Pointer lock is Epic Pixel Streaming specific; skip on FastView.
-        if (isFastViewRoute) return;
         try {
             const psWindow = window as PixelStreamingWindow;
             const videoElementParent = psWindow.ps?.videoElementParent;
@@ -986,7 +975,7 @@ export default function ExperiencePage() {
                 videoElementParent.requestPointerLock();
             }
         } catch { /* best-effort */ }
-    }, [isFastViewRoute]);
+    }, []);
 
     // Sync inspection mode exit with Unreal when the user presses 'X'
     useEffect(() => {
@@ -1159,7 +1148,7 @@ export default function ExperiencePage() {
             )}
 
             {/* Click-to-Resume Overlay — shown after closing a product card (Epic PS only) */}
-            {!isFastViewRoute && needsPointerResume && hasStartedExperience && !activeProduct && (
+            {needsPointerResume && hasStartedExperience && !activeProduct && (
                 <div
                     className="absolute inset-0 z-[5] cursor-pointer pointer-events-auto"
                     onClick={handleResumePointer}
@@ -1197,7 +1186,7 @@ export default function ExperiencePage() {
             {/* Overlay UI (Z-Index 10) */}
             {showExperienceHud && (
                 <div className="absolute inset-0 z-10 pointer-events-none">
-                    {!isFastViewRoute && <MarketplaceCrosshair />}
+                    <MarketplaceCrosshair />
                     <div className="flex flex-col h-full justify-between p-4 md:p-6 lg:p-8">
 
                     {/* Header */}
