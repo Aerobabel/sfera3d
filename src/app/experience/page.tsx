@@ -37,6 +37,9 @@ type PixelStreamingWindow = Window & {
 };
 const DEFAULT_MOUSE_SENSITIVITY = 0.85;
 
+// Module-level suppression — avoids any React ref/closure timing issues.
+let _suppressProductSelectionUntil = 0;
+
 const COMMON_KEY_CODES_TO_RELEASE = [87, 65, 83, 68, 38, 37, 40, 39, 32, 16, 17, 18, 88, 70, 84];
 const NORMALIZED_CENTER = 32768;
 
@@ -437,8 +440,6 @@ export default function ExperiencePage() {
     const [viewerEmail, setViewerEmail] = useState<string | null>(null);
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [needsPointerResume, setNeedsPointerResume] = useState(false);
-    const suppressProductSelectionUntilRef = useRef(0);
-    const sdkPointerLockElementRef = useRef<Element | null>(null);
     const [isStreamPixelOpen, setIsStreamPixelOpen] = useState(false);
     const [fastViewError, setFastViewError] = useState<string | null>(null);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
@@ -452,17 +453,6 @@ export default function ExperiencePage() {
         setIsMobile(detectMobileDevice());
     }, []);
 
-    // Capture the exact element the SDK locks the pointer to on its first
-    // lock so we can re-lock to the same element after closing product cards.
-    useEffect(() => {
-        if (!isFastViewRoute) return;
-        const capture = () => {
-            const el = document.pointerLockElement;
-            if (el) sdkPointerLockElementRef.current = el;
-        };
-        document.addEventListener('pointerlockchange', capture);
-        return () => document.removeEventListener('pointerlockchange', capture);
-    }, [isFastViewRoute]);
 
     useEffect(() => {
         const updateOrientation = () => {
@@ -915,9 +905,8 @@ export default function ExperiencePage() {
     // Simulate receiving a "Click" from Unreal
     const simulateUnrealClick = useCallback((id: string) => {
         const now = Date.now();
-        const until = suppressProductSelectionUntilRef.current;
-        if (now < until) {
-            console.info(`[suppress] blocked product selection "${id}" (${Math.round(until - now)}ms left)`);
+        if (now < _suppressProductSelectionUntil) {
+            console.info(`[suppress] blocked "${id}" (${Math.round(_suppressProductSelectionUntil - now)}ms left)`);
             return;
         }
 
@@ -987,9 +976,10 @@ export default function ExperiencePage() {
     }, []);
 
     const handleCloseProductCard = useCallback(() => {
+        _suppressProductSelectionUntil = Date.now() + 3000;
+        console.info(`[suppress] armed for 3s (until ${_suppressProductSelectionUntil})`);
         setActiveProduct(null);
         sendUnrealExitFocus();
-        suppressProductSelectionUntilRef.current = Date.now() + 3000;
         setNeedsPointerResume(true);
     }, [sendUnrealExitFocus]);
 
