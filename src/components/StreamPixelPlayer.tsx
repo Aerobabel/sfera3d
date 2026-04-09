@@ -386,14 +386,11 @@ export default function StreamPixelPlayer({
                 }
 
                 const suppressSdkOverlays = () => {
-                    wrapperElement
-                        .querySelectorAll<HTMLElement>('[class*="clickableState"], [class*="clickable"]')
-                        .forEach((el) => {
-                            if (el.style.pointerEvents !== 'none') {
-                                el.style.pointerEvents = 'none';
-                                logEvent('blocked SDK clickable overlay');
-                            }
-                        });
+                    // NOTE: Do NOT disable pointer-events on [class*="clickable"]
+                    // elements — those are the SDK's click-to-lock-pointer handlers.
+                    // Disabling them prevents pointer lock acquisition and breaks
+                    // mouse orbit. The player container sits at z-0 so React UI at
+                    // z-10+ still receives clicks normally.
 
                     wrapperElement
                         .querySelectorAll<HTMLElement>('div')
