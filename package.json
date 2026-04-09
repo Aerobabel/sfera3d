@@ -17,7 +17,7 @@
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "streampixelsdk": "github:infinity-void-metaverse/Streampixel-Web-SDK#release/v1.0.0",
+    "streampixelsdk": "github:infinity-void-metaverse/Streampixel-Web-SDK#latest",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {

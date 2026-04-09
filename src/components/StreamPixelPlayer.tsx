@@ -395,37 +395,6 @@ export default function StreamPixelPlayer({
 
         const initialize = async () => {
             try {
-                // Fetch project config from Streampixel API before initializing
-                // the SDK. The share page does this same call to resolve the
-                // region, SFU hosts, codec preferences, and other settings that
-                // the SDK needs to connect to the correct signalling server.
-                pushDiagnosticEvent('fetching project config from API...');
-                const projectResponse = await fetch(
-                    `https://api.streampixel.io/pixelStripeApi/projects/streamAuth/${trimmedAppId}`
-                );
-                if (cancelled) return;
-
-                if (!projectResponse.ok) {
-                    throw new Error(`Streampixel API returned ${projectResponse.status}`);
-                }
-
-                const projectConfig = await projectResponse.json() as Record<string, unknown>;
-                if (cancelled) return;
-
-                const projectRegion = (projectConfig.region as string) ?? '';
-                const projectStatus = projectConfig.status as boolean;
-                const appName = (projectConfig.appName as string) ?? '';
-
-                pushDiagnosticEvent(`project region: ${projectRegion || 'none'}, status: ${projectStatus}`);
-
-                if (!projectStatus) {
-                    throw new Error('Project is disabled on Streampixel dashboard.');
-                }
-
-                if (!appName || appName.trim().length < 5 || !appName.toLowerCase().includes('.exe')) {
-                    throw new Error('No live build has been published on Streampixel.');
-                }
-
                 const sdkModule = await importRuntimeModule('/streampixel-sdk') as StreamPixelSdkModule;
                 if (cancelled) return;
 
@@ -436,40 +405,33 @@ export default function StreamPixelPlayer({
                     throw new Error('StreamPixelApplication export not found.');
                 }
 
-                // Use the region from the API, falling back to env override.
-                const region =
-                    process.env.NEXT_PUBLIC_FASTVIEW_STREAM_REGION?.trim() || projectRegion;
+                pushDiagnosticEvent('calling StreamPixelApplication (v1.3 async)...');
 
-                pushDiagnosticEvent(`connecting with region: ${region || 'default'}`);
-
-                const { appStream, pixelStreaming } = streamPixelApplication({
+                // The v1.3 SDK fetches project config (region, codecs, signalling
+                // URL) from Streampixel's API internally and returns a Promise.
+                // Only appId and AutoConnect are required — the SDK resolves
+                // everything else from the dashboard project settings.
+                const result = await (streamPixelApplication as (config: Record<string, unknown>) => Promise<StreamPixelSdkResult>)({
+                    appId: trimmedAppId,
+                    AutoConnect: true,
                     AutoPlayVideo: true,
                     StartVideoMuted: true,
-                    AutoConnect: true,
                     MaxReconnectAttempts: 0,
-                    useMic: (projectConfig.showMic as boolean) ?? false,
-                    appId: trimmedAppId,
-                    region,
-                    touchInput: (projectConfig.touchInput as boolean) ?? true,
-                    mouseInput: (projectConfig.mouseInput as boolean) ?? true,
-                    gamepadInput: (projectConfig.gamepadInput as boolean) ?? false,
-                    resolution: (projectConfig.resolution as boolean) ?? true,
                     hoverMouse: useHoveringMouse,
                     keyBoardInput: keyboardInputEnabledRef.current,
                     fakeMouseWithTouches: emulateMouseFromTouches,
-                    xrInput: (projectConfig.xrInput as boolean) ?? false,
-                    afktimeout: (projectConfig.afktimeout as number) ?? 10,
-                    primaryCodec: (projectConfig.primaryCodec as string) ?? undefined,
-                    fallBackCodec: (projectConfig.fallbaCodec as string) ?? undefined,
                     resX: window.innerWidth,
                     resY: window.innerHeight,
                 });
 
                 if (cancelled) {
-                    pixelStreaming?.disconnect?.();
-                    appStream?.stream?.disconnect?.();
+                    result?.pixelStreaming?.disconnect?.();
+                    result?.appStream?.stream?.disconnect?.();
                     return;
                 }
+
+                const { appStream, pixelStreaming } = result;
+                pushDiagnosticEvent('SDK initialized successfully');
 
                 if (appStream?.rootElement instanceof HTMLElement) {
                     wrapperElement.appendChild(appStream.rootElement);
