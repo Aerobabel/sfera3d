@@ -230,6 +230,59 @@ const EXPERIENCE_COPY: Record<
     },
 };
 
+const FASTVIEW_LAUNCH_COPY: Record<
+    AppLanguage,
+    {
+        eyebrow: string;
+        loadingTitle: string;
+        loadingBody: string;
+        readyTitle: string;
+        readyBody: string;
+        connectingCta: string;
+        enterCta: string;
+        errorTitle: string;
+        errorBody: string;
+        retryCta: string;
+    }
+> = {
+    en: {
+        eyebrow: 'FastView Access',
+        loadingTitle: 'Preparing your live showroom',
+        loadingBody: 'We are waking the stream and loading controls. This usually takes a few moments.',
+        readyTitle: 'Your session is ready',
+        readyBody: 'Enter once to enable audio, language sync, and interactive controls.',
+        connectingCta: 'Connecting...',
+        enterCta: 'Enter FastView',
+        errorTitle: 'Unable to start FastView',
+        errorBody: 'Refresh the page to request a new session and try again.',
+        retryCta: 'Refresh page',
+    },
+    ru: {
+        eyebrow: '\u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0432\u0445\u043E\u0434',
+        loadingTitle: '\u0413\u043E\u0442\u043E\u0432\u0438\u043C \u0432\u0430\u0448 \u043E\u043D\u043B\u0430\u0439\u043D-\u0448\u043E\u0443\u0440\u0443\u043C',
+        loadingBody: '\u0417\u0430\u043F\u0443\u0441\u043A\u0430\u0435\u043C \u0441\u0442\u0440\u0438\u043C \u0438 \u0437\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u043C \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435. \u041E\u0431\u044B\u0447\u043D\u043E \u044D\u0442\u043E \u0437\u0430\u043D\u0438\u043C\u0430\u0435\u0442 \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0441\u0435\u043A\u0443\u043D\u0434.',
+        readyTitle: '\u0421\u0435\u0430\u043D\u0441 \u0433\u043E\u0442\u043E\u0432',
+        readyBody: '\u041D\u0430\u0436\u043C\u0438\u0442\u0435, \u0447\u0442\u043E\u0431\u044B \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0437\u0432\u0443\u043A, \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u044E \u044F\u0437\u044B\u043A\u0430 \u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435.',
+        connectingCta: '\u041F\u043E\u0434\u043A\u043B\u044E\u0447\u0430\u0435\u043C...',
+        enterCta: '\u0412\u043E\u0439\u0442\u0438 \u0432 FastView',
+        errorTitle: '\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C FastView',
+        errorBody: '\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u0435 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u043F\u0440\u043E\u0441\u0438\u0442\u044C \u043D\u043E\u0432\u044B\u0439 \u0441\u0435\u0430\u043D\u0441 \u0438 \u043F\u043E\u043F\u0440\u043E\u0431\u043E\u0432\u0430\u0442\u044C \u0441\u043D\u043E\u0432\u0430.',
+        retryCta: '\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443',
+    },
+    zh: {
+        eyebrow: '\u5FEB\u901F\u8FDB\u5165',
+        loadingTitle: '\u6B63\u5728\u51C6\u5907\u4F60\u7684\u76F4\u64AD\u5C55\u5385',
+        loadingBody: '\u6211\u4EEC\u6B63\u5728\u5524\u9192\u6D41\u5A92\u4F53\u5E76\u52A0\u8F7D\u4EA4\u4E92\u63A7\u4EF6\u3002\u8FD9\u901A\u5E38\u53EA\u9700\u51E0\u79D2\u949F\u3002',
+        readyTitle: '\u4F1A\u8BDD\u5DF2\u5C31\u7EEA',
+        readyBody: '\u70B9\u51FB\u4E00\u6B21\u5373\u53EF\u542F\u7528\u97F3\u9891\u3001\u8BED\u8A00\u540C\u6B65\u548C\u4EA4\u4E92\u63A7\u5236\u3002',
+        connectingCta: '\u8FDE\u63A5\u4E2D...',
+        enterCta: '\u8FDB\u5165 FastView',
+        errorTitle: '\u65E0\u6CD5\u542F\u52A8 FastView',
+        errorBody: '\u8BF7\u5237\u65B0\u9875\u9762\u4EE5\u7533\u8BF7\u65B0\u4F1A\u8BDD\u5E76\u91CD\u8BD5\u3002',
+        retryCta: '\u5237\u65B0\u9875\u9762',
+    },
+};
+
 const extractProductIdFromUnrealPayload = (payload: unknown): string | null => {
     if (typeof payload === 'string') {
         const value = payload.trim();
@@ -331,6 +384,7 @@ export default function ExperiencePage() {
     const isFastViewRoute = pathname === '/fastview';
     const { language } = useLanguage();
     const ui = EXPERIENCE_COPY[language];
+    const fastViewLaunch = FASTVIEW_LAUNCH_COPY[language];
     const accountLabel =
         language === 'ru'
             ? '\u0412\u044B \u0432\u043E\u0448\u043B\u0438 \u043A\u0430\u043A'
@@ -379,11 +433,12 @@ export default function ExperiencePage() {
     const [isLandscape, setIsLandscape] = useState(true);
     const [mobileInputMode] = useState<MobileInputMode>('joystick');
     const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
-    const [isDesktopChatOpen, setIsDesktopChatOpen] = useState(true);
+    const [isDesktopChatOpen, setIsDesktopChatOpen] = useState(() => !isFastViewRoute);
     const [viewerEmail, setViewerEmail] = useState<string | null>(null);
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [needsPointerResume, setNeedsPointerResume] = useState(false);
     const [isStreamPixelOpen, setIsStreamPixelOpen] = useState(false);
+    const [fastViewError, setFastViewError] = useState<string | null>(null);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
 
     const handleSensitivityChange = useCallback((value: number) => {
@@ -480,6 +535,7 @@ export default function ExperiencePage() {
 
     const handleStartExperience = useCallback(() => {
         if (hasStartedExperience) return;
+        if (isFastViewRoute && !videoElement) return;
 
         // Flip the library's StartVideoMuted flag so that any subsequent
         // playStream() / play() calls inside the library no longer re-mute.
@@ -578,14 +634,6 @@ export default function ExperiencePage() {
         setHasStartedExperience(true);
     }, [hasStartedExperience, videoElement, language, isFastViewRoute]);
 
-    // On FastView there is no "Tap to Start" overlay, so auto-trigger
-    // handleStartExperience as soon as the video element is available.
-    useEffect(() => {
-        if (isFastViewRoute && videoElement && !hasStartedExperience) {
-            handleStartExperience();
-        }
-    }, [isFastViewRoute, videoElement, hasStartedExperience, handleStartExperience]);
-
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
     const streamPixelPreviewUrl = useMemo(
         () => process.env.NEXT_PUBLIC_FASTVIEW_STREAM_URL?.trim() || buildStreamPixelPreviewUrl(fastViewAppId),
@@ -602,6 +650,22 @@ export default function ExperiencePage() {
         ? 'Type message to supplier...'
         : ui.inputPlaceholder;
     const isChatPanelOpen = isMobile ? isMobileChatOpen : isDesktopChatOpen;
+    const showFastViewLaunchOverlay = isFastViewRoute && (!hasStartedExperience || Boolean(fastViewError));
+    const showExperienceHud = !isFastViewRoute || !showFastViewLaunchOverlay;
+    const canEnterFastView = Boolean(videoElement) && !fastViewError;
+    const fastViewLaunchTitle = fastViewError
+        ? fastViewLaunch.errorTitle
+        : canEnterFastView
+          ? fastViewLaunch.readyTitle
+          : fastViewLaunch.loadingTitle;
+    const fastViewLaunchDescription = fastViewError
+        ? fastViewLaunch.errorBody
+        : canEnterFastView
+          ? fastViewLaunch.readyBody
+          : fastViewLaunch.loadingBody;
+    const handleReloadPage = () => {
+        window.location.reload();
+    };
 
     const toggleChatPanel = () => {
         if (isMobile) {
@@ -983,6 +1047,7 @@ export default function ExperiencePage() {
                         appId={fastViewAppId}
                         onPixelStreamingResponse={handlePixelStreamingResponse}
                         onVideoInitialized={setVideoElement}
+                        onConnectionError={setFastViewError}
                         mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
                         isMobileDevice={isMobile}
                         keyboardInputEnabled={!isChatFocused}
@@ -1006,7 +1071,82 @@ export default function ExperiencePage() {
                 )}
             </div>
 
-            {/* Tap To Start Overlay — Epic Pixel Streaming only; FastView auto-starts */}
+            {/* FastView launch overlay */}
+            {showFastViewLaunchOverlay && (
+                <div className="absolute inset-0 z-[120] flex items-center justify-center bg-[radial-gradient(circle_at_top,rgba(102,217,203,0.16),transparent_42%),linear-gradient(160deg,rgba(3,8,14,0.92),rgba(6,13,24,0.78))] px-4 py-6">
+                    <div className="w-full max-w-xl overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(160deg,rgba(5,10,18,0.92),rgba(10,18,31,0.82))] shadow-[0_32px_120px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+                        <div className="border-b border-white/10 px-6 py-4 sm:px-8">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#66d9cb]">
+                                {fastViewLaunch.eyebrow}
+                            </p>
+                        </div>
+                        <div className="px-6 py-6 sm:px-8 sm:py-8">
+                            <div className="flex items-start gap-4">
+                                <div className="mt-1 h-11 w-11 shrink-0 rounded-2xl border border-[#66d9cb]/45 bg-[#66d9cb]/12 shadow-[0_0_30px_rgba(102,217,203,0.22)]" />
+                                <div>
+                                    <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                                        {fastViewLaunchTitle}
+                                    </h2>
+                                    <p className="mt-3 max-w-lg text-sm leading-6 text-slate-300 sm:text-[15px]">
+                                        {fastViewLaunchDescription}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {!fastViewError && (
+                                <div className="mt-6 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
+                                    <div className="relative flex h-3 w-3 shrink-0">
+                                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#66d9cb]/80 opacity-75"></span>
+                                        <span className="relative inline-flex h-3 w-3 rounded-full bg-[#66d9cb]"></span>
+                                    </div>
+                                    <span>
+                                        {canEnterFastView ? fastViewLaunch.readyBody : fastViewLaunch.loadingBody}
+                                    </span>
+                                </div>
+                            )}
+
+                            {fastViewError && (
+                                <div className="mt-6 rounded-2xl border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-50">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-200/80">
+                                        {fastViewLaunch.errorTitle}
+                                    </p>
+                                    <p className="mt-2 break-words text-amber-50/90">{fastViewError}</p>
+                                </div>
+                            )}
+
+                            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                                {fastViewError ? (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={handleReloadPage}
+                                            className="inline-flex items-center justify-center rounded-2xl bg-[#66d9cb] px-5 py-3 text-sm font-semibold text-[#04110f] transition hover:bg-[#84e7dd]"
+                                        >
+                                            {fastViewLaunch.retryCta}
+                                        </button>
+                                        <Link
+                                            href="/"
+                                            className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                                        >
+                                            {returnHomeLabel}
+                                        </Link>
+                                    </>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={handleStartExperience}
+                                        disabled={!canEnterFastView}
+                                        className="inline-flex items-center justify-center rounded-2xl bg-[#66d9cb] px-5 py-3 text-sm font-semibold text-[#04110f] transition hover:bg-[#84e7dd] disabled:cursor-wait disabled:bg-[#66d9cb]/55 disabled:text-[#04110f]/70"
+                                    >
+                                        {canEnterFastView ? fastViewLaunch.enterCta : fastViewLaunch.connectingCta}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+            </div>
+            )}
+
             {!isFastViewRoute && videoElement && !hasStartedExperience && (
                 <div 
                     className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-[2px] cursor-pointer pointer-events-auto transition-opacity duration-1000"
@@ -1055,9 +1195,10 @@ export default function ExperiencePage() {
             )}
 
             {/* Overlay UI (Z-Index 10) */}
-            <div className="absolute inset-0 z-10 pointer-events-none">
-                {!isFastViewRoute && <MarketplaceCrosshair />}
-                <div className="flex flex-col h-full justify-between p-4 md:p-6 lg:p-8">
+            {showExperienceHud && (
+                <div className="absolute inset-0 z-10 pointer-events-none">
+                    {!isFastViewRoute && <MarketplaceCrosshair />}
+                    <div className="flex flex-col h-full justify-between p-4 md:p-6 lg:p-8">
 
                     {/* Header */}
                     <header className="flex justify-between items-start pointer-events-none w-full z-50">
@@ -1184,7 +1325,7 @@ export default function ExperiencePage() {
                         />
                     )}
 
-                    {/* Chat / Interaction Area — Epic Pixel Streaming only */}
+                    {/* Chat / Interaction Area */}
                     <div className="flex justify-end pointer-events-none gap-3">
                         {/* Chat Box */}
                         {isChatPanelOpen && (
@@ -1317,11 +1458,12 @@ export default function ExperiencePage() {
                             </div>
                         )}
                     </div>
+                    </div>
                 </div>
-            </div >
+            )}
 
-            {/* Mobile Controls (Z-Index 50 - Topmost) — Epic Pixel Streaming only */}
-            {isMobile && isLandscape && mobileInputMode === 'joystick' && (
+            {/* Mobile Controls (Z-Index 50 - Topmost) */}
+            {showExperienceHud && isMobile && isLandscape && mobileInputMode === 'joystick' && (
                 <MobileControls videoElement={videoElement} lookSensitivity={mouseSensitivity} />
             )}
 
