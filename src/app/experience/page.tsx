@@ -535,35 +535,34 @@ export default function ExperiencePage() {
             if (attempts >= 10) window.clearInterval(audioPoller);
         }, 500);
 
-        // Language keycodes and pointer lock are Epic Pixel Streaming specific;
-        // skip them on the FastView (StreamPixel) route.
+        // Send the language keycode to UE so it switches to the correct locale.
+        // This works on both Epic PS and FastView (same UE build).
+        const psWindow = window as PixelStreamingWindow;
+        const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
+        const keyUpHandler = psWindow.ps?.toStreamerHandlers?.get('KeyUp');
+
+        let keyCode = 50; // '2' for en
+        if (language === 'zh') keyCode = 48; // '0' for zh
+        else if (language === 'ru') keyCode = 49; // '1' for ru
+
+        if (keyDownHandler && keyUpHandler) {
+            keyDownHandler([keyCode, 0]);
+            keyUpHandler([keyCode]);
+        } else {
+            const keyString = String.fromCharCode(keyCode);
+            const keyboardEventInit: KeyboardEventInit = {
+                key: keyString,
+                code: `Digit${keyString}`,
+                bubbles: true,
+                cancelable: true,
+            };
+            document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
+            document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
+        }
+
+        // Pointer lock is Epic Pixel Streaming specific (locked mouse mode);
+        // FastView uses hovering mouse so skip the lock request.
         if (!isFastViewRoute) {
-            const psWindow = window as PixelStreamingWindow;
-            const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
-            const keyUpHandler = psWindow.ps?.toStreamerHandlers?.get('KeyUp');
-
-            let keyCode = 50; // '2' for en
-            if (language === 'zh') keyCode = 48; // '0' for zh
-            else if (language === 'ru') keyCode = 49; // '1' for ru
-
-            if (keyDownHandler && keyUpHandler) {
-                keyDownHandler([keyCode, 0]);
-                keyUpHandler([keyCode]);
-            } else {
-                const keyString = String.fromCharCode(keyCode);
-                const keyboardEventInit: KeyboardEventInit = {
-                    key: keyString,
-                    code: `Digit${keyString}`,
-                    bubbles: true,
-                    cancelable: true,
-                };
-                document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
-                document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
-            }
-
-            // Automatically request pointer lock so the user doesn't have to click a second time.
-            // We MUST lock on the `videoElementParent` so the epicgames-ps library recognizes the lock state
-            // and attaches the `mousemove` handlers correctly for camera orbit.
             try {
                 const parent = psWindow.ps?.videoElementParent;
                 if (parent && typeof parent.requestPointerLock === 'function') {
@@ -578,6 +577,14 @@ export default function ExperiencePage() {
 
         setHasStartedExperience(true);
     }, [hasStartedExperience, videoElement, language, isFastViewRoute]);
+
+    // On FastView there is no "Tap to Start" overlay, so auto-trigger
+    // handleStartExperience as soon as the video element is available.
+    useEffect(() => {
+        if (isFastViewRoute && videoElement && !hasStartedExperience) {
+            handleStartExperience();
+        }
+    }, [isFastViewRoute, videoElement, hasStartedExperience, handleStartExperience]);
 
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
     const streamPixelPreviewUrl = useMemo(
@@ -872,9 +879,6 @@ export default function ExperiencePage() {
     };
 
     const sendUnrealExitFocus = useCallback(() => {
-        // Exit-focus key is Epic Pixel Streaming specific; no-op on FastView.
-        if (isFastViewRoute) return;
-
         const psWindow = window as PixelStreamingWindow;
         const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
         const keyUpHandler = psWindow.ps?.toStreamerHandlers?.get('KeyUp');
@@ -894,17 +898,18 @@ export default function ExperiencePage() {
         };
         document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
         document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
-    }, [isFastViewRoute]);
+    }, []);
 
     const handleCloseProductCard = useCallback(() => {
         setActiveProduct(null);
         sendUnrealExitFocus();
-        // Show the resume overlay instead of force-locking pointer.
-        // This lets the user scroll the chat / use menu before resuming,
-        // while preventing the next click from accidentally selecting a
-        // product in UE.
-        setNeedsPointerResume(true);
-    }, [sendUnrealExitFocus]);
+        // On Epic PS (locked pointer), show the resume overlay so the user
+        // can interact with chat/menu before re-locking. On FastView
+        // (hovering mouse), no resume overlay needed.
+        if (!isFastViewRoute) {
+            setNeedsPointerResume(true);
+        }
+    }, [sendUnrealExitFocus, isFastViewRoute]);
 
     const handleResumePointer = useCallback(() => {
         setNeedsPointerResume(false);
@@ -934,13 +939,11 @@ export default function ExperiencePage() {
     // Release all held keys/mouse buttons whenever an overlay takes focus.
     // This prevents the "running forward forever" bug caused by keyup events
     // being swallowed when a product card, menu, or chat input opens.
-    // Skip on FastView — StreamPixel manages its own input state.
     useEffect(() => {
-        if (isFastViewRoute) return;
         if (activeProduct || isMenuOpen || isCatalogueOpen || isChatFocused) {
             releaseAllInputs();
         }
-    }, [activeProduct, isMenuOpen, isCatalogueOpen, isChatFocused, isFastViewRoute]);
+    }, [activeProduct, isMenuOpen, isCatalogueOpen, isChatFocused]);
 
     // Ensure Unreal Engine state matches React state on video connection/reconnection
     // If the user's connection dropped while inspecting, Unreal remains stuck in inspection
