@@ -1,0 +1,49 @@
+{
+  "products": [
+    {
+      "id": "reid-1000-m002",
+      "code": "REID-1000-M002",
+      "hero": "/pavilions/youbo/reid-1000-m002.jpg"
+    },
+    {
+      "id": "reid-1000-m048",
+      "code": "REID-1000-M048",
+      "hero": "/pavilions/youbo/reid-1000-m048.jpg"
+    },
+    {
+      "id": "reid-1000-v008",
+      "code": "REID-1000-V008",
+      "hero": "/pavilions/youbo/reid-1000-v008.jpg"
+    },
+    {
+      "id": "reid-1200-v",
+      "code": "REID-1200 V",
+      "hero": "/pavilions/youbo/reid-1200-v.jpg"
+    },
+    {
+      "id": "reid-1500-v",
+      "code": "REID-1500 V",
+      "hero": "/pavilions/youbo/reid-1500-v.jpg"
+    },
+    {
+      "id": "reid-1500-1-v042",
+      "code": "REID-1500-1-V042",
+      "hero": "/pavilions/youbo/reid-1500-1-v042.jpg"
+    },
+    {
+      "id": "reid-1800-1-v040",
+      "code": "REID-1800-1-V040",
+      "hero": "/pavilions/youbo/reid-1800-1-v040.jpg"
+    },
+    {
+      "id": "reid-1800-2-v040",
+      "code": "REID-1800-2-V040",
+      "hero": "/pavilions/youbo/reid-1800-2-v040.jpg"
+    },
+    {
+      "id": "reid-500-m047",
+      "code": "REID-500-M047",
+      "hero": "/pavilions/youbo/reid-500-m047.jpg"
+    }
+  ]
+}

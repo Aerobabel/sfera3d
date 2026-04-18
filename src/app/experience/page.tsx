@@ -10,6 +10,8 @@ import { Product, Supplier } from "@/lib/types";
 import { getProductById, getSupplierById, getProductsBySupplier } from "@/lib/db";
 import ProductCard from "@/components/overlay/ProductCard";
 import CatalogueOverlay from "@/components/overlay/CatalogueOverlay";
+import PavilionExposition from "@/components/overlay/PavilionExposition";
+import { getPavilionById, parseEnterPavilionMessage, type Pavilion as PavilionInfo } from "@/lib/pavilions";
 import MobileControls from "@/components/pixelstreaming/MobileControls";
 import MarketplaceCrosshair from "@/components/pixelstreaming/MarketplaceCrosshair";
 import SensitivitySlider from "@/components/pixelstreaming/SensitivitySlider";
@@ -524,6 +526,9 @@ export default function ExperiencePage() {
     // Catalogue State
     const [isCatalogueOpen, setIsCatalogueOpen] = useState(false);
     const [catalogueProducts, setCatalogueProducts] = useState<Product[]>([]);
+
+    // Pavilion Exposition State — opened when Unreal sends `entered_pavilion:<id>`.
+    const [activePavilion, setActivePavilion] = useState<PavilionInfo | null>(null);
     const localizedActiveProduct = useMemo(
         () => (activeProduct ? getLocalizedProduct(activeProduct, language) : null),
         [activeProduct, language]
@@ -1020,10 +1025,10 @@ export default function ExperiencePage() {
     // This prevents the "running forward forever" bug caused by keyup events
     // being swallowed when a product card, menu, or chat input opens.
     useEffect(() => {
-        if (activeProduct || isMenuOpen || isCatalogueOpen || isChatFocused) {
+        if (activeProduct || isMenuOpen || isCatalogueOpen || isChatFocused || activePavilion) {
             releaseAllInputs();
         }
-    }, [activeProduct, isMenuOpen, isCatalogueOpen, isChatFocused]);
+    }, [activeProduct, isMenuOpen, isCatalogueOpen, isChatFocused, activePavilion]);
 
     // Ensure Unreal Engine state matches React state on video connection/reconnection
     // If the user's connection dropped while inspecting, Unreal remains stuck in inspection
@@ -1037,6 +1042,28 @@ export default function ExperiencePage() {
     }, [videoElement, sendUnrealExitFocus]);
 
     const handlePixelStreamingResponse = (jsonString: string) => {
+        // Debug: surface every raw message from UE so you can confirm the
+        // blueprint is actually emitting "entered_pavilion:<id>".
+        console.info('[UE→Web] raw response:', jsonString);
+
+        // Pavilion entry messages arrive as plain strings: "entered_pavilion:youbo"
+        // or "entered_pavilion:doublelin". Handle them before JSON parsing so
+        // the payload isn't mangled.
+        if (typeof jsonString === 'string') {
+            const pavilionId = parseEnterPavilionMessage(jsonString);
+            if (pavilionId) {
+                const pavilion = getPavilionById(pavilionId);
+                if (pavilion) {
+                    // Release held inputs and unlock the mouse so the overlay UI
+                    // is actually interactive.
+                    releaseAllInputs();
+                    try { document.exitPointerLock?.(); } catch {}
+                    setActivePavilion(pavilion);
+                }
+                return;
+            }
+        }
+
         let payload: unknown = jsonString;
 
         try {
@@ -1053,6 +1080,15 @@ export default function ExperiencePage() {
 
         console.warn('Unrecognized Unreal payload shape:', payload);
     };
+
+    const handleClosePavilionExposition = useCallback(() => {
+        _suppressProductSelectionUntil = Date.now() + 3000;
+        setActivePavilion(null);
+        // Mirror handleCloseProductCard: fire X so the Unreal blueprint leaves
+        // inspection/pavilion-focus mode and re-enables player input.
+        sendUnrealExitFocus();
+        setNeedsPointerResume(true);
+    }, [sendUnrealExitFocus]);
 
     return (
         <div className="relative h-screen w-screen bg-gray-900 overflow-hidden font-sans">
@@ -1330,6 +1366,14 @@ export default function ExperiencePage() {
                                 onViewCatalogue={handleViewCatalogue}
                             />
                         </div>
+                    )}
+
+                    {/* Pavilion Exposition Overlay (fires on entered_pavilion:<id>) */}
+                    {activePavilion && (
+                        <PavilionExposition
+                            pavilion={activePavilion}
+                            onClose={handleClosePavilionExposition}
+                        />
                     )}
 
                     {/* Catalogue Overlay */}
