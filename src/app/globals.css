@@ -56,6 +56,16 @@ body {
   }
 }
 
+/* Indeterminate shimmer used by the welcome/loading progress bar. */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
 .fade-up {
   opacity: 0;
   animation: riseIn 0.7s cubic-bezier(0.2, 0.65, 0.2, 1) forwards;

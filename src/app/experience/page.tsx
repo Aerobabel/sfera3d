@@ -11,6 +11,7 @@ import { getProductById, getSupplierById, getProductsBySupplier } from "@/lib/db
 import ProductCard from "@/components/overlay/ProductCard";
 import CatalogueOverlay from "@/components/overlay/CatalogueOverlay";
 import PavilionExposition from "@/components/overlay/PavilionExposition";
+import WelcomeControls from "@/components/overlay/WelcomeControls";
 import { getPavilionById, parseEnterPavilionMessage, type Pavilion as PavilionInfo } from "@/lib/pavilions";
 import MobileControls from "@/components/pixelstreaming/MobileControls";
 import MarketplaceCrosshair from "@/components/pixelstreaming/MarketplaceCrosshair";
@@ -1131,49 +1132,45 @@ export default function ExperiencePage() {
             {/* FastView launch overlay */}
             {showFastViewLaunchOverlay && (
                 <div className="absolute inset-0 z-[120] flex items-center justify-center bg-[radial-gradient(circle_at_top,rgba(102,217,203,0.16),transparent_42%),linear-gradient(160deg,rgba(3,8,14,0.92),rgba(6,13,24,0.78))] px-4 py-6">
-                    <div className="w-full max-w-xl overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(160deg,rgba(5,10,18,0.92),rgba(10,18,31,0.82))] shadow-[0_32px_120px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-                        <div className="border-b border-white/10 px-6 py-4 sm:px-8">
+                    {/* Ambient animated glows behind the panel */}
+                    <div className="pointer-events-none absolute -top-32 -left-32 w-[32rem] h-[32rem] rounded-full bg-[#66d9cb]/10 blur-[120px] drift" />
+                    <div className="pointer-events-none absolute -bottom-32 -right-32 w-[28rem] h-[28rem] rounded-full bg-fuchsia-500/5 blur-[120px] drift" />
+
+                    <div className="relative w-full max-w-2xl overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(160deg,rgba(5,10,18,0.94),rgba(10,18,31,0.86))] shadow-[0_32px_120px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+                        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 sm:px-8">
                             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#66d9cb]">
                                 {fastViewLaunch.eyebrow}
                             </p>
-                        </div>
-                        <div className="px-6 py-6 sm:px-8 sm:py-8">
-                            <div className="flex items-start gap-4">
-                                <div className="mt-1 h-11 w-11 shrink-0 rounded-2xl border border-[#66d9cb]/45 bg-[#66d9cb]/12 shadow-[0_0_30px_rgba(102,217,203,0.22)]" />
-                                <div>
-                                    <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                                        {fastViewLaunchTitle}
-                                    </h2>
-                                    <p className="mt-3 max-w-lg text-sm leading-6 text-slate-300 sm:text-[15px]">
-                                        {fastViewLaunchDescription}
-                                    </p>
-                                </div>
-                            </div>
-
                             {!fastViewError && (
-                                <div className="mt-6 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
-                                    <div className="relative flex h-3 w-3 shrink-0">
-                                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#66d9cb]/80 opacity-75"></span>
-                                        <span className="relative inline-flex h-3 w-3 rounded-full bg-[#66d9cb]"></span>
-                                    </div>
-                                    <span>
-                                        {canEnterFastView ? fastViewLaunch.readyBody : fastViewLaunch.loadingBody}
+                                <div className="flex items-center gap-1.5">
+                                    <span className={`h-1.5 w-1.5 rounded-full ${canEnterFastView ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
+                                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-400">
+                                        {canEnterFastView ? 'READY' : 'CONNECTING'}
                                     </span>
                                 </div>
                             )}
-
-                            {fastViewError && (
-                                <div className="mt-6 rounded-2xl border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-50">
-                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-200/80">
-                                        {fastViewLaunch.errorTitle}
-                                    </p>
-                                    <p className="mt-2 break-words text-amber-50/90">{fastViewError}</p>
-                                </div>
-                            )}
-
-                            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                                {fastViewError ? (
-                                    <>
+                        </div>
+                        <div className="px-6 py-6 sm:px-8 sm:py-8">
+                            {fastViewError ? (
+                                <>
+                                    <div className="flex items-start gap-4">
+                                        <div className="mt-1 h-11 w-11 shrink-0 rounded-2xl border border-amber-300/45 bg-amber-400/10 shadow-[0_0_30px_rgba(251,191,36,0.22)]" />
+                                        <div>
+                                            <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                                                {fastViewLaunchTitle}
+                                            </h2>
+                                            <p className="mt-3 max-w-lg text-sm leading-6 text-slate-300 sm:text-[15px]">
+                                                {fastViewLaunchDescription}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-6 rounded-2xl border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-50">
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-200/80">
+                                            {fastViewLaunch.errorTitle}
+                                        </p>
+                                        <p className="mt-2 break-words text-amber-50/90">{fastViewError}</p>
+                                    </div>
+                                    <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                                         <button
                                             type="button"
                                             onClick={handleReloadPage}
@@ -1187,18 +1184,28 @@ export default function ExperiencePage() {
                                         >
                                             {returnHomeLabel}
                                         </Link>
-                                    </>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={handleStartExperience}
-                                        disabled={!canEnterFastView}
-                                        className="inline-flex items-center justify-center rounded-2xl bg-[#66d9cb] px-5 py-3 text-sm font-semibold text-[#04110f] transition hover:bg-[#84e7dd] disabled:cursor-wait disabled:bg-[#66d9cb]/55 disabled:text-[#04110f]/70"
-                                    >
-                                        {canEnterFastView ? fastViewLaunch.enterCta : fastViewLaunch.connectingCta}
-                                    </button>
-                                )}
-                            </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <WelcomeControls
+                                        title={fastViewLaunchTitle}
+                                        subtitle={fastViewLaunchDescription}
+                                        progress={canEnterFastView ? 1 : null}
+                                    />
+
+                                    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                                        <button
+                                            type="button"
+                                            onClick={handleStartExperience}
+                                            disabled={!canEnterFastView}
+                                            className="inline-flex flex-1 items-center justify-center rounded-2xl bg-[#66d9cb] px-5 py-3 text-sm font-semibold text-[#04110f] transition hover:bg-[#84e7dd] disabled:cursor-wait disabled:bg-[#66d9cb]/40 disabled:text-[#04110f]/70"
+                                        >
+                                            {canEnterFastView ? fastViewLaunch.enterCta : fastViewLaunch.connectingCta}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
             </div>
