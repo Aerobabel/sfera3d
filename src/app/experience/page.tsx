@@ -1021,6 +1021,30 @@ export default function ExperiencePage() {
         return () => document.removeEventListener('pointerlockchange', onLock);
     }, [isFastViewRoute, needsPointerResume]);
 
+    // Force pointer-lock re-engagement on any mousedown while we're showing
+    // the resume prompt. The SDK's own click-to-lock handler sometimes fails
+    // to re-acquire after an inspect exit (observed: overlay clears but
+    // pointer stays unlocked, mouse-look and WASD dead). This is an
+    // additive safety net — if the SDK does re-lock first, our call is a
+    // no-op because the lock is already held.
+    useEffect(() => {
+        if (!needsPointerResume) return;
+        const onMouseDown = () => {
+            if (document.pointerLockElement) return;
+            try {
+                const psWindow = window as PixelStreamingWindow;
+                const parent = psWindow.ps?.videoElementParent;
+                if (parent && typeof parent.requestPointerLock === 'function') {
+                    parent.requestPointerLock();
+                } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
+                    videoElement.requestPointerLock();
+                }
+            } catch { /* best-effort */ }
+        };
+        document.addEventListener('mousedown', onMouseDown, true);
+        return () => document.removeEventListener('mousedown', onMouseDown, true);
+    }, [needsPointerResume, videoElement]);
+
     // Clear the "require mouse movement" selection gate once the user has
     // physically nudged the mouse *inside the streamed game view* after
     // exiting inspect/pavilion mode. This prevents UE's auto
