@@ -542,6 +542,10 @@ export default function ExperiencePage() {
     // Video Element Reference for Mobile Controls
     const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
     const [hasStartedExperience, setHasStartedExperience] = useState(false);
+    // True once UE is actually producing video frames — used to keep a
+    // transition overlay visible between the user's "enter" click and the
+    // first frame so they don't see a black screen while UE unpauses.
+    const [isVideoStreamingFrames, setIsVideoStreamingFrames] = useState(false);
 
     const handleStartExperience = useCallback(() => {
         if (hasStartedExperience) return;
@@ -989,6 +993,43 @@ export default function ExperiencePage() {
         setNeedsPointerResume(true);
     }, [sendUnrealExitFocus]);
 
+    // Flip isVideoStreamingFrames true once UE actually starts painting the
+    // video element. We watch for `playing` + `timeupdate` with currentTime
+    // advancing; this bridges the gap between the SDK reporting "video
+    // initialized" and real frames arriving after the user click.
+    useEffect(() => {
+        if (!videoElement) {
+            setIsVideoStreamingFrames(false);
+            return;
+        }
+
+        let lastTime = videoElement.currentTime;
+        let confirmed = false;
+        const markPlaying = () => {
+            if (confirmed) return;
+            confirmed = true;
+            setIsVideoStreamingFrames(true);
+        };
+        const onTimeUpdate = () => {
+            if (videoElement.currentTime > lastTime + 0.01) {
+                markPlaying();
+            }
+            lastTime = videoElement.currentTime;
+        };
+        const onPlaying = () => {
+            // Fallback: `playing` fires even before timeupdate on some
+            // browsers — accept it as a readiness signal.
+            markPlaying();
+        };
+
+        videoElement.addEventListener('timeupdate', onTimeUpdate);
+        videoElement.addEventListener('playing', onPlaying);
+        return () => {
+            videoElement.removeEventListener('timeupdate', onTimeUpdate);
+            videoElement.removeEventListener('playing', onPlaying);
+        };
+    }, [videoElement]);
+
     // Auto-hide click-to-resume overlay when the SDK re-locks the pointer.
     useEffect(() => {
         if (!isFastViewRoute || !needsPointerResume) return;
@@ -1212,12 +1253,41 @@ export default function ExperiencePage() {
             )}
 
             {!isFastViewRoute && videoElement && !hasStartedExperience && (
-                <div 
+                <div
                     className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-[2px] cursor-pointer pointer-events-auto transition-opacity duration-1000"
                     onClick={handleStartExperience}
                 >
                     <div className="text-center animate-pulse">
                         <div className="text-white text-xl md:text-2xl font-light tracking-[0.2em] uppercase">{ui.tapToStart}</div>
+                    </div>
+                </div>
+            )}
+
+            {/* Post-click transition: launch overlay is gone but UE hasn't
+                produced a real video frame yet, so the viewport would be
+                black. Keep a branded animated cover up until isVideoStreamingFrames
+                flips. Fades out smoothly once frames arrive. */}
+            {isFastViewRoute && hasStartedExperience && !fastViewError && (
+                <div
+                    className={`absolute inset-0 z-[115] flex items-center justify-center bg-[radial-gradient(circle_at_top,rgba(102,217,203,0.16),transparent_42%),linear-gradient(160deg,rgba(3,8,14,0.96),rgba(6,13,24,0.92))] transition-opacity duration-700 ${isVideoStreamingFrames ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-none'}`}
+                    aria-hidden={isVideoStreamingFrames}
+                >
+                    <div className="flex flex-col items-center gap-5">
+                        <div className="relative h-16 w-16">
+                            <span className="absolute inset-0 rounded-2xl border border-[#66d9cb]/40 animate-[ping_2.2s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                            <span className="absolute inset-1 rounded-xl border border-[#66d9cb]/60" />
+                            <span className="absolute inset-0 rounded-2xl bg-[#66d9cb]/10 shadow-[0_0_40px_rgba(102,217,203,0.35)]" />
+                            <span className="absolute inset-[30%] rounded-full bg-[#66d9cb] shadow-[0_0_20px_rgba(102,217,203,0.8)] animate-pulse" />
+                        </div>
+                        <div className="text-center">
+                            <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#66d9cb]">3DSFERA</div>
+                            <div className="mt-2 text-sm font-mono uppercase tracking-[0.2em] text-slate-300 animate-pulse">
+                                {fastViewLaunch.connectingCta}
+                            </div>
+                        </div>
+                        <div className="relative h-1 w-48 overflow-hidden rounded-full bg-white/5">
+                            <div className="absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-[#66d9cb] to-transparent animate-[shimmer_1.4s_linear_infinite]" />
+                        </div>
                     </div>
                 </div>
             )}
