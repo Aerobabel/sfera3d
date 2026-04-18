@@ -39,6 +39,33 @@ type StreamPixelController = {
     addResponseEventListener?: (name: string, listener: (response: string) => void) => void;
     removeResponseEventListener?: (name: string) => void;
     disconnect?: () => void;
+    emitConsoleCommand?: (command: string) => void;
+};
+
+// Console commands issued as soon as the UE video starts streaming. These
+// suppress stock UE in-viewport debug banners ("LIGHTING NEEDS TO BE REBUILT",
+// "REFLECTION CAPTURES NEED TO BE REBUILT", etc.) which are baked into the
+// video frames by the engine and therefore cannot be hidden via CSS.
+const INITIAL_CONSOLE_COMMANDS = ['DisableAllScreenMessages'];
+
+const sendConsoleCommand = (
+    controller: StreamPixelController | null,
+    stream: StreamPixelStream | null,
+    command: string
+) => {
+    // 1. SDK exposes a typed helper on recent versions.
+    if (typeof controller?.emitConsoleCommand === 'function') {
+        try { controller.emitConsoleCommand(command); return true; } catch { /* fall through */ }
+    }
+    // 2. Fallback to the raw toStreamer Command channel (standard Pixel
+    //    Streaming protocol). Keys are tried case-insensitively because
+    //    different SDK builds use "Command" vs "command".
+    const handlers = stream?.toStreamerHandlers;
+    if (!handlers) return false;
+    const handlerKey = ['Command', 'command', 'ConsoleCommand'].find((k) => handlers.has(k));
+    const handler = handlerKey ? handlers.get(handlerKey) : undefined;
+    if (!handler) return false;
+    try { handler([JSON.stringify({ ConsoleCommand: command })]); return true; } catch { return false; }
 };
 
 type StreamPixelAppStream = {
@@ -487,6 +514,22 @@ export default function StreamPixelPlayer({
                     logEvent('video initialized');
                     wrapMouseMoveForSensitivity(stream);
                     syncVideoElement();
+                    // Suppress UE in-viewport debug banners once the stream is
+                    // live. Retry a couple of times: on very slow connects the
+                    // data channel isn't ready at the first video frame.
+                    const dispatchInitialCommands = (attempt: number) => {
+                        if (cancelled) return;
+                        const controller = controllerRef.current;
+                        const allDelivered = INITIAL_CONSOLE_COMMANDS.every((cmd) =>
+                            sendConsoleCommand(controller, stream, cmd)
+                        );
+                        if (!allDelivered && attempt < 5) {
+                            window.setTimeout(() => dispatchInitialCommands(attempt + 1), 500);
+                        } else if (allDelivered) {
+                            logEvent('initial console commands dispatched');
+                        }
+                    };
+                    dispatchInitialCommands(0);
                 };
 
                 responseListener = (response: string) => {
