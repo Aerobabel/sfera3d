@@ -1253,6 +1253,28 @@ export default function ExperiencePage() {
             {/* Overlay UI (Z-Index 10) */}
             {showExperienceHud && (
                 <div className="absolute inset-0 z-10 pointer-events-none">
+                    {/* UE in-viewport debug banners ("LIGHTING NEEDS TO BE REBUILT",
+                        "REFLECTION CAPTURES NEED TO BE REBUILT") are painted by the
+                        engine into the streamed video frames and cannot be disabled
+                        from web without a blueprint change or a server-side
+                        -PixelStreamingAllowConsoleCommands launch arg. We mask them
+                        with a branded frosted panel in the top-left corner that
+                        fades into the video. Pointer-events off so it never steals
+                        clicks. z-[2] sits above video (z-0) but below the header
+                        (z-50), so the 3DSFERA logo remains crisp on top. */}
+                    <div
+                        aria-hidden="true"
+                        className="absolute top-0 left-0 pointer-events-none z-[2] w-[clamp(22rem,48vw,56rem)] h-[clamp(6rem,14vh,10rem)] backdrop-blur-md"
+                        style={{
+                            background:
+                                'linear-gradient(135deg, rgba(3,8,14,0.97) 0%, rgba(4,10,18,0.9) 45%, rgba(6,13,24,0.55) 75%, rgba(6,13,24,0) 100%)',
+                            maskImage:
+                                'linear-gradient(135deg, black 0%, black 50%, rgba(0,0,0,0.4) 80%, transparent 100%)',
+                            WebkitMaskImage:
+                                'linear-gradient(135deg, black 0%, black 50%, rgba(0,0,0,0.4) 80%, transparent 100%)',
+                        }}
+                    />
+
                     <MarketplaceCrosshair />
                     <div className="flex flex-col h-full justify-between p-4 md:p-6 lg:p-8">
 
