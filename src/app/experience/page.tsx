@@ -40,31 +40,7 @@ type PixelStreamingWindow = Window & {
 const DEFAULT_MOUSE_SENSITIVITY = 0.85;
 
 // Module-level suppression — avoids any React ref/closure timing issues.
-//
-// After closing a product card or pavilion overlay, UE's crosshair is still
-// sitting on the same object and any resume-pointer-lock click or stray
-// event gets interpreted as an immediate re-select. We gate re-selections on
-// TWO conditions:
-//   1. Time: short hard floor (500ms) to swallow same-frame echoes.
-//   2. Movement: require the user to physically move the mouse by a few
-//      pixels after exit before any selection is accepted.
-// Movement is the stronger signal — if the user never nudges the mouse,
-// the gate stays closed indefinitely.
 let _suppressProductSelectionUntil = 0;
-let _requireMouseMovementAfterExit = false;
-
-// Require at least ~1 cm of real mouse movement on a typical sensitivity
-// before we consider the crosshair to have moved off the object the user
-// was just inspecting. 30 px is a conservative floor — tune down if users
-// report the guard feeling sticky.
-const MOUSE_MOVEMENT_RELEASE_PX = 30;
-const armSelectionSuppression = (minMs: number = 500) => {
-    _suppressProductSelectionUntil = Date.now() + minMs;
-    _requireMouseMovementAfterExit = true;
-};
-const isSelectionSuppressed = () => {
-    return Date.now() < _suppressProductSelectionUntil || _requireMouseMovementAfterExit;
-};
 
 const COMMON_KEY_CODES_TO_RELEASE = [87, 65, 83, 68, 38, 37, 40, 39, 32, 16, 17, 18, 88, 70, 84];
 const NORMALIZED_CENTER = 32768;
@@ -933,8 +909,9 @@ export default function ExperiencePage() {
 
     // Simulate receiving a "Click" from Unreal
     const simulateUnrealClick = useCallback((id: string) => {
-        if (isSelectionSuppressed()) {
-            console.info(`[suppress] blocked product "${id}" (time-left=${Math.max(0, _suppressProductSelectionUntil - Date.now())}ms, needsMovement=${_requireMouseMovementAfterExit})`);
+        const now = Date.now();
+        if (now < _suppressProductSelectionUntil) {
+            console.info(`[suppress] blocked "${id}" (${Math.round(_suppressProductSelectionUntil - now)}ms left)`);
             return;
         }
 
@@ -1004,8 +981,8 @@ export default function ExperiencePage() {
     }, []);
 
     const handleCloseProductCard = useCallback(() => {
-        armSelectionSuppression(500);
-        console.info('[suppress] armed after product close — waiting for mouse movement');
+        _suppressProductSelectionUntil = Date.now() + 3000;
+        console.info(`[suppress] armed for 3s (until ${_suppressProductSelectionUntil})`);
         setActiveProduct(null);
         sendUnrealExitFocus();
         setNeedsPointerResume(true);
@@ -1020,70 +997,6 @@ export default function ExperiencePage() {
         document.addEventListener('pointerlockchange', onLock);
         return () => document.removeEventListener('pointerlockchange', onLock);
     }, [isFastViewRoute, needsPointerResume]);
-
-    // Force pointer-lock re-engagement on any mousedown while we're showing
-    // the resume prompt. The SDK's own click-to-lock handler sometimes fails
-    // to re-acquire after an inspect exit (observed: overlay clears but
-    // pointer stays unlocked, mouse-look and WASD dead). This is an
-    // additive safety net — if the SDK does re-lock first, our call is a
-    // no-op because the lock is already held.
-    useEffect(() => {
-        if (!needsPointerResume) return;
-        const onMouseDown = () => {
-            if (document.pointerLockElement) return;
-            try {
-                const psWindow = window as PixelStreamingWindow;
-                const parent = psWindow.ps?.videoElementParent;
-                if (parent && typeof parent.requestPointerLock === 'function') {
-                    parent.requestPointerLock();
-                } else if (videoElement && typeof videoElement.requestPointerLock === 'function') {
-                    videoElement.requestPointerLock();
-                }
-            } catch { /* best-effort */ }
-        };
-        document.addEventListener('mousedown', onMouseDown, true);
-        return () => document.removeEventListener('mousedown', onMouseDown, true);
-    }, [needsPointerResume, videoElement]);
-
-    // Clear the "require mouse movement" selection gate once the user has
-    // physically nudged the mouse *inside the streamed game view* after
-    // exiting inspect/pavilion mode. This prevents UE's auto
-    // re-select-on-same-crosshair from re-opening the card or pavilion the
-    // instant the pointer lock is re-acquired.
-    //
-    // We only count movement that happens while the pointer is locked —
-    // otherwise the free-cursor movement toward the "Click to resume"
-    // overlay would clear the gate prematurely and the first in-game click
-    // would re-select immediately.
-    useEffect(() => {
-        let accumulatedMovement = 0;
-
-        const onPointerLockChange = () => {
-            // Reset the counter each time pointer lock re-engages so we only
-            // care about in-game movement from THIS resume forward.
-            if (document.pointerLockElement) {
-                accumulatedMovement = 0;
-            }
-        };
-
-        const onMove = (event: MouseEvent) => {
-            if (!_requireMouseMovementAfterExit) return;
-            if (!document.pointerLockElement) return;
-            accumulatedMovement += Math.abs(event.movementX ?? 0) + Math.abs(event.movementY ?? 0);
-            if (accumulatedMovement >= MOUSE_MOVEMENT_RELEASE_PX) {
-                _requireMouseMovementAfterExit = false;
-                accumulatedMovement = 0;
-                console.info('[suppress] in-game mouse movement detected, selections re-enabled');
-            }
-        };
-
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('pointerlockchange', onPointerLockChange);
-        return () => {
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('pointerlockchange', onPointerLockChange);
-        };
-    }, []);
 
     const handleResumePointer = useCallback(() => {
         setNeedsPointerResume(false);
@@ -1139,8 +1052,9 @@ export default function ExperiencePage() {
         if (typeof jsonString === 'string') {
             const pavilionId = parseEnterPavilionMessage(jsonString);
             if (pavilionId) {
-                if (isSelectionSuppressed()) {
-                    console.info(`[suppress] blocked pavilion "${pavilionId}" (time-left=${Math.max(0, _suppressProductSelectionUntil - Date.now())}ms, needsMovement=${_requireMouseMovementAfterExit})`);
+                const now = Date.now();
+                if (now < _suppressProductSelectionUntil) {
+                    console.info(`[suppress] blocked pavilion "${pavilionId}" (${Math.round(_suppressProductSelectionUntil - now)}ms left)`);
                     return;
                 }
                 const pavilion = getPavilionById(pavilionId);
@@ -1173,8 +1087,7 @@ export default function ExperiencePage() {
     };
 
     const handleClosePavilionExposition = useCallback(() => {
-        armSelectionSuppression(500);
-        console.info('[suppress] armed after pavilion close — waiting for mouse movement');
+        _suppressProductSelectionUntil = Date.now() + 3000;
         setActivePavilion(null);
         // Mirror handleCloseProductCard: fire X so the Unreal blueprint leaves
         // inspection/pavilion-focus mode and re-enables player input.
