@@ -53,7 +53,11 @@ const DEFAULT_MOUSE_SENSITIVITY = 0.85;
 let _suppressProductSelectionUntil = 0;
 let _requireMouseMovementAfterExit = false;
 
-const MOUSE_MOVEMENT_RELEASE_PX = 6;
+// Require at least ~1 cm of real mouse movement on a typical sensitivity
+// before we consider the crosshair to have moved off the object the user
+// was just inspecting. 30 px is a conservative floor — tune down if users
+// report the guard feeling sticky.
+const MOUSE_MOVEMENT_RELEASE_PX = 30;
 const armSelectionSuppression = (minMs: number = 500) => {
     _suppressProductSelectionUntil = Date.now() + minMs;
     _requireMouseMovementAfterExit = true;
@@ -1018,20 +1022,43 @@ export default function ExperiencePage() {
     }, [isFastViewRoute, needsPointerResume]);
 
     // Clear the "require mouse movement" selection gate once the user has
-    // physically nudged the mouse after exiting inspect/pavilion mode. This
-    // prevents UE's auto re-select-on-same-crosshair from re-opening the card
-    // or pavilion the instant the pointer lock is re-acquired.
+    // physically nudged the mouse *inside the streamed game view* after
+    // exiting inspect/pavilion mode. This prevents UE's auto
+    // re-select-on-same-crosshair from re-opening the card or pavilion the
+    // instant the pointer lock is re-acquired.
+    //
+    // We only count movement that happens while the pointer is locked —
+    // otherwise the free-cursor movement toward the "Click to resume"
+    // overlay would clear the gate prematurely and the first in-game click
+    // would re-select immediately.
     useEffect(() => {
-        const onMove = (event: MouseEvent) => {
-            if (!_requireMouseMovementAfterExit) return;
-            const delta = Math.abs(event.movementX ?? 0) + Math.abs(event.movementY ?? 0);
-            if (delta >= MOUSE_MOVEMENT_RELEASE_PX) {
-                _requireMouseMovementAfterExit = false;
-                console.info('[suppress] mouse movement detected, selections re-enabled');
+        let accumulatedMovement = 0;
+
+        const onPointerLockChange = () => {
+            // Reset the counter each time pointer lock re-engages so we only
+            // care about in-game movement from THIS resume forward.
+            if (document.pointerLockElement) {
+                accumulatedMovement = 0;
             }
         };
+
+        const onMove = (event: MouseEvent) => {
+            if (!_requireMouseMovementAfterExit) return;
+            if (!document.pointerLockElement) return;
+            accumulatedMovement += Math.abs(event.movementX ?? 0) + Math.abs(event.movementY ?? 0);
+            if (accumulatedMovement >= MOUSE_MOVEMENT_RELEASE_PX) {
+                _requireMouseMovementAfterExit = false;
+                accumulatedMovement = 0;
+                console.info('[suppress] in-game mouse movement detected, selections re-enabled');
+            }
+        };
+
         document.addEventListener('mousemove', onMove);
-        return () => document.removeEventListener('mousemove', onMove);
+        document.addEventListener('pointerlockchange', onPointerLockChange);
+        return () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('pointerlockchange', onPointerLockChange);
+        };
     }, []);
 
     const handleResumePointer = useCallback(() => {
