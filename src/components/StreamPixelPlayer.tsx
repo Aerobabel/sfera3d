@@ -40,32 +40,62 @@ type StreamPixelController = {
     removeResponseEventListener?: (name: string) => void;
     disconnect?: () => void;
     emitConsoleCommand?: (command: string) => void;
+    emitUIInteraction?: (descriptor: string | Record<string, unknown>) => void;
 };
 
 // Console commands issued as soon as the UE video starts streaming. These
 // suppress stock UE in-viewport debug banners ("LIGHTING NEEDS TO BE REBUILT",
 // "REFLECTION CAPTURES NEED TO BE REBUILT", etc.) which are baked into the
 // video frames by the engine and therefore cannot be hidden via CSS.
-const INITIAL_CONSOLE_COMMANDS = ['DisableAllScreenMessages'];
+//
+// NOTE: UE 5.x Pixel Streaming silently rejects console commands unless the
+// stream was launched with `-PixelStreamingAllowConsoleCommands` or the
+// cvar `PixelStreaming.AllowPixelStreamingCommands` is set to 1. If this
+// keeps failing, add `ExecuteConsoleCommand("DisableAllScreenMessages")`
+// to the level blueprint BeginPlay — that's the reliable fix.
+const INITIAL_CONSOLE_COMMANDS = ['DisableAllScreenMessages', 'r.UnbuiltLightingWarnings 0'];
+
+const diagnoseStream = (controller: StreamPixelController | null, stream: StreamPixelStream | null) => {
+    const handlerKeys = stream?.toStreamerHandlers
+        ? Array.from(stream.toStreamerHandlers.keys())
+        : [];
+    console.info('[FastView] toStreamerHandlers keys:', handlerKeys);
+    console.info('[FastView] controller has emitConsoleCommand:', typeof controller?.emitConsoleCommand === 'function');
+    console.info('[FastView] controller has emitUIInteraction:', typeof controller?.emitUIInteraction === 'function');
+};
 
 const sendConsoleCommand = (
     controller: StreamPixelController | null,
     stream: StreamPixelStream | null,
     command: string
-) => {
-    // 1. SDK exposes a typed helper on recent versions.
+): boolean => {
+    let delivered = false;
+
+    // 1. SDK helper (most reliable when exposed).
     if (typeof controller?.emitConsoleCommand === 'function') {
-        try { controller.emitConsoleCommand(command); return true; } catch { /* fall through */ }
+        try { controller.emitConsoleCommand(command); delivered = true; } catch { /* fall through */ }
     }
-    // 2. Fallback to the raw toStreamer Command channel (standard Pixel
-    //    Streaming protocol). Keys are tried case-insensitively because
-    //    different SDK builds use "Command" vs "command".
+
+    // 2. Also send via UIInteraction so a blueprint listener can pick it up
+    //    and call ExecuteConsoleCommand itself. This bypasses the UE-side
+    //    `PixelStreamingAllowConsoleCommands` gate.
+    if (typeof controller?.emitUIInteraction === 'function') {
+        try {
+            controller.emitUIInteraction({ type: 'ConsoleCommand', command });
+        } catch { /* ignore */ }
+    }
+
+    // 3. Raw toStreamer Command channel fallback.
     const handlers = stream?.toStreamerHandlers;
-    if (!handlers) return false;
-    const handlerKey = ['Command', 'command', 'ConsoleCommand'].find((k) => handlers.has(k));
-    const handler = handlerKey ? handlers.get(handlerKey) : undefined;
-    if (!handler) return false;
-    try { handler([JSON.stringify({ ConsoleCommand: command })]); return true; } catch { return false; }
+    if (handlers) {
+        const handlerKey = ['Command', 'command', 'ConsoleCommand'].find((k) => handlers.has(k));
+        const handler = handlerKey ? handlers.get(handlerKey) : undefined;
+        if (handler) {
+            try { handler([JSON.stringify({ ConsoleCommand: command })]); delivered = true; } catch { /* ignore */ }
+        }
+    }
+
+    return delivered;
 };
 
 type StreamPixelAppStream = {
@@ -520,13 +550,16 @@ export default function StreamPixelPlayer({
                     const dispatchInitialCommands = (attempt: number) => {
                         if (cancelled) return;
                         const controller = controllerRef.current;
+                        if (attempt === 0) diagnoseStream(controller, stream);
                         const allDelivered = INITIAL_CONSOLE_COMMANDS.every((cmd) =>
                             sendConsoleCommand(controller, stream, cmd)
                         );
                         if (!allDelivered && attempt < 5) {
                             window.setTimeout(() => dispatchInitialCommands(attempt + 1), 500);
                         } else if (allDelivered) {
-                            logEvent('initial console commands dispatched');
+                            logEvent(`initial console commands dispatched (attempt ${attempt + 1})`);
+                        } else {
+                            console.warn('[FastView] could not dispatch console commands — UE likely needs -PixelStreamingAllowConsoleCommands or a blueprint handler. See StreamPixelPlayer.tsx comment.');
                         }
                     };
                     dispatchInitialCommands(0);
