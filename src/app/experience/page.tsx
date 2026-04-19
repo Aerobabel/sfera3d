@@ -383,7 +383,15 @@ const detectMobileDevice = () => {
     );
 };
 
-const BLOCKED_UNREAL_KEY_CODES = ['F10'];
+// Block every function key from reaching UE. The engine's built-in
+// CheatManager binds debug viewmodes (F4=Lit, F5=ShaderComplexity, etc.)
+// and stat overlays to these in Development builds, so any stray press
+// toggles a debug overlay on top of the stream. Gameplay uses WASD / F /
+// T / X — no function keys — so this is zero-risk.
+const BLOCKED_UNREAL_KEY_CODES = [
+    'F1', 'F2', 'F3', 'F4', 'F5', 'F6',
+    'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+];
 
 export default function ExperiencePage() {
     const pathname = usePathname();
