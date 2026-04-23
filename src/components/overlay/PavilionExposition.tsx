@@ -20,7 +20,7 @@ import Image from 'next/image';
 import { ArrowUpRight, Calendar, Mail, MessageSquare, Package, Send, X } from 'lucide-react';
 import type { Pavilion, PavilionProduct } from '@/lib/pavilions';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
-import { readSupplierChatApiResponse, type SupplierChatApiMessage } from '@/lib/supplierChat';
+import type { PavilionMessage } from '@/lib/pavilionChat';
 import type { AppLanguage } from '@/lib/i18n';
 
 type Tab = 'products' | 'contact' | 'chat' | 'meeting';
@@ -39,16 +39,13 @@ type ChatEntry = {
     isTranslated?: boolean;
 };
 
-const toSupplierId = (pavilionId: string) => `pav_${pavilionId}`;
 const POLL_INTERVAL_MS = 3000;
 
-const toChatEntry = (message: SupplierChatApiMessage): ChatEntry => ({
+const toChatEntry = (message: PavilionMessage): ChatEntry => ({
     id: `msg-${message.id}`,
-    role: message.senderRole === 'supplier' ? 'pavilion' : 'visitor',
-    text: message.text,
+    role: message.senderKind === 'pavilion' ? 'pavilion' : 'visitor',
+    text: message.body,
     timestamp: message.createdAt,
-    originalText: message.originalText,
-    isTranslated: message.isTranslated,
 });
 
 const WORK_START_HOUR = 9;
@@ -336,8 +333,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
     const [contactStatus, setContactStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
     const [contactError, setContactError] = useState<string | null>(null);
 
-    // --- Chat state (backed by supplier_messages with supplierId = pav_<id>) ---
-    const supplierId = useMemo(() => toSupplierId(pavilion.id), [pavilion.id]);
+    // --- Chat state (backed by pavilion_messages, thread per visitor user) ---
     const [chatEntries, setChatEntries] = useState<ChatEntry[]>([]);
     const [chatInput, setChatInput] = useState('');
     const [isSendingChat, setIsSendingChat] = useState(false);
@@ -432,11 +428,11 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
         setIsSyncingChat(true);
         try {
             const res = await fetch(
-                `/api/supplier-chat?supplierId=${encodeURIComponent(supplierId)}&viewerLanguage=${encodeURIComponent(language)}`,
+                `/api/pavilion-chat?pavilionId=${encodeURIComponent(pavilion.id)}`,
                 { cache: 'no-store' }
             );
-            const body = await readSupplierChatApiResponse(res);
             if (res.status === 401) { setChatAuthError(copy.chatSigninHint); return; }
+            const body = (await res.json()) as { success?: boolean; error?: string; messages?: PavilionMessage[] };
             if (!res.ok || !body.success) throw new Error(body.error || 'Unable to load messages.');
             setChatAuthError(null);
             setChatEntries((body.messages ?? []).map(toChatEntry));
@@ -448,7 +444,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
         } finally {
             setIsSyncingChat(false);
         }
-    }, [supplierId, language, chatEntries.length, copy.chatSigninHint]);
+    }, [pavilion.id, chatEntries.length, copy.chatSigninHint]);
 
     const handleSendChat = useCallback(async () => {
         const text = chatInput.trim();
@@ -458,13 +454,13 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
         const optimisticId = `local-${Date.now()}`;
         setChatEntries((prev) => [...prev, { id: optimisticId, role: 'visitor', text, timestamp: Date.now() }]);
         try {
-            const res = await fetch('/api/supplier-chat', {
+            const res = await fetch('/api/pavilion-chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ supplierId, senderRole: 'buyer', senderName: 'Guest', text, senderLanguage: language }),
+                body: JSON.stringify({ pavilionId: pavilion.id, body: text }),
             });
-            const body = await readSupplierChatApiResponse(res);
             if (res.status === 401) { setChatAuthError(copy.chatSigninHint); return; }
+            const body = (await res.json()) as { success?: boolean; error?: string };
             if (!res.ok || !body.success) throw new Error(body.error || 'Unable to send message.');
             setChatAuthError(null);
             await syncChat();
@@ -474,7 +470,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
         } finally {
             setIsSendingChat(false);
         }
-    }, [chatInput, isSendingChat, supplierId, language, syncChat, copy.chatSigninHint]);
+    }, [chatInput, isSendingChat, pavilion.id, syncChat, copy.chatSigninHint]);
 
     useEffect(() => {
         if (tab !== 'chat') return;

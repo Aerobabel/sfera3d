@@ -100,3 +100,39 @@ create policy "pavilion_bookings_read_all"
     on public.pavilion_bookings
     for select
     using (true);
+
+-- Pavilion threaded chat. Each row is one message in a thread keyed by
+-- (pavilion_id, counterparty_user_id). `counterparty_user_id` is the
+-- user on the OTHER side of the pavilion — always the visitor /
+-- other-pavilion-staff, never the pavilion itself. `sender_kind` tells
+-- us which bubble to render: 'visitor' is the right-hand side, 'pavilion'
+-- is the left-hand (staff) reply.
+create table if not exists public.pavilion_messages (
+    id uuid primary key default gen_random_uuid(),
+    pavilion_id text not null,
+    counterparty_user_id uuid not null,
+    sender_kind text not null check (sender_kind in ('visitor', 'pavilion')),
+    sender_user_id uuid not null,
+    sender_display_name text,
+    body text not null,
+    created_at timestamptz not null default now()
+);
+
+create index if not exists pavilion_messages_thread_idx
+    on public.pavilion_messages (pavilion_id, counterparty_user_id, created_at);
+
+create index if not exists pavilion_messages_inbox_idx
+    on public.pavilion_messages (pavilion_id, created_at);
+
+alter table public.pavilion_messages enable row level security;
+
+-- All writes go through the admin-client backed API routes so RLS only
+-- needs to allow the server role. Policies left permissive here for
+-- easy manual inspection from the Supabase dashboard.
+drop policy if exists "pavilion_messages_insert_all" on public.pavilion_messages;
+create policy "pavilion_messages_insert_all"
+    on public.pavilion_messages for insert with check (true);
+
+drop policy if exists "pavilion_messages_read_all" on public.pavilion_messages;
+create policy "pavilion_messages_read_all"
+    on public.pavilion_messages for select using (true);

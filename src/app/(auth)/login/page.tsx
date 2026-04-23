@@ -9,6 +9,7 @@ import { clearServerAuthSession, syncServerAuthSession } from "@/lib/auth/browse
 import {
   getAudienceFromRole,
   getDefaultRedirectPath,
+  getPavilionStaffRedirect,
   getUserRole,
   isRoleAllowedForPath,
   normalizeNextPath,
@@ -254,6 +255,11 @@ function LoginPageContent() {
 
   const resolveRedirectPath = useCallback(
     (session: Session) => {
+      // Pavilion staff always land in their inbox, regardless of the
+      // requested `?next=` or their role tab selection.
+      const staffRedirect = getPavilionStaffRedirect(session.user);
+      if (staffRedirect) return staffRedirect;
+
       const role = getUserRole(session.user);
       if (isRoleAllowedForPath(role, redirectPath)) {
         return redirectPath;

@@ -227,6 +227,20 @@ export const getAudienceFromRole = (role: AppAuthRole): AppAudience =>
 export const getDefaultRedirectPath = (audience: AppAudience) =>
   audience === "supplier" ? "/supplier/dashboard" : "/fastview";
 
+// Pavilion staff — users whose metadata sets `pavilion_staff_for = "pav_<id>"` —
+// land in the dedicated inbox instead of the visitor or supplier dashboards.
+// Caller should branch on this BEFORE falling back to getDefaultRedirectPath.
+export const getPavilionStaffRedirect = (user: import("@supabase/supabase-js").User | null | undefined): string | null => {
+  if (!user) return null;
+  const metadata = user.user_metadata;
+  if (!metadata || typeof metadata !== "object") return null;
+  const raw = (metadata as Record<string, unknown>).pavilion_staff_for;
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim().toLowerCase();
+  if (!trimmed.startsWith("pav_")) return null;
+  return "/pavilion-inbox";
+};
+
 export const isRoleAllowedForPath = (role: AppAuthRole, path: string) => {
   if (path.startsWith("/supplier/dashboard")) {
     return role === "supplier";
