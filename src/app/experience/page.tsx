@@ -3,7 +3,7 @@
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Send, Menu, X, Box, Info, Monitor } from "lucide-react";
+import { Send, Menu, X, Monitor } from "lucide-react";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
@@ -1415,16 +1415,11 @@ export default function ExperiencePage() {
                         </div>
                     </header>
 
-                    {/* Side Menu (Conditional) */}
+                    {/* Side Menu (Conditional). Products/About-Supplier removed —
+                        they weren't wired to anything and confused visitors. */}
                     {isMenuOpen && (
                         <div className="absolute top-24 right-6 pointer-events-auto w-64 p-4 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl space-y-2 animate-in slide-in-from-right-10 fade-in duration-200">
                             <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">{ui.menuNavigation}</div>
-                            <button className="w-full text-left px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10 transition flex items-center gap-2">
-                                <Box size={16} /> {ui.menuProducts}
-                            </button>
-                            <button className="w-full text-left px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10 transition flex items-center gap-2">
-                                <Info size={16} /> {ui.menuSupplier}
-                            </button>
                             {!isFastViewRoute && (
                                 <button
                                     onClick={() => { setIsStreamPixelOpen(true); setIsMenuOpen(false); }}

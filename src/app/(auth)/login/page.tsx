@@ -86,6 +86,8 @@ const copy = {
     missingConfig:
       "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
     defaultError: "Authentication failed. Please try again.",
+    invalidCredentials: "This email does not exist, or the password is incorrect.",
+    networkError: "Couldn't reach the authentication service. Check your connection and try again.",
     modeSignIn: "Already have an account?",
     modeSignUp: "Need an account?",
     switchToSignIn: "Sign in",
@@ -123,6 +125,8 @@ const copy = {
     missingConfig:
       "Supabase не настроен. Добавьте NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_ANON_KEY.",
     defaultError: "Ошибка авторизации. Повторите попытку.",
+    invalidCredentials: "Такой email отсутствует, либо пароль введён неверно.",
+    networkError: "Не удалось связаться с сервисом авторизации. Проверьте подключение и попробуйте снова.",
     modeSignIn: "Уже есть аккаунт?",
     modeSignUp: "Нужен аккаунт?",
     switchToSignIn: "Войти",
@@ -157,6 +161,8 @@ const copy = {
     missingConfig:
       "Supabase 未配置。请添加 NEXT_PUBLIC_SUPABASE_URL 和 NEXT_PUBLIC_SUPABASE_ANON_KEY。",
     defaultError: "认证失败，请重试。",
+    invalidCredentials: "该邮箱不存在，或密码输入错误。",
+    networkError: "无法连接到认证服务。请检查网络后重试。",
     modeSignIn: "已有账号？",
     modeSignUp: "需要新账号？",
     switchToSignIn: "登录",
@@ -484,8 +490,24 @@ function LoginPageContent() {
         await handlePasswordSubmit();
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t.defaultError;
-      setErrorMessage(message || t.defaultError);
+      const rawMessage = error instanceof Error ? error.message : '';
+      const lower = rawMessage.toLowerCase();
+      // Map common Supabase / network errors to friendly universal copy.
+      // "Invalid login credentials" is what Supabase returns for both
+      // "email doesn't exist" and "wrong password" — we deliberately don't
+      // tell the user which it was (credential-stuffing protection).
+      let friendly = rawMessage || t.defaultError;
+      if (lower.includes('invalid login credentials') || lower.includes('invalid credentials')) {
+        friendly = t.invalidCredentials;
+      } else if (
+        lower.includes('failed to fetch') ||
+        lower.includes('networkerror') ||
+        lower.includes('network error') ||
+        lower.includes('load failed')
+      ) {
+        friendly = t.networkError;
+      }
+      setErrorMessage(friendly);
     } finally {
       setIsSubmitting(false);
     }
@@ -687,9 +709,20 @@ function LoginPageContent() {
                   setIsSubmitting(true);
                   void sendOtp()
                     .catch((error: unknown) => {
-                      const message =
-                        error instanceof Error ? error.message : t.defaultError;
-                      setErrorMessage(message || t.defaultError);
+                      const rawMessage = error instanceof Error ? error.message : '';
+                      const lower = rawMessage.toLowerCase();
+                      let friendly = rawMessage || t.defaultError;
+                      if (lower.includes('invalid login credentials') || lower.includes('invalid credentials')) {
+                        friendly = t.invalidCredentials;
+                      } else if (
+                        lower.includes('failed to fetch') ||
+                        lower.includes('networkerror') ||
+                        lower.includes('network error') ||
+                        lower.includes('load failed')
+                      ) {
+                        friendly = t.networkError;
+                      }
+                      setErrorMessage(friendly);
                     })
                     .finally(() => {
                       setIsSubmitting(false);

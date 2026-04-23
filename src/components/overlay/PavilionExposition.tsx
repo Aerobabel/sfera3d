@@ -528,28 +528,33 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                 <div className="relative flex-1 overflow-y-auto custom-scrollbar z-10">
                     {tab === 'products' && (
                         <div className="relative">
-                            {/* Editorial hero band — "Collection N° 001 · 19 pieces · Authorized catalogue" */}
+                            {/* Editorial hero band */}
                             <div className="relative border-b border-white/5 bg-[radial-gradient(circle_at_20%_0%,rgba(196,154,108,0.08),transparent_50%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] px-8 py-10">
-                                <div className="flex items-end justify-between gap-6 flex-wrap">
-                                    <div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="h-px w-10 bg-[#c49a6c]/60" />
-                                            <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-[#c49a6c]">
-                                                {copy.collectionLabel}
-                                            </span>
+                                <div className="flex items-start justify-between gap-8 flex-wrap">
+                                    <div className="min-w-0 flex-1">
+                                        {/* Eyebrow: Collection · N° 001 (own line, same type scale, no awkward mixed alignment) */}
+                                        <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.35em] text-[#c49a6c]">
+                                            <span className="h-px w-8 bg-[#c49a6c]/60" />
+                                            <span>{copy.collectionLabel}</span>
+                                            <span className="text-[#c49a6c]/40">·</span>
+                                            <span className="font-mono tracking-[0.2em]">N° 001</span>
                                         </div>
-                                        <h3 className="mt-3 text-[clamp(1.75rem,3.5vw,2.75rem)] font-serif font-light tracking-tight text-white leading-[1.05]" style={{ fontFamily: 'var(--font-geist-sans)' }}>
-                                            <span className="font-mono text-[#c49a6c] text-[0.6em] align-middle mr-3">N°</span>
-                                            <span className="font-mono text-[#c49a6c] text-[0.8em] align-middle mr-4">001</span>
-                                            <span className="font-black uppercase tracking-[0.02em]">{pavilion.tagline}</span>
+                                        {/* Headline: tagline on its own, uppercase heavy, tight tracking */}
+                                        <h3 className="mt-4 text-[clamp(1.5rem,3vw,2.5rem)] font-black uppercase tracking-[0.01em] text-white leading-[1.1]">
+                                            {pavilion.tagline}
                                         </h3>
-                                        <p className="mt-3 max-w-2xl text-[13px] text-gray-400 leading-relaxed">{copy.productsIntro}</p>
+                                        <p className="mt-4 max-w-2xl text-[13px] text-gray-400 leading-relaxed">{copy.productsIntro}</p>
                                     </div>
-                                    <div className="flex items-center gap-6 text-right">
-                                        <div>
-                                            <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-500">{copy.authorizedCatalogue}</div>
-                                            <div className="mt-1 font-mono text-2xl text-white">{String(pavilion.products.length).padStart(3, '0')}</div>
-                                            <div className="text-[10px] uppercase tracking-[0.25em] text-gray-500">{copy.piecesCount(pavilion.products.length)}</div>
+                                    {/* Piece count — right-aligned, clean vertical stack, no blue-bleed */}
+                                    <div className="shrink-0 text-right border-l border-white/10 pl-6">
+                                        <div className="text-[9px] font-bold uppercase tracking-[0.3em] text-gray-500">
+                                            {copy.authorizedCatalogue}
+                                        </div>
+                                        <div className="mt-2 font-mono text-3xl font-light text-white leading-none">
+                                            {String(pavilion.products.length).padStart(3, '0')}
+                                        </div>
+                                        <div className="mt-1 text-[9px] uppercase tracking-[0.25em] text-gray-500">
+                                            {copy.piecesCount(pavilion.products.length)}
                                         </div>
                                     </div>
                                 </div>
@@ -685,7 +690,16 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                 {isSyncingChat && chatEntries.length === 0 && <div className="text-xs text-gray-500">{copy.chatLoading}</div>}
                             </div>
                             <div className="border-t border-white/5 bg-black/30 p-4">
-                                {chatAuthError && <div className="mb-2 text-xs text-amber-300">{chatAuthError}</div>}
+                                {chatAuthError && (
+                                    <div className="mb-2 text-xs text-amber-300">
+                                        <a
+                                            href="/login"
+                                            className="underline decoration-dotted underline-offset-2 hover:text-amber-200"
+                                        >
+                                            {chatAuthError}
+                                        </a>
+                                    </div>
+                                )}
                                 <div className="flex items-center gap-2">
                                     <input
                                         value={chatInput}
