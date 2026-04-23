@@ -21,6 +21,7 @@ type Copy = {
     original: string;
     retry: string;
     unavailable: string;
+    rateLimited: string;
 };
 
 const COPY: Record<AppLanguage, Copy> = {
@@ -31,6 +32,7 @@ const COPY: Record<AppLanguage, Copy> = {
         original: 'Original',
         retry: 'Retry',
         unavailable: 'Translation unavailable.',
+        rateLimited: 'Translation limit reached. Try again later.',
     },
     ru: {
         translate: 'Перевести',
@@ -39,6 +41,7 @@ const COPY: Record<AppLanguage, Copy> = {
         original: 'Оригинал',
         retry: 'Повторить',
         unavailable: 'Перевод недоступен.',
+        rateLimited: 'Лимит переводов исчерпан. Попробуйте позже.',
     },
     zh: {
         translate: '翻译',
@@ -47,6 +50,7 @@ const COPY: Record<AppLanguage, Copy> = {
         original: '原文',
         retry: '重试',
         unavailable: '翻译服务不可用。',
+        rateLimited: '翻译额度已用完，请稍后再试。',
     },
 };
 
@@ -89,15 +93,17 @@ export default function TranslatableText({ text, sourceLanguage, hideAction, ton
             });
             const body = (await res.json()) as { success?: boolean; translatedText?: string; error?: string };
             if (!res.ok || !body.success || !body.translatedText) {
-                throw new Error(body.error || copy.unavailable);
+                const isRateLimited = res.status === 429 || body.error === 'rate_limited';
+                throw new Error(isRateLimited ? 'rate_limited' : (body.error || copy.unavailable));
             }
             setTranslated(body.translatedText);
             setState('done');
         } catch (err) {
-            setError(err instanceof Error ? err.message : copy.unavailable);
+            const raw = err instanceof Error ? err.message : copy.unavailable;
+            setError(raw === 'rate_limited' ? copy.rateLimited : raw);
             setState('error');
         }
-    }, [state, translated, text, language, effectiveSource, copy.unavailable]);
+    }, [state, translated, text, language, effectiveSource, copy.unavailable, copy.rateLimited]);
 
     const metaClass =
         tone === 'onLight'

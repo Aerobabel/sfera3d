@@ -38,16 +38,17 @@ export async function POST(request: Request) {
         const result = await translateWithMyMemory(text, targetLanguage, sourceLanguage);
         return NextResponse.json({ success: true, ...result });
     } catch (err) {
-        const message = err instanceof Error ? err.message : 'Translation failed.';
+        const raw = err instanceof Error ? err.message : 'Translation failed.';
+        const isRateLimited = raw === 'rate_limited';
         // Return a soft failure so the UI can fall back to the original.
         return NextResponse.json(
             {
                 success: false,
-                error: message,
+                error: isRateLimited ? 'rate_limited' : raw,
                 sourceLanguage: sourceLanguage ?? guessLanguage(text),
                 targetLanguage,
             },
-            { status: 502 }
+            { status: isRateLimited ? 429 : 502 }
         );
     }
 }

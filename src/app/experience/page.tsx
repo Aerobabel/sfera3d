@@ -12,6 +12,7 @@ import ProductCard from "@/components/overlay/ProductCard";
 import CatalogueOverlay from "@/components/overlay/CatalogueOverlay";
 import PavilionExposition from "@/components/overlay/PavilionExposition";
 import WelcomeControls from "@/components/overlay/WelcomeControls";
+import TranslatableText from "@/components/chat/TranslatableText";
 import { getPavilionById, parseEnterPavilionMessage, type Pavilion as PavilionInfo } from "@/lib/pavilions";
 import MobileControls from "@/components/pixelstreaming/MobileControls";
 import MarketplaceCrosshair from "@/components/pixelstreaming/MarketplaceCrosshair";
@@ -1565,28 +1566,11 @@ export default function ExperiencePage() {
                                                         : 'rounded-tr-none bg-[#66d9cb] font-semibold text-[#03100f]'
                                                     }`}
                                             >
-                                                {message.isTranslated && (
-                                                    <p className={`mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] ${message.role === 'user'
-                                                        ? 'text-[#0a4741]/80'
-                                                        : 'text-[#8ce7dc]'
-                                                        }`}>
-                                                        {ui.translatedLabel}
-                                                    </p>
-                                                )}
-                                                <p>{message.text}</p>
-                                                {message.originalText && message.originalText !== message.text && (
-                                                    <div
-                                                        className={`mt-2 border-t pt-2 text-xs ${message.role === 'user'
-                                                            ? 'border-[#04110f]/15 text-[#083734]'
-                                                            : 'border-white/10 text-slate-300'
-                                                            }`}
-                                                    >
-                                                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] opacity-75">
-                                                            {ui.originalLabel}
-                                                        </p>
-                                                        <p>{message.originalText}</p>
-                                                    </div>
-                                                )}
+                                                <TranslatableText
+                                                    text={message.text}
+                                                    tone={message.role === 'user' ? 'onLight' : 'onDark'}
+                                                    hideAction={message.id.startsWith('user-') || message.id.startsWith('assistant-')}
+                                                />
                                             </div>
                                         </div>
                                     ))}

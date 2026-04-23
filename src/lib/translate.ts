@@ -62,6 +62,13 @@ export const translateWithMyMemory = async (
         signal: AbortSignal.timeout(8000),
     });
 
+    if (res.status === 429) {
+        // MyMemory's free anonymous tier is 5000 words/day/IP. With a
+        // syntactically-valid email in the `de=` param it bumps to
+        // 10000. Propagate a machine-readable code so the UI can show
+        // a friendly message.
+        throw new Error('rate_limited');
+    }
     if (!res.ok) {
         throw new Error(`Translation service returned ${res.status}`);
     }

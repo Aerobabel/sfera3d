@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { authenticateAppRequest } from "@/lib/auth/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { buildChatLocalizations, CHAT_TRANSLATION_LANGUAGES, resolveChatLanguage } from "@/lib/chatTranslation";
-import { AppLanguage } from "@/lib/i18n";
 import { SupplierChatApiMessage } from "@/lib/supplierChat";
+
+// Eager per-message translation (OpenAI) was removed because OpenAI /
+// Anthropic APIs aren't reliably reachable from Russia. Clients now
+// translate on demand via /api/translate (MyMemory-backed) using the
+// TranslatableText component. The supplier_message_translations table
+// is preserved for historical reads but we no longer write to it.
 
 type SupplierChatRow = {
   id: string;
@@ -14,222 +18,23 @@ type SupplierChatRow = {
   created_at: string;
 };
 
-type SupplierChatTranslationRow = {
-  message_id: string;
-  language: AppLanguage;
-  translated_text: string;
-};
-
-type ViewerTranslationLookup = {
-  viewerTranslations: Map<string, string>;
-  translationCounts: Map<string, number>;
-};
-
 const DEFAULT_SUPPLIER_ID = "sup_nonagon";
-const MAX_TRANSLATION_BACKFILL_MESSAGES = 24;
 const UNAUTHORIZED_ERROR = "Unauthorized. Sign in and retry.";
 
-const isMissingRelationError = (error: { code?: string; message?: string } | null | undefined) => {
-  if (!error) return false;
-  return (
-    error.code === "PGRST205" ||
-    error.code === "42P01" ||
-    /does not exist/i.test(error.message ?? "") ||
-    /Could not find the table/i.test(error.message ?? "")
-  );
-};
-
-const toApiMessage = (
-  row: SupplierChatRow,
-  viewerLanguage?: AppLanguage | null,
-  translatedText?: string
-): SupplierChatApiMessage => {
-  const originalText = row.message;
-  const isTranslated = Boolean(
-    viewerLanguage &&
-      translatedText &&
-      translatedText.trim().length > 0 &&
-      translatedText.trim() !== originalText.trim()
-  );
-
-  return {
-    id: row.id,
-    supplierId: row.supplier_id,
-    senderRole: row.sender_role,
-    senderName: row.sender_name,
-    text: isTranslated ? translatedText!.trim() : originalText,
-    createdAt: Date.parse(row.created_at),
-    originalText: isTranslated ? originalText : undefined,
-    viewerLanguage: viewerLanguage ?? undefined,
-    isTranslated,
-  };
-};
-
-const getViewerTranslations = async (
-  viewerLanguage: AppLanguage | null,
-  rows: SupplierChatRow[]
-) : Promise<ViewerTranslationLookup> => {
-  if (!viewerLanguage || rows.length === 0) {
-    return {
-      viewerTranslations: new Map<string, string>(),
-      translationCounts: new Map<string, number>(),
-    };
-  }
-
-  try {
-    const supabase = getSupabaseAdminClient();
-    const messageIds = rows.map((row) => row.id);
-    const { data, error } = await supabase
-      .from("supplier_message_translations")
-      .select("message_id,language,translated_text")
-      .in("message_id", messageIds);
-
-    if (error) {
-      if (isMissingRelationError(error)) {
-        return {
-          viewerTranslations: new Map<string, string>(),
-          translationCounts: new Map<string, number>(),
-        };
-      }
-
-      throw new Error(error.message);
-    }
-
-    const viewerTranslations = new Map<string, string>();
-    const translationCounts = new Map<string, number>();
-
-    for (const row of (data ?? []) as SupplierChatTranslationRow[]) {
-      translationCounts.set(row.message_id, (translationCounts.get(row.message_id) ?? 0) + 1);
-      if (row.language === viewerLanguage) {
-        viewerTranslations.set(row.message_id, row.translated_text);
-      }
-    }
-
-    return { viewerTranslations, translationCounts };
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Failed to load supplier chat translations.";
-    console.error(message);
-    return {
-      viewerTranslations: new Map<string, string>(),
-      translationCounts: new Map<string, number>(),
-    };
-  }
-};
-
-const cacheMessageTranslations = async (
-  messageId: string,
-  text: string,
-  senderLanguage: AppLanguage | null
-) => {
-  try {
-    const localizations = await buildChatLocalizations(text, senderLanguage);
-    const rows = CHAT_TRANSLATION_LANGUAGES.map((language) => {
-      const localizedText = localizations[language];
-      if (!localizedText || localizedText.trim().length === 0) {
-        return null;
-      }
-
-      return {
-        message_id: messageId,
-        language,
-        translated_text: localizedText.trim(),
-      };
-    }).filter(Boolean);
-
-    if (rows.length === 0) return;
-
-    const supabase = getSupabaseAdminClient();
-    const { error } = await supabase
-      .from("supplier_message_translations")
-      .upsert(rows, { onConflict: "message_id,language" });
-
-    if (error && !isMissingRelationError(error)) {
-      console.error(error.message);
-    }
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Failed to cache supplier chat translations.";
-    console.error(message);
-  }
-};
-
-const upsertTranslationRows = async (
-  rows: Array<{
-    message_id: string;
-    language: AppLanguage;
-    translated_text: string;
-  }>
-) => {
-  if (rows.length === 0) return;
-
-  try {
-    const supabase = getSupabaseAdminClient();
-    const { error } = await supabase
-      .from("supplier_message_translations")
-      .upsert(rows, { onConflict: "message_id,language" });
-
-    if (error && !isMissingRelationError(error)) {
-      console.error(error.message);
-    }
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Failed to upsert supplier chat translations.";
-    console.error(message);
-  }
-};
-
-const backfillViewerTranslations = async (
-  viewerLanguage: AppLanguage | null,
-  rows: SupplierChatRow[],
-  existingTranslations: Map<string, string>,
-  translationCounts: Map<string, number>
-) => {
-  if (!viewerLanguage || rows.length === 0) {
-    return existingTranslations;
-  }
-
-  const missingRows = rows
-    .filter((row) => {
-      const cachedCount = translationCounts.get(row.id) ?? 0;
-      return !existingTranslations.has(row.id) || cachedCount < CHAT_TRANSLATION_LANGUAGES.length;
-    })
-    .slice(-MAX_TRANSLATION_BACKFILL_MESSAGES);
-
-  if (missingRows.length === 0) {
-    return existingTranslations;
-  }
-
-  const translationRows: Array<{
-    message_id: string;
-    language: AppLanguage;
-    translated_text: string;
-  }> = [];
-  const hydratedTranslations = new Map(existingTranslations);
-
-  for (const row of missingRows) {
-    const localizations = await buildChatLocalizations(row.message);
-    const translatedForViewer = localizations[viewerLanguage];
-
-    for (const language of CHAT_TRANSLATION_LANGUAGES) {
-      const localizedText = localizations[language];
-      if (!localizedText || localizedText.trim().length === 0) continue;
-
-      translationRows.push({
-        message_id: row.id,
-        language,
-        translated_text: localizedText.trim(),
-      });
-    }
-
-    if (translatedForViewer && translatedForViewer.trim().length > 0) {
-      hydratedTranslations.set(row.id, translatedForViewer.trim());
-    }
-  }
-
-  await upsertTranslationRows(translationRows);
-  return hydratedTranslations;
-};
+const toApiMessage = (row: SupplierChatRow): SupplierChatApiMessage => ({
+  id: row.id,
+  supplierId: row.supplier_id,
+  senderRole: row.sender_role,
+  senderName: row.sender_name,
+  text: row.message,
+  createdAt: Date.parse(row.created_at),
+  // Legacy fields retained on the wire for compatibility with the
+  // existing ChatMessage shape on the client. They now always indicate
+  // "no server-side translation" — the UI calls /api/translate directly.
+  originalText: undefined,
+  viewerLanguage: undefined,
+  isTranslated: false,
+});
 
 export async function GET(request: Request) {
   const authenticatedUser = await authenticateAppRequest(request);
@@ -241,14 +46,11 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const requestedSupplierId = searchParams.get("supplierId")?.trim() || DEFAULT_SUPPLIER_ID;
-  const viewerLanguage = resolveChatLanguage(searchParams.get("viewerLanguage"));
-  // Pavilion-scoped conversations (pav_*) are open to any authenticated user:
-  // the pavilion is a visitor-facing namespace, not an individual supplier's
-  // private thread. For these we MUST honour the requested supplierId as-is;
-  // otherwise a logged-in supplier visiting a pavilion would be silently
-  // rerouted to their own thread (bug: they ended up reading Nonagon's
-  // history inside the Double Lin pavilion chat).
+  const requestedSupplierId =
+    searchParams.get("supplierId")?.trim() || DEFAULT_SUPPLIER_ID;
+
+  // Pavilion-scoped conversations (pav_*) are open to any authenticated user.
+  // For real supplier threads, suppliers can only read their own.
   const isPavilionConversation = requestedSupplierId.startsWith("pav_");
   const supplierId = isPavilionConversation
     ? requestedSupplierId
@@ -283,23 +85,11 @@ export async function GET(request: Request) {
       );
     }
 
-    const rows = data as SupplierChatRow[];
-    const { viewerTranslations, translationCounts } = await getViewerTranslations(viewerLanguage, rows);
-    const hydratedTranslationMap = await backfillViewerTranslations(
-      viewerLanguage,
-      rows,
-      viewerTranslations,
-      translationCounts
-    );
-    const messages = rows.map((row) =>
-      toApiMessage(row, viewerLanguage, hydratedTranslationMap.get(row.id))
-    );
-
+    const messages = (data as SupplierChatRow[]).map(toApiMessage);
     return NextResponse.json({ success: true, messages });
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : "Failed to load supplier messages.";
-
     return NextResponse.json(
       { success: false, error: errorMessage, messages: [] },
       { status: 500 }
@@ -317,9 +107,7 @@ export async function POST(request: Request) {
   }
 
   const payload: unknown = await request.json();
-  const body = (payload && typeof payload === "object"
-    ? payload
-    : {}) as {
+  const body = (payload && typeof payload === "object" ? payload : {}) as {
     supplierId?: unknown;
     senderRole?: unknown;
     senderName?: unknown;
@@ -333,17 +121,15 @@ export async function POST(request: Request) {
       : "";
   const isPavilionConversationWrite = requestedSupplierId.startsWith("pav_");
 
-  // In pavilion threads honour the requested supplierId exactly — never
-  // silently redirect a supplier-role user to their own thread.
   const supplierId = isPavilionConversationWrite
     ? requestedSupplierId
     : authenticatedUser.role === "supplier"
       ? authenticatedUser.supplierId?.trim() || requestedSupplierId || DEFAULT_SUPPLIER_ID
       : requestedSupplierId;
 
-  // Pavilion threads don't yet have a "reply as pavilion staff" surface, so
-  // every post in a pavilion is visitor/buyer — renders on the right. We'll
-  // lift this gate once a pavilion-staff replier UI exists.
+  // Pavilion threads don't yet have a staff-reply surface; every post in
+  // a pavilion thread is 'buyer' (right-side bubble). Real supplier
+  // threads keep the normal role mapping.
   const senderRole = isPavilionConversationWrite
     ? ("buyer" as const)
     : authenticatedUser.role === "supplier"
@@ -354,9 +140,7 @@ export async function POST(request: Request) {
       ? authenticatedUser.supplierName || authenticatedUser.displayName
       : authenticatedUser.displayName;
   const text = typeof body.text === "string" ? body.text.trim() : "";
-  const senderLanguage = resolveChatLanguage(body.senderLanguage);
 
-  // Forbidden check only applies to real supplier-to-supplier threads.
   if (
     !isPavilionConversationWrite &&
     authenticatedUser.role === "supplier" &&
@@ -411,16 +195,13 @@ export async function POST(request: Request) {
       );
     }
 
-    await cacheMessageTranslations(data.id, text, senderLanguage);
-
     return NextResponse.json({
       success: true,
-      message: toApiMessage(data as SupplierChatRow, senderLanguage),
+      message: toApiMessage(data as SupplierChatRow),
     });
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : "Failed to create supplier message.";
-
     return NextResponse.json(
       { success: false, error: errorMessage },
       { status: 500 }
