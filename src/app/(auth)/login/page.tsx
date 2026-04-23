@@ -364,7 +364,14 @@ function LoginPageContent() {
       }
 
       const sessionRole = getUserRole(session.user);
-      if (requestedAudience === "supplier" && sessionRole !== "supplier") {
+      // Pavilion staff accounts are detected by email/metadata heuristics
+      // (see getPavilionStaffRedirect). They don't carry the "supplier"
+      // role, so the supplier-audience gate below would reject them even
+      // though they legitimately need to sign in (often from either tab).
+      // Skip the gate for them — they get routed to /pavilion-inbox
+      // by resolveRedirectPath regardless.
+      const isPavilionStaff = Boolean(getPavilionStaffRedirect(session.user));
+      if (!isPavilionStaff && requestedAudience === "supplier" && sessionRole !== "supplier") {
         try {
           const supabase = getSupabaseBrowserClient();
           await supabase.auth.signOut();
