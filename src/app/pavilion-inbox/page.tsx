@@ -9,8 +9,118 @@ import Link from 'next/link';
 import { ArrowLeft, Inbox, Loader2, Send, X } from 'lucide-react';
 import type { PavilionMessage, PavilionThreadSummary } from '@/lib/pavilionChat';
 import { getPavilionById, type Pavilion } from '@/lib/pavilions';
+import { useLanguage } from '@/components/i18n/LanguageProvider';
+import type { AppLanguage } from '@/lib/i18n';
 
 const POLL_INTERVAL_MS = 4000;
+
+type Copy = {
+    loading: string;
+    title: string;
+    back: string;
+    notAuthorizedTitle: string;
+    notAuthorizedBody: string;
+    metadataHint: string;
+    signIn: string;
+    home: string;
+    threadsLabel: (count: number) => string;
+    noMessages: string;
+    loadingMessages: string;
+    selectThread: string;
+    replyPlaceholder: string;
+    you: string;
+    visitor: string;
+    justNow: string;
+    minutesAgo: (n: number) => string;
+    hoursAgo: (n: number) => string;
+    closeThread: string;
+    send: string;
+    signInRequired: string;
+    notStaffAccount: string;
+    connectionIssue: string;
+    dateLocale: string;
+};
+
+const COPY: Record<AppLanguage, Copy> = {
+    en: {
+        loading: 'Loading…',
+        title: 'Pavilion Inbox',
+        back: 'Back to pavilion',
+        notAuthorizedTitle: 'Pavilion Inbox',
+        notAuthorizedBody: 'Sign in required.',
+        metadataHint: 'Pavilion staff accounts need the email local-part to match a pavilion (e.g. doublelin@…), or user_metadata.pavilion_staff_for = "pav_<id>" set in Supabase.',
+        signIn: 'Sign in',
+        home: 'Home',
+        threadsLabel: (count) => `Threads · ${count}`,
+        noMessages: 'No messages yet.',
+        loadingMessages: 'Loading messages…',
+        selectThread: 'Select a thread on the left to view messages.',
+        replyPlaceholder: 'Reply…',
+        you: 'You',
+        visitor: 'Visitor',
+        justNow: 'just now',
+        minutesAgo: (n) => `${n}m ago`,
+        hoursAgo: (n) => `${n}h ago`,
+        closeThread: 'Close thread',
+        send: 'Send reply',
+        signInRequired: 'Sign in required.',
+        notStaffAccount: 'Your account is not a pavilion staff account.',
+        connectionIssue: 'Connection issue.',
+        dateLocale: 'en-US',
+    },
+    ru: {
+        loading: 'Загрузка…',
+        title: 'Ящик павильона',
+        back: 'В павильон',
+        notAuthorizedTitle: 'Ящик павильона',
+        notAuthorizedBody: 'Требуется вход.',
+        metadataHint: 'Для аккаунта персонала павильона префикс email должен совпадать с ID павильона (например, doublelin@…) или в user_metadata должен быть указан pavilion_staff_for = "pav_<id>".',
+        signIn: 'Войти',
+        home: 'Главная',
+        threadsLabel: (count) => `Диалоги · ${count}`,
+        noMessages: 'Сообщений пока нет.',
+        loadingMessages: 'Загрузка сообщений…',
+        selectThread: 'Выберите диалог слева, чтобы открыть переписку.',
+        replyPlaceholder: 'Ответить…',
+        you: 'Вы',
+        visitor: 'Посетитель',
+        justNow: 'только что',
+        minutesAgo: (n) => `${n} мин назад`,
+        hoursAgo: (n) => `${n} ч назад`,
+        closeThread: 'Закрыть диалог',
+        send: 'Отправить ответ',
+        signInRequired: 'Требуется вход.',
+        notStaffAccount: 'Ваш аккаунт не является аккаунтом персонала павильона.',
+        connectionIssue: 'Проблема с подключением.',
+        dateLocale: 'ru-RU',
+    },
+    zh: {
+        loading: '加载中…',
+        title: '展馆收件箱',
+        back: '返回展馆',
+        notAuthorizedTitle: '展馆收件箱',
+        notAuthorizedBody: '请先登录。',
+        metadataHint: '展馆员工账号需满足：邮箱前缀与展馆 ID 匹配（如 doublelin@…），或在 user_metadata 中设置 pavilion_staff_for = "pav_<id>"。',
+        signIn: '登录',
+        home: '首页',
+        threadsLabel: (count) => `对话 · ${count}`,
+        noMessages: '暂无消息。',
+        loadingMessages: '正在加载消息…',
+        selectThread: '在左侧选择一个对话以查看消息。',
+        replyPlaceholder: '回复…',
+        you: '你',
+        visitor: '访客',
+        justNow: '刚刚',
+        minutesAgo: (n) => `${n} 分钟前`,
+        hoursAgo: (n) => `${n} 小时前`,
+        closeThread: '关闭对话',
+        send: '发送回复',
+        signInRequired: '请先登录。',
+        notStaffAccount: '该账号不是展馆员工账号。',
+        connectionIssue: '连接异常。',
+        dateLocale: 'zh-CN',
+    },
+};
 
 type InboxResponse = {
     success?: boolean;
@@ -26,15 +136,17 @@ type ThreadResponse = {
     counterpartyUserId?: string;
 };
 
-const formatRelativeTime = (ms: number): string => {
+const formatRelativeTime = (ms: number, copy: Copy): string => {
     const diff = Date.now() - ms;
-    if (diff < 60_000) return 'just now';
-    if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-    if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-    return new Date(ms).toLocaleDateString();
+    if (diff < 60_000) return copy.justNow;
+    if (diff < 3_600_000) return copy.minutesAgo(Math.floor(diff / 60_000));
+    if (diff < 86_400_000) return copy.hoursAgo(Math.floor(diff / 3_600_000));
+    return new Date(ms).toLocaleDateString(copy.dateLocale);
 };
 
 export default function PavilionInboxPage() {
+    const { language } = useLanguage();
+    const copy = COPY[language];
     const [threads, setThreads] = useState<PavilionThreadSummary[]>([]);
     const [pavilionId, setPavilionId] = useState<string | null>(null);
     const [selectedCounterparty, setSelectedCounterparty] = useState<string | null>(null);
@@ -55,8 +167,8 @@ export default function PavilionInboxPage() {
     const loadInbox = useCallback(async () => {
         try {
             const res = await fetch('/api/pavilion-inbox', { cache: 'no-store' });
-            if (res.status === 401) { setNotAuthorized(true); setError('Sign in required.'); return; }
-            if (res.status === 403) { setNotAuthorized(true); setError('Your account is not a pavilion staff account.'); return; }
+            if (res.status === 401) { setNotAuthorized(true); setError(copy.signInRequired); return; }
+            if (res.status === 403) { setNotAuthorized(true); setError(copy.notStaffAccount); return; }
             const body = (await res.json()) as InboxResponse;
             if (!res.ok || !body.success) throw new Error(body.error || 'Failed to load inbox.');
             setNotAuthorized(false);
@@ -64,11 +176,11 @@ export default function PavilionInboxPage() {
             setThreads(body.threads ?? []);
             setPavilionId(body.pavilionId ?? null);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Connection issue.');
+            setError(err instanceof Error ? err.message : copy.connectionIssue);
         } finally {
             setIsLoadingInbox(false);
         }
-    }, []);
+    }, [copy.signInRequired, copy.notStaffAccount, copy.connectionIssue]);
 
     const loadThread = useCallback(async (counterpartyUserId: string) => {
         if (!pavilionId) return;
@@ -83,11 +195,11 @@ export default function PavilionInboxPage() {
             if (!res.ok || !body.success) throw new Error(body.error || 'Failed to load thread.');
             setMessages(body.messages ?? []);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Connection issue.');
+            setError(err instanceof Error ? err.message : copy.connectionIssue);
         } finally {
             setIsLoadingThread(false);
         }
-    }, [pavilionId]);
+    }, [pavilionId, copy.connectionIssue]);
 
     // Initial load + polling for inbox list.
     useEffect(() => {
@@ -124,7 +236,7 @@ export default function PavilionInboxPage() {
             counterpartyUserId: selectedCounterparty,
             senderKind: 'pavilion',
             senderUserId: 'me',
-            senderDisplayName: 'You',
+            senderDisplayName: copy.you,
             body: text,
             createdAt: Date.now(),
         }]);
@@ -143,11 +255,11 @@ export default function PavilionInboxPage() {
             await loadThread(selectedCounterparty);
             await loadInbox();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Connection issue.');
+            setError(err instanceof Error ? err.message : copy.connectionIssue);
         } finally {
             setIsSending(false);
         }
-    }, [input, selectedCounterparty, pavilionId, isSending, loadThread, loadInbox]);
+    }, [input, selectedCounterparty, pavilionId, isSending, loadThread, loadInbox, copy.connectionIssue, copy.you]);
 
     const selectedThread = useMemo(
         () => threads.find((t) => t.counterpartyUserId === selectedCounterparty) ?? null,
@@ -161,17 +273,17 @@ export default function PavilionInboxPage() {
                     <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 border border-amber-400/30 mb-4">
                         <Inbox size={20} className="text-amber-300" />
                     </div>
-                    <h1 className="text-xl font-semibold">Pavilion Inbox</h1>
+                    <h1 className="text-xl font-semibold">{copy.notAuthorizedTitle}</h1>
                     <p className="mt-2 text-sm text-slate-400">{error}</p>
                     <p className="mt-4 text-xs text-slate-500">
-                        Pavilion staff accounts need <code className="text-slate-300">user_metadata.pavilion_staff_for = &quot;pav_&lt;id&gt;&quot;</code> set in Supabase.
+                        {copy.metadataHint}
                     </p>
                     <div className="mt-6 flex justify-center gap-3">
                         <Link href="/login" className="px-5 py-2 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-[0.2em]">
-                            Sign in
+                            {copy.signIn}
                         </Link>
                         <Link href="/" className="px-5 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white text-xs font-bold uppercase tracking-[0.2em] border border-white/10">
-                            Home
+                            {copy.home}
                         </Link>
                     </div>
                 </div>
@@ -185,16 +297,16 @@ export default function PavilionInboxPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#66d9cb]">Pavilion Inbox</div>
+                        <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#66d9cb]">{copy.title}</div>
                         <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-                            {pavilion ? pavilion.name : 'Loading…'}
+                            {pavilion ? pavilion.name : copy.loading}
                         </h1>
                         {pavilion && (
                             <p className="mt-1 text-sm text-slate-400">{pavilion.tagline}</p>
                         )}
                     </div>
                     <Link href="/fastview" className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold uppercase tracking-[0.2em]">
-                        <ArrowLeft size={14} /> Back to pavilion
+                        <ArrowLeft size={14} /> {copy.back}
                     </Link>
                 </div>
 
@@ -209,17 +321,17 @@ export default function PavilionInboxPage() {
                     <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-xl overflow-hidden flex flex-col">
                         <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
                             <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">
-                                Threads · {threads.length}
+                                {copy.threadsLabel(threads.length)}
                             </div>
                             {isLoadingInbox && <Loader2 size={14} className="animate-spin text-slate-500" />}
                         </div>
                         <div className="flex-1 overflow-y-auto">
                             {threads.length === 0 && !isLoadingInbox && (
-                                <div className="p-6 text-center text-xs text-slate-500">No messages yet.</div>
+                                <div className="p-6 text-center text-xs text-slate-500">{copy.noMessages}</div>
                             )}
                             {threads.map((thread) => {
                                 const isActive = thread.counterpartyUserId === selectedCounterparty;
-                                const name = thread.counterpartyDisplayName || thread.counterpartyEmail || 'Visitor';
+                                const name = thread.counterpartyDisplayName || thread.counterpartyEmail || copy.visitor;
                                 return (
                                     <button
                                         key={thread.counterpartyUserId}
@@ -231,7 +343,7 @@ export default function PavilionInboxPage() {
                                                 {name}
                                             </span>
                                             <span className="text-[10px] text-slate-500 whitespace-nowrap">
-                                                {formatRelativeTime(thread.lastMessage.createdAt)}
+                                                {formatRelativeTime(thread.lastMessage.createdAt, copy)}
                                             </span>
                                         </div>
                                         {thread.counterpartyEmail && thread.counterpartyEmail !== name && (
@@ -239,7 +351,7 @@ export default function PavilionInboxPage() {
                                         )}
                                         <div className="mt-1 text-xs text-slate-400 line-clamp-2">
                                             {thread.lastMessage.senderKind === 'pavilion' && (
-                                                <span className="text-[#c49a6c] font-bold mr-1">You:</span>
+                                                <span className="text-[#c49a6c] font-bold mr-1">{copy.you}:</span>
                                             )}
                                             {thread.lastMessage.body}
                                         </div>
@@ -253,14 +365,14 @@ export default function PavilionInboxPage() {
                     <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-xl overflow-hidden flex flex-col">
                         {!selectedCounterparty ? (
                             <div className="flex-1 flex items-center justify-center text-sm text-slate-500">
-                                Select a thread on the left to view messages.
+                                {copy.selectThread}
                             </div>
                         ) : (
                             <>
                                 <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between gap-3">
                                     <div className="min-w-0">
                                         <div className="text-sm font-semibold text-white truncate">
-                                            {selectedThread?.counterpartyDisplayName || selectedThread?.counterpartyEmail || 'Visitor'}
+                                            {selectedThread?.counterpartyDisplayName || selectedThread?.counterpartyEmail || copy.visitor}
                                         </div>
                                         {selectedThread?.counterpartyEmail && (
                                             <div className="text-[11px] text-slate-500 truncate">{selectedThread.counterpartyEmail}</div>
@@ -269,7 +381,7 @@ export default function PavilionInboxPage() {
                                     <button
                                         onClick={() => setSelectedCounterparty(null)}
                                         className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 lg:hidden"
-                                        aria-label="Close thread"
+                                        aria-label={copy.closeThread}
                                     >
                                         <X size={16} />
                                     </button>
@@ -277,7 +389,7 @@ export default function PavilionInboxPage() {
                                 <div ref={feedRef} className="flex-1 overflow-y-auto p-5 space-y-3">
                                     {isLoadingThread && messages.length === 0 && (
                                         <div className="text-xs text-slate-500 flex items-center gap-2">
-                                            <Loader2 size={12} className="animate-spin" /> Loading messages…
+                                            <Loader2 size={12} className="animate-spin" /> {copy.loadingMessages}
                                         </div>
                                     )}
                                     {messages.map((message) => {
@@ -293,7 +405,7 @@ export default function PavilionInboxPage() {
                                             >
                                                 <div>{message.body}</div>
                                                 <div className={`mt-1 text-[10px] ${isMine ? 'text-slate-800/70' : 'text-slate-500'}`}>
-                                                    {new Date(message.createdAt).toLocaleString()}
+                                                    {new Date(message.createdAt).toLocaleString(copy.dateLocale)}
                                                 </div>
                                             </div>
                                         );
@@ -309,7 +421,7 @@ export default function PavilionInboxPage() {
                                                 void handleSend();
                                             }
                                         }}
-                                        placeholder="Reply..."
+                                        placeholder={copy.replyPlaceholder}
                                         disabled={isSending}
                                         className="flex-1 px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 focus:border-[#c49a6c]/50 focus:bg-white/10 outline-none text-white text-sm placeholder-slate-500"
                                     />
@@ -318,7 +430,7 @@ export default function PavilionInboxPage() {
                                         onClick={() => void handleSend()}
                                         disabled={!input.trim() || isSending}
                                         className="px-4 py-2.5 rounded-lg bg-[#c49a6c] hover:bg-[#d4aa7a] text-slate-950 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                        aria-label="Send reply"
+                                        aria-label={copy.send}
                                     >
                                         {isSending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                                     </button>
