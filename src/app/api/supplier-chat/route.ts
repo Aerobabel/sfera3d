@@ -248,7 +248,13 @@ export async function GET(request: Request) {
       ? authenticatedUser.supplierId?.trim() || requestedSupplierId
       : requestedSupplierId;
 
+  // Pavilion-scoped conversations (pav_*) are open to any authenticated user:
+  // the pavilion is a visitor-facing namespace, not an individual supplier's
+  // private thread. Only reject when a supplier tries to read another real
+  // supplier's thread.
+  const isPavilionConversation = requestedSupplierId.startsWith("pav_");
   if (
+    !isPavilionConversation &&
     authenticatedUser.role === "supplier" &&
     authenticatedUser.supplierId &&
     requestedSupplierId !== authenticatedUser.supplierId
@@ -335,7 +341,10 @@ export async function POST(request: Request) {
   const text = typeof body.text === "string" ? body.text.trim() : "";
   const senderLanguage = resolveChatLanguage(body.senderLanguage);
 
+  // Same pavilion-chat exception as GET above.
+  const isPavilionConversationWrite = requestedSupplierId.startsWith("pav_");
   if (
+    !isPavilionConversationWrite &&
     authenticatedUser.role === "supplier" &&
     authenticatedUser.supplierId &&
     requestedSupplierId &&

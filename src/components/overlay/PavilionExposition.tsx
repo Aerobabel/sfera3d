@@ -56,6 +56,35 @@ const WORK_END_HOUR = 18;
 const SLOT_MINUTES = 30;
 const DAYS_AHEAD = 14;
 
+// Derive a human "series" label from a product code (e.g. LL1001 → "1000",
+// 3060E → "3000", REID-500-M047 → "500"). Used by the category filter so
+// we don't have to hand-label every SKU.
+const extractSeriesKey = (code: string): string => {
+    const match = code.match(/(\d+)/);
+    if (!match) return 'misc';
+    const num = parseInt(match[1], 10);
+    if (Number.isNaN(num)) return 'misc';
+    if (num < 1000) return String(num);
+    return String(Math.floor(num / 1000) * 1000);
+};
+
+// Group products by series key, preserving manifest order within each group.
+const groupBySeries = (products: PavilionProduct[]) => {
+    const groups = new Map<string, PavilionProduct[]>();
+    for (const p of products) {
+        const key = extractSeriesKey(p.code);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(p);
+    }
+    // Sort groups by numeric value so the filter reads 500 → 1000 → 2000 …
+    return Array.from(groups.entries()).sort((a, b) => {
+        const na = parseInt(a[0], 10);
+        const nb = parseInt(b[0], 10);
+        if (Number.isNaN(na) || Number.isNaN(nb)) return a[0].localeCompare(b[0]);
+        return na - nb;
+    });
+};
+
 const generateSlots = (baseDay: Date): Date[] => {
     const day = new Date(baseDay.getFullYear(), baseDay.getMonth(), baseDay.getDate());
     const slots: Date[] = [];
@@ -93,6 +122,11 @@ type Copy = {
     piecesCount: (count: number) => string;
     authorizedCatalogue: string;
     viewPiece: string;
+    signaturePiece: string;
+    signatureBlurb: string;
+    exploreCollection: string;
+    filterAll: string;
+    filterSeries: (n: string) => string;
     contactHeadline: string;
     contactEmail: string;
     contactPhone: string;
@@ -138,6 +172,11 @@ const COPY: Record<AppLanguage, Copy> = {
         piecesCount: (count) => `${count} pieces`,
         authorizedCatalogue: 'Authorized catalogue',
         viewPiece: 'View',
+        signaturePiece: 'Signature piece',
+        signatureBlurb: 'Hand-finished brass, engineered for demanding plumbing and heating systems. Request the full technical dossier — specifications, certifications, and pricing on inquiry.',
+        exploreCollection: 'Explore the collection',
+        filterAll: 'All',
+        filterSeries: (n) => `Series ${n}`,
         contactHeadline: 'Send a direct message — the sales team replies by email.',
         contactEmail: 'Email',
         contactPhone: 'Phone',
@@ -182,6 +221,11 @@ const COPY: Record<AppLanguage, Copy> = {
         piecesCount: (count) => `${count} изделий`,
         authorizedCatalogue: 'Официальный каталог',
         viewPiece: 'Открыть',
+        signaturePiece: 'В центре внимания',
+        signatureBlurb: 'Ручная обработка латуни, инженерия для требовательных систем отопления и водоснабжения. Запросите полное техническое досье — спецификации, сертификаты и цены по запросу.',
+        exploreCollection: 'Изучить коллекцию',
+        filterAll: 'Все',
+        filterSeries: (n) => `Серия ${n}`,
         contactHeadline: 'Напишите напрямую — отдел продаж ответит на email.',
         contactEmail: 'Email',
         contactPhone: 'Телефон',
@@ -226,6 +270,11 @@ const COPY: Record<AppLanguage, Copy> = {
         piecesCount: (count) => `${count} 件作品`,
         authorizedCatalogue: '官方目录',
         viewPiece: '查看',
+        signaturePiece: '焦点精品',
+        signatureBlurb: '手工精制黄铜，专为严苛的水暖系统打造。可按需索取完整技术资料——规格、认证和报价。',
+        exploreCollection: '浏览完整目录',
+        filterAll: '全部',
+        filterSeries: (n) => `${n} 系列`,
         contactHeadline: '直接留言，销售团队将通过邮件回复。',
         contactEmail: '邮箱',
         contactPhone: '电话',
@@ -266,6 +315,17 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
     const copy = COPY[language];
     const [tab, setTab] = useState<Tab>('products');
     const [selectedProduct, setSelectedProduct] = useState<PavilionProduct | null>(null);
+
+    // --- Catalogue filter state ---
+    const [activeCategory, setActiveCategory] = useState<string>('all');
+    const seriesGroups = useMemo(() => groupBySeries(pavilion.products), [pavilion.products]);
+    const filteredProducts = useMemo(() => {
+        if (activeCategory === 'all') return pavilion.products;
+        return pavilion.products.filter((p) => extractSeriesKey(p.code) === activeCategory);
+    }, [activeCategory, pavilion.products]);
+    // The first product of the full manifest acts as the "signature piece" — the
+    // editorial hero above the grid.
+    const signatureProduct = pavilion.products[0] ?? null;
 
     // --- Contact form state ---
     const [contactName, setContactName] = useState('');
@@ -482,16 +542,19 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                         backgroundSize: '40px 40px',
                     }}
                 />
+                {/* Film-grain overlay — tiny cost, big "luxury panel" uplift. */}
+                <div className="grain-overlay" />
 
                 {/* Header */}
                 <div className="relative p-8 border-b border-white/5 bg-black/20 z-10">
                     <div className="flex items-start justify-between gap-4">
                         <div>
                             <div className="text-[10px] uppercase tracking-[0.4em] text-cyan-300/80 font-bold">{copy.pavilionLabel}</div>
-                            <h2 className="mt-2 text-4xl font-black uppercase tracking-[0.05em] text-white drop-shadow-[0_0_18px_rgba(255,255,255,0.12)]">
+                            {/* Editorial serif display — instant luxury signal */}
+                            <h2 className="font-display mt-2 text-[clamp(2rem,4vw,3.25rem)] font-light leading-[0.95] tracking-[-0.01em] text-white drop-shadow-[0_0_18px_rgba(255,255,255,0.12)]">
                                 {pavilion.name}
                             </h2>
-                            <p className="mt-2 text-sm text-gray-400 max-w-2xl leading-relaxed">{pavilion.tagline}</p>
+                            <p className="mt-3 text-sm text-gray-400 max-w-2xl leading-relaxed italic font-display text-base">{pavilion.tagline}</p>
                         </div>
                         <button
                             onClick={onClose}
@@ -528,51 +591,128 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                 <div className="relative flex-1 overflow-y-auto custom-scrollbar z-10">
                     {tab === 'products' && (
                         <div className="relative">
-                            {/* Editorial hero band */}
-                            <div className="relative border-b border-white/5 bg-[radial-gradient(circle_at_20%_0%,rgba(196,154,108,0.08),transparent_50%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] px-8 py-10">
-                                <div className="flex items-start justify-between gap-8 flex-wrap">
-                                    <div className="min-w-0 flex-1">
-                                        {/* Eyebrow: Collection · N° 001 (own line, same type scale, no awkward mixed alignment) */}
-                                        <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.35em] text-[#c49a6c]">
-                                            <span className="h-px w-8 bg-[#c49a6c]/60" />
-                                            <span>{copy.collectionLabel}</span>
-                                            <span className="text-[#c49a6c]/40">·</span>
-                                            <span className="font-mono tracking-[0.2em]">N° 001</span>
-                                        </div>
-                                        {/* Headline: tagline on its own, uppercase heavy, tight tracking */}
-                                        <h3 className="mt-4 text-[clamp(1.5rem,3vw,2.5rem)] font-black uppercase tracking-[0.01em] text-white leading-[1.1]">
-                                            {pavilion.tagline}
-                                        </h3>
-                                        <p className="mt-4 max-w-2xl text-[13px] text-gray-400 leading-relaxed">{copy.productsIntro}</p>
-                                    </div>
-                                    {/* Piece count — right-aligned, clean vertical stack, no blue-bleed */}
-                                    <div className="shrink-0 text-right border-l border-white/10 pl-6">
-                                        <div className="text-[9px] font-bold uppercase tracking-[0.3em] text-gray-500">
-                                            {copy.authorizedCatalogue}
-                                        </div>
-                                        <div className="mt-2 font-mono text-3xl font-light text-white leading-none">
-                                            {String(pavilion.products.length).padStart(3, '0')}
-                                        </div>
-                                        <div className="mt-1 text-[9px] uppercase tracking-[0.25em] text-gray-500">
-                                            {copy.piecesCount(pavilion.products.length)}
+                            {/* Editorial hero band — left-aligned single column (matches client feedback: no stretched right-column misalignment) */}
+                            <div className="relative border-b border-white/5 bg-[radial-gradient(circle_at_20%_0%,rgba(196,154,108,0.08),transparent_50%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] px-8 pt-10 pb-8">
+                                <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.35em] text-[#c49a6c]">
+                                    <span className="h-px w-8 bg-[#c49a6c]/60" />
+                                    <span>{copy.collectionLabel}</span>
+                                    <span className="text-[#c49a6c]/40">·</span>
+                                    <span className="font-mono tracking-[0.2em]">N° 001</span>
+                                    <span className="text-[#c49a6c]/40">·</span>
+                                    <span className="font-mono tracking-[0.2em]">{String(pavilion.products.length).padStart(3, '0')} {copy.piecesCount(pavilion.products.length).toUpperCase()}</span>
+                                </div>
+                                <h3 className="font-display mt-5 text-[clamp(2rem,4vw,3.25rem)] font-light italic leading-[0.95] tracking-tight text-white max-w-3xl">
+                                    {pavilion.tagline}
+                                </h3>
+                                <p className="mt-4 max-w-2xl text-[13px] text-gray-400 leading-relaxed">{copy.productsIntro}</p>
+                            </div>
+
+                            {/* Signature hero piece — the "walking into the gallery" focal point */}
+                            {signatureProduct && (
+                                <div className="relative px-8 pt-10 pb-4">
+                                    <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-8 items-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedProduct(signatureProduct)}
+                                            className="group relative block overflow-hidden rounded-3xl border border-white/10 bg-[radial-gradient(ellipse_at_bottom,rgba(196,154,108,0.1),rgba(255,255,255,0.02)_50%,rgba(0,0,0,0.3))] aspect-[4/3] shadow-[0_20px_70px_rgba(0,0,0,0.6)] hover:border-[#c49a6c]/50 transition-all duration-700"
+                                        >
+                                            <Image
+                                                src={signatureProduct.hero}
+                                                alt={signatureProduct.code}
+                                                fill
+                                                sizes="(max-width:1024px) 100vw, 55vw"
+                                                priority
+                                                className="object-cover group-hover:scale-[1.03] transition-transform duration-[1200ms] ease-out"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                                            <div className="absolute top-6 left-6 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm border border-[#c49a6c]/40 text-[10px] font-bold uppercase tracking-[0.3em] text-[#c49a6c]">
+                                                <span className="h-1.5 w-1.5 rounded-full bg-[#c49a6c] animate-pulse" />
+                                                {copy.signaturePiece}
+                                            </div>
+                                        </button>
+                                        <div className="flex flex-col gap-5">
+                                            <div className="flex items-baseline gap-3 text-[11px] font-bold uppercase tracking-[0.3em] text-[#c49a6c]/80">
+                                                <span className="font-mono">N°</span>
+                                                <span className="font-mono">001</span>
+                                                <span className="h-px flex-1 bg-[#c49a6c]/30" />
+                                            </div>
+                                            <h4 className="font-display text-[clamp(1.75rem,3vw,2.5rem)] font-light leading-[1] tracking-tight text-white">
+                                                {signatureProduct.code}
+                                            </h4>
+                                            <p className="text-sm text-gray-300 leading-[1.7]">{copy.signatureBlurb}</p>
+                                            <div className="flex gap-3 pt-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setSelectedProduct(null); setTab('contact'); setContactMessage((prev) => prev || copy.quotePrefill(signatureProduct.code)); }}
+                                                    className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#c49a6c] hover:bg-[#d4aa7a] text-[#0a0e1a] text-[11px] font-bold uppercase tracking-[0.22em] transition shadow-[0_6px_24px_rgba(196,154,108,0.3)]"
+                                                >
+                                                    {copy.requestQuote}
+                                                    <ArrowUpRight size={14} strokeWidth={2.5} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedProduct(signatureProduct)}
+                                                    className="px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 text-white text-[11px] font-bold uppercase tracking-[0.22em] border border-white/10 transition"
+                                                >
+                                                    {copy.viewPiece}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
-                            {/* Product grid */}
-                            <div className="p-8">
-                                {pavilion.products.length === 0 ? (
+                            {/* Category filter bar — Series 500 / 1000 / 2000 … inferred from codes */}
+                            {seriesGroups.length > 1 && (
+                                <div className="px-8 pt-8 pb-2">
+                                    <div className="flex items-center gap-3 mb-4 text-[10px] font-bold uppercase tracking-[0.35em] text-gray-500">
+                                        <span className="h-px w-8 bg-white/20" />
+                                        <span>{copy.exploreCollection}</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveCategory('all')}
+                                            className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-[0.22em] border transition ${
+                                                activeCategory === 'all'
+                                                    ? 'bg-[#c49a6c] text-[#0a0e1a] border-[#c49a6c] shadow-[0_4px_20px_rgba(196,154,108,0.3)]'
+                                                    : 'bg-white/[0.03] text-gray-300 border-white/10 hover:bg-white/10'
+                                            }`}
+                                        >
+                                            {copy.filterAll} · {pavilion.products.length}
+                                        </button>
+                                        {seriesGroups.map(([key, products]) => (
+                                            <button
+                                                key={key}
+                                                type="button"
+                                                onClick={() => setActiveCategory(key)}
+                                                className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-[0.22em] border transition ${
+                                                    activeCategory === key
+                                                        ? 'bg-[#c49a6c] text-[#0a0e1a] border-[#c49a6c] shadow-[0_4px_20px_rgba(196,154,108,0.3)]'
+                                                        : 'bg-white/[0.03] text-gray-300 border-white/10 hover:bg-white/10'
+                                                }`}
+                                            >
+                                                {copy.filterSeries(key)} · {products.length}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Product grid — staggered scroll-reveal */}
+                            <div className="p-8 pt-4">
+                                {filteredProducts.length === 0 ? (
                                     <div className="text-gray-500 text-sm">{copy.productsEmpty}</div>
                                 ) : (
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8">
-                                        {pavilion.products.map((product, idx) => {
+                                    <div key={activeCategory} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8">
+                                        {filteredProducts.map((product, idx) => {
                                             const indexLabel = String(idx + 1).padStart(3, '0');
                                             return (
                                                 <button
                                                     key={product.id}
                                                     onClick={() => setSelectedProduct(product)}
-                                                    className="group relative text-left flex flex-col transition-all duration-500 hover:-translate-y-1"
+                                                    style={{ animationDelay: `${Math.min(idx, 10) * 50}ms` }}
+                                                    className="exhibit-reveal is-visible group relative text-left flex flex-col transition-transform duration-500 hover:-translate-y-1"
                                                 >
                                                     {/* Index number — editorial "N° 001" style */}
                                                     <div className="flex items-baseline justify-between mb-2 px-1">
@@ -673,7 +813,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                     }
                                     const isVisitor = entry.role === 'visitor';
                                     return (
-                                        <div key={entry.id} className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isVisitor ? 'ml-auto bg-cyan-500 text-slate-950' : 'bg-white/[0.06] text-gray-100 border border-white/10'}`}>
+                                        <div key={entry.id} className={`w-fit max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isVisitor ? 'ml-auto bg-cyan-500 text-slate-950' : 'bg-white/[0.06] text-gray-100 border border-white/10'}`}>
                                             {entry.isTranslated && (
                                                 <div className={`mb-1 text-[10px] font-bold uppercase tracking-[0.2em] ${isVisitor ? 'text-slate-700/80' : 'text-cyan-300/80'}`}>{copy.chatTranslated}</div>
                                             )}
@@ -693,7 +833,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                 {chatAuthError && (
                                     <div className="mb-2 text-xs text-amber-300">
                                         <a
-                                            href="/login"
+                                            href="/login?next=/fastview"
                                             className="underline decoration-dotted underline-offset-2 hover:text-amber-200"
                                         >
                                             {chatAuthError}

@@ -221,8 +221,11 @@ export const getUserDisplayName = (
 export const getAudienceFromRole = (role: AppAuthRole): AppAudience =>
   role === "supplier" ? "supplier" : "user";
 
+// Default post-login landing. Visitors go to /fastview (the StreamPixel
+// pavilion entry) — the legacy /experience path is an older AWS stream that
+// is no longer in use.
 export const getDefaultRedirectPath = (audience: AppAudience) =>
-  audience === "supplier" ? "/supplier/dashboard" : "/experience";
+  audience === "supplier" ? "/supplier/dashboard" : "/fastview";
 
 export const isRoleAllowedForPath = (role: AppAuthRole, path: string) => {
   if (path.startsWith("/supplier/dashboard")) {
