@@ -176,12 +176,12 @@ const notifyRecipient = async (args: {
     const origin = new URL(args.request.url).origin;
 
     if (args.senderKind === 'visitor') {
-        // Notify all pavilion staff registered for this pavilion.
-        const supabase = getSupabaseAdminClient();
-        const { data, error } = await supabase.auth.admin.listUsers({ perPage: 200 });
-        if (error || !data?.users) return;
-        const target = `pav_${args.pavilionId}`;
-        const recipients = data.users.filter((u) => getPavilionStaffFor(u) === target);
+        // Notify at the pavilion's PUBLIC catalogue email (e.g.
+        // sales@doublelin.cn) — not the login email (doublelin@3dsfera.org).
+        // The email contains only a link back to /pavilion-inbox; the
+        // recipient has to sign in with the staff login to reply. No
+        // reply-by-email.
+        if (!pavilion.contactEmail) return;
         const { text, html } = buildVisitorMessageEmail({
             pavilionName: pavilion.name,
             visitorName: args.senderDisplayName ?? 'Visitor',
@@ -189,15 +189,12 @@ const notifyRecipient = async (args: {
             body: args.body,
             inboxUrl: `${origin}/pavilion-inbox`,
         });
-        for (const recipient of recipients) {
-            if (!recipient.email) continue;
-            await sendPavilionEmail({
-                to: recipient.email,
-                subject: `New message for ${pavilion.name}`,
-                html,
-                text,
-            });
-        }
+        await sendPavilionEmail({
+            to: pavilion.contactEmail,
+            subject: `New message for ${pavilion.name}`,
+            html,
+            text,
+        });
     } else {
         // Pavilion replied — notify the counterparty user if we have their email.
         const supabase = getSupabaseAdminClient();

@@ -50,6 +50,8 @@ export const sendPavilionEmail = async ({ to, subject, html, text }: NotifyArgs)
 };
 
 // Human-friendly notification for a new visitor-to-pavilion message.
+// Sent to the pavilion's public catalogue email (e.g. sales@doublelin.cn).
+// Contains ONLY a link to the staff dashboard — do not reply by email.
 export const buildVisitorMessageEmail = (args: {
     pavilionName: string;
     visitorName: string;
@@ -65,7 +67,8 @@ export const buildVisitorMessageEmail = (args: {
         '',
         preview,
         '',
-        `Open inbox: ${args.inboxUrl}`,
+        `To reply, sign in to the staff dashboard: ${args.inboxUrl}`,
+        '(Do not reply to this email — it isn\'t monitored.)',
     ].join('\n');
     const html = `
         <div style="font-family:Geist,Helvetica,Arial,sans-serif;background:#0a0e1a;color:#e6ebf2;padding:32px;border-radius:16px;max-width:560px;margin:0 auto;">
@@ -75,8 +78,11 @@ export const buildVisitorMessageEmail = (args: {
                 <strong style="color:#e6ebf2;">${escapeHtml(args.visitorName)}</strong>${args.visitorEmail ? ` &lt;${escapeHtml(args.visitorEmail)}&gt;` : ''}
             </div>
             <div style="border-left:3px solid #66d9cb;padding:12px 14px;background:rgba(255,255,255,0.04);border-radius:6px;font-size:14px;line-height:1.6;color:#e6ebf2;white-space:pre-wrap;">${escapeHtml(preview)}</div>
-            <a href="${escapeHtmlAttr(args.inboxUrl)}" style="display:inline-block;margin-top:24px;background:#66d9cb;color:#04110f;padding:12px 20px;border-radius:999px;font-weight:700;text-decoration:none;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;">Open inbox</a>
-            <div style="margin-top:32px;font-size:11px;color:#5a6b7f;">You received this because you are staff for ${escapeHtml(args.pavilionName)} on 3DSFERA.</div>
+            <a href="${escapeHtmlAttr(args.inboxUrl)}" style="display:inline-block;margin-top:24px;background:#66d9cb;color:#04110f;padding:12px 20px;border-radius:999px;font-weight:700;text-decoration:none;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;">Open staff dashboard</a>
+            <div style="margin-top:20px;font-size:12px;color:#9fb3c7;">
+                Replies sent back to this email are not delivered — sign in with your staff account to respond.
+            </div>
+            <div style="margin-top:24px;font-size:11px;color:#5a6b7f;">You received this because you are listed as the contact for ${escapeHtml(args.pavilionName)} on 3DSFERA.</div>
         </div>
     `.trim();
     return { text, html };
