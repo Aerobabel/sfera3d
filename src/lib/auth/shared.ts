@@ -1,4 +1,5 @@
 import type { User } from "@supabase/supabase-js";
+import { getPavilionStaffFor } from "@/lib/pavilionChat";
 
 export const ACCESS_TOKEN_COOKIE = "3dsfera-access-token";
 export const REFRESH_TOKEN_COOKIE = "3dsfera-refresh-token";
@@ -227,18 +228,17 @@ export const getAudienceFromRole = (role: AppAuthRole): AppAudience =>
 export const getDefaultRedirectPath = (audience: AppAudience) =>
   audience === "supplier" ? "/supplier/dashboard" : "/fastview";
 
-// Pavilion staff — users whose metadata sets `pavilion_staff_for = "pav_<id>"` —
-// land in the dedicated inbox instead of the visitor or supplier dashboards.
+// Pavilion staff redirect — lands on /pavilion-inbox. Detection reuses
+// getPavilionStaffFor, which accepts three signals in order:
+//   1. user_metadata.pavilion_staff_for = "pav_<id>"
+//   2. user_metadata.pavilion_id        = "pav_<id>"
+//   3. email local-part matches a known pavilion (doublelin@… / youbo@…)
 // Caller should branch on this BEFORE falling back to getDefaultRedirectPath.
-export const getPavilionStaffRedirect = (user: import("@supabase/supabase-js").User | null | undefined): string | null => {
+export const getPavilionStaffRedirect = (
+  user: User | null | undefined
+): string | null => {
   if (!user) return null;
-  const metadata = user.user_metadata;
-  if (!metadata || typeof metadata !== "object") return null;
-  const raw = (metadata as Record<string, unknown>).pavilion_staff_for;
-  if (typeof raw !== "string") return null;
-  const trimmed = raw.trim().toLowerCase();
-  if (!trimmed.startsWith("pav_")) return null;
-  return "/pavilion-inbox";
+  return getPavilionStaffFor(user) ? "/pavilion-inbox" : null;
 };
 
 export const isRoleAllowedForPath = (role: AppAuthRole, path: string) => {

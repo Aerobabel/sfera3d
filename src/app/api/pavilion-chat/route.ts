@@ -180,11 +180,8 @@ const notifyRecipient = async (args: {
         const supabase = getSupabaseAdminClient();
         const { data, error } = await supabase.auth.admin.listUsers({ perPage: 200 });
         if (error || !data?.users) return;
-        const recipients = data.users.filter((u) => {
-            const m = (u.user_metadata ?? {}) as Record<string, unknown>;
-            return typeof m.pavilion_staff_for === 'string' &&
-                m.pavilion_staff_for.trim().toLowerCase() === `pav_${args.pavilionId}`;
-        });
+        const target = `pav_${args.pavilionId}`;
+        const recipients = data.users.filter((u) => getPavilionStaffFor(u) === target);
         const { text, html } = buildVisitorMessageEmail({
             pavilionName: pavilion.name,
             visitorName: args.senderDisplayName ?? 'Visitor',
