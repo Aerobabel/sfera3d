@@ -7,7 +7,7 @@
 //
 // Localised via useLanguage().
 
-import { Mouse, MousePointer2, Space } from 'lucide-react';
+import { ArrowDown, Mouse, MousePointer2, Space } from 'lucide-react';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import type { AppLanguage } from '@/lib/i18n';
 
@@ -27,6 +27,9 @@ type Copy = {
     exitHint: string;
     sprint: string;
     sprintHint: string;
+    pavilionTriggerHeading: string;
+    pavilionTriggerBody: string;
+    pavilionTriggerBadge: string;
 };
 
 const COPY: Record<AppLanguage, Copy> = {
@@ -46,6 +49,9 @@ const COPY: Record<AppLanguage, Copy> = {
         exitHint: 'Leave focus mode',
         sprint: 'Sprint',
         sprintHint: 'Move faster',
+        pavilionTriggerHeading: 'Walk up to the glowing pedestal',
+        pavilionTriggerBody: 'Each pavilion has a bright cylinder at its entrance. Walk up close — the catalogue opens automatically when you step inside.',
+        pavilionTriggerBadge: 'How to enter a pavilion',
     },
     ru: {
         heading: 'Готовим ваш онлайн-шоурум',
@@ -63,6 +69,9 @@ const COPY: Record<AppLanguage, Copy> = {
         exitHint: 'Выйти из фокуса',
         sprint: 'Ускорение',
         sprintHint: 'Быстрее',
+        pavilionTriggerHeading: 'Подойдите к светящемуся столбу',
+        pavilionTriggerBody: 'У входа в каждый павильон стоит яркий цилиндр. Подойдите к нему вплотную — каталог откроется автоматически.',
+        pavilionTriggerBadge: 'Как войти в павильон',
     },
     zh: {
         heading: '正在准备您的直播展厅',
@@ -80,6 +89,9 @@ const COPY: Record<AppLanguage, Copy> = {
         exitHint: '离开聚焦',
         sprint: '加速',
         sprintHint: '快速移动',
+        pavilionTriggerHeading: '走近发光的柱子',
+        pavilionTriggerBody: '每个展馆入口处都有一根明亮的圆柱。走近它——目录会自动打开。',
+        pavilionTriggerBadge: '如何进入展馆',
     },
 };
 
@@ -213,6 +225,44 @@ export default function WelcomeControls({ progress = null, title, subtitle }: We
                         label={copy.sprint}
                         hint={copy.sprintHint}
                     />
+                </div>
+            </div>
+
+            {/* Pavilion trigger visual — "walk up to the glowing cylinder".
+                Mirrors the in-game trigger (a bright white cylindrical
+                pedestal at each pavilion entrance) so first-time users know
+                exactly what to look for. */}
+            <div className="relative overflow-hidden rounded-2xl border border-[#66d9cb]/25 bg-[linear-gradient(135deg,rgba(102,217,203,0.08),rgba(102,217,203,0.02))] p-4">
+                <div className="flex items-center gap-5">
+                    {/* Animated pedestal */}
+                    <div className="relative shrink-0 w-20 h-24 flex flex-col items-center justify-end">
+                        {/* Bouncing down arrow */}
+                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 text-[#66d9cb] animate-bounce">
+                            <ArrowDown size={18} strokeWidth={2.5} />
+                        </div>
+                        {/* Crosshair target at top of cylinder */}
+                        <div className="absolute top-6 left-1/2 -translate-x-1/2 h-4 w-4 rounded-full border-2 border-[#66d9cb]/80 flex items-center justify-center">
+                            <div className="h-1 w-1 rounded-full bg-[#66d9cb] shadow-[0_0_6px_rgba(102,217,203,0.9)]" />
+                        </div>
+                        {/* Cylinder body — glowing white pedestal */}
+                        <div className="relative w-12 h-16 rounded-t-full rounded-b-sm bg-gradient-to-b from-white via-[#e6fffb] to-[#a8ece1] shadow-[0_0_30px_rgba(102,217,203,0.55),inset_-4px_0_10px_rgba(102,217,203,0.3)]">
+                            {/* Pulsing halo around the cylinder */}
+                            <span className="absolute inset-0 rounded-t-full rounded-b-sm bg-[#66d9cb]/30 blur-md animate-pulse" />
+                        </div>
+                        {/* Ground shadow */}
+                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1.5 bg-black/50 blur-md rounded-full" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#66d9cb]">
+                            {copy.pavilionTriggerBadge}
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-white leading-tight">
+                            {copy.pavilionTriggerHeading}
+                        </div>
+                        <div className="mt-1 text-[11px] text-gray-400 leading-relaxed">
+                            {copy.pavilionTriggerBody}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

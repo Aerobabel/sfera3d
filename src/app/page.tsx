@@ -519,12 +519,6 @@ export default function LandingPage() {
               {t.cta.startTour} <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/fastview"
-              className="sfera-btn-ghost inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition"
-            >
-              {t.cta.fastview} <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
               href="/onboarding"
               className="sfera-btn-secondary inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition"
             >
@@ -713,12 +707,6 @@ export default function LandingPage() {
                   className="inline-flex items-center gap-2 rounded-full bg-[#f6ba4f] px-6 py-3 text-sm font-bold text-[#120d04] transition hover:bg-[#ffd083]"
                 >
                   {t.cta.explore} <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  href="/fastview"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/20 px-6 py-3 text-sm font-semibold transition hover:border-white/35 hover:bg-white/10"
-                >
-                  {t.cta.fastview} <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href="/onboarding"
