@@ -243,16 +243,18 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const requestedSupplierId = searchParams.get("supplierId")?.trim() || DEFAULT_SUPPLIER_ID;
   const viewerLanguage = resolveChatLanguage(searchParams.get("viewerLanguage"));
-  const supplierId =
-    authenticatedUser.role === "supplier"
-      ? authenticatedUser.supplierId?.trim() || requestedSupplierId
-      : requestedSupplierId;
-
   // Pavilion-scoped conversations (pav_*) are open to any authenticated user:
   // the pavilion is a visitor-facing namespace, not an individual supplier's
-  // private thread. Only reject when a supplier tries to read another real
-  // supplier's thread.
+  // private thread. For these we MUST honour the requested supplierId as-is;
+  // otherwise a logged-in supplier visiting a pavilion would be silently
+  // rerouted to their own thread (bug: they ended up reading Nonagon's
+  // history inside the Double Lin pavilion chat).
   const isPavilionConversation = requestedSupplierId.startsWith("pav_");
+  const supplierId = isPavilionConversation
+    ? requestedSupplierId
+    : authenticatedUser.role === "supplier"
+      ? authenticatedUser.supplierId?.trim() || requestedSupplierId
+      : requestedSupplierId;
   if (
     !isPavilionConversation &&
     authenticatedUser.role === "supplier" &&
@@ -329,11 +331,24 @@ export async function POST(request: Request) {
     typeof body.supplierId === "string" && body.supplierId.trim().length > 0
       ? body.supplierId.trim()
       : "";
-  const supplierId =
-    authenticatedUser.role === "supplier"
+  const isPavilionConversationWrite = requestedSupplierId.startsWith("pav_");
+
+  // In pavilion threads honour the requested supplierId exactly — never
+  // silently redirect a supplier-role user to their own thread.
+  const supplierId = isPavilionConversationWrite
+    ? requestedSupplierId
+    : authenticatedUser.role === "supplier"
       ? authenticatedUser.supplierId?.trim() || requestedSupplierId || DEFAULT_SUPPLIER_ID
       : requestedSupplierId;
-  const senderRole = authenticatedUser.role === "supplier" ? "supplier" : "buyer";
+
+  // Pavilion threads don't yet have a "reply as pavilion staff" surface, so
+  // every post in a pavilion is visitor/buyer — renders on the right. We'll
+  // lift this gate once a pavilion-staff replier UI exists.
+  const senderRole = isPavilionConversationWrite
+    ? ("buyer" as const)
+    : authenticatedUser.role === "supplier"
+      ? "supplier"
+      : "buyer";
   const senderName =
     senderRole === "supplier"
       ? authenticatedUser.supplierName || authenticatedUser.displayName
@@ -341,8 +356,7 @@ export async function POST(request: Request) {
   const text = typeof body.text === "string" ? body.text.trim() : "";
   const senderLanguage = resolveChatLanguage(body.senderLanguage);
 
-  // Same pavilion-chat exception as GET above.
-  const isPavilionConversationWrite = requestedSupplierId.startsWith("pav_");
+  // Forbidden check only applies to real supplier-to-supplier threads.
   if (
     !isPavilionConversationWrite &&
     authenticatedUser.role === "supplier" &&
