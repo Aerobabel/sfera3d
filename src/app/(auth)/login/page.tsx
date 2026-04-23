@@ -89,6 +89,8 @@ const copy = {
     defaultError: "Authentication failed. Please try again.",
     invalidCredentials: "This email does not exist, or the password is incorrect.",
     networkError: "Couldn't reach the authentication service. Check your connection and try again.",
+    signupCodeSent: "Account created. Check your inbox for the 6-digit confirmation code and enter it below.",
+    rateLimited: "A code was sent to your inbox recently. Enter it below — no need to request a new one.",
     modeSignIn: "Already have an account?",
     modeSignUp: "Need an account?",
     switchToSignIn: "Sign in",
@@ -128,6 +130,8 @@ const copy = {
     defaultError: "Ошибка авторизации. Повторите попытку.",
     invalidCredentials: "Такой email отсутствует, либо пароль введён неверно.",
     networkError: "Не удалось связаться с сервисом авторизации. Проверьте подключение и попробуйте снова.",
+    signupCodeSent: "Аккаунт создан. Проверьте почту — там 6-значный код подтверждения. Введите его ниже.",
+    rateLimited: "Код уже был отправлен недавно. Введите его ниже — повторная отправка не нужна.",
     modeSignIn: "Уже есть аккаунт?",
     modeSignUp: "Нужен аккаунт?",
     switchToSignIn: "Войти",
@@ -164,6 +168,8 @@ const copy = {
     defaultError: "认证失败，请重试。",
     invalidCredentials: "该邮箱不存在，或密码输入错误。",
     networkError: "无法连接到认证服务。请检查网络后重试。",
+    signupCodeSent: "账号已创建。请查收邮箱中的 6 位确认码并在下方输入。",
+    rateLimited: "验证码刚才已发送，请直接在下方输入，无需重新请求。",
     modeSignIn: "已有账号？",
     modeSignUp: "需要新账号？",
     switchToSignIn: "登录",
@@ -413,11 +419,28 @@ function LoginPageContent() {
       },
     });
 
-    if (error) throw error;
+    if (error) {
+      // Supabase rate-limits OTP sends (e.g. "For security purposes, you
+      // can only request this after N seconds" or "email rate limit
+      // exceeded"). A code was almost certainly already delivered — flip
+      // into entry mode with a friendly notice instead of surfacing a
+      // scary red error.
+      const message = error.message?.toLowerCase() ?? "";
+      if (
+        message.includes("rate limit") ||
+        message.includes("for security purposes") ||
+        message.includes("you can only request")
+      ) {
+        setOtpRequested(true);
+        setInfoMessage(t.rateLimited);
+        return;
+      }
+      throw error;
+    }
 
     setOtpRequested(true);
     setInfoMessage(otpRequested ? t.otpSent : `${t.otpDelivered} ${t.otpSent}`);
-  }, [audience, buildEmailRedirectTo, email, otpRequested, t.otpDelivered, t.otpSent]);
+  }, [audience, buildEmailRedirectTo, email, otpRequested, t.otpDelivered, t.otpSent, t.rateLimited]);
 
   const verifyOtp = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
@@ -464,7 +487,13 @@ function LoginPageContent() {
         return;
       }
 
-      setInfoMessage(t.checkEmail);
+      // No session returned means Supabase requires email confirmation.
+      // A 6-digit code was sent to the user's inbox — flip the UI into
+      // OTP verification mode so they have a field to enter it, instead
+      // of just displaying a "check your email" message with no action.
+      setAuthMethod("otp");
+      setOtpRequested(true);
+      setInfoMessage(t.signupCodeSent);
       return;
     }
 
