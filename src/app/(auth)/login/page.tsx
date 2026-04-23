@@ -371,7 +371,10 @@ function LoginPageContent() {
       // Skip the gate for them — they get routed to /pavilion-inbox
       // by resolveRedirectPath regardless.
       const isPavilionStaff = Boolean(getPavilionStaffRedirect(session.user));
-      if (!isPavilionStaff && requestedAudience === "supplier" && sessionRole !== "supplier") {
+      // Use `audience` (current tab state) not `requestedAudience` (frozen
+      // from URL param at page load). Otherwise landing with ?role=supplier
+      // and then clicking the Visitor tab still triggers the supplier gate.
+      if (!isPavilionStaff && audience === "supplier" && sessionRole !== "supplier") {
         try {
           const supabase = getSupabaseBrowserClient();
           await supabase.auth.signOut();
@@ -396,7 +399,7 @@ function LoginPageContent() {
 
       await finishAuthentication(session);
     },
-    [finishAuthentication, language, requestedAudience, t.defaultError]
+    [finishAuthentication, language, audience, t.defaultError]
   );
 
   const sendOtp = useCallback(async () => {
