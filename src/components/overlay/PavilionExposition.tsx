@@ -21,6 +21,7 @@ import { ArrowUpRight, Calendar, Mail, MessageSquare, Package, Send, X } from 'l
 import type { Pavilion, PavilionProduct } from '@/lib/pavilions';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import type { PavilionMessage } from '@/lib/pavilionChat';
+import TranslatableText from '@/components/chat/TranslatableText';
 import type { AppLanguage } from '@/lib/i18n';
 
 type Tab = 'products' | 'contact' | 'chat' | 'meeting';
@@ -808,18 +809,17 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                         return <div key={entry.id} className="text-center text-xs text-amber-300/80 italic">{entry.text}</div>;
                                     }
                                     const isVisitor = entry.role === 'visitor';
+                                    // Hide the translate action on our own
+                                    // optimistic messages (they're in the
+                                    // language we just typed).
+                                    const hideTranslate = entry.id.startsWith('local-');
                                     return (
                                         <div key={entry.id} className={`w-fit max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isVisitor ? 'ml-auto bg-cyan-500 text-slate-950' : 'bg-white/[0.06] text-gray-100 border border-white/10'}`}>
-                                            {entry.isTranslated && (
-                                                <div className={`mb-1 text-[10px] font-bold uppercase tracking-[0.2em] ${isVisitor ? 'text-slate-700/80' : 'text-cyan-300/80'}`}>{copy.chatTranslated}</div>
-                                            )}
-                                            <div>{entry.text}</div>
-                                            {entry.originalText && entry.originalText !== entry.text && (
-                                                <div className={`mt-2 pt-2 text-xs border-t ${isVisitor ? 'border-slate-800/20 text-slate-700' : 'border-white/10 text-gray-400'}`}>
-                                                    <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] opacity-70">{copy.chatOriginal}</div>
-                                                    <div>{entry.originalText}</div>
-                                                </div>
-                                            )}
+                                            <TranslatableText
+                                                text={entry.text}
+                                                tone={isVisitor ? 'onLight' : 'onDark'}
+                                                hideAction={hideTranslate}
+                                            />
                                         </div>
                                     );
                                 })}

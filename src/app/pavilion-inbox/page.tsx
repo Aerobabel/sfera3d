@@ -11,6 +11,7 @@ import type { PavilionMessage, PavilionThreadSummary } from '@/lib/pavilionChat'
 import { getPavilionById, type Pavilion } from '@/lib/pavilions';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import type { AppLanguage } from '@/lib/i18n';
+import TranslatableText from '@/components/chat/TranslatableText';
 
 const POLL_INTERVAL_MS = 4000;
 
@@ -394,6 +395,7 @@ export default function PavilionInboxPage() {
                                     )}
                                     {messages.map((message) => {
                                         const isMine = message.senderKind === 'pavilion';
+                                        const hideTranslate = message.id.startsWith('local-');
                                         return (
                                             <div
                                                 key={message.id}
@@ -403,7 +405,11 @@ export default function PavilionInboxPage() {
                                                         : 'bg-white/[0.06] text-gray-100 border border-white/10'
                                                 }`}
                                             >
-                                                <div>{message.body}</div>
+                                                <TranslatableText
+                                                    text={message.body}
+                                                    tone={isMine ? 'onLight' : 'onDark'}
+                                                    hideAction={hideTranslate}
+                                                />
                                                 <div className={`mt-1 text-[10px] ${isMine ? 'text-slate-800/70' : 'text-slate-500'}`}>
                                                     {new Date(message.createdAt).toLocaleString(copy.dateLocale)}
                                                 </div>
