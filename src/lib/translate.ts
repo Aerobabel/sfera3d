@@ -12,6 +12,14 @@ import type { AppLanguage } from './i18n';
 
 const MYMEMORY_ENDPOINT = 'https://api.mymemory.translated.net/get';
 
+// Hardcoded fallback email for MyMemory quota isolation. Without a
+// `de=<email>` param, MyMemory tracks quota per source IP and Vercel's
+// shared IP pool exhausts the 5000-word/day bucket across every app
+// using the service. With an email, the bucket is per-email (10000
+// words/day), isolated from other apps. MYMEMORY_EMAIL env var can
+// override this if someone wants to swap it without a deploy.
+const MYMEMORY_DEFAULT_EMAIL = 'aerobabel308@gmail.com';
+
 // Map our app codes to MyMemory's IETF codes (same for these three).
 const LANG_CODE: Record<AppLanguage, string> = {
     en: 'en',
@@ -52,8 +60,8 @@ export const translateWithMyMemory = async (
 
     const langpair = `${LANG_CODE[resolvedSource]}|${LANG_CODE[targetLanguage]}`;
     const params = new URLSearchParams({ q: text, langpair });
-    const contactEmail = process.env.MYMEMORY_EMAIL?.trim();
-    if (contactEmail) params.set('de', contactEmail);
+    const contactEmail = process.env.MYMEMORY_EMAIL?.trim() || MYMEMORY_DEFAULT_EMAIL;
+    params.set('de', contactEmail);
 
     const res = await fetch(`${MYMEMORY_ENDPOINT}?${params.toString()}`, {
         method: 'GET',
