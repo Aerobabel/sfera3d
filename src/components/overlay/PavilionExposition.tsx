@@ -17,7 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import { Calendar, Mail, MessageSquare, Package, Send, X } from 'lucide-react';
+import { ArrowUpRight, Calendar, Mail, MessageSquare, Package, Send, X } from 'lucide-react';
 import type { Pavilion, PavilionProduct } from '@/lib/pavilions';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import { readSupplierChatApiResponse, type SupplierChatApiMessage } from '@/lib/supplierChat';
@@ -89,6 +89,10 @@ type Copy = {
     productsIntro: string;
     productsEmpty: string;
     quote: string;
+    collectionLabel: string;
+    piecesCount: (count: number) => string;
+    authorizedCatalogue: string;
+    viewPiece: string;
     contactHeadline: string;
     contactEmail: string;
     contactPhone: string;
@@ -129,7 +133,11 @@ const COPY: Record<AppLanguage, Copy> = {
         tabs: { products: 'Products', contact: 'Contact', chat: 'Chat', meeting: 'Book Meeting' },
         productsIntro: 'Authorized collection — tap any item to view details.',
         productsEmpty: 'No products catalogued yet.',
-        quote: 'Contact for quote',
+        quote: 'Available on request',
+        collectionLabel: 'Collection',
+        piecesCount: (count) => `${count} pieces`,
+        authorizedCatalogue: 'Authorized catalogue',
+        viewPiece: 'View',
         contactHeadline: 'Send a direct message — the sales team replies by email.',
         contactEmail: 'Email',
         contactPhone: 'Phone',
@@ -169,7 +177,11 @@ const COPY: Record<AppLanguage, Copy> = {
         tabs: { products: 'Товары', contact: 'Контакты', chat: 'Чат', meeting: 'Встреча' },
         productsIntro: 'Официальная коллекция — нажмите на товар, чтобы открыть детали.',
         productsEmpty: 'Каталог пока пуст.',
-        quote: 'Запросить цену',
+        quote: 'Цена по запросу',
+        collectionLabel: 'Коллекция',
+        piecesCount: (count) => `${count} изделий`,
+        authorizedCatalogue: 'Официальный каталог',
+        viewPiece: 'Открыть',
         contactHeadline: 'Напишите напрямую — отдел продаж ответит на email.',
         contactEmail: 'Email',
         contactPhone: 'Телефон',
@@ -209,7 +221,11 @@ const COPY: Record<AppLanguage, Copy> = {
         tabs: { products: '产品', contact: '联系', chat: '聊天', meeting: '预约会议' },
         productsIntro: '授权产品集合 — 点击查看详情。',
         productsEmpty: '暂无产品。',
-        quote: '咨询报价',
+        quote: '询价供货',
+        collectionLabel: '合集',
+        piecesCount: (count) => `${count} 件作品`,
+        authorizedCatalogue: '官方目录',
+        viewPiece: '查看',
         contactHeadline: '直接留言，销售团队将通过邮件回复。',
         contactEmail: '邮箱',
         contactPhone: '电话',
@@ -511,43 +527,103 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                 {/* Body */}
                 <div className="relative flex-1 overflow-y-auto custom-scrollbar z-10">
                     {tab === 'products' && (
-                        <div className="p-8">
-                            <p className="text-sm text-gray-400 mb-8 max-w-3xl leading-relaxed">{copy.productsIntro}</p>
-                            {pavilion.products.length === 0 ? (
-                                <div className="text-gray-500 text-sm">{copy.productsEmpty}</div>
-                            ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-                                    {pavilion.products.map((product, idx) => (
-                                        <button
-                                            key={product.id}
-                                            onClick={() => setSelectedProduct(product)}
-                                            className="group text-left bg-white/[0.03] border border-white/10 hover:border-cyan-400/50 hover:bg-white/[0.06] rounded-2xl overflow-hidden transition-all duration-500 flex flex-col shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_10px_40px_rgba(6,182,212,0.15)] hover:-translate-y-0.5"
-                                        >
-                                            <div className="relative aspect-square overflow-hidden bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.04),rgba(0,0,0,0.6))]">
-                                                <Image
-                                                    src={product.hero}
-                                                    alt={product.code}
-                                                    fill
-                                                    sizes="(max-width:768px) 50vw,(max-width:1280px) 33vw,25vw"
-                                                    priority={idx < 4}
-                                                    loading={idx < 4 ? 'eager' : 'lazy'}
-                                                    className="object-cover group-hover:scale-[1.08] transition-transform duration-700 ease-out"
-                                                />
-                                                {/* Vignette */}
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-70" />
-                                                {/* Shine sweep on hover */}
-                                                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                                            </div>
-                                            <div className="p-4 flex flex-col gap-1.5">
-                                                <div className="font-bold text-white text-sm tracking-[0.1em]">{product.code}</div>
-                                                <div className="text-[10px] text-cyan-300/80 uppercase tracking-[0.2em] font-bold">
-                                                    {copy.quote}
-                                                </div>
-                                            </div>
-                                        </button>
-                                    ))}
+                        <div className="relative">
+                            {/* Editorial hero band — "Collection N° 001 · 19 pieces · Authorized catalogue" */}
+                            <div className="relative border-b border-white/5 bg-[radial-gradient(circle_at_20%_0%,rgba(196,154,108,0.08),transparent_50%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] px-8 py-10">
+                                <div className="flex items-end justify-between gap-6 flex-wrap">
+                                    <div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="h-px w-10 bg-[#c49a6c]/60" />
+                                            <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-[#c49a6c]">
+                                                {copy.collectionLabel}
+                                            </span>
+                                        </div>
+                                        <h3 className="mt-3 text-[clamp(1.75rem,3.5vw,2.75rem)] font-serif font-light tracking-tight text-white leading-[1.05]" style={{ fontFamily: 'var(--font-geist-sans)' }}>
+                                            <span className="font-mono text-[#c49a6c] text-[0.6em] align-middle mr-3">N°</span>
+                                            <span className="font-mono text-[#c49a6c] text-[0.8em] align-middle mr-4">001</span>
+                                            <span className="font-black uppercase tracking-[0.02em]">{pavilion.tagline}</span>
+                                        </h3>
+                                        <p className="mt-3 max-w-2xl text-[13px] text-gray-400 leading-relaxed">{copy.productsIntro}</p>
+                                    </div>
+                                    <div className="flex items-center gap-6 text-right">
+                                        <div>
+                                            <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-500">{copy.authorizedCatalogue}</div>
+                                            <div className="mt-1 font-mono text-2xl text-white">{String(pavilion.products.length).padStart(3, '0')}</div>
+                                            <div className="text-[10px] uppercase tracking-[0.25em] text-gray-500">{copy.piecesCount(pavilion.products.length)}</div>
+                                        </div>
+                                    </div>
                                 </div>
-                            )}
+                            </div>
+
+                            {/* Product grid */}
+                            <div className="p-8">
+                                {pavilion.products.length === 0 ? (
+                                    <div className="text-gray-500 text-sm">{copy.productsEmpty}</div>
+                                ) : (
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8">
+                                        {pavilion.products.map((product, idx) => {
+                                            const indexLabel = String(idx + 1).padStart(3, '0');
+                                            return (
+                                                <button
+                                                    key={product.id}
+                                                    onClick={() => setSelectedProduct(product)}
+                                                    className="group relative text-left flex flex-col transition-all duration-500 hover:-translate-y-1"
+                                                >
+                                                    {/* Index number — editorial "N° 001" style */}
+                                                    <div className="flex items-baseline justify-between mb-2 px-1">
+                                                        <div className="flex items-baseline gap-1.5">
+                                                            <span className="font-mono text-[10px] text-[#c49a6c]/70 tracking-[0.2em]">N°</span>
+                                                            <span className="font-mono text-[11px] text-gray-400 tracking-[0.15em] group-hover:text-[#c49a6c] transition-colors">{indexLabel}</span>
+                                                        </div>
+                                                        <div className="h-px flex-1 ml-3 bg-gradient-to-r from-white/5 to-transparent" />
+                                                    </div>
+
+                                                    {/* Pedestal: product image with museum-display shadow */}
+                                                    <div className="relative">
+                                                        <div className="relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(ellipse_at_bottom,rgba(196,154,108,0.06),rgba(255,255,255,0.02)_40%,rgba(0,0,0,0.3))] shadow-[0_12px_40px_rgba(0,0,0,0.5)] group-hover:border-[#c49a6c]/40 transition-all duration-500">
+                                                            <Image
+                                                                src={product.hero}
+                                                                alt={product.code}
+                                                                fill
+                                                                sizes="(max-width:768px) 50vw,(max-width:1280px) 33vw,25vw"
+                                                                priority={idx < 4}
+                                                                loading={idx < 4 ? 'eager' : 'lazy'}
+                                                                className="object-cover group-hover:scale-[1.06] transition-transform duration-700 ease-out"
+                                                            />
+                                                            {/* Vignette */}
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80" />
+                                                            {/* Shine sweep on hover */}
+                                                            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+                                                            {/* Corner brackets — subtle premium detail */}
+                                                            <div className="absolute top-3 left-3 w-5 h-5 border-l border-t border-[#c49a6c]/0 group-hover:border-[#c49a6c]/80 transition-all duration-500" />
+                                                            <div className="absolute top-3 right-3 w-5 h-5 border-r border-t border-[#c49a6c]/0 group-hover:border-[#c49a6c]/80 transition-all duration-500" />
+                                                            <div className="absolute bottom-3 left-3 w-5 h-5 border-l border-b border-[#c49a6c]/0 group-hover:border-[#c49a6c]/80 transition-all duration-500" />
+                                                            <div className="absolute bottom-3 right-3 w-5 h-5 border-r border-b border-[#c49a6c]/0 group-hover:border-[#c49a6c]/80 transition-all duration-500" />
+                                                            {/* Hover reveal: view arrow */}
+                                                            <div className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#c49a6c] text-[#0a0e1a] text-[10px] font-bold uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-400 shadow-[0_4px_20px_rgba(196,154,108,0.4)]">
+                                                                {copy.viewPiece}
+                                                                <ArrowUpRight size={12} strokeWidth={2.5} />
+                                                            </div>
+                                                        </div>
+                                                        {/* Museum pedestal shadow — softer floor glow */}
+                                                        <div className="absolute -bottom-4 left-[10%] right-[10%] h-6 bg-black/60 blur-xl rounded-full -z-10" />
+                                                    </div>
+
+                                                    {/* Caption */}
+                                                    <div className="mt-4 px-1 flex flex-col gap-1">
+                                                        <div className="font-mono text-[13px] font-bold text-white tracking-[0.15em] group-hover:text-[#c49a6c] transition-colors">
+                                                            {product.code}
+                                                        </div>
+                                                        <div className="text-[10px] text-gray-500 uppercase tracking-[0.25em]">
+                                                            {copy.quote}
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
