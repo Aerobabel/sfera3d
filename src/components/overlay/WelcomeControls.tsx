@@ -51,7 +51,7 @@ const COPY: Record<AppLanguage, Copy> = {
         sprintHint: 'Move faster',
         pavilionTriggerHeading: 'Walk up to the glowing pedestal',
         pavilionTriggerBody: 'Each pavilion has a bright cylinder at its entrance. Walk up close — the catalogue opens automatically when you step inside.',
-        pavilionTriggerBadge: 'How to enter a pavilion',
+        pavilionTriggerBadge: 'How to open the catalogue',
     },
     ru: {
         heading: 'Готовим ваш онлайн-шоурум',
@@ -71,7 +71,7 @@ const COPY: Record<AppLanguage, Copy> = {
         sprintHint: 'Быстрее',
         pavilionTriggerHeading: 'Подойдите к светящемуся столбу',
         pavilionTriggerBody: 'У входа в каждый павильон стоит яркий цилиндр. Подойдите к нему вплотную — каталог откроется автоматически.',
-        pavilionTriggerBadge: 'Как войти в павильон',
+        pavilionTriggerBadge: 'Как открыть каталог',
     },
     zh: {
         heading: '正在准备您的直播展厅',
@@ -91,7 +91,7 @@ const COPY: Record<AppLanguage, Copy> = {
         sprintHint: '快速移动',
         pavilionTriggerHeading: '走近发光的柱子',
         pavilionTriggerBody: '每个展馆入口处都有一根明亮的圆柱。走近它——目录会自动打开。',
-        pavilionTriggerBadge: '如何进入展馆',
+        pavilionTriggerBadge: '如何打开目录',
     },
 };
 

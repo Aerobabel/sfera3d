@@ -590,7 +590,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                         <div className="relative">
                             {/* Editorial hero band — left-aligned single column (matches client feedback: no stretched right-column misalignment) */}
                             <div className="relative border-b border-white/5 bg-[radial-gradient(circle_at_20%_0%,rgba(196,154,108,0.08),transparent_50%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] px-8 pt-10 pb-8">
-                                <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.35em] text-[#c49a6c]">
+                                <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.32em] text-[#c49a6c]">
                                     <span className="h-px w-8 bg-[#c49a6c]/60" />
                                     <span>{copy.collectionLabel}</span>
                                     <span className="text-[#c49a6c]/40">·</span>
@@ -601,7 +601,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                 <h3 className="font-display mt-5 text-[clamp(2rem,4vw,3.25rem)] font-light italic leading-[0.95] tracking-tight text-white max-w-3xl">
                                     {pavilion.tagline}
                                 </h3>
-                                <p className="mt-4 max-w-2xl text-[13px] text-gray-400 leading-relaxed">{copy.productsIntro}</p>
+                                <p className="mt-4 max-w-2xl text-sm text-gray-300 leading-relaxed">{copy.productsIntro}</p>
                             </div>
 
                             {/* Signature hero piece — the "walking into the gallery" focal point */}
@@ -662,7 +662,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                             {/* Category filter bar — Series 500 / 1000 / 2000 … inferred from codes */}
                             {seriesGroups.length > 1 && (
                                 <div className="px-8 pt-8 pb-2">
-                                    <div className="flex items-center gap-3 mb-4 text-[10px] font-bold uppercase tracking-[0.35em] text-gray-500">
+                                    <div className="flex items-center gap-3 mb-4 text-xs font-bold uppercase tracking-[0.32em] text-gray-400">
                                         <span className="h-px w-8 bg-white/20" />
                                         <span>{copy.exploreCollection}</span>
                                     </div>
@@ -670,7 +670,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                         <button
                                             type="button"
                                             onClick={() => setActiveCategory('all')}
-                                            className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-[0.22em] border transition ${
+                                            className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-[0.22em] border transition ${
                                                 activeCategory === 'all'
                                                     ? 'bg-[#c49a6c] text-[#0a0e1a] border-[#c49a6c] shadow-[0_4px_20px_rgba(196,154,108,0.3)]'
                                                     : 'bg-white/[0.03] text-gray-300 border-white/10 hover:bg-white/10'
@@ -683,7 +683,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                                 key={key}
                                                 type="button"
                                                 onClick={() => setActiveCategory(key)}
-                                                className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-[0.22em] border transition ${
+                                                className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-[0.22em] border transition ${
                                                     activeCategory === key
                                                         ? 'bg-[#c49a6c] text-[#0a0e1a] border-[#c49a6c] shadow-[0_4px_20px_rgba(196,154,108,0.3)]'
                                                         : 'bg-white/[0.03] text-gray-300 border-white/10 hover:bg-white/10'
@@ -712,12 +712,12 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                                     className="exhibit-reveal is-visible group relative text-left flex flex-col transition-transform duration-500 hover:-translate-y-1"
                                                 >
                                                     {/* Index number — editorial "N° 001" style */}
-                                                    <div className="flex items-baseline justify-between mb-2 px-1">
+                                                    <div className="flex items-baseline justify-between mb-2.5 px-1">
                                                         <div className="flex items-baseline gap-1.5">
-                                                            <span className="font-mono text-[10px] text-[#c49a6c]/70 tracking-[0.2em]">N°</span>
-                                                            <span className="font-mono text-[11px] text-gray-400 tracking-[0.15em] group-hover:text-[#c49a6c] transition-colors">{indexLabel}</span>
+                                                            <span className="font-mono text-xs text-[#c49a6c]/80 tracking-[0.2em]">N°</span>
+                                                            <span className="font-mono text-sm text-gray-300 tracking-[0.15em] group-hover:text-[#c49a6c] transition-colors">{indexLabel}</span>
                                                         </div>
-                                                        <div className="h-px flex-1 ml-3 bg-gradient-to-r from-white/5 to-transparent" />
+                                                        <div className="h-px flex-1 ml-3 bg-gradient-to-r from-white/10 to-transparent" />
                                                     </div>
 
                                                     {/* Pedestal: product image with museum-display shadow */}
@@ -742,9 +742,9 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                                             <div className="absolute bottom-3 left-3 w-5 h-5 border-l border-b border-[#c49a6c]/0 group-hover:border-[#c49a6c]/80 transition-all duration-500" />
                                                             <div className="absolute bottom-3 right-3 w-5 h-5 border-r border-b border-[#c49a6c]/0 group-hover:border-[#c49a6c]/80 transition-all duration-500" />
                                                             {/* Hover reveal: view arrow */}
-                                                            <div className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#c49a6c] text-[#0a0e1a] text-[10px] font-bold uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-400 shadow-[0_4px_20px_rgba(196,154,108,0.4)]">
+                                                            <div className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#c49a6c] text-[#0a0e1a] text-xs font-bold uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-400 shadow-[0_4px_20px_rgba(196,154,108,0.4)]">
                                                                 {copy.viewPiece}
-                                                                <ArrowUpRight size={12} strokeWidth={2.5} />
+                                                                <ArrowUpRight size={14} strokeWidth={2.5} />
                                                             </div>
                                                         </div>
                                                         {/* Museum pedestal shadow — softer floor glow */}
@@ -752,11 +752,11 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                                     </div>
 
                                                     {/* Caption */}
-                                                    <div className="mt-4 px-1 flex flex-col gap-1">
-                                                        <div className="font-mono text-[13px] font-bold text-white tracking-[0.15em] group-hover:text-[#c49a6c] transition-colors">
+                                                    <div className="mt-4 px-1 flex flex-col gap-1.5">
+                                                        <div className="font-mono text-base font-bold text-white tracking-[0.12em] group-hover:text-[#c49a6c] transition-colors">
                                                             {product.code}
                                                         </div>
-                                                        <div className="text-[10px] text-gray-500 uppercase tracking-[0.25em]">
+                                                        <div className="text-xs text-gray-400 uppercase tracking-[0.2em]">
                                                             {copy.quote}
                                                         </div>
                                                     </div>
