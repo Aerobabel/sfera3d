@@ -592,13 +592,13 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                     {tab === 'products' && (
                         <div className="relative">
                             {/* Editorial hero band — left-aligned single column (matches client feedback: no stretched right-column misalignment) */}
-                            <div className="relative border-b border-white/5 bg-[radial-gradient(circle_at_20%_0%,rgba(196,154,108,0.1),transparent_50%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] px-8 pt-10 pb-8">
-                                <div className="flex flex-wrap items-center gap-3 text-sm font-bold uppercase tracking-[0.3em] text-[#d4aa7a]">
-                                    <span className="h-px w-10 bg-[#d4aa7a]/70" />
+                            <div className="relative border-b border-white/5 bg-[radial-gradient(circle_at_20%_0%,rgba(240,200,134,0.1),transparent_50%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] px-8 pt-10 pb-8">
+                                <div className="flex flex-wrap items-center gap-3 text-sm font-bold uppercase tracking-[0.3em] text-[#fcdba0]">
+                                    <span className="h-px w-10 bg-[#fcdba0]/70" />
                                     <span>{copy.collectionLabel}</span>
-                                    <span className="text-[#d4aa7a]/50">·</span>
+                                    <span className="text-[#fcdba0]/50">·</span>
                                     <span className="font-mono tracking-[0.2em]">N° 001</span>
-                                    <span className="text-[#d4aa7a]/50">·</span>
+                                    <span className="text-[#fcdba0]/50">·</span>
                                     <span className="font-mono tracking-[0.2em]">{String(pavilion.products.length).padStart(3, '0')} {copy.piecesCount(pavilion.products.length).toUpperCase()}</span>
                                 </div>
                                 <h3 className="font-display mt-5 text-[clamp(2.25rem,4.5vw,3.5rem)] font-semibold leading-[0.95] tracking-tight text-white max-w-3xl">
@@ -614,7 +614,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                         <button
                                             type="button"
                                             onClick={() => setSelectedProduct(signatureProduct)}
-                                            className="group relative block overflow-hidden rounded-3xl border border-white/10 bg-[radial-gradient(ellipse_at_bottom,rgba(196,154,108,0.1),rgba(255,255,255,0.02)_50%,rgba(0,0,0,0.3))] aspect-[4/3] shadow-[0_20px_70px_rgba(0,0,0,0.6)] hover:border-[#c49a6c]/50 transition-all duration-700"
+                                            className="group relative block overflow-hidden rounded-3xl border border-white/10 bg-[radial-gradient(ellipse_at_bottom,rgba(240,200,134,0.14),rgba(255,255,255,0.02)_50%,rgba(0,0,0,0.3))] aspect-[4/3] shadow-[0_20px_70px_rgba(0,0,0,0.6)] hover:border-[#f0c886]/60 transition-all duration-700"
                                         >
                                             <Image
                                                 src={signatureProduct.hero}
@@ -625,34 +625,34 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                                 className="object-cover group-hover:scale-[1.03] transition-transform duration-[1200ms] ease-out"
                                             />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                                            <div className="absolute top-6 left-6 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm border border-[#c49a6c]/40 text-[10px] font-bold uppercase tracking-[0.3em] text-[#c49a6c]">
-                                                <span className="h-1.5 w-1.5 rounded-full bg-[#c49a6c] animate-pulse" />
+                                            <div className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-sm border border-[#f0c886]/60 text-sm font-bold uppercase tracking-[0.25em] text-[#f0c886]">
+                                                <span className="h-2 w-2 rounded-full bg-[#f0c886] animate-pulse" />
                                                 {copy.signaturePiece}
                                             </div>
                                         </button>
                                         <div className="flex flex-col gap-5">
-                                            <div className="flex items-baseline gap-3 text-[11px] font-bold uppercase tracking-[0.3em] text-[#c49a6c]/80">
+                                            <div className="flex items-baseline gap-3 text-base font-bold uppercase tracking-[0.28em] text-[#f0c886]">
                                                 <span className="font-mono">N°</span>
-                                                <span className="font-mono">001</span>
-                                                <span className="h-px flex-1 bg-[#c49a6c]/30" />
+                                                <span className="font-mono text-lg">001</span>
+                                                <span className="h-px flex-1 bg-[#f0c886]/50" />
                                             </div>
-                                            <h4 className="font-display text-[clamp(1.75rem,3vw,2.5rem)] font-light leading-[1] tracking-tight text-white">
+                                            <h4 className="font-display text-[clamp(2rem,3.5vw,3rem)] font-semibold leading-[1] tracking-tight text-white">
                                                 {signatureProduct.code}
                                             </h4>
-                                            <p className="text-sm text-gray-300 leading-[1.7]">{copy.signatureBlurb}</p>
+                                            <p className="text-base text-white/85 leading-[1.7] font-medium">{copy.signatureBlurb}</p>
                                             <div className="flex gap-3 pt-2">
                                                 <button
                                                     type="button"
                                                     onClick={() => { setSelectedProduct(null); setTab('contact'); setContactMessage((prev) => prev || copy.quotePrefill(signatureProduct.code)); }}
-                                                    className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#c49a6c] hover:bg-[#d4aa7a] text-[#0a0e1a] text-[11px] font-bold uppercase tracking-[0.22em] transition shadow-[0_6px_24px_rgba(196,154,108,0.3)]"
+                                                    className="group inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#f0c886] hover:bg-[#fcdba0] text-[#1a1408] text-sm font-bold uppercase tracking-[0.2em] transition shadow-[0_6px_24px_rgba(240,200,134,0.4)]"
                                                 >
                                                     {copy.requestQuote}
-                                                    <ArrowUpRight size={14} strokeWidth={2.5} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                                                    <ArrowUpRight size={16} strokeWidth={2.5} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => setSelectedProduct(signatureProduct)}
-                                                    className="px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 text-white text-[11px] font-bold uppercase tracking-[0.22em] border border-white/10 transition"
+                                                    className="px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-bold uppercase tracking-[0.2em] border border-white/20 transition"
                                                 >
                                                     {copy.viewPiece}
                                                 </button>
@@ -675,7 +675,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                             onClick={() => setActiveCategory('all')}
                                             className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-[0.22em] border transition ${
                                                 activeCategory === 'all'
-                                                    ? 'bg-[#c49a6c] text-[#0a0e1a] border-[#c49a6c] shadow-[0_4px_20px_rgba(196,154,108,0.3)]'
+                                                    ? 'bg-[#f0c886] text-[#0a0e1a] border-[#f0c886] shadow-[0_4px_20px_rgba(240,200,134,0.3)]'
                                                     : 'bg-white/[0.03] text-gray-300 border-white/10 hover:bg-white/10'
                                             }`}
                                         >
@@ -688,7 +688,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                                 onClick={() => setActiveCategory(key)}
                                                 className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-[0.22em] border transition ${
                                                     activeCategory === key
-                                                        ? 'bg-[#c49a6c] text-[#0a0e1a] border-[#c49a6c] shadow-[0_4px_20px_rgba(196,154,108,0.3)]'
+                                                        ? 'bg-[#f0c886] text-[#0a0e1a] border-[#f0c886] shadow-[0_4px_20px_rgba(240,200,134,0.3)]'
                                                         : 'bg-white/[0.03] text-gray-300 border-white/10 hover:bg-white/10'
                                                 }`}
                                             >
@@ -719,15 +719,15 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                                         doesn't fade into the panel at rest. */}
                                                     <div className="flex items-baseline justify-between mb-2.5 px-1">
                                                         <div className="flex items-baseline gap-1.5">
-                                                            <span className="font-mono text-sm text-[#d4aa7a] tracking-[0.2em] font-bold">N°</span>
+                                                            <span className="font-mono text-sm text-[#fcdba0] tracking-[0.2em] font-bold">N°</span>
                                                             <span className="font-mono text-base text-white tracking-[0.15em] font-bold">{indexLabel}</span>
                                                         </div>
-                                                        <div className="h-px flex-1 ml-3 bg-gradient-to-r from-[#d4aa7a]/30 to-transparent" />
+                                                        <div className="h-px flex-1 ml-3 bg-gradient-to-r from-[#fcdba0]/30 to-transparent" />
                                                     </div>
 
                                                     {/* Pedestal: product image with museum-display shadow */}
                                                     <div className="relative">
-                                                        <div className="relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(ellipse_at_bottom,rgba(196,154,108,0.06),rgba(255,255,255,0.02)_40%,rgba(0,0,0,0.3))] shadow-[0_12px_40px_rgba(0,0,0,0.5)] group-hover:border-[#c49a6c]/40 transition-all duration-500">
+                                                        <div className="relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(ellipse_at_bottom,rgba(240,200,134,0.06),rgba(255,255,255,0.02)_40%,rgba(0,0,0,0.3))] shadow-[0_12px_40px_rgba(0,0,0,0.5)] group-hover:border-[#f0c886]/40 transition-all duration-500">
                                                             <Image
                                                                 src={product.hero}
                                                                 alt={product.code}
@@ -742,12 +742,12 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                                             {/* Shine sweep on hover */}
                                                             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
                                                             {/* Corner brackets — subtle premium detail */}
-                                                            <div className="absolute top-3 left-3 w-5 h-5 border-l border-t border-[#c49a6c]/0 group-hover:border-[#c49a6c]/80 transition-all duration-500" />
-                                                            <div className="absolute top-3 right-3 w-5 h-5 border-r border-t border-[#c49a6c]/0 group-hover:border-[#c49a6c]/80 transition-all duration-500" />
-                                                            <div className="absolute bottom-3 left-3 w-5 h-5 border-l border-b border-[#c49a6c]/0 group-hover:border-[#c49a6c]/80 transition-all duration-500" />
-                                                            <div className="absolute bottom-3 right-3 w-5 h-5 border-r border-b border-[#c49a6c]/0 group-hover:border-[#c49a6c]/80 transition-all duration-500" />
+                                                            <div className="absolute top-3 left-3 w-5 h-5 border-l border-t border-[#f0c886]/0 group-hover:border-[#f0c886]/80 transition-all duration-500" />
+                                                            <div className="absolute top-3 right-3 w-5 h-5 border-r border-t border-[#f0c886]/0 group-hover:border-[#f0c886]/80 transition-all duration-500" />
+                                                            <div className="absolute bottom-3 left-3 w-5 h-5 border-l border-b border-[#f0c886]/0 group-hover:border-[#f0c886]/80 transition-all duration-500" />
+                                                            <div className="absolute bottom-3 right-3 w-5 h-5 border-r border-b border-[#f0c886]/0 group-hover:border-[#f0c886]/80 transition-all duration-500" />
                                                             {/* Hover reveal: view arrow */}
-                                                            <div className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#c49a6c] text-[#0a0e1a] text-xs font-bold uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-400 shadow-[0_4px_20px_rgba(196,154,108,0.4)]">
+                                                            <div className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#f0c886] text-[#0a0e1a] text-xs font-bold uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-400 shadow-[0_4px_20px_rgba(240,200,134,0.4)]">
                                                                 {copy.viewPiece}
                                                                 <ArrowUpRight size={14} strokeWidth={2.5} />
                                                             </div>
@@ -758,10 +758,10 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
 
                                                     {/* Caption */}
                                                     <div className="mt-4 px-1 flex flex-col gap-1.5">
-                                                        <div className="font-mono text-lg font-bold text-white tracking-[0.1em] group-hover:text-[#d4aa7a] transition-colors">
+                                                        <div className="font-mono text-lg font-bold text-white tracking-[0.1em] group-hover:text-[#fcdba0] transition-colors">
                                                             {product.code}
                                                         </div>
-                                                        <div className="text-xs text-[#d4aa7a]/90 uppercase tracking-[0.2em] font-bold">
+                                                        <div className="text-xs text-[#fcdba0]/90 uppercase tracking-[0.2em] font-bold">
                                                             {copy.quote}
                                                         </div>
                                                     </div>
@@ -776,28 +776,28 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
 
                     {tab === 'contact' && (
                         <div className="p-8 max-w-2xl">
-                            <p className="mb-4 text-sm text-gray-400 leading-relaxed">{copy.contactHeadline}</p>
-                            <div className="mb-6 text-xs text-gray-500 space-y-1.5">
-                                <div>{copy.contactEmail}: <span className="text-cyan-300">{pavilion.contactEmail}</span></div>
-                                {pavilion.contactPhone && <div>{copy.contactPhone}: <span className="text-cyan-300">{pavilion.contactPhone}</span></div>}
+                            <p className="mb-5 text-lg text-white/90 leading-relaxed font-medium">{copy.contactHeadline}</p>
+                            <div className="mb-7 text-base text-gray-300 space-y-2">
+                                <div><span className="text-gray-400">{copy.contactEmail}:</span> <span className="text-cyan-300 font-semibold">{pavilion.contactEmail}</span></div>
+                                {pavilion.contactPhone && <div><span className="text-gray-400">{copy.contactPhone}:</span> <span className="text-cyan-300 font-semibold">{pavilion.contactPhone}</span></div>}
                                 {pavilion.website && (
-                                    <div>{copy.contactWebsite}: <a href={pavilion.website} target="_blank" rel="noreferrer noopener" className="text-cyan-300 hover:underline">{pavilion.website}</a></div>
+                                    <div><span className="text-gray-400">{copy.contactWebsite}:</span> <a href={pavilion.website} target="_blank" rel="noreferrer noopener" className="text-cyan-300 font-semibold hover:underline">{pavilion.website}</a></div>
                                 )}
                             </div>
                             <form onSubmit={handleSubmitContact} className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <input required value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder={copy.fieldName} className="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-sm placeholder-gray-500 transition" />
-                                    <input value={contactCompany} onChange={(e) => setContactCompany(e.target.value)} placeholder={copy.fieldCompany} className="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-sm placeholder-gray-500 transition" />
-                                    <input required type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder={copy.fieldEmail} className="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-sm placeholder-gray-500 transition" />
-                                    <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder={copy.fieldPhone} className="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-sm placeholder-gray-500 transition" />
+                                    <input required value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder={copy.fieldName} className="px-4 py-3 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-base placeholder-gray-400 transition" />
+                                    <input value={contactCompany} onChange={(e) => setContactCompany(e.target.value)} placeholder={copy.fieldCompany} className="px-4 py-3 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-base placeholder-gray-400 transition" />
+                                    <input required type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder={copy.fieldEmail} className="px-4 py-3 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-base placeholder-gray-400 transition" />
+                                    <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder={copy.fieldPhone} className="px-4 py-3 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-base placeholder-gray-400 transition" />
                                 </div>
-                                <textarea required value={contactMessage} onChange={(e) => setContactMessage(e.target.value)} placeholder={copy.fieldMessagePlaceholder} rows={5} className="w-full px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-sm placeholder-gray-500 resize-none transition" />
+                                <textarea required value={contactMessage} onChange={(e) => setContactMessage(e.target.value)} placeholder={copy.fieldMessagePlaceholder} rows={5} className="w-full px-4 py-3 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-base placeholder-gray-400 resize-none transition" />
                                 <div className="flex items-center gap-3">
-                                    <button type="submit" disabled={contactStatus === 'sending'} className="px-6 py-2.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] uppercase tracking-[0.2em] transition disabled:opacity-50">
+                                    <button type="submit" disabled={contactStatus === 'sending'} className="px-7 py-3 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm uppercase tracking-[0.18em] transition disabled:opacity-50">
                                         {contactStatus === 'sending' ? copy.sending : copy.sendMessage}
                                     </button>
-                                    {contactStatus === 'sent' && <span className="text-xs text-emerald-400">{copy.sent}</span>}
-                                    {contactStatus === 'error' && contactError && <span className="text-xs text-rose-400">{contactError}</span>}
+                                    {contactStatus === 'sent' && <span className="text-base text-emerald-400 font-medium">{copy.sent}</span>}
+                                    {contactStatus === 'error' && contactError && <span className="text-base text-rose-400 font-medium">{contactError}</span>}
                                 </div>
                             </form>
                         </div>
@@ -862,7 +862,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
 
                     {tab === 'meeting' && (
                         <div className="p-8">
-                            <p className="mb-6 text-sm text-gray-400 leading-relaxed">{copy.meetingHeadline(pavilion.name)}</p>
+                            <p className="mb-6 text-lg text-white/90 leading-relaxed font-medium">{copy.meetingHeadline(pavilion.name)}</p>
                             <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_320px] gap-4">
                                 <div className="space-y-2 max-h-[55vh] overflow-y-auto custom-scrollbar pr-1">
                                     {dayOptions.map((day) => {
@@ -872,7 +872,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                             <button
                                                 key={iso}
                                                 onClick={() => { setSelectedDayIso(iso); setSelectedSlotIso(null); }}
-                                                className={`w-full text-left px-3 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-[0.15em] border transition ${isActive ? 'bg-white text-slate-900 border-white shadow-[0_0_15px_rgba(255,255,255,0.25)]' : 'bg-white/[0.04] text-gray-300 border-white/10 hover:bg-white/10'}`}
+                                                className={`w-full text-left px-3 py-3 rounded-lg text-sm font-bold uppercase tracking-[0.15em] border transition ${isActive ? 'bg-white text-slate-900 border-white shadow-[0_0_15px_rgba(255,255,255,0.25)]' : 'bg-white/[0.04] text-gray-200 border-white/10 hover:bg-white/10'}`}
                                             >{formatDay(day)}</button>
                                         );
                                     })}
@@ -889,24 +889,24 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                                 key={iso}
                                                 disabled={disabled}
                                                 onClick={() => setSelectedSlotIso(iso)}
-                                                className={`px-2 py-2.5 rounded-lg text-xs font-bold tracking-wider border transition ${disabled ? 'bg-white/[0.02] text-gray-600 border-white/5 cursor-not-allowed line-through' : isSelected ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-[0_0_18px_rgba(34,211,238,0.4)]' : 'bg-white/[0.04] text-gray-200 border-white/10 hover:bg-white/10 hover:border-cyan-400/40'}`}
+                                                className={`px-2 py-3 rounded-lg text-base font-bold tracking-wider border transition ${disabled ? 'bg-white/[0.02] text-gray-600 border-white/5 cursor-not-allowed line-through' : isSelected ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-[0_0_18px_rgba(34,211,238,0.4)]' : 'bg-white/[0.04] text-gray-100 border-white/10 hover:bg-white/10 hover:border-cyan-400/40'}`}
                                             >{formatSlot(slot)}</button>
                                         );
                                     })}
                                 </div>
                                 <form onSubmit={handleSubmitMeeting} className="space-y-3 bg-black/20 border border-white/10 rounded-2xl p-5">
-                                    <input required value={meetingName} onChange={(e) => setMeetingName(e.target.value)} placeholder={copy.fieldName} className="w-full px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-sm placeholder-gray-500 transition" />
-                                    <input required type="email" value={meetingEmail} onChange={(e) => setMeetingEmail(e.target.value)} placeholder={copy.fieldEmail} className="w-full px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-sm placeholder-gray-500 transition" />
-                                    <input value={meetingCompany} onChange={(e) => setMeetingCompany(e.target.value)} placeholder={copy.fieldCompany} className="w-full px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-sm placeholder-gray-500 transition" />
-                                    <textarea value={meetingNotes} onChange={(e) => setMeetingNotes(e.target.value)} rows={3} placeholder={copy.notesPlaceholder} className="w-full px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-sm placeholder-gray-500 resize-none transition" />
-                                    <div className="text-xs text-gray-400">
-                                        {selectedSlotIso ? (<>{copy.selectedLabel}: <span className="text-white font-bold">{new Date(selectedSlotIso).toLocaleString(copy.dateLocale)}</span></>) : (<>{copy.pickDayHint}</>)}
+                                    <input required value={meetingName} onChange={(e) => setMeetingName(e.target.value)} placeholder={copy.fieldName} className="w-full px-4 py-3 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-base placeholder-gray-400 transition" />
+                                    <input required type="email" value={meetingEmail} onChange={(e) => setMeetingEmail(e.target.value)} placeholder={copy.fieldEmail} className="w-full px-4 py-3 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-base placeholder-gray-400 transition" />
+                                    <input value={meetingCompany} onChange={(e) => setMeetingCompany(e.target.value)} placeholder={copy.fieldCompany} className="w-full px-4 py-3 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-base placeholder-gray-400 transition" />
+                                    <textarea value={meetingNotes} onChange={(e) => setMeetingNotes(e.target.value)} rows={3} placeholder={copy.notesPlaceholder} className="w-full px-4 py-3 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-base placeholder-gray-400 resize-none transition" />
+                                    <div className="text-sm text-gray-300">
+                                        {selectedSlotIso ? (<><span className="text-gray-400">{copy.selectedLabel}:</span> <span className="text-white font-bold">{new Date(selectedSlotIso).toLocaleString(copy.dateLocale)}</span></>) : (<>{copy.pickDayHint}</>)}
                                     </div>
-                                    <button type="submit" disabled={!selectedSlotIso || meetingStatus === 'sending'} className="w-full px-4 py-2.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] uppercase tracking-[0.2em] transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <button type="submit" disabled={!selectedSlotIso || meetingStatus === 'sending'} className="w-full px-5 py-3 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm uppercase tracking-[0.18em] transition disabled:opacity-50 disabled:cursor-not-allowed">
                                         {meetingStatus === 'sending' ? copy.booking : copy.confirmBooking}
                                     </button>
-                                    {meetingStatus === 'sent' && <div className="text-xs text-emerald-400">{copy.bookingConfirmed}</div>}
-                                    {meetingStatus === 'error' && meetingError && <div className="text-xs text-rose-400">{meetingError}</div>}
+                                    {meetingStatus === 'sent' && <div className="text-sm text-emerald-400 font-medium">{copy.bookingConfirmed}</div>}
+                                    {meetingStatus === 'error' && meetingError && <div className="text-sm text-rose-400 font-medium">{meetingError}</div>}
                                 </form>
                             </div>
                         </div>

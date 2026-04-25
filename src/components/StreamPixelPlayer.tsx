@@ -267,6 +267,7 @@ export default function StreamPixelPlayer({
         let syncTimer: number | null = null;
         let exposedStream: StreamPixelStream | null = null;
         let domObserver: MutationObserver | null = null;
+        let resizeObserver: ResizeObserver | null = null;
         let hasTornDown = false;
 
         const desktopMouseMode = resolveDesktopMouseMode(preferredDesktopMouseMode);
@@ -332,6 +333,11 @@ export default function StreamPixelPlayer({
             if (domObserver) {
                 domObserver.disconnect();
                 domObserver = null;
+            }
+
+            if (resizeObserver) {
+                resizeObserver.disconnect();
+                resizeObserver = null;
             }
 
             if (responseListener) {
@@ -463,6 +469,23 @@ export default function StreamPixelPlayer({
                             }
                         });
                 };
+
+                // Force the SDK to re-fit when the player container changes
+                // size. Fixes the "stream looks wrong on Chrome until I zoom"
+                // bug: SDK reads window.innerWidth/innerHeight once at init,
+                // but on Windows + DPR scaling those values can be stale until
+                // the first paint settles. ResizeObserver fires once layout
+                // stabilises and dispatching a resize event triggers the
+                // SDK's internal refit handler.
+                let lastResizeAt = 0;
+                resizeObserver = new ResizeObserver(() => {
+                    if (cancelled) return;
+                    const now = Date.now();
+                    if (now - lastResizeAt < 120) return;
+                    lastResizeAt = now;
+                    try { window.dispatchEvent(new Event('resize')); } catch { /* ignore */ }
+                });
+                resizeObserver.observe(wrapperElement);
 
                 domObserver = new MutationObserver(() => {
                     if (cancelled) return;
