@@ -546,12 +546,15 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                 <div className="relative p-8 border-b border-white/5 bg-black/20 z-10">
                     <div className="flex items-start justify-between gap-4">
                         <div>
-                            <div className="text-[10px] uppercase tracking-[0.4em] text-cyan-300/80 font-bold">{copy.pavilionLabel}</div>
-                            {/* Editorial serif display — instant luxury signal */}
-                            <h2 className="font-display mt-2 text-[clamp(2rem,4vw,3.25rem)] font-light leading-[0.95] tracking-[-0.01em] text-white drop-shadow-[0_0_18px_rgba(255,255,255,0.12)]">
+                            <div className="text-xs uppercase tracking-[0.35em] text-cyan-300 font-bold">{copy.pavilionLabel}</div>
+                            {/* Editorial serif display — bumped weight for readability */}
+                            <h2 className="font-display mt-2 text-[clamp(2.25rem,4.5vw,3.75rem)] font-semibold leading-[0.95] tracking-[-0.01em] text-white drop-shadow-[0_0_18px_rgba(255,255,255,0.12)]">
                                 {pavilion.name}
                             </h2>
-                            <p className="mt-3 text-sm text-gray-400 max-w-2xl leading-relaxed italic font-display text-base">{pavilion.tagline}</p>
+                            {/* Tagline: was italic gray-400 light — disappeared against the dark
+                                panel on larger displays per client feedback. Now: solid white,
+                                medium weight, larger, no italic. */}
+                            <p className="mt-3 text-base sm:text-lg text-white/90 max-w-2xl leading-relaxed font-medium">{pavilion.tagline}</p>
                         </div>
                         <button
                             onClick={onClose}
@@ -589,19 +592,19 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                     {tab === 'products' && (
                         <div className="relative">
                             {/* Editorial hero band — left-aligned single column (matches client feedback: no stretched right-column misalignment) */}
-                            <div className="relative border-b border-white/5 bg-[radial-gradient(circle_at_20%_0%,rgba(196,154,108,0.08),transparent_50%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] px-8 pt-10 pb-8">
-                                <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.32em] text-[#c49a6c]">
-                                    <span className="h-px w-8 bg-[#c49a6c]/60" />
+                            <div className="relative border-b border-white/5 bg-[radial-gradient(circle_at_20%_0%,rgba(196,154,108,0.1),transparent_50%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] px-8 pt-10 pb-8">
+                                <div className="flex flex-wrap items-center gap-3 text-sm font-bold uppercase tracking-[0.3em] text-[#d4aa7a]">
+                                    <span className="h-px w-10 bg-[#d4aa7a]/70" />
                                     <span>{copy.collectionLabel}</span>
-                                    <span className="text-[#c49a6c]/40">·</span>
+                                    <span className="text-[#d4aa7a]/50">·</span>
                                     <span className="font-mono tracking-[0.2em]">N° 001</span>
-                                    <span className="text-[#c49a6c]/40">·</span>
+                                    <span className="text-[#d4aa7a]/50">·</span>
                                     <span className="font-mono tracking-[0.2em]">{String(pavilion.products.length).padStart(3, '0')} {copy.piecesCount(pavilion.products.length).toUpperCase()}</span>
                                 </div>
-                                <h3 className="font-display mt-5 text-[clamp(2rem,4vw,3.25rem)] font-light italic leading-[0.95] tracking-tight text-white max-w-3xl">
+                                <h3 className="font-display mt-5 text-[clamp(2.25rem,4.5vw,3.5rem)] font-semibold leading-[0.95] tracking-tight text-white max-w-3xl">
                                     {pavilion.tagline}
                                 </h3>
-                                <p className="mt-4 max-w-2xl text-sm text-gray-300 leading-relaxed">{copy.productsIntro}</p>
+                                <p className="mt-4 max-w-2xl text-base text-white/85 leading-relaxed font-medium">{copy.productsIntro}</p>
                             </div>
 
                             {/* Signature hero piece — the "walking into the gallery" focal point */}
@@ -711,13 +714,15 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                                     style={{ animationDelay: `${Math.min(idx, 10) * 50}ms` }}
                                                     className="exhibit-reveal is-visible group relative text-left flex flex-col transition-transform duration-500 hover:-translate-y-1"
                                                 >
-                                                    {/* Index number — editorial "N° 001" style */}
+                                                    {/* Index number — editorial "N° 001" style.
+                                                        Brightened per client feedback so it
+                                                        doesn't fade into the panel at rest. */}
                                                     <div className="flex items-baseline justify-between mb-2.5 px-1">
                                                         <div className="flex items-baseline gap-1.5">
-                                                            <span className="font-mono text-xs text-[#c49a6c]/80 tracking-[0.2em]">N°</span>
-                                                            <span className="font-mono text-sm text-gray-300 tracking-[0.15em] group-hover:text-[#c49a6c] transition-colors">{indexLabel}</span>
+                                                            <span className="font-mono text-sm text-[#d4aa7a] tracking-[0.2em] font-bold">N°</span>
+                                                            <span className="font-mono text-base text-white tracking-[0.15em] font-bold">{indexLabel}</span>
                                                         </div>
-                                                        <div className="h-px flex-1 ml-3 bg-gradient-to-r from-white/10 to-transparent" />
+                                                        <div className="h-px flex-1 ml-3 bg-gradient-to-r from-[#d4aa7a]/30 to-transparent" />
                                                     </div>
 
                                                     {/* Pedestal: product image with museum-display shadow */}
@@ -753,10 +758,10 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
 
                                                     {/* Caption */}
                                                     <div className="mt-4 px-1 flex flex-col gap-1.5">
-                                                        <div className="font-mono text-base font-bold text-white tracking-[0.12em] group-hover:text-[#c49a6c] transition-colors">
+                                                        <div className="font-mono text-lg font-bold text-white tracking-[0.1em] group-hover:text-[#d4aa7a] transition-colors">
                                                             {product.code}
                                                         </div>
-                                                        <div className="text-xs text-gray-400 uppercase tracking-[0.2em]">
+                                                        <div className="text-xs text-[#d4aa7a]/90 uppercase tracking-[0.2em] font-bold">
                                                             {copy.quote}
                                                         </div>
                                                     </div>

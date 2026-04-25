@@ -1181,7 +1181,12 @@ export default function ExperiencePage() {
 
             {/* FastView launch overlay */}
             {showFastViewLaunchOverlay && (
-                <div className="absolute inset-0 z-[120] flex items-center justify-center bg-[radial-gradient(circle_at_top,rgba(102,217,203,0.16),transparent_42%),linear-gradient(160deg,rgba(3,8,14,0.92),rgba(6,13,24,0.78))] px-4 py-6">
+                // Scrollable container — on small phones the welcome panel
+                // is taller than the viewport, so we need overflow-y-auto on
+                // the wrapper. items-start (instead of items-center) keeps
+                // the panel anchored to the top so the user can scroll down
+                // through the controls + pedestal hint.
+                <div className="absolute inset-0 z-[120] flex items-start sm:items-center justify-center overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(102,217,203,0.16),transparent_42%),linear-gradient(160deg,rgba(3,8,14,0.92),rgba(6,13,24,0.78))] px-4 py-6">
                     {/* Ambient animated glows behind the panel */}
                     <div className="pointer-events-none absolute -top-32 -left-32 w-[32rem] h-[32rem] rounded-full bg-[#66d9cb]/10 blur-[120px] drift" />
                     <div className="pointer-events-none absolute -bottom-32 -right-32 w-[28rem] h-[28rem] rounded-full bg-fuchsia-500/5 blur-[120px] drift" />
