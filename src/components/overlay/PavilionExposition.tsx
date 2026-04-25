@@ -601,7 +601,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                     <span className="text-[#fcdba0]/50">·</span>
                                     <span className="font-mono tracking-[0.2em]">{String(pavilion.products.length).padStart(3, '0')} {copy.piecesCount(pavilion.products.length).toUpperCase()}</span>
                                 </div>
-                                <h3 className="font-display mt-5 text-[clamp(2.25rem,4.5vw,3.5rem)] font-semibold leading-[0.95] tracking-tight text-white max-w-3xl">
+                                <h3 className="font-display mt-5 text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.05] tracking-tight text-white">
                                     {pavilion.tagline}
                                 </h3>
                                 <p className="mt-4 max-w-2xl text-base text-white/85 leading-relaxed font-medium">{copy.productsIntro}</p>
