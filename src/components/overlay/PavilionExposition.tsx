@@ -15,7 +15,7 @@
 //
 // Copy is localised (en/ru/zh) via useLanguage().
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { ArrowUpRight, Calendar, Mail, MessageSquare, Package, Send, X } from 'lucide-react';
@@ -26,6 +26,7 @@ const PanoramaViewer = dynamic(() => import('./PanoramaViewer'), { ssr: false })
 const SketchfabEmbed = dynamic(() => import('./SketchfabEmbed'), { ssr: false });
 import type { Pavilion, PavilionProduct } from '@/lib/pavilions';
 import { getYouboSpec, type ProductComponentKind } from '@/data/youbo-specs';
+import { getDoublelinSpec } from '@/data/doublelin-specs';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import type { PavilionMessage } from '@/lib/pavilionChat';
 import TranslatableText from '@/components/chat/TranslatableText';
@@ -174,6 +175,9 @@ type Copy = {
     certificationsLine: string;
     warrantyLine: string;
     moqLeadLine: string;
+    // Doublelin spec block — different shape from Youbo's component-based view.
+    applicationsTitle: string;
+    certificationsLabel: string;
 };
 
 const COPY: Record<AppLanguage, Copy> = {
@@ -244,6 +248,8 @@ const COPY: Record<AppLanguage, Copy> = {
         certificationsLine: 'Certifications: CE · cUPC · ETL / UL / SAA',
         warrantyLine: 'Warranty: 24 months (cabinet & basin) · 6 months (mirror)',
         moqLeadLine: 'MOQ 10 pcs · 35–45 day lead time · FOB Ningbo',
+        applicationsTitle: 'Applications',
+        certificationsLabel: 'Certifications',
     },
     ru: {
         pavilionLabel: 'Павильон',
@@ -312,6 +318,8 @@ const COPY: Record<AppLanguage, Copy> = {
         certificationsLine: 'Сертификаты: CE · cUPC · ETL / UL / SAA',
         warrantyLine: 'Гарантия: 24 мес. (тумба и раковина) · 6 мес. (зеркало)',
         moqLeadLine: 'MOQ 10 шт. · срок 35–45 дней · FOB Нинбо',
+        applicationsTitle: 'Применение',
+        certificationsLabel: 'Сертификаты',
     },
     zh: {
         pavilionLabel: '展馆',
@@ -380,6 +388,8 @@ const COPY: Record<AppLanguage, Copy> = {
         certificationsLine: '认证: CE · cUPC · ETL / UL / SAA',
         warrantyLine: '保修: 24 个月 (柜体与台盆) · 6 个月 (镜子)',
         moqLeadLine: 'MOQ 10 件 · 交货期 35–45 天 · FOB 宁波',
+        applicationsTitle: '应用领域',
+        certificationsLabel: '认证',
     },
 };
 
@@ -1014,12 +1024,23 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                         <div className="text-[10px] uppercase tracking-[0.3em] text-cyan-300/80 font-bold">{pavilion.name}</div>
                                         <h3 className="mt-2 text-3xl font-black text-white tracking-[0.08em]">{selectedProduct.code}</h3>
                                         {(() => {
-                                            const spec = getYouboSpec(selectedProduct.id);
-                                            return spec ? (
-                                                <div className="mt-1.5 text-[11px] text-gray-400 uppercase tracking-[0.2em] font-medium">
-                                                    {spec.series} · {spec.variant}
-                                                </div>
-                                            ) : null;
+                                            const youbo = getYouboSpec(selectedProduct.id);
+                                            if (youbo) {
+                                                return (
+                                                    <div className="mt-1.5 text-[11px] text-gray-400 uppercase tracking-[0.2em] font-medium">
+                                                        {youbo.series} · {youbo.variant}
+                                                    </div>
+                                                );
+                                            }
+                                            const doublelin = getDoublelinSpec(selectedProduct.id);
+                                            if (doublelin) {
+                                                return (
+                                                    <div className="mt-1.5 text-[12px] text-gray-300 leading-snug font-medium">
+                                                        {doublelin.title}
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
                                         })()}
                                         <div className="mt-2 text-cyan-300 text-xs font-bold uppercase tracking-[0.25em]">{copy.quote}</div>
                                     </div>
@@ -1029,62 +1050,120 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                 </div>
 
                                 {(() => {
-                                    const spec = getYouboSpec(selectedProduct.id);
-                                    if (!spec) {
-                                        return <div className="text-sm text-gray-400 leading-relaxed">{copy.productDetailBody}</div>;
-                                    }
-                                    return (
-                                        <div className="flex flex-col gap-5 text-sm">
-                                            {/* Specs table */}
-                                            <section>
-                                                <div className="flex items-center gap-2 mb-3 text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-300/80">
-                                                    <span className="h-px w-6 bg-cyan-300/40" />
-                                                    {copy.specsTitle}
-                                                </div>
-                                                <ul className="flex flex-col gap-3">
-                                                    {spec.components.map((c) => (
-                                                        <li key={c.code} className="grid grid-cols-[80px_1fr] gap-3">
-                                                            <div className="text-[11px] uppercase tracking-[0.18em] text-gray-400 font-bold pt-0.5">
-                                                                {copy.componentLabels[c.kind]}
-                                                            </div>
-                                                            <div className="min-w-0">
-                                                                <div className="font-mono text-[13px] text-white tracking-wide">{c.dimensions}</div>
-                                                                <div className="mt-0.5 text-[12px] text-gray-300 leading-snug">{c.finish}</div>
-                                                                <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-gray-500">
-                                                                    <span className="font-mono">{c.code}</span>
-                                                                    {c.weight && <><span>·</span><span>{c.weight}</span></>}
+                                    const youbo = getYouboSpec(selectedProduct.id);
+                                    if (youbo) {
+                                        return (
+                                            <div className="flex flex-col gap-5 text-sm">
+                                                {/* Specs table */}
+                                                <section>
+                                                    <div className="flex items-center gap-2 mb-3 text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-300/80">
+                                                        <span className="h-px w-6 bg-cyan-300/40" />
+                                                        {copy.specsTitle}
+                                                    </div>
+                                                    <ul className="flex flex-col gap-3">
+                                                        {youbo.components.map((c) => (
+                                                            <li key={c.code} className="grid grid-cols-[80px_1fr] gap-3">
+                                                                <div className="text-[11px] uppercase tracking-[0.18em] text-gray-400 font-bold pt-0.5">
+                                                                    {copy.componentLabels[c.kind]}
                                                                 </div>
+                                                                <div className="min-w-0">
+                                                                    <div className="font-mono text-[13px] text-white tracking-wide">{c.dimensions}</div>
+                                                                    <div className="mt-0.5 text-[12px] text-gray-300 leading-snug">{c.finish}</div>
+                                                                    <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-gray-500">
+                                                                        <span className="font-mono">{c.code}</span>
+                                                                        {c.weight && <><span>·</span><span>{c.weight}</span></>}
+                                                                    </div>
+                                                                </div>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </section>
+
+                                                {/* Features */}
+                                                <section>
+                                                    <div className="flex items-center gap-2 mb-2 text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-300/80">
+                                                        <span className="h-px w-6 bg-cyan-300/40" />
+                                                        {copy.featuresTitle}
+                                                    </div>
+                                                    <ul className="space-y-1.5 text-[12.5px] text-gray-300 leading-relaxed">
+                                                        {copy.featuresLines.map((line) => (
+                                                            <li key={line} className="flex gap-2">
+                                                                <span className="text-cyan-300/70 mt-1.5 shrink-0">·</span>
+                                                                <span>{line}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </section>
+
+                                                {/* Standards / certifications / warranty / MOQ */}
+                                                <section className="rounded-xl border border-white/5 bg-white/[0.02] p-3.5 text-[11.5px] text-gray-400 leading-relaxed space-y-1">
+                                                    <div><span className="text-gray-500 font-bold uppercase tracking-[0.18em] text-[10px] mr-1.5">{copy.standardsTitle}:</span>{copy.standardsLine}</div>
+                                                    <div>{copy.certificationsLine}</div>
+                                                    <div>{copy.warrantyLine}</div>
+                                                    <div>{copy.moqLeadLine}</div>
+                                                </section>
+                                            </div>
+                                        );
+                                    }
+
+                                    const doublelin = getDoublelinSpec(selectedProduct.id);
+                                    if (doublelin) {
+                                        return (
+                                            <div className="flex flex-col gap-5 text-sm">
+                                                {/* Features */}
+                                                <section>
+                                                    <div className="flex items-center gap-2 mb-2 text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-300/80">
+                                                        <span className="h-px w-6 bg-cyan-300/40" />
+                                                        {copy.featuresTitle}
+                                                    </div>
+                                                    <ul className="space-y-1.5 text-[12.5px] text-gray-300 leading-relaxed">
+                                                        {doublelin.features.map((line) => (
+                                                            <li key={line} className="flex gap-2">
+                                                                <span className="text-cyan-300/70 mt-1.5 shrink-0">·</span>
+                                                                <span>{line}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </section>
+
+                                                {/* Specs table (key/value rows) */}
+                                                <section>
+                                                    <div className="flex items-center gap-2 mb-3 text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-300/80">
+                                                        <span className="h-px w-6 bg-cyan-300/40" />
+                                                        {copy.specsTitle}
+                                                    </div>
+                                                    <dl className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-2 text-[12px] leading-snug">
+                                                        {doublelin.specs.map((row) => (
+                                                            <Fragment key={row.label}>
+                                                                <dt className="text-gray-400 uppercase tracking-[0.14em] text-[10.5px] font-bold pt-0.5">{row.label}</dt>
+                                                                <dd className="text-white font-mono">{row.value}</dd>
+                                                            </Fragment>
+                                                        ))}
+                                                    </dl>
+                                                </section>
+
+                                                {/* Applications + certifications */}
+                                                {(doublelin.applications || doublelin.certifications) && (
+                                                    <section className="rounded-xl border border-white/5 bg-white/[0.02] p-3.5 text-[11.5px] text-gray-400 leading-relaxed space-y-1.5">
+                                                        {doublelin.applications && (
+                                                            <div>
+                                                                <span className="text-gray-500 font-bold uppercase tracking-[0.18em] text-[10px] mr-1.5">{copy.applicationsTitle}:</span>
+                                                                {doublelin.applications.join(' · ')}
                                                             </div>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </section>
+                                                        )}
+                                                        {doublelin.certifications && (
+                                                            <div>
+                                                                <span className="text-gray-500 font-bold uppercase tracking-[0.18em] text-[10px] mr-1.5">{copy.certificationsLabel}:</span>
+                                                                {doublelin.certifications}
+                                                            </div>
+                                                        )}
+                                                    </section>
+                                                )}
+                                            </div>
+                                        );
+                                    }
 
-                                            {/* Features */}
-                                            <section>
-                                                <div className="flex items-center gap-2 mb-2 text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-300/80">
-                                                    <span className="h-px w-6 bg-cyan-300/40" />
-                                                    {copy.featuresTitle}
-                                                </div>
-                                                <ul className="space-y-1.5 text-[12.5px] text-gray-300 leading-relaxed">
-                                                    {copy.featuresLines.map((line) => (
-                                                        <li key={line} className="flex gap-2">
-                                                            <span className="text-cyan-300/70 mt-1.5 shrink-0">·</span>
-                                                            <span>{line}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </section>
-
-                                            {/* Standards / certifications / warranty / MOQ */}
-                                            <section className="rounded-xl border border-white/5 bg-white/[0.02] p-3.5 text-[11.5px] text-gray-400 leading-relaxed space-y-1">
-                                                <div><span className="text-gray-500 font-bold uppercase tracking-[0.18em] text-[10px] mr-1.5">{copy.standardsTitle}:</span>{copy.standardsLine}</div>
-                                                <div>{copy.certificationsLine}</div>
-                                                <div>{copy.warrantyLine}</div>
-                                                <div>{copy.moqLeadLine}</div>
-                                            </section>
-                                        </div>
-                                    );
+                                    return <div className="text-sm text-gray-400 leading-relaxed">{copy.productDetailBody}</div>;
                                 })()}
 
                                 <div className="mt-auto flex gap-2 pt-2">
