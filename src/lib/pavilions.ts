@@ -13,6 +13,7 @@ export type PavilionProduct = {
     code: string;
     hero: string;
     panorama?: string;
+    model?: string;
 };
 
 export type PavilionManifest = {

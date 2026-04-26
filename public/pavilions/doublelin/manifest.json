@@ -3,97 +3,44 @@
     {
       "id": "3060e",
       "code": "3060E",
-      "hero": "/pavilions/doublelin/3060e.jpg"
+      "hero": "/pavilions/doublelin/3060e.jpg",
+      "model": "/pavilions/doublelin/models/3060e.glb"
     },
     {
       "id": "ll1001",
       "code": "LL1001",
-      "hero": "/pavilions/doublelin/ll1001.jpg"
+      "hero": "/pavilions/doublelin/ll1001.jpg",
+      "model": "/pavilions/doublelin/models/ll1001.glb"
     },
     {
       "id": "ll1042",
       "code": "LL1042",
-      "hero": "/pavilions/doublelin/ll1042.jpg"
+      "hero": "/pavilions/doublelin/ll1042.jpg",
+      "model": "/pavilions/doublelin/models/ll1042.glb"
     },
     {
       "id": "ll1063",
       "code": "LL1063",
-      "hero": "/pavilions/doublelin/ll1063.jpg"
-    },
-    {
-      "id": "ll1071",
-      "code": "LL1071",
-      "hero": "/pavilions/doublelin/ll1071.jpg"
-    },
-    {
-      "id": "ll1072",
-      "code": "LL1072",
-      "hero": "/pavilions/doublelin/ll1072.jpg"
-    },
-    {
-      "id": "ll1116",
-      "code": "LL1116",
-      "hero": "/pavilions/doublelin/ll1116.jpg"
+      "hero": "/pavilions/doublelin/ll1063.jpg",
+      "model": "/pavilions/doublelin/models/ll1063.glb"
     },
     {
       "id": "ll2006",
       "code": "LL2006",
-      "hero": "/pavilions/doublelin/ll2006.jpg"
-    },
-    {
-      "id": "ll2055",
-      "code": "LL2055",
-      "hero": "/pavilions/doublelin/ll2055.jpg"
-    },
-    {
-      "id": "ll2062",
-      "code": "LL2062",
-      "hero": "/pavilions/doublelin/ll2062.jpg"
+      "hero": "/pavilions/doublelin/ll2006.jpg",
+      "model": "/pavilions/doublelin/models/ll2006.glb"
     },
     {
       "id": "ll3052a",
       "code": "LL3052A",
-      "hero": "/pavilions/doublelin/ll3052a.jpg"
-    },
-    {
-      "id": "ll3054a",
-      "code": "LL3054A",
-      "hero": "/pavilions/doublelin/ll3054a.jpg"
-    },
-    {
-      "id": "ll3061b",
-      "code": "LL3061B",
-      "hero": "/pavilions/doublelin/ll3061b.jpg"
-    },
-    {
-      "id": "ll3101",
-      "code": "LL3101",
-      "hero": "/pavilions/doublelin/ll3101.jpg"
+      "hero": "/pavilions/doublelin/ll3052a.jpg",
+      "model": "/pavilions/doublelin/models/ll3052a.glb"
     },
     {
       "id": "ll4030",
       "code": "LL4030",
-      "hero": "/pavilions/doublelin/ll4030.jpg"
-    },
-    {
-      "id": "ll4031",
-      "code": "LL4031",
-      "hero": "/pavilions/doublelin/ll4031.jpg"
-    },
-    {
-      "id": "ll5001",
-      "code": "LL5001",
-      "hero": "/pavilions/doublelin/ll5001.jpg"
-    },
-    {
-      "id": "ll5005",
-      "code": "LL5005",
-      "hero": "/pavilions/doublelin/ll5005.jpg"
-    },
-    {
-      "id": "ll5007",
-      "code": "LL5007",
-      "hero": "/pavilions/doublelin/ll5007.jpg"
+      "hero": "/pavilions/doublelin/ll4030.jpg",
+      "model": "/pavilions/doublelin/models/ll4030.glb"
     }
   ]
 }
