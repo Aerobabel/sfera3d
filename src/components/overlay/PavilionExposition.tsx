@@ -23,6 +23,7 @@ import { ArrowUpRight, Calendar, Mail, MessageSquare, Package, Send, X } from 'l
 // three.js bundle is heavy — only load when a panorama is actually opened.
 const PanoramaViewer = dynamic(() => import('./PanoramaViewer'), { ssr: false });
 import type { Pavilion, PavilionProduct } from '@/lib/pavilions';
+import { getYouboSpec, type ProductComponentKind } from '@/data/youbo-specs';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import type { PavilionMessage } from '@/lib/pavilionChat';
 import TranslatableText from '@/components/chat/TranslatableText';
@@ -160,6 +161,17 @@ type Copy = {
     bookMeeting: string;
     quotePrefill: (code: string) => string;
     dateLocale: string;
+    // Spec block strings — used by the product lightbox when structured
+    // specifications are available for the selected SKU.
+    specsTitle: string;
+    componentLabels: Record<ProductComponentKind, string>;
+    featuresTitle: string;
+    featuresLines: string[];
+    standardsTitle: string;
+    standardsLine: string;
+    certificationsLine: string;
+    warrantyLine: string;
+    moqLeadLine: string;
 };
 
 const COPY: Record<AppLanguage, Copy> = {
@@ -211,6 +223,25 @@ const COPY: Record<AppLanguage, Copy> = {
         bookMeeting: 'Book meeting',
         quotePrefill: (code) => `Hi, I'd like a quote on ${code}.`,
         dateLocale: 'en-US',
+        specsTitle: 'Specifications',
+        componentLabels: {
+            cabinet: 'Cabinet',
+            basin: 'Basin',
+            mirror: 'Mirror',
+            'side-cabinet': 'Side cabinet',
+            legs: 'Legs',
+        },
+        featuresTitle: 'Features',
+        featuresLines: [
+            'Curve-edge design with wavy vertical pattern',
+            'Side-opening doors · Unihopper soft-close runners',
+            'Wall-mounted · hand-finished · E0 plywood core',
+        ],
+        standardsTitle: 'Materials & Standards',
+        standardsLine: 'E0 plywood · 5 mm copper-free mirror · IP67 LED 4000–4500 K',
+        certificationsLine: 'Certifications: CE · cUPC · ETL / UL / SAA',
+        warrantyLine: 'Warranty: 24 months (cabinet & basin) · 6 months (mirror)',
+        moqLeadLine: 'MOQ 10 pcs · 35–45 day lead time · FOB Ningbo',
     },
     ru: {
         pavilionLabel: 'Павильон',
@@ -260,6 +291,25 @@ const COPY: Record<AppLanguage, Copy> = {
         bookMeeting: 'Записаться',
         quotePrefill: (code) => `Здравствуйте, подскажите цену на ${code}.`,
         dateLocale: 'ru-RU',
+        specsTitle: 'Спецификация',
+        componentLabels: {
+            cabinet: 'Тумба',
+            basin: 'Раковина',
+            mirror: 'Зеркало',
+            'side-cabinet': 'Боковой шкаф',
+            legs: 'Опоры',
+        },
+        featuresTitle: 'Особенности',
+        featuresLines: [
+            'Изогнутый край с волнистым вертикальным узором',
+            'Двери с обеих сторон · доводчики Unihopper',
+            'Настенный монтаж · ручная финишная обработка · плита E0',
+        ],
+        standardsTitle: 'Материалы и стандарты',
+        standardsLine: 'Плита E0 · зеркало 5 мм без меди · LED IP67 · 4000–4500 K',
+        certificationsLine: 'Сертификаты: CE · cUPC · ETL / UL / SAA',
+        warrantyLine: 'Гарантия: 24 мес. (тумба и раковина) · 6 мес. (зеркало)',
+        moqLeadLine: 'MOQ 10 шт. · срок 35–45 дней · FOB Нинбо',
     },
     zh: {
         pavilionLabel: '展馆',
@@ -309,6 +359,25 @@ const COPY: Record<AppLanguage, Copy> = {
         bookMeeting: '预约会议',
         quotePrefill: (code) => `您好，请提供 ${code} 的报价。`,
         dateLocale: 'zh-CN',
+        specsTitle: '规格参数',
+        componentLabels: {
+            cabinet: '柜体',
+            basin: '台盆',
+            mirror: '镜子',
+            'side-cabinet': '侧柜',
+            legs: '支腿',
+        },
+        featuresTitle: '产品特点',
+        featuresLines: [
+            '曲边设计 · 波纹竖向纹路',
+            '双侧开门 · Unihopper 缓冲滑轨',
+            '壁挂安装 · 手工精修 · E0 级板材',
+        ],
+        standardsTitle: '材料与标准',
+        standardsLine: 'E0 级板材 · 5 mm 无铜镜面 · IP67 LED · 4000–4500 K',
+        certificationsLine: '认证: CE · cUPC · ETL / UL / SAA',
+        warrantyLine: '保修: 24 个月 (柜体与台盆) · 6 个月 (镜子)',
+        moqLeadLine: 'MOQ 10 件 · 交货期 35–45 天 · FOB 宁波',
     },
 };
 
@@ -935,19 +1004,86 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                     />
                                 )}
                             </div>
-                            <div className="md:w-2/5 p-8 flex flex-col gap-5 overflow-y-auto">
+                            <div className="md:w-2/5 p-8 flex flex-col gap-5 overflow-y-auto custom-scrollbar">
                                 <div className="flex items-start justify-between">
-                                    <div>
+                                    <div className="min-w-0">
                                         <div className="text-[10px] uppercase tracking-[0.3em] text-cyan-300/80 font-bold">{pavilion.name}</div>
                                         <h3 className="mt-2 text-3xl font-black text-white tracking-[0.08em]">{selectedProduct.code}</h3>
+                                        {(() => {
+                                            const spec = getYouboSpec(selectedProduct.id);
+                                            return spec ? (
+                                                <div className="mt-1.5 text-[11px] text-gray-400 uppercase tracking-[0.2em] font-medium">
+                                                    {spec.series} · {spec.variant}
+                                                </div>
+                                            ) : null;
+                                        })()}
                                         <div className="mt-2 text-cyan-300 text-xs font-bold uppercase tracking-[0.25em]">{copy.quote}</div>
                                     </div>
-                                    <button onClick={() => setSelectedProduct(null)} className="p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-white border border-white/10" aria-label={copy.close}>
+                                    <button onClick={() => setSelectedProduct(null)} className="shrink-0 p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-white border border-white/10" aria-label={copy.close}>
                                         <X size={18} />
                                     </button>
                                 </div>
-                                <div className="text-sm text-gray-400 leading-relaxed">{copy.productDetailBody}</div>
-                                <div className="mt-auto flex gap-2">
+
+                                {(() => {
+                                    const spec = getYouboSpec(selectedProduct.id);
+                                    if (!spec) {
+                                        return <div className="text-sm text-gray-400 leading-relaxed">{copy.productDetailBody}</div>;
+                                    }
+                                    return (
+                                        <div className="flex flex-col gap-5 text-sm">
+                                            {/* Specs table */}
+                                            <section>
+                                                <div className="flex items-center gap-2 mb-3 text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-300/80">
+                                                    <span className="h-px w-6 bg-cyan-300/40" />
+                                                    {copy.specsTitle}
+                                                </div>
+                                                <ul className="flex flex-col gap-3">
+                                                    {spec.components.map((c) => (
+                                                        <li key={c.code} className="grid grid-cols-[80px_1fr] gap-3">
+                                                            <div className="text-[11px] uppercase tracking-[0.18em] text-gray-400 font-bold pt-0.5">
+                                                                {copy.componentLabels[c.kind]}
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="font-mono text-[13px] text-white tracking-wide">{c.dimensions}</div>
+                                                                <div className="mt-0.5 text-[12px] text-gray-300 leading-snug">{c.finish}</div>
+                                                                <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-gray-500">
+                                                                    <span className="font-mono">{c.code}</span>
+                                                                    {c.weight && <><span>·</span><span>{c.weight}</span></>}
+                                                                </div>
+                                                            </div>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </section>
+
+                                            {/* Features */}
+                                            <section>
+                                                <div className="flex items-center gap-2 mb-2 text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-300/80">
+                                                    <span className="h-px w-6 bg-cyan-300/40" />
+                                                    {copy.featuresTitle}
+                                                </div>
+                                                <ul className="space-y-1.5 text-[12.5px] text-gray-300 leading-relaxed">
+                                                    {copy.featuresLines.map((line) => (
+                                                        <li key={line} className="flex gap-2">
+                                                            <span className="text-cyan-300/70 mt-1.5 shrink-0">·</span>
+                                                            <span>{line}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </section>
+
+                                            {/* Standards / certifications / warranty / MOQ */}
+                                            <section className="rounded-xl border border-white/5 bg-white/[0.02] p-3.5 text-[11.5px] text-gray-400 leading-relaxed space-y-1">
+                                                <div><span className="text-gray-500 font-bold uppercase tracking-[0.18em] text-[10px] mr-1.5">{copy.standardsTitle}:</span>{copy.standardsLine}</div>
+                                                <div>{copy.certificationsLine}</div>
+                                                <div>{copy.warrantyLine}</div>
+                                                <div>{copy.moqLeadLine}</div>
+                                            </section>
+                                        </div>
+                                    );
+                                })()}
+
+                                <div className="mt-auto flex gap-2 pt-2">
                                     <button onClick={() => { setSelectedProduct(null); setTab('contact'); setContactMessage((prev) => prev || copy.quotePrefill(selectedProduct.code)); }} className="flex-1 px-4 py-2.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] uppercase tracking-[0.2em]">
                                         {copy.requestQuote}
                                     </button>
