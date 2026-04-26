@@ -67,7 +67,10 @@ export default function PanoramaViewer({ src, alt }: PanoramaViewerProps) {
         );
 
         // Look-around state. lon/lat are in degrees; clamp lat to avoid pole flip.
-        let lon = 0;
+        // Start at lon=180 because three.js' default SphereGeometry UV mapping
+        // (after the x-flip we did) puts the image *center* at -X, so we have
+        // to rotate the camera 180° to face it on first paint.
+        let lon = 180;
         let lat = 0;
         let isDragging = false;
         let dragStartX = 0;
