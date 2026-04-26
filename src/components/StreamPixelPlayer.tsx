@@ -157,7 +157,7 @@ export default function StreamPixelPlayer({
     keyboardInputEnabled = true,
     blockedKeyboardCodes = [],
     desktopMouseMode: preferredDesktopMouseMode,
-    mouseSensitivity = 0.85,
+    mouseSensitivity = 1,
 }: StreamPixelPlayerProps) {
     const wrapperRef = useRef<HTMLDivElement>(null);
     const streamRef = useRef<StreamPixelStream | null>(null);
@@ -372,6 +372,13 @@ export default function StreamPixelPlayer({
         teardownRef.current = teardown;
 
         let hasWrappedMouseMove = false;
+        // Sub-pixel carry. The SDK only accepts integer mouse deltas, so when
+        // sensitivity < 1 a naive Math.round drops every fractional event to
+        // zero and slow precision motion becomes visible "скачок" stutter.
+        // We accumulate the fractional remainder per-axis and emit it the
+        // moment it crosses an integer boundary.
+        let mouseDeltaCarryX = 0;
+        let mouseDeltaCarryY = 0;
         const wrapMouseMoveForSensitivity = (stream: StreamPixelStream) => {
             if (hasWrappedMouseMove) return;
             const handlers = stream.toStreamerHandlers;
@@ -385,15 +392,29 @@ export default function StreamPixelPlayer({
                     return;
                 }
 
-                const scaledMessageData = [...messageData];
                 const sensitivity = mouseSensitivityRef.current;
 
+                // Fast path: at sensitivity = 1 the SDK's integer deltas are
+                // already correct, no scaling/rounding is needed.
+                if (sensitivity === 1) {
+                    originalMouseMove(messageData);
+                    return;
+                }
+
+                const scaledMessageData = [...messageData];
+
                 if (typeof scaledMessageData[2] === 'number') {
-                    scaledMessageData[2] = Math.round(scaledMessageData[2] * sensitivity);
+                    const raw = scaledMessageData[2] * sensitivity + mouseDeltaCarryX;
+                    const intPart = Math.trunc(raw);
+                    mouseDeltaCarryX = raw - intPart;
+                    scaledMessageData[2] = intPart;
                 }
 
                 if (typeof scaledMessageData[3] === 'number') {
-                    scaledMessageData[3] = Math.round(scaledMessageData[3] * sensitivity);
+                    const raw = scaledMessageData[3] * sensitivity + mouseDeltaCarryY;
+                    const intPart = Math.trunc(raw);
+                    mouseDeltaCarryY = raw - intPart;
+                    scaledMessageData[3] = intPart;
                 }
 
                 originalMouseMove(scaledMessageData);
