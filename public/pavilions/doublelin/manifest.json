@@ -4,43 +4,43 @@
       "id": "3060e",
       "code": "3060E",
       "hero": "/pavilions/doublelin/3060e.jpg",
-      "model": "/pavilions/doublelin/models/3060e.glb"
+      "sketchfabModelId": "bcd5c79c902c42e396f88771158d8f93"
     },
     {
       "id": "ll1001",
       "code": "LL1001",
       "hero": "/pavilions/doublelin/ll1001.jpg",
-      "model": "/pavilions/doublelin/models/ll1001.glb"
+      "sketchfabModelId": "31161b2792474fa08682fb32308e0f1f"
     },
     {
       "id": "ll1042",
       "code": "LL1042",
       "hero": "/pavilions/doublelin/ll1042.jpg",
-      "model": "/pavilions/doublelin/models/ll1042.glb"
+      "sketchfabModelId": "713e08df13df48e3bd01fde5da0f0a4f"
     },
     {
       "id": "ll1063",
       "code": "LL1063",
       "hero": "/pavilions/doublelin/ll1063.jpg",
-      "model": "/pavilions/doublelin/models/ll1063.glb"
+      "sketchfabModelId": "31161b2792474fa08682fb32308e0f1f"
     },
     {
       "id": "ll2006",
       "code": "LL2006",
       "hero": "/pavilions/doublelin/ll2006.jpg",
-      "model": "/pavilions/doublelin/models/ll2006.glb"
+      "sketchfabModelId": "b704e95735b64dd083a19306352739c0"
     },
     {
       "id": "ll3052a",
       "code": "LL3052A",
       "hero": "/pavilions/doublelin/ll3052a.jpg",
-      "model": "/pavilions/doublelin/models/ll3052a.glb"
+      "sketchfabModelId": "0e499bfd1e4f464580e2e240aa728fd1"
     },
     {
       "id": "ll4030",
       "code": "LL4030",
       "hero": "/pavilions/doublelin/ll4030.jpg",
-      "model": "/pavilions/doublelin/models/ll4030.glb"
+      "sketchfabModelId": "6a43638cbc3e47188d17070dcc293586"
     }
   ]
 }

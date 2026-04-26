@@ -13,7 +13,9 @@ export type PavilionProduct = {
     code: string;
     hero: string;
     panorama?: string;
-    model?: string;
+    // Sketchfab model UUID (extracted from the share/embed URL). Renders as
+    // an iframe inside the lightbox with their progressive-loading viewer.
+    sketchfabModelId?: string;
 };
 
 export type PavilionManifest = {
