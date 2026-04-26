@@ -23,6 +23,7 @@ export default function ModelViewer({ src, alt }: ModelViewerProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState(true);
     const [progress, setProgress] = useState(0);
+    const [bytesLoaded, setBytesLoaded] = useState(0);
     const [error, setError] = useState<string | null>(null);
     // Render-time setter pattern: reset state when the source changes.
     const [prevSrc, setPrevSrc] = useState(src);
@@ -30,6 +31,7 @@ export default function ModelViewer({ src, alt }: ModelViewerProps) {
         setPrevSrc(src);
         setLoading(true);
         setProgress(0);
+        setBytesLoaded(0);
         setError(null);
     }
 
@@ -154,13 +156,18 @@ export default function ModelViewer({ src, alt }: ModelViewerProps) {
             },
             (event) => {
                 if (cancelled) return;
+                setBytesLoaded(event.loaded);
                 if (event.lengthComputable && event.total > 0) {
                     setProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)));
                 }
             },
-            () => {
+            (errEvent) => {
                 if (cancelled) return;
-                setError('Не удалось загрузить модель.');
+                const detail = errEvent instanceof Error
+                    ? errEvent.message
+                    : (errEvent as ErrorEvent)?.message;
+                console.error('[ModelViewer] failed to load', src, errEvent);
+                setError(detail ? `Ошибка: ${detail}` : 'Не удалось загрузить модель.');
             }
         );
 
@@ -215,8 +222,16 @@ export default function ModelViewer({ src, alt }: ModelViewerProps) {
         <div className="absolute inset-0 w-full h-full select-none touch-none" aria-label={alt} role="img">
             <div ref={containerRef} className="absolute inset-0" />
             {loading && !error && (
-                <div className="absolute inset-0 flex items-center justify-center text-xs uppercase tracking-[0.3em] text-white/60">
-                    {progress > 0 ? `${progress}%` : '3D'}
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/70">
+                    <div className="h-8 w-8 rounded-full border-2 border-white/20 border-t-cyan-300 animate-spin" />
+                    <div className="text-[10px] uppercase tracking-[0.3em]">
+                        {progress > 0 ? `${progress}%` : 'Loading 3D'}
+                    </div>
+                    {bytesLoaded > 0 && (
+                        <div className="font-mono text-[10px] text-white/50">
+                            {(bytesLoaded / (1024 * 1024)).toFixed(1)} MB
+                        </div>
+                    )}
                 </div>
             )}
             {error && (
