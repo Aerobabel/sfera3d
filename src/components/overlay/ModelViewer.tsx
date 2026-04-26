@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
 interface ModelViewerProps {
     src: string;
@@ -110,6 +111,9 @@ export default function ModelViewer({ src, alt }: ModelViewerProps) {
         let cancelled = false;
 
         const loader = new GLTFLoader();
+        // Required to decode the meshopt-compressed geometry produced by
+        // gltf-transform's optimize step (~8× geometry size reduction).
+        loader.setMeshoptDecoder(MeshoptDecoder);
         loader.load(
             src,
             (gltf) => {
