@@ -17,7 +17,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { ArrowUpRight, Calendar, Mail, MessageSquare, Package, Send, X } from 'lucide-react';
+
+// three.js bundle is heavy — only load when a panorama is actually opened.
+const PanoramaViewer = dynamic(() => import('./PanoramaViewer'), { ssr: false });
 import type { Pavilion, PavilionProduct } from '@/lib/pavilions';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import type { PavilionMessage } from '@/lib/pavilionChat';
@@ -917,15 +921,19 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                 {selectedProduct && (
                     <div className="absolute inset-0 z-20 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setSelectedProduct(null)}>
                         <div onClick={(e) => e.stopPropagation()} className="relative bg-[linear-gradient(160deg,rgba(12,18,28,0.96),rgba(20,28,42,0.94))] border border-white/10 rounded-3xl shadow-[0_30px_80px_rgba(0,0,0,0.7)] max-w-5xl w-full max-h-[85vh] flex flex-col md:flex-row overflow-hidden">
-                            <div className="md:w-3/5 relative bg-black flex items-center justify-center min-h-[300px]">
-                                <Image
-                                    src={selectedProduct.hero}
-                                    alt={selectedProduct.code}
-                                    fill
-                                    sizes="(max-width:768px) 100vw, 60vw"
-                                    priority
-                                    className="object-contain"
-                                />
+                            <div className="md:w-3/5 relative bg-black flex items-center justify-center min-h-[300px] md:min-h-[480px]">
+                                {selectedProduct.panorama ? (
+                                    <PanoramaViewer src={selectedProduct.panorama} alt={selectedProduct.code} />
+                                ) : (
+                                    <Image
+                                        src={selectedProduct.hero}
+                                        alt={selectedProduct.code}
+                                        fill
+                                        sizes="(max-width:768px) 100vw, 60vw"
+                                        priority
+                                        className="object-contain"
+                                    />
+                                )}
                             </div>
                             <div className="md:w-2/5 p-8 flex flex-col gap-5 overflow-y-auto">
                                 <div className="flex items-start justify-between">
