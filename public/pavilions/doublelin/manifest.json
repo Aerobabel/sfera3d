@@ -41,6 +41,12 @@
       "code": "LL4030",
       "hero": "/pavilions/doublelin/ll4030.jpg",
       "sketchfabModelId": "6a43638cbc3e47188d17070dcc293586"
+    },
+    {
+      "id": "ll5001",
+      "code": "LL5001",
+      "hero": "/pavilions/doublelin/ll5001.jpg",
+      "sketchfabModelId": "82d2a9e84bcd4279b469b89ed02e007e"
     }
   ]
 }
