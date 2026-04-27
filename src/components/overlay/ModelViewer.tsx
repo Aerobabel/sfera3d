@@ -52,7 +52,11 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
         if (!container) return;
 
         const scene = new THREE.Scene();
-        scene.background = null;
+        // Solid warm-cream background so the canvas itself reads as a
+        // gallery wall — the CSS gradient div alone wasn't surviving in
+        // some builds (probably arbitrary-value class purging) which
+        // left the viewer looking like a black void.
+        scene.background = new THREE.Color(0xdcd2c4);
 
         const camera = new THREE.PerspectiveCamera(
             32,
@@ -266,11 +270,19 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
 
     return (
         <div className="absolute inset-0 w-full h-full select-none touch-none" aria-label={alt} role="img">
-            {/* Soft showroom backdrop — replaces the modal's near-black
-                gradient in this region only, gives furniture a warmer
-                gallery-lit feel without affecting the panorama / sketchfab
-                viewers. */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_38%,#ece4d6_0%,#b6ad9d_55%,#3a342c_100%)]" />
+            {/* Soft showroom backdrop. Inline style instead of Tailwind
+                class — arbitrary-value gradient classes were being
+                stripped in production builds, leaving the area black.
+                Also belt-and-braces: scene.background sets the canvas
+                clear colour to the same family, so even if the CSS layer
+                fails the user sees a warm wall, not a void. */}
+            <div
+                className="absolute inset-0"
+                style={{
+                    backgroundImage:
+                        'radial-gradient(ellipse at 50% 38%, #ece4d6 0%, #b6ad9d 55%, #3a342c 100%)',
+                }}
+            />
             <div ref={containerRef} className="absolute inset-0" />
             {loading && !error && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/70">
