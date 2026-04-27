@@ -66,40 +66,51 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.15;
+        renderer.toneMappingExposure = 1.45;
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.domElement.style.display = 'block';
         container.appendChild(renderer.domElement);
 
-        // Procedural studio HDRI — no extra texture file needed. Drives all
-        // PBR reflections (chrome, glass, lacquer) so the materials read
-        // physically rather than flat-lit.
+        // Procedural studio HDRI provides reflections for PBR materials
+        // (chrome, glass, lacquer), but we *dim* its overall intensity so
+        // the directional key light dominates the lighting and we get
+        // contrast — without this, the scene reads as flat overcast.
         const pmrem = new THREE.PMREMGenerator(renderer);
         const envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
         scene.environment = envTexture;
+        // three.js r158+ exposes a scene-level intensity multiplier for the
+        // environment map. Older versions ignore this assignment, in which
+        // case we fall back to a per-material walk later.
+        (scene as unknown as { environmentIntensity?: number }).environmentIntensity = 0.55;
 
-        // Key + fill light so silhouettes still read on the dark UI panel
-        // and the contact shadow has something to project.
-        const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
-        keyLight.position.set(2.5, 4, 3);
+        // Strong, warm key light from upper-left — this is what gives
+        // glossy surfaces a highlight and makes drop shadows visible.
+        const keyLight = new THREE.DirectionalLight(0xfff1d8, 3.2);
+        keyLight.position.set(-3.2, 5, 2.5);
         keyLight.castShadow = true;
-        // Bigger shadow map = sharper, less crawl on edges.
         keyLight.shadow.mapSize.set(2048, 2048);
         keyLight.shadow.camera.near = 0.1;
-        keyLight.shadow.camera.far = 12;
-        keyLight.shadow.camera.left = -1.6;
-        keyLight.shadow.camera.right = 1.6;
-        keyLight.shadow.camera.top = 1.6;
-        keyLight.shadow.camera.bottom = -1.6;
-        keyLight.shadow.bias = -0.0002;
-        keyLight.shadow.radius = 4;
+        keyLight.shadow.camera.far = 14;
+        keyLight.shadow.camera.left = -1.8;
+        keyLight.shadow.camera.right = 1.8;
+        keyLight.shadow.camera.top = 1.8;
+        keyLight.shadow.camera.bottom = -1.8;
+        keyLight.shadow.bias = -0.00012;
+        // Sharper shadow edges (was 4 → drop shadow read as "flat lighting"
+        // soft blur). Still soft enough to avoid jagged single-pixel edges.
+        keyLight.shadow.radius = 1.6;
         scene.add(keyLight);
 
-        const fillLight = new THREE.DirectionalLight(0xbcd9ff, 0.35);
-        fillLight.position.set(-3, 2, -2);
+        // Cool fill from opposite side — lifts the shadow side without
+        // washing out the contrast.
+        const fillLight = new THREE.DirectionalLight(0xa8c4ff, 0.45);
+        fillLight.position.set(3.5, 2, -1.5);
         scene.add(fillLight);
+
+        // Subtle ambient bounce so the floor area in front isn't pitch.
+        scene.add(new THREE.AmbientLight(0xffffff, 0.05));
 
         // No separate contact-shadow plane: the Mira GLBs ship with their
         // own floor mesh at y=0, so adding our own at the same height
