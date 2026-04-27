@@ -101,13 +101,11 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
         fillLight.position.set(-3, 2, -2);
         scene.add(fillLight);
 
-        // Soft circular contact shadow underneath the model.
-        const shadowGeometry = new THREE.PlaneGeometry(3, 3);
-        const shadowMaterial = new THREE.ShadowMaterial({ opacity: 0.42 });
-        const shadowPlane = new THREE.Mesh(shadowGeometry, shadowMaterial);
-        shadowPlane.rotation.x = -Math.PI / 2;
-        shadowPlane.receiveShadow = true;
-        scene.add(shadowPlane);
+        // No separate contact-shadow plane: the Mira GLBs ship with their
+        // own floor mesh at y=0, so adding our own at the same height
+        // z-fights with it (visible as flickering on the floor under the
+        // vanity). Letting the GLB's floor receive the shadow directly
+        // avoids the depth conflict.
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
@@ -121,8 +119,8 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
         // very slightly up — no flipping behind the back wall.
         controls.minPolarAngle = Math.PI * 0.18; // ~32° from top (looking down)
         controls.maxPolarAngle = Math.PI * 0.52; // just below horizon
-        controls.minAzimuthAngle = -Math.PI * 0.45; // ~80° left
-        controls.maxAzimuthAngle = Math.PI * 0.45;  // ~80° right
+        controls.minAzimuthAngle = -Math.PI * 0.3; // ~54° left
+        controls.maxAzimuthAngle = Math.PI * 0.3;  // ~54° right
 
         let model: THREE.Object3D | null = null;
         let cancelled = false;
@@ -184,9 +182,9 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
                 const finalBox = new THREE.Box3().setFromObject(model);
                 const finalSize = finalBox.getSize(new THREE.Vector3());
                 const targetY = finalBox.min.y + finalSize.y * 0.45;
-                // 1.5 distance with a 1-unit scene puts us about 1 wall
-                // depth away from origin → comfortably inside the showroom.
-                const cameraDistance = Math.max(1.4, finalSize.z * 0.7 + 0.6);
+                // Tighter zoom — feels showroom-close without clipping
+                // the back wall.
+                const cameraDistance = Math.max(1.05, finalSize.z * 0.45 + 0.45);
                 controls.target.set(0, targetY, 0);
                 camera.position.set(0, targetY + 0.05, cameraDistance);
                 controls.update();
@@ -246,8 +244,6 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
                     }
                 });
             }
-            shadowGeometry.dispose();
-            shadowMaterial.dispose();
             envTexture.dispose();
             pmrem.dispose();
             renderer.dispose();
