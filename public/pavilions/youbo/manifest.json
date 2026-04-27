@@ -4,49 +4,57 @@
       "id": "reid-1000-m002",
       "code": "REID-1000-M002",
       "hero": "/pavilions/youbo/reid-1000-m002.jpg",
-      "model": "/pavilions/youbo/models/mira-2.glb"
+      "model": "/pavilions/youbo/models/mira-2.glb",
+      "modelOrientation": { "rotateY": -90 }
     },
     {
       "id": "reid-1000-m048",
       "code": "REID-1000-M048",
       "hero": "/pavilions/youbo/reid-1000-m048.jpg",
-      "model": "/pavilions/youbo/models/mira-3.glb"
+      "model": "/pavilions/youbo/models/mira-3.glb",
+      "modelOrientation": { "rotateY": -90 }
     },
     {
       "id": "reid-1000-v008",
       "code": "REID-1000-V008",
       "hero": "/pavilions/youbo/reid-1000-v008.jpg",
-      "model": "/pavilions/youbo/models/mira-4.glb"
+      "model": "/pavilions/youbo/models/mira-4.glb",
+      "modelOrientation": { "rotateY": -90 }
     },
     {
       "id": "reid-1200-v",
       "code": "REID-1200 V",
       "hero": "/pavilions/youbo/reid-1200-v.jpg",
-      "model": "/pavilions/youbo/models/mira-8.glb"
+      "model": "/pavilions/youbo/models/mira-8.glb",
+      "modelOrientation": { "rotateY": -90 }
     },
     {
       "id": "reid-1500-v",
       "code": "REID-1500 V",
       "hero": "/pavilions/youbo/reid-1500-v.jpg",
-      "model": "/pavilions/youbo/models/mira-6.glb"
+      "model": "/pavilions/youbo/models/mira-6.glb",
+      "modelOrientation": { "rotateY": -90 }
     },
     {
       "id": "reid-1500-1-v042",
       "code": "REID-1500-1-V042",
       "hero": "/pavilions/youbo/reid-1500-1-v042.jpg",
-      "model": "/pavilions/youbo/models/mira-5.glb"
+      "model": "/pavilions/youbo/models/mira-5.glb",
+      "modelOrientation": { "rotateY": -90 }
     },
     {
       "id": "reid-1800-1-v040",
       "code": "REID-1800-1-V040",
       "hero": "/pavilions/youbo/reid-1800-1-v040.jpg",
-      "model": "/pavilions/youbo/models/mira-7.glb"
+      "model": "/pavilions/youbo/models/mira-7.glb",
+      "modelOrientation": { "rotateY": -90 }
     },
     {
       "id": "reid-500-m047",
       "code": "REID-500-M047",
       "hero": "/pavilions/youbo/reid-500-m047.jpg",
-      "model": "/pavilions/youbo/models/mira-1.glb"
+      "model": "/pavilions/youbo/models/mira-1.glb",
+      "modelOrientation": { "rotateY": -90 }
     }
   ]
 }

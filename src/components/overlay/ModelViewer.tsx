@@ -120,9 +120,9 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
         // at the product from front, left and right, slightly down or
         // very slightly up — no flipping behind the back wall.
         controls.minPolarAngle = Math.PI * 0.18; // ~32° from top (looking down)
-        controls.maxPolarAngle = Math.PI * 0.55; // ~99° (just past horizon)
-        controls.minAzimuthAngle = -Math.PI * 0.5; // 90° left
-        controls.maxAzimuthAngle = Math.PI * 0.5;  // 90° right
+        controls.maxPolarAngle = Math.PI * 0.52; // just below horizon
+        controls.minAzimuthAngle = -Math.PI * 0.45; // ~80° left
+        controls.maxAzimuthAngle = Math.PI * 0.45;  // ~80° right
 
         let model: THREE.Object3D | null = null;
         let cancelled = false;
@@ -141,10 +141,7 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
                 if (orientation?.rotateZ) model.rotation.z = THREE.MathUtils.degToRad(orientation.rotateZ);
 
                 // 2. Cast & receive shadows on every mesh. Walls / floors
-                //    stay visible — they're part of the showroom context;
-                //    we just don't want them to dominate the framing.
-                const tmpBox = new THREE.Box3();
-                const tmpSize = new THREE.Vector3();
+                //    stay visible — they're part of the showroom context.
                 model.traverse((obj) => {
                     if (!(obj as THREE.Mesh).isMesh) return;
                     const mesh = obj as THREE.Mesh;
@@ -152,67 +149,46 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
                     mesh.receiveShadow = true;
                 });
 
-                // Helper: bbox of "product" meshes only (drop the wall /
-                // floor planes by aspect ratio — anything where one axis
-                // is under 4 % of the largest is treated as a flat plane
-                // and excluded from the framing calculation, not the
-                // render). Used to scale and aim the camera so the
-                // product fills the frame rather than the room.
-                const computeProductBox = (): THREE.Box3 => {
-                    const box = new THREE.Box3();
-                    let any = false;
-                    model!.traverse((obj) => {
-                        const mesh = obj as THREE.Mesh;
-                        if (!mesh.isMesh) return;
-                        tmpBox.setFromObject(mesh);
-                        tmpBox.getSize(tmpSize);
-                        const minDim = Math.min(tmpSize.x, tmpSize.y, tmpSize.z);
-                        const maxDim = Math.max(tmpSize.x, tmpSize.y, tmpSize.z);
-                        if (maxDim > 0 && minDim / maxDim >= 0.04) {
-                            box.expandByObject(mesh);
-                            any = true;
-                        }
-                    });
-                    return any ? box : new THREE.Box3().setFromObject(model!);
-                };
-
-                // 3. Scale so the product (not the room) fills ~1 unit on
-                //    its longest axis.
-                const initialProductBox = computeProductBox();
-                const initialProductSize = initialProductBox.getSize(new THREE.Vector3());
-                const longest = Math.max(initialProductSize.x, initialProductSize.y, initialProductSize.z);
+                // 3. Scale the whole scene so the longest axis is ~1 unit.
+                //    Tried product-only bbox earlier; on these Mira GLBs
+                //    it was unstable (some wall thicknesses passed the
+                //    aspect-ratio filter, others didn't, and the camera
+                //    ended up outside the room with single-sided wall
+                //    geometry hiding everything). Whole-scene scaling is
+                //    coarser but predictable.
+                const initialBox = new THREE.Box3().setFromObject(model);
+                const initialSize = initialBox.getSize(new THREE.Vector3());
+                const longest = Math.max(initialSize.x, initialSize.y, initialSize.z);
                 if (longest > 0) {
                     const baseScale = 1 / longest;
                     const finalScale = baseScale * (orientation?.scale ?? 1);
                     model.scale.setScalar(finalScale);
                 }
 
-                // Translate horizontally so the product centre sits at
-                // the origin; vertically, drop the lowest point of the
-                // *whole* model (usually the floor mesh) onto y=0.
-                const scaledProductBox = computeProductBox();
-                const productCentre = scaledProductBox.getCenter(new THREE.Vector3());
-                const fullBox = new THREE.Box3().setFromObject(model);
-                model.position.x -= productCentre.x;
-                model.position.y -= fullBox.min.y;
-                model.position.z -= productCentre.z;
+                // Centre horizontally, drop the lowest mesh (floor) on y=0.
+                const scaledBox = new THREE.Box3().setFromObject(model);
+                const scaledCentre = scaledBox.getCenter(new THREE.Vector3());
+                model.position.x -= scaledCentre.x;
+                model.position.y -= scaledBox.min.y;
+                model.position.z -= scaledCentre.z;
 
                 // 4. Optional manual nudge for misplaced models.
                 if (orientation?.yOffset) model.position.y += orientation.yOffset;
 
                 scene.add(model);
 
-                // 5. Frame the camera on the product bbox after the final
-                //    translate. Distance is sized to the product, not the
-                //    whole room — so the vanity reads as the subject and
-                //    walls fall back as backdrop.
-                const finalProductBox = computeProductBox();
-                const productSize = finalProductBox.getSize(new THREE.Vector3());
-                const targetY = (finalProductBox.min.y + finalProductBox.max.y) / 2;
-                const productMaxXZ = Math.max(productSize.x, productSize.z);
-                const cameraDistance = Math.max(1.5, productSize.y * 1.4 + productMaxXZ * 1.0 + 0.4);
+                // 5. Frame the camera on the lower third of the scene
+                //    (where the vanity sits) at a distance that puts the
+                //    camera *inside* the open side of the room rather
+                //    than behind a back-face-culled front wall.
+                const finalBox = new THREE.Box3().setFromObject(model);
+                const finalSize = finalBox.getSize(new THREE.Vector3());
+                const targetY = finalBox.min.y + finalSize.y * 0.45;
+                // 1.5 distance with a 1-unit scene puts us about 1 wall
+                // depth away from origin → comfortably inside the showroom.
+                const cameraDistance = Math.max(1.4, finalSize.z * 0.7 + 0.6);
                 controls.target.set(0, targetY, 0);
-                camera.position.set(0, targetY + 0.2, cameraDistance);
+                camera.position.set(0, targetY + 0.05, cameraDistance);
                 controls.update();
                 camera.updateProjectionMatrix();
 
