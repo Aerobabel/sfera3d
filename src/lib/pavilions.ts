@@ -13,6 +13,17 @@ export type PavilionProduct = {
     code: string;
     hero: string;
     panorama?: string;
+    // Self-hosted GLB model. Has the highest precedence in the lightbox.
+    model?: string;
+    // Optional corrective transform for badly-exported GLBs (axis up,
+    // pivot offset, etc). All fields optional; defaults are no-op.
+    modelOrientation?: {
+        rotateX?: number;
+        rotateY?: number;
+        rotateZ?: number;
+        yOffset?: number;
+        scale?: number;
+    };
     // Sketchfab model UUID (extracted from the share/embed URL). Renders as
     // an iframe inside the lightbox with their progressive-loading viewer.
     sketchfabModelId?: string;

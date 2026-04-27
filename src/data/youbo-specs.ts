@@ -61,6 +61,16 @@ export const YOUBO_SPECS: Record<string, ProductSpec> = {
             { kind: 'mirror', code: 'REI90RM', dimensions: '900 × 35 × 900 mm', finish: 'Frameless · copper-free · surrounding LED', weight: '11 kg' },
         ],
     },
+    'reid-1200-v': {
+        series: 'REID 1200',
+        variant: 'V008 — Wood veneer',
+        components: [
+            { kind: 'cabinet', code: 'REI120V008', dimensions: '1194 × 547 × 450 mm', finish: 'Wood veneer · V008 · E0 plywood core', weight: '36 kg' },
+            { kind: 'basin', code: 'REI120MB', dimensions: '1200 × 550 × 12 mm', finish: 'Solid-surface · matte pure white', weight: '19 kg' },
+            { kind: 'mirror', code: 'REI90RM', dimensions: '900 × 35 × 900 mm', finish: 'Frameless · copper-free · surrounding LED', weight: '11 kg' },
+            { kind: 'side-cabinet', code: 'REI120V008SC', dimensions: '500 × 300 × 1000 mm', finish: 'Wood veneer · V008 · Unihopper soft-close hinges', weight: '30 kg' },
+        ],
+    },
     'reid-1500-v': {
         series: 'REID 1500',
         variant: 'V040 — Wood veneer',

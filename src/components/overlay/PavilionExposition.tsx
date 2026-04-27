@@ -20,7 +20,8 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { ArrowUpRight, Calendar, Mail, MessageSquare, Package, Send, X } from 'lucide-react';
 
-// three.js bundle is heavy — only load when a panorama actually opens.
+// three.js bundle is heavy — only load these viewers when actually used.
+const ModelViewer = dynamic(() => import('./ModelViewer'), { ssr: false });
 const PanoramaViewer = dynamic(() => import('./PanoramaViewer'), { ssr: false });
 // Sketchfab embed is just an iframe — cheap, but kept dynamic for parity.
 const SketchfabEmbed = dynamic(() => import('./SketchfabEmbed'), { ssr: false });
@@ -1003,7 +1004,9 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                     <div className="absolute inset-0 z-20 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setSelectedProduct(null)}>
                         <div onClick={(e) => e.stopPropagation()} className="relative bg-[linear-gradient(160deg,rgba(12,18,28,0.96),rgba(20,28,42,0.94))] border border-white/10 rounded-3xl shadow-[0_30px_80px_rgba(0,0,0,0.7)] max-w-5xl w-full max-h-[85vh] flex flex-col md:flex-row overflow-hidden">
                             <div className="md:w-3/5 relative bg-[radial-gradient(ellipse_at_center,rgba(20,28,42,0.6),rgba(0,0,0,0.95))] flex items-center justify-center min-h-[300px] md:min-h-[480px]">
-                                {selectedProduct.sketchfabModelId ? (
+                                {selectedProduct.model ? (
+                                    <ModelViewer src={selectedProduct.model} alt={selectedProduct.code} orientation={selectedProduct.modelOrientation} />
+                                ) : selectedProduct.sketchfabModelId ? (
                                     <SketchfabEmbed modelId={selectedProduct.sketchfabModelId} title={selectedProduct.code} />
                                 ) : selectedProduct.panorama ? (
                                     <PanoramaViewer src={selectedProduct.panorama} alt={selectedProduct.code} />
