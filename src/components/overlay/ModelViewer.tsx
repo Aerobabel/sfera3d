@@ -85,7 +85,8 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
         const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
         keyLight.position.set(2.5, 4, 3);
         keyLight.castShadow = true;
-        keyLight.shadow.mapSize.set(1024, 1024);
+        // Bigger shadow map = sharper, less crawl on edges.
+        keyLight.shadow.mapSize.set(2048, 2048);
         keyLight.shadow.camera.near = 0.1;
         keyLight.shadow.camera.far = 12;
         keyLight.shadow.camera.left = -1.6;
@@ -93,7 +94,7 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
         keyLight.shadow.camera.top = 1.6;
         keyLight.shadow.camera.bottom = -1.6;
         keyLight.shadow.bias = -0.0002;
-        keyLight.shadow.radius = 6;
+        keyLight.shadow.radius = 4;
         scene.add(keyLight);
 
         const fillLight = new THREE.DirectionalLight(0xbcd9ff, 0.35);
@@ -114,10 +115,15 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
         controls.enablePan = false;
         controls.minDistance = 0.4;
         controls.maxDistance = 5;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.5;
-        const stopAutoRotate = () => { controls.autoRotate = false; };
-        controls.addEventListener('start', stopAutoRotate);
+        // Auto-rotate disabled — many of the Mira GLBs ship with a
+        // surrounding room/floor mesh, so spinning the camera ends up
+        // showing the back wall. Let the user steer.
+        controls.autoRotate = false;
+        // Keep the camera in a flattering front-arc so even when a wall
+        // mesh sneaks past the visibility filter the user can't end up
+        // staring at the back of it.
+        controls.minPolarAngle = Math.PI * 0.25; // 45° from top
+        controls.maxPolarAngle = Math.PI * 0.55; // ~99° (just past horizon)
 
         let model: THREE.Object3D | null = null;
         let cancelled = false;
@@ -135,18 +141,47 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
                 if (orientation?.rotateY) model.rotation.y = THREE.MathUtils.degToRad(orientation.rotateY);
                 if (orientation?.rotateZ) model.rotation.z = THREE.MathUtils.degToRad(orientation.rotateZ);
 
-                // 2. Cast & receive shadows on every mesh.
+                // 2. Hide any mesh that's clearly a room wall or floor —
+                //    detected by extreme aspect ratio (one axis < 4 % of
+                //    the largest). Designers exporting from interior-scene
+                //    tools often bake the surrounding box into the GLB,
+                //    which dominates the bounding box and makes the
+                //    product feel tiny. Hiding them also stops the user's
+                //    orbit from "rotating around a wall".
+                const tmpBox = new THREE.Box3();
+                const tmpSize = new THREE.Vector3();
                 model.traverse((obj) => {
-                    if ((obj as THREE.Mesh).isMesh) {
-                        const mesh = obj as THREE.Mesh;
-                        mesh.castShadow = true;
-                        mesh.receiveShadow = true;
+                    if (!(obj as THREE.Mesh).isMesh) return;
+                    const mesh = obj as THREE.Mesh;
+                    tmpBox.setFromObject(mesh);
+                    tmpBox.getSize(tmpSize);
+                    const minDim = Math.min(tmpSize.x, tmpSize.y, tmpSize.z);
+                    const maxDim = Math.max(tmpSize.x, tmpSize.y, tmpSize.z);
+                    if (maxDim > 0 && minDim / maxDim < 0.04) {
+                        mesh.visible = false;
+                        return;
                     }
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
                 });
 
-                // 3. Auto-fit: scale so the longest axis is ~1 unit, then
-                //    drop the bottom of the bounding box onto y=0.
-                const initialBox = new THREE.Box3().setFromObject(model);
+                // Helper: bbox of *visible* meshes only (Box3.setFromObject
+                // ignores .visible by default).
+                const computeVisibleBox = (): THREE.Box3 => {
+                    const box = new THREE.Box3();
+                    model!.traverse((obj) => {
+                        const mesh = obj as THREE.Mesh;
+                        if (mesh.isMesh && mesh.visible) {
+                            box.expandByObject(mesh);
+                        }
+                    });
+                    return box.isEmpty() ? new THREE.Box3().setFromObject(model!) : box;
+                };
+
+                // 3. Auto-fit: scale so the longest axis of the *visible*
+                //    bbox (i.e. the actual product) is ~1 unit, then drop
+                //    the bottom onto y=0.
+                const initialBox = computeVisibleBox();
                 const initialSize = initialBox.getSize(new THREE.Vector3());
                 const longest = Math.max(initialSize.x, initialSize.y, initialSize.z);
                 if (longest > 0) {
@@ -155,7 +190,7 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
                     model.scale.setScalar(finalScale);
                 }
 
-                const scaledBox = new THREE.Box3().setFromObject(model);
+                const scaledBox = computeVisibleBox();
                 const scaledCentre = scaledBox.getCenter(new THREE.Vector3());
                 model.position.x -= scaledCentre.x;
                 model.position.y -= scaledBox.min.y;
@@ -166,11 +201,15 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
 
                 scene.add(model);
 
-                // 5. Frame the camera at a 3/4 angle on the model's vertical centre.
-                const finalBox = new THREE.Box3().setFromObject(model);
+                // 5. Frame the camera at a 3/4 angle on the visible-bbox
+                //    vertical centre. Distance scales with model height
+                //    so tall models don't get cropped at the top.
+                const finalBox = computeVisibleBox();
+                const finalSize = finalBox.getSize(new THREE.Vector3());
                 const targetY = (finalBox.min.y + finalBox.max.y) / 2;
+                const cameraDistance = Math.max(1.4, finalSize.y * 1.6 + 0.8);
                 controls.target.set(0, targetY, 0);
-                camera.position.set(0, targetY + 0.5, 1.9);
+                camera.position.set(0, targetY + 0.35, cameraDistance);
                 controls.update();
                 camera.updateProjectionMatrix();
 
@@ -215,7 +254,6 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
             cancelled = true;
             cancelAnimationFrame(rafId);
             resizeObserver.disconnect();
-            controls.removeEventListener('start', stopAutoRotate);
             controls.dispose();
             if (model) {
                 scene.remove(model);
