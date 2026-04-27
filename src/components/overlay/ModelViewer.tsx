@@ -23,6 +23,11 @@ export type ModelOrientation = {
     rotateZ?: number;
     yOffset?: number; // extra vertical shift (units), applied after centring
     scale?: number;   // multiplier on the auto-fit scale (1 = unchanged)
+    // Maximum horizontal pan range in degrees from the centre (so 30
+    // means user can swing ±30° left/right). Default 54° matches the
+    // global setting; lower this for products whose room layout makes
+    // wider rotation expose unfinished mesh sides.
+    azimuthLimit?: number;
 };
 
 interface ModelViewerProps {
@@ -134,8 +139,10 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
         // very slightly up — no flipping behind the back wall.
         controls.minPolarAngle = Math.PI * 0.18; // ~32° from top (looking down)
         controls.maxPolarAngle = Math.PI * 0.52; // just below horizon
-        controls.minAzimuthAngle = -Math.PI * 0.3; // ~54° left
-        controls.maxAzimuthAngle = Math.PI * 0.3;  // ~54° right
+        const azimuthLimitDeg = orientation?.azimuthLimit ?? 54;
+        const azimuthLimitRad = THREE.MathUtils.degToRad(azimuthLimitDeg);
+        controls.minAzimuthAngle = -azimuthLimitRad;
+        controls.maxAzimuthAngle = azimuthLimitRad;
 
         let model: THREE.Object3D | null = null;
         let cancelled = false;
@@ -155,11 +162,27 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
 
                 // 2. Cast & receive shadows on every mesh. Walls / floors
                 //    stay visible — they're part of the showroom context.
+                //    Also force max anisotropic filtering on every texture
+                //    map: three.js defaults to 1, which makes wall / floor
+                //    textures viewed at grazing angles look randomly
+                //    crunchy depending on what the GPU happened to pick.
+                //    Locking it to the GPU max removes that flicker.
+                const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
+                const TEXTURE_KEYS = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap', 'clearcoatMap', 'clearcoatNormalMap', 'clearcoatRoughnessMap', 'specularIntensityMap', 'specularColorMap', 'transmissionMap', 'thicknessMap'] as const;
                 model.traverse((obj) => {
                     if (!(obj as THREE.Mesh).isMesh) return;
                     const mesh = obj as THREE.Mesh;
                     mesh.castShadow = true;
                     mesh.receiveShadow = true;
+                    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+                    for (const mat of materials) {
+                        if (!mat) continue;
+                        const m = mat as Record<string, unknown> & THREE.Material;
+                        for (const key of TEXTURE_KEYS) {
+                            const tex = m[key] as THREE.Texture | undefined;
+                            if (tex) tex.anisotropy = maxAnisotropy;
+                        }
+                    }
                 });
 
                 // 3. Scale the whole scene so the longest axis is ~1 unit.

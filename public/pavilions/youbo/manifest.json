@@ -5,7 +5,7 @@
       "code": "REID-1000-M002",
       "hero": "/pavilions/youbo/reid-1000-m002.jpg",
       "model": "/pavilions/youbo/models/mira-2.glb",
-      "modelOrientation": { "rotateY": -90 }
+      "modelOrientation": { "rotateY": -90, "azimuthLimit": 30 }
     },
     {
       "id": "reid-1000-m048",
@@ -19,7 +19,7 @@
       "code": "REID-1000-V008",
       "hero": "/pavilions/youbo/reid-1000-v008.jpg",
       "model": "/pavilions/youbo/models/mira-4.glb",
-      "modelOrientation": { "rotateY": -90 }
+      "modelOrientation": { "rotateY": -90, "azimuthLimit": 30 }
     },
     {
       "id": "reid-1200-v",
@@ -40,7 +40,7 @@
       "code": "REID-1500-1-V042",
       "hero": "/pavilions/youbo/reid-1500-1-v042.jpg",
       "model": "/pavilions/youbo/models/mira-5.glb",
-      "modelOrientation": { "rotateY": -90 }
+      "modelOrientation": { "rotateY": -90, "azimuthLimit": 30 }
     },
     {
       "id": "reid-1800-1-v040",
