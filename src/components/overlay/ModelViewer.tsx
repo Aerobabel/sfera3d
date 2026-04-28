@@ -8,8 +8,9 @@
 // Loaded via next/dynamic so the addon imports (GLTFLoader, OrbitControls,
 // RoomEnvironment, MeshoptDecoder) only ship when a model actually opens.
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { Maximize, Minimize } from 'lucide-react';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -37,11 +38,32 @@ interface ModelViewerProps {
 }
 
 export default function ModelViewer({ src, alt, orientation }: ModelViewerProps) {
+    const wrapperRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState(true);
     const [progress, setProgress] = useState(0);
     const [bytesLoaded, setBytesLoaded] = useState(0);
     const [error, setError] = useState<string | null>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    // Fullscreen on the viewer wrapper. The browser's Fullscreen API
+    // takes the element out of the modal flow, so the user gets the
+    // model on the entire viewport with no chrome.
+    const handleFullscreen = useCallback(() => {
+        const wrapper = wrapperRef.current;
+        if (!wrapper) return;
+        if (document.fullscreenElement) {
+            void document.exitFullscreen();
+        } else {
+            void wrapper.requestFullscreen?.();
+        }
+    }, []);
+
+    useEffect(() => {
+        const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+        document.addEventListener('fullscreenchange', onChange);
+        return () => document.removeEventListener('fullscreenchange', onChange);
+    }, []);
     // Render-time setter pattern: reset state when the source changes.
     const [prevSrc, setPrevSrc] = useState(src);
     if (prevSrc !== src) {
@@ -57,11 +79,10 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
         if (!container) return;
 
         const scene = new THREE.Scene();
-        // Solid warm-cream background so the canvas itself reads as a
-        // gallery wall — the CSS gradient div alone wasn't surviving in
-        // some builds (probably arbitrary-value class purging) which
-        // left the viewer looking like a black void.
-        scene.background = new THREE.Color(0xdcd2c4);
+        // Neutral mid-gray clear so white solid-surface sinks pop instead
+        // of blending into a cream wall (per client review). Slightly cool
+        // to balance the warm key light.
+        scene.background = new THREE.Color(0x8e8e92);
 
         const camera = new THREE.PerspectiveCamera(
             32,
@@ -213,18 +234,40 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
 
                 scene.add(model);
 
-                // 5. Frame the camera on the lower third of the scene
-                //    (where the vanity sits) at a distance that puts the
-                //    camera *inside* the open side of the room rather
-                //    than behind a back-face-culled front wall.
+                // 5. Frame the camera on the *product* bbox centre
+                //    (computed by excluding flat wall / floor planes via
+                //    aspect ratio). Whole-scene scaling stays — but if
+                //    the vanity is off-centre in its room (products 1,
+                //    3, 6) we now look at the vanity, not at the empty
+                //    room centre.
                 const finalBox = new THREE.Box3().setFromObject(model);
                 const finalSize = finalBox.getSize(new THREE.Vector3());
-                const targetY = finalBox.min.y + finalSize.y * 0.45;
-                // Tighter zoom — feels showroom-close without clipping
-                // the back wall.
+                const productBox = new THREE.Box3();
+                let hasProduct = false;
+                const aspectTmp = new THREE.Box3();
+                const aspectSize = new THREE.Vector3();
+                model.traverse((obj) => {
+                    const mesh = obj as THREE.Mesh;
+                    if (!mesh.isMesh) return;
+                    aspectTmp.setFromObject(mesh);
+                    aspectTmp.getSize(aspectSize);
+                    const minDim = Math.min(aspectSize.x, aspectSize.y, aspectSize.z);
+                    const maxDim = Math.max(aspectSize.x, aspectSize.y, aspectSize.z);
+                    if (maxDim > 0 && minDim / maxDim >= 0.04) {
+                        productBox.expandByObject(mesh);
+                        hasProduct = true;
+                    }
+                });
+                const targetCentre = hasProduct
+                    ? productBox.getCenter(new THREE.Vector3())
+                    : new THREE.Vector3(0, finalBox.min.y + finalSize.y * 0.45, 0);
+                if (!hasProduct) {
+                    targetCentre.x = 0;
+                    targetCentre.z = 0;
+                }
                 const cameraDistance = Math.max(1.05, finalSize.z * 0.45 + 0.45);
-                controls.target.set(0, targetY, 0);
-                camera.position.set(0, targetY + 0.05, cameraDistance);
+                controls.target.copy(targetCentre);
+                camera.position.set(targetCentre.x, targetCentre.y + 0.05, targetCentre.z + cameraDistance);
                 controls.update();
                 camera.updateProjectionMatrix();
 
@@ -292,21 +335,27 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
     }, [src, orientation]);
 
     return (
-        <div className="absolute inset-0 w-full h-full select-none touch-none" aria-label={alt} role="img">
-            {/* Soft showroom backdrop. Inline style instead of Tailwind
-                class — arbitrary-value gradient classes were being
-                stripped in production builds, leaving the area black.
-                Also belt-and-braces: scene.background sets the canvas
-                clear colour to the same family, so even if the CSS layer
-                fails the user sees a warm wall, not a void. */}
+        <div ref={wrapperRef} className="absolute inset-0 w-full h-full select-none touch-none bg-[#1a1a1c]" aria-label={alt} role="img">
+            {/* Neutral mid-gray fallback gradient (CSS layer) — matches
+                scene.background so the area never reads black if the
+                canvas is mid-load or fails. Inline style to dodge any
+                Tailwind arbitrary-class purge. */}
             <div
                 className="absolute inset-0"
                 style={{
                     backgroundImage:
-                        'radial-gradient(ellipse at 50% 38%, #ece4d6 0%, #b6ad9d 55%, #3a342c 100%)',
+                        'radial-gradient(ellipse at 50% 38%, #b8b8bb 0%, #6f6f72 55%, #1f1f21 100%)',
                 }}
             />
             <div ref={containerRef} className="absolute inset-0" />
+            <button
+                type="button"
+                onClick={handleFullscreen}
+                className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/10 text-white/80 hover:text-white transition"
+                aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            >
+                {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
+            </button>
             {loading && !error && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/70">
                     <div className="h-8 w-8 rounded-full border-2 border-white/20 border-t-cyan-300 animate-spin" />
