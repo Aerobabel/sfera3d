@@ -29,6 +29,12 @@ export type ModelOrientation = {
     // global setting; lower this for products whose room layout makes
     // wider rotation expose unfinished mesh sides.
     azimuthLimit?: number;
+    // World-space nudge added to the auto-detected camera target (and
+    // the camera itself, so the framing pans rather than tilts). Use
+    // for GLBs where the product sits off-centre in the room and the
+    // aspect-ratio product detector picks the wrong bbox. Units match
+    // the auto-fit scale (whole scene = 1 unit), so 0.1 ≈ 10 cm shift.
+    targetOffset?: { x?: number; y?: number; z?: number };
 };
 
 interface ModelViewerProps {
@@ -269,8 +275,16 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
                     targetCentre.z = 0;
                 }
                 const cameraDistance = Math.max(1.05, finalSize.z * 0.45 + 0.45);
-                controls.target.copy(targetCentre);
-                camera.position.set(targetCentre.x, targetCentre.y + 0.05, targetCentre.z + cameraDistance);
+                // Optional manifest-driven pan: shifts both the look-at
+                // point and the camera so the framing translates without
+                // changing angle. For products 1/3/6 the auto-detected
+                // product bbox lands off-centre, so we nudge it manually.
+                const tOff = orientation?.targetOffset;
+                const tx = targetCentre.x + (tOff?.x ?? 0);
+                const ty = targetCentre.y + (tOff?.y ?? 0);
+                const tz = targetCentre.z + (tOff?.z ?? 0);
+                controls.target.set(tx, ty, tz);
+                camera.position.set(tx, ty + 0.05, tz + cameraDistance);
                 controls.update();
                 camera.updateProjectionMatrix();
 
@@ -354,10 +368,10 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
             <button
                 type="button"
                 onClick={handleFullscreen}
-                className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/10 text-white/80 hover:text-white transition"
+                className="absolute top-3.5 right-3.5 z-10 p-3 rounded-full bg-black/55 hover:bg-black/70 backdrop-blur-sm border border-white/15 text-white shadow-lg shadow-black/30 transition"
                 aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
             >
-                {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
+                {isFullscreen ? <Minimize size={22} strokeWidth={2.2} /> : <Maximize size={22} strokeWidth={2.2} />}
             </button>
             {loading && !error && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/70">
