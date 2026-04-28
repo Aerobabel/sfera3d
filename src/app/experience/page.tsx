@@ -39,7 +39,7 @@ type PixelStreamingWindow = Window & {
         };
     };
 };
-const DEFAULT_MOUSE_SENSITIVITY = 1;
+const DEFAULT_MOUSE_SENSITIVITY = 0.3;
 
 // Module-level suppression — avoids any React ref/closure timing issues.
 let _suppressProductSelectionUntil = 0;

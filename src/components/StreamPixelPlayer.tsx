@@ -157,7 +157,7 @@ export default function StreamPixelPlayer({
     keyboardInputEnabled = true,
     blockedKeyboardCodes = [],
     desktopMouseMode: preferredDesktopMouseMode,
-    mouseSensitivity = 1,
+    mouseSensitivity = 0.3,
 }: StreamPixelPlayerProps) {
     const wrapperRef = useRef<HTMLDivElement>(null);
     const streamRef = useRef<StreamPixelStream | null>(null);
