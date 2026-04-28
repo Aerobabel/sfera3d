@@ -96,7 +96,10 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.45;
+        // Was 1.45 → blowing out white sinks + marble wall textures into
+        // pure white (couldn't tell wall from basin). Conservative
+        // exposure so albedo / normal-map detail stays readable.
+        renderer.toneMappingExposure = 0.95;
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -104,20 +107,19 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
         container.appendChild(renderer.domElement);
 
         // Procedural studio HDRI provides reflections for PBR materials
-        // (chrome, glass, lacquer), but we *dim* its overall intensity so
-        // the directional key light dominates the lighting and we get
-        // contrast — without this, the scene reads as flat overcast.
+        // (chrome, glass, lacquer). We dim it via a scene-level intensity
+        // (r158+) AND a per-material envMapIntensity walk later, since
+        // not every three.js minor honours the scene-level property.
         const pmrem = new THREE.PMREMGenerator(renderer);
         const envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
         scene.environment = envTexture;
-        // three.js r158+ exposes a scene-level intensity multiplier for the
-        // environment map. Older versions ignore this assignment, in which
-        // case we fall back to a per-material walk later.
-        (scene as unknown as { environmentIntensity?: number }).environmentIntensity = 0.55;
+        (scene as unknown as { environmentIntensity?: number }).environmentIntensity = 0.4;
 
-        // Strong, warm key light from upper-left — this is what gives
-        // glossy surfaces a highlight and makes drop shadows visible.
-        const keyLight = new THREE.DirectionalLight(0xfff1d8, 3.2);
+        // Warm key light from upper-left. Was 3.2 → combined with the
+        // HDRI, exposure 1.45 and ambient, total brightness was so high
+        // that white sinks merged into the marble wall. 1.8 still gives
+        // a clear directional cue + crisp drop shadow without blowout.
+        const keyLight = new THREE.DirectionalLight(0xfff1d8, 1.8);
         keyLight.position.set(-3.2, 5, 2.5);
         keyLight.castShadow = true;
         keyLight.shadow.mapSize.set(2048, 2048);
@@ -128,19 +130,14 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
         keyLight.shadow.camera.top = 1.8;
         keyLight.shadow.camera.bottom = -1.8;
         keyLight.shadow.bias = -0.00012;
-        // Sharper shadow edges (was 4 → drop shadow read as "flat lighting"
-        // soft blur). Still soft enough to avoid jagged single-pixel edges.
         keyLight.shadow.radius = 1.6;
         scene.add(keyLight);
 
-        // Cool fill from opposite side — lifts the shadow side without
-        // washing out the contrast.
-        const fillLight = new THREE.DirectionalLight(0xa8c4ff, 0.45);
+        // Cool fill, dialled back so the shadow side actually reads as
+        // shadow rather than evenly lit.
+        const fillLight = new THREE.DirectionalLight(0xa8c4ff, 0.25);
         fillLight.position.set(3.5, 2, -1.5);
         scene.add(fillLight);
-
-        // Subtle ambient bounce so the floor area in front isn't pitch.
-        scene.add(new THREE.AmbientLight(0xffffff, 0.05));
 
         // No separate contact-shadow plane: the Mira GLBs ship with their
         // own floor mesh at y=0, so adding our own at the same height
@@ -199,6 +196,12 @@ export default function ModelViewer({ src, alt, orientation }: ModelViewerProps)
                     for (const mat of materials) {
                         if (!mat) continue;
                         const m = mat as Record<string, unknown> & THREE.Material;
+                        // Per-material envMapIntensity dial — works on every
+                        // three.js minor regardless of whether the scene-level
+                        // property landed. Same value as the scene assignment.
+                        if ('envMapIntensity' in m) {
+                            (m as unknown as { envMapIntensity: number }).envMapIntensity = 0.4;
+                        }
                         for (const key of TEXTURE_KEYS) {
                             const tex = m[key] as THREE.Texture | undefined;
                             if (tex) tex.anisotropy = maxAnisotropy;
