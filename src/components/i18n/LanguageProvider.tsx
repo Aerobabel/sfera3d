@@ -14,6 +14,7 @@ import {
   DEFAULT_LANGUAGE,
   isAppLanguage,
   LANGUAGE_STORAGE_KEY,
+  toHtmlLanguageTag,
 } from "@/lib/i18n";
 
 type LanguageContextValue = {
@@ -24,15 +25,10 @@ type LanguageContextValue = {
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 const LANGUAGE_EVENT_NAME = "3dsfera-language-change";
 
-const toHtmlLang = (language: AppLanguage) => {
-  if (language === "zh") return "zh-CN";
-  return language;
-};
-
-const readStoredLanguage = () => {
-  if (typeof window === "undefined") return DEFAULT_LANGUAGE;
+const readStoredLanguage = (defaultLanguage: AppLanguage) => {
+  if (typeof window === "undefined") return defaultLanguage;
   const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-  return isAppLanguage(stored) ? stored : DEFAULT_LANGUAGE;
+  return isAppLanguage(stored) ? stored : defaultLanguage;
 };
 
 const subscribeToLanguage = (onStoreChange: () => void) => {
@@ -59,11 +55,17 @@ const subscribeToLanguage = (onStoreChange: () => void) => {
   };
 };
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
+export function LanguageProvider({
+  children,
+  defaultLanguage = DEFAULT_LANGUAGE,
+}: {
+  children: ReactNode;
+  defaultLanguage?: AppLanguage;
+}) {
   const language = useSyncExternalStore(
     subscribeToLanguage,
-    readStoredLanguage,
-    () => DEFAULT_LANGUAGE
+    () => readStoredLanguage(defaultLanguage),
+    () => defaultLanguage
   );
 
   const setLanguage = useCallback((nextLanguage: AppLanguage) => {
@@ -74,7 +76,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof document === "undefined") return;
-    document.documentElement.lang = toHtmlLang(language);
+    document.documentElement.lang = toHtmlLanguageTag(language);
   }, [language]);
 
   const value = useMemo<LanguageContextValue>(
