@@ -3,7 +3,7 @@
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Send, Menu, X, Monitor } from "lucide-react";
+import { Bot, Send, Menu, X, Monitor } from "lucide-react";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
@@ -40,6 +40,11 @@ type PixelStreamingWindow = Window & {
     };
 };
 const DEFAULT_MOUSE_SENSITIVITY = 0.5;
+const LANGUAGE_ASSISTANT_KEY_CODES: Record<AppLanguage, number> = {
+    zh: 48,
+    ru: 49,
+    en: 50,
+};
 
 // Module-level suppression — avoids any React ref/closure timing issues.
 let _suppressProductSelectionUntil = 0;
@@ -67,6 +72,29 @@ const releaseAllInputs = () => {
     }
 
     mouseLeaveHandler?.();
+};
+
+const sendUnrealKeyPress = (keyCode: number) => {
+    const psWindow = window as PixelStreamingWindow;
+    const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
+    const keyUpHandler = psWindow.ps?.toStreamerHandlers?.get('KeyUp');
+
+    if (keyDownHandler && keyUpHandler) {
+        keyDownHandler([keyCode, 0]);
+        keyUpHandler([keyCode]);
+        return;
+    }
+
+    const keyString = String.fromCharCode(keyCode);
+    const keyboardEventInit: KeyboardEventInit = {
+        key: keyString,
+        code: `Digit${keyString}`,
+        bubbles: true,
+        cancelable: true,
+    };
+
+    document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
+    document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
 };
 
 type ChatMessage = {
@@ -247,6 +275,8 @@ const FASTVIEW_LAUNCH_COPY: Record<
         readyBody: string;
         connectingCta: string;
         enterCta: string;
+        assistantHint: (key: string) => string;
+        assistantCta: (key: string) => string;
         errorTitle: string;
         errorBody: string;
         retryCta: string;
@@ -260,6 +290,8 @@ const FASTVIEW_LAUNCH_COPY: Record<
         readyBody: 'Enter once to enable audio, language sync, and interactive controls.',
         connectingCta: 'Connecting...',
         enterCta: 'Enter FastView',
+        assistantHint: (key) => `Press ${key} to call the Assistant.`,
+        assistantCta: (key) => `Call Assistant (${key})`,
         errorTitle: 'Unable to start FastView',
         errorBody: 'Refresh the page to request a new session and try again.',
         retryCta: 'Refresh page',
@@ -272,6 +304,8 @@ const FASTVIEW_LAUNCH_COPY: Record<
         readyBody: '\u041D\u0430\u0436\u043C\u0438\u0442\u0435, \u0447\u0442\u043E\u0431\u044B \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0437\u0432\u0443\u043A, \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u044E \u044F\u0437\u044B\u043A\u0430 \u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435.',
         connectingCta: '\u041F\u043E\u0434\u043A\u043B\u044E\u0447\u0430\u0435\u043C...',
         enterCta: '\u0412\u043E\u0439\u0442\u0438 \u0432 FastView',
+        assistantHint: (key) => `\u041D\u0430\u0436\u043C\u0438\u0442\u0435 ${key}, \u0447\u0442\u043E\u0431\u044B \u0432\u044B\u0437\u0432\u0430\u0442\u044C \u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u0430.`,
+        assistantCta: (key) => `\u0412\u044B\u0437\u0432\u0430\u0442\u044C \u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u0430 (${key})`,
         errorTitle: '\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C FastView',
         errorBody: '\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u0435 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u043F\u0440\u043E\u0441\u0438\u0442\u044C \u043D\u043E\u0432\u044B\u0439 \u0441\u0435\u0430\u043D\u0441 \u0438 \u043F\u043E\u043F\u0440\u043E\u0431\u043E\u0432\u0430\u0442\u044C \u0441\u043D\u043E\u0432\u0430.',
         retryCta: '\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443',
@@ -284,6 +318,8 @@ const FASTVIEW_LAUNCH_COPY: Record<
         readyBody: '\u70B9\u51FB\u4E00\u6B21\u5373\u53EF\u542F\u7528\u97F3\u9891\u3001\u8BED\u8A00\u540C\u6B65\u548C\u4EA4\u4E92\u63A7\u5236\u3002',
         connectingCta: '\u8FDE\u63A5\u4E2D...',
         enterCta: '\u8FDB\u5165 FastView',
+        assistantHint: (key) => `\u6309 ${key} \u547C\u53EB\u52A9\u7406\u3002`,
+        assistantCta: (key) => `\u547C\u53EB\u52A9\u7406 (${key})`,
         errorTitle: '\u65E0\u6CD5\u542F\u52A8 FastView',
         errorBody: '\u8BF7\u5237\u65B0\u9875\u9762\u4EE5\u7533\u8BF7\u65B0\u4F1A\u8BDD\u5E76\u91CD\u8BD5\u3002',
         retryCta: '\u5237\u65B0\u9875\u9762',
@@ -400,6 +436,10 @@ export default function ExperiencePage() {
     const { language } = useLanguage();
     const ui = EXPERIENCE_COPY[language];
     const fastViewLaunch = FASTVIEW_LAUNCH_COPY[language];
+    const assistantKeyCode = LANGUAGE_ASSISTANT_KEY_CODES[language];
+    const assistantKeyLabel = String.fromCharCode(assistantKeyCode);
+    const fastViewAssistantHint = fastViewLaunch.assistantHint(assistantKeyLabel);
+    const fastViewAssistantCta = fastViewLaunch.assistantCta(assistantKeyLabel);
     const accountLabel =
         language === 'ru'
             ? '\u0412\u044B \u0432\u043E\u0448\u043B\u0438 \u043A\u0430\u043A'
@@ -614,30 +654,11 @@ export default function ExperiencePage() {
             if (attempts >= 10) window.clearInterval(audioPoller);
         }, 500);
 
-        // Send the language keycode to UE so it switches to the correct locale.
-        // This works on both Epic PS and FastView (same UE build).
+        // Send the language/assistant keycode to UE so it switches locale and
+        // can open the in-scene assistant. This works on both Epic PS and
+        // FastView (same UE build).
         const psWindow = window as PixelStreamingWindow;
-        const keyDownHandler = psWindow.ps?.toStreamerHandlers?.get('KeyDown');
-        const keyUpHandler = psWindow.ps?.toStreamerHandlers?.get('KeyUp');
-
-        let keyCode = 50; // '2' for en
-        if (language === 'zh') keyCode = 48; // '0' for zh
-        else if (language === 'ru') keyCode = 49; // '1' for ru
-
-        if (keyDownHandler && keyUpHandler) {
-            keyDownHandler([keyCode, 0]);
-            keyUpHandler([keyCode]);
-        } else {
-            const keyString = String.fromCharCode(keyCode);
-            const keyboardEventInit: KeyboardEventInit = {
-                key: keyString,
-                code: `Digit${keyString}`,
-                bubbles: true,
-                cancelable: true,
-            };
-            document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
-            document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
-        }
+        sendUnrealKeyPress(assistantKeyCode);
 
         // Epic PS: lock pointer manually on start.
         // FastView: let the SDK handle the first lock on the user's next
@@ -656,7 +677,18 @@ export default function ExperiencePage() {
         }
 
         setHasStartedExperience(true);
-    }, [hasStartedExperience, videoElement, language, isFastViewRoute]);
+    }, [hasStartedExperience, videoElement, assistantKeyCode, isFastViewRoute]);
+
+    const handleCallFastViewAssistant = useCallback(() => {
+        if (!isFastViewRoute) return;
+
+        if (!hasStartedExperience) {
+            handleStartExperience();
+            return;
+        }
+
+        sendUnrealKeyPress(assistantKeyCode);
+    }, [assistantKeyCode, handleStartExperience, hasStartedExperience, isFastViewRoute]);
 
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
     const streamPixelPreviewUrl = useMemo(
@@ -1249,6 +1281,22 @@ export default function ExperiencePage() {
                                         progress={canEnterFastView ? 1 : null}
                                     />
 
+                                    <div className="mt-5 rounded-2xl border border-[#66d9cb]/25 bg-[#66d9cb]/10 px-4 py-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#66d9cb]/40 bg-black/35 font-mono text-lg font-semibold text-[#66d9cb]">
+                                                {assistantKeyLabel}
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#66d9cb]">
+                                                    Assistant
+                                                </p>
+                                                <p className="mt-1 text-sm leading-5 text-slate-200">
+                                                    {fastViewAssistantHint}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                                         <button
                                             type="button"
@@ -1257,6 +1305,15 @@ export default function ExperiencePage() {
                                             className="inline-flex flex-1 items-center justify-center rounded-2xl bg-[#66d9cb] px-5 py-3 text-sm font-semibold text-[#04110f] transition hover:bg-[#84e7dd] disabled:cursor-wait disabled:bg-[#66d9cb]/40 disabled:text-[#04110f]/70"
                                         >
                                             {canEnterFastView ? fastViewLaunch.enterCta : fastViewLaunch.connectingCta}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleCallFastViewAssistant}
+                                            disabled={!canEnterFastView}
+                                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#66d9cb]/35 bg-[#66d9cb]/10 px-5 py-3 text-sm font-semibold text-[#c8fff8] transition hover:border-[#66d9cb]/55 hover:bg-[#66d9cb]/18 disabled:cursor-wait disabled:border-[#66d9cb]/15 disabled:bg-[#66d9cb]/5 disabled:text-[#c8fff8]/45"
+                                        >
+                                            <Bot size={16} />
+                                            <span>{canEnterFastView ? fastViewAssistantCta : fastViewLaunch.connectingCta}</span>
                                         </button>
                                     </div>
                                 </>
@@ -1396,8 +1453,25 @@ export default function ExperiencePage() {
 
                         <div className="flex items-start gap-3 pointer-events-auto">
                             <p className="hidden max-w-[34rem] pt-1 text-right text-[10px] uppercase tracking-[0.14em] text-[#9fcfdf] md:block">
-                                {ui.instruction}
+                                {isFastViewRoute ? fastViewAssistantHint : ui.instruction}
                             </p>
+                            {isFastViewRoute && (
+                                <button
+                                    type="button"
+                                    onClick={handleCallFastViewAssistant}
+                                    className="group relative inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#66d9cb]/25 bg-slate-900/45 px-3 text-[#c8fff8] backdrop-blur-md transition hover:border-[#66d9cb]/45 hover:bg-slate-800/65"
+                                    aria-label={fastViewAssistantCta}
+                                    title={fastViewAssistantHint}
+                                >
+                                    <Bot size={15} className="text-[#66d9cb]" />
+                                    <span className="font-mono text-[11px] font-semibold leading-none">
+                                        {assistantKeyLabel}
+                                    </span>
+                                    <span className="hidden text-[10px] font-semibold uppercase tracking-wider text-gray-300 lg:inline">
+                                        AI
+                                    </span>
+                                </button>
+                            )}
                             <button
                                 onClick={toggleChatPanel}
                                 className="group relative px-4 py-2 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-md border border-white/5 rounded-lg transition overflow-hidden"
