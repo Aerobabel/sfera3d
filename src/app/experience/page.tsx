@@ -275,6 +275,7 @@ const FASTVIEW_LAUNCH_COPY: Record<
         readyBody: string;
         connectingCta: string;
         enterCta: string;
+        assistantTitle: string;
         assistantHint: (key: string) => string;
         assistantCta: (key: string) => string;
         errorTitle: string;
@@ -290,7 +291,8 @@ const FASTVIEW_LAUNCH_COPY: Record<
         readyBody: 'Enter once to enable audio, language sync, and interactive controls.',
         connectingCta: 'Connecting...',
         enterCta: 'Enter FastView',
-        assistantHint: (key) => `Press ${key} to call the Assistant.`,
+        assistantTitle: 'Ask an Assistant',
+        assistantHint: (key) => `Press ${key} to call the Assistant avatar and ask questions.`,
         assistantCta: (key) => `Call Assistant (${key})`,
         errorTitle: 'Unable to start FastView',
         errorBody: 'Refresh the page to request a new session and try again.',
@@ -304,7 +306,8 @@ const FASTVIEW_LAUNCH_COPY: Record<
         readyBody: '\u041D\u0430\u0436\u043C\u0438\u0442\u0435, \u0447\u0442\u043E\u0431\u044B \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0437\u0432\u0443\u043A, \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u044E \u044F\u0437\u044B\u043A\u0430 \u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435.',
         connectingCta: '\u041F\u043E\u0434\u043A\u043B\u044E\u0447\u0430\u0435\u043C...',
         enterCta: '\u0412\u043E\u0439\u0442\u0438 \u0432 FastView',
-        assistantHint: (key) => `\u041D\u0430\u0436\u043C\u0438\u0442\u0435 ${key}, \u0447\u0442\u043E\u0431\u044B \u0432\u044B\u0437\u0432\u0430\u0442\u044C \u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u0430.`,
+        assistantTitle: '\u0421\u043F\u0440\u043E\u0441\u0438\u0442\u0435 \u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u0430',
+        assistantHint: (key) => `\u041D\u0430\u0436\u043C\u0438\u0442\u0435 ${key}, \u0447\u0442\u043E\u0431\u044B \u0432\u044B\u0437\u0432\u0430\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440\u0430-\u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u0430 \u0438 \u0437\u0430\u0434\u0430\u0442\u044C \u0432\u043E\u043F\u0440\u043E\u0441.`,
         assistantCta: (key) => `\u0412\u044B\u0437\u0432\u0430\u0442\u044C \u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u0430 (${key})`,
         errorTitle: '\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C FastView',
         errorBody: '\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u0435 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u043F\u0440\u043E\u0441\u0438\u0442\u044C \u043D\u043E\u0432\u044B\u0439 \u0441\u0435\u0430\u043D\u0441 \u0438 \u043F\u043E\u043F\u0440\u043E\u0431\u043E\u0432\u0430\u0442\u044C \u0441\u043D\u043E\u0432\u0430.',
@@ -318,7 +321,8 @@ const FASTVIEW_LAUNCH_COPY: Record<
         readyBody: '\u70B9\u51FB\u4E00\u6B21\u5373\u53EF\u542F\u7528\u97F3\u9891\u3001\u8BED\u8A00\u540C\u6B65\u548C\u4EA4\u4E92\u63A7\u5236\u3002',
         connectingCta: '\u8FDE\u63A5\u4E2D...',
         enterCta: '\u8FDB\u5165 FastView',
-        assistantHint: (key) => `\u6309 ${key} \u547C\u53EB\u52A9\u7406\u3002`,
+        assistantTitle: '\u8BE2\u95EE\u52A9\u7406',
+        assistantHint: (key) => `\u6309 ${key} \u547C\u53EB\u52A9\u7406\u865A\u62DF\u4EBA\u5E76\u63D0\u95EE\u3002`,
         assistantCta: (key) => `\u547C\u53EB\u52A9\u7406 (${key})`,
         errorTitle: '\u65E0\u6CD5\u542F\u52A8 FastView',
         errorBody: '\u8BF7\u5237\u65B0\u9875\u9762\u4EE5\u7533\u8BF7\u65B0\u4F1A\u8BDD\u5E76\u91CD\u8BD5\u3002',
@@ -440,6 +444,9 @@ export default function ExperiencePage() {
     const assistantKeyLabel = String.fromCharCode(assistantKeyCode);
     const fastViewAssistantHint = fastViewLaunch.assistantHint(assistantKeyLabel);
     const fastViewAssistantCta = fastViewLaunch.assistantCta(assistantKeyLabel);
+    const sceneInstruction = isFastViewRoute
+        ? `${fastViewAssistantHint} ${ui.instruction}`
+        : ui.instruction;
     const accountLabel =
         language === 'ru'
             ? '\u0412\u044B \u0432\u043E\u0448\u043B\u0438 \u043A\u0430\u043A'
@@ -494,6 +501,7 @@ export default function ExperiencePage() {
     const [needsPointerResume, setNeedsPointerResume] = useState(false);
     const [isStreamPixelOpen, setIsStreamPixelOpen] = useState(false);
     const [fastViewError, setFastViewError] = useState<string | null>(null);
+    const [hasDismissedFastViewAssistantPrompt, setHasDismissedFastViewAssistantPrompt] = useState(false);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
 
     const handleSensitivityChange = useCallback((value: number) => {
@@ -654,16 +662,17 @@ export default function ExperiencePage() {
             if (attempts >= 10) window.clearInterval(audioPoller);
         }, 500);
 
-        // Send the language/assistant keycode to UE so it switches locale and
-        // can open the in-scene assistant. This works on both Epic PS and
-        // FastView (same UE build).
         const psWindow = window as PixelStreamingWindow;
-        sendUnrealKeyPress(assistantKeyCode);
 
         // Epic PS: lock pointer manually on start.
         // FastView: let the SDK handle the first lock on the user's next
         // click so we can capture the exact element via pointerlockchange.
         if (!isFastViewRoute) {
+            // Epic PS uses the same key to sync locale on start. In FastView,
+            // the key calls the speaking avatar assistant, so only the user
+            // should trigger it from the in-scene prompt/button.
+            sendUnrealKeyPress(assistantKeyCode);
+
             try {
                 const parent = psWindow.ps?.videoElementParent;
                 if (parent && typeof parent.requestPointerLock === 'function') {
@@ -688,6 +697,7 @@ export default function ExperiencePage() {
         }
 
         sendUnrealKeyPress(assistantKeyCode);
+        setHasDismissedFastViewAssistantPrompt(true);
     }, [assistantKeyCode, handleStartExperience, hasStartedExperience, isFastViewRoute]);
 
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
@@ -708,6 +718,15 @@ export default function ExperiencePage() {
     const isChatPanelOpen = isMobile ? isMobileChatOpen : isDesktopChatOpen;
     const showFastViewLaunchOverlay = isFastViewRoute && (!hasStartedExperience || Boolean(fastViewError));
     const showExperienceHud = !isFastViewRoute || !showFastViewLaunchOverlay;
+    const showFastViewAssistantScenePrompt =
+        isFastViewRoute &&
+        hasStartedExperience &&
+        isVideoStreamingFrames &&
+        !hasDismissedFastViewAssistantPrompt &&
+        !activeProduct &&
+        !activePavilion &&
+        !isCatalogueOpen &&
+        !fastViewError;
     const canEnterFastView = Boolean(videoElement) && !fastViewError;
     const fastViewLaunchTitle = fastViewError
         ? fastViewLaunch.errorTitle
@@ -915,6 +934,30 @@ export default function ExperiencePage() {
             window.clearInterval(interval);
         };
     }, [isSupplierMode, activeSupplierId, syncSupplierMessages]);
+
+    useEffect(() => {
+        if (!isFastViewRoute || !hasStartedExperience || hasDismissedFastViewAssistantPrompt) return;
+
+        const handleAssistantKeyDown = (event: KeyboardEvent) => {
+            if (
+                event.key === assistantKeyLabel ||
+                event.code === `Digit${assistantKeyLabel}` ||
+                event.code === `Numpad${assistantKeyLabel}`
+            ) {
+                setHasDismissedFastViewAssistantPrompt(true);
+            }
+        };
+
+        document.addEventListener('keydown', handleAssistantKeyDown, true);
+        return () => {
+            document.removeEventListener('keydown', handleAssistantKeyDown, true);
+        };
+    }, [
+        assistantKeyLabel,
+        hasDismissedFastViewAssistantPrompt,
+        hasStartedExperience,
+        isFastViewRoute,
+    ]);
 
     useEffect(() => {
         if (!localizedActiveProduct) return;
@@ -1281,22 +1324,6 @@ export default function ExperiencePage() {
                                         progress={canEnterFastView ? 1 : null}
                                     />
 
-                                    <div className="mt-5 rounded-2xl border border-[#66d9cb]/25 bg-[#66d9cb]/10 px-4 py-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#66d9cb]/40 bg-black/35 font-mono text-lg font-semibold text-[#66d9cb]">
-                                                {assistantKeyLabel}
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#66d9cb]">
-                                                    Assistant
-                                                </p>
-                                                <p className="mt-1 text-sm leading-5 text-slate-200">
-                                                    {fastViewAssistantHint}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
                                     <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                                         <button
                                             type="button"
@@ -1305,15 +1332,6 @@ export default function ExperiencePage() {
                                             className="inline-flex flex-1 items-center justify-center rounded-2xl bg-[#66d9cb] px-5 py-3 text-sm font-semibold text-[#04110f] transition hover:bg-[#84e7dd] disabled:cursor-wait disabled:bg-[#66d9cb]/40 disabled:text-[#04110f]/70"
                                         >
                                             {canEnterFastView ? fastViewLaunch.enterCta : fastViewLaunch.connectingCta}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleCallFastViewAssistant}
-                                            disabled={!canEnterFastView}
-                                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#66d9cb]/35 bg-[#66d9cb]/10 px-5 py-3 text-sm font-semibold text-[#c8fff8] transition hover:border-[#66d9cb]/55 hover:bg-[#66d9cb]/18 disabled:cursor-wait disabled:border-[#66d9cb]/15 disabled:bg-[#66d9cb]/5 disabled:text-[#c8fff8]/45"
-                                        >
-                                            <Bot size={16} />
-                                            <span>{canEnterFastView ? fastViewAssistantCta : fastViewLaunch.connectingCta}</span>
                                         </button>
                                     </div>
                                 </>
@@ -1429,6 +1447,44 @@ export default function ExperiencePage() {
                     />
 
                     <MarketplaceCrosshair />
+                    {showFastViewAssistantScenePrompt && (
+                        <div className="absolute left-1/2 top-24 z-40 w-[min(calc(100vw-2rem),36rem)] -translate-x-1/2 pointer-events-auto md:top-28">
+                            <div className="relative overflow-hidden rounded-2xl border border-[#66d9cb]/35 bg-[linear-gradient(160deg,rgba(3,8,14,0.88),rgba(8,18,28,0.78))] p-4 text-white shadow-[0_20px_60px_rgba(0,0,0,0.42)] backdrop-blur-xl">
+                                <button
+                                    type="button"
+                                    onClick={() => setHasDismissedFastViewAssistantPrompt(true)}
+                                    className="absolute right-3 top-3 rounded-md border border-white/10 bg-white/5 p-1.5 text-slate-300 transition hover:bg-white/10 hover:text-white"
+                                    aria-label={ui.close}
+                                >
+                                    <X size={14} />
+                                </button>
+                                <div className="flex flex-col gap-4 pr-8 sm:flex-row sm:items-center">
+                                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-[#66d9cb]/45 bg-[#66d9cb]/12 font-mono text-3xl font-semibold text-[#66d9cb] shadow-[0_0_28px_rgba(102,217,203,0.24)]">
+                                        {assistantKeyLabel}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#66d9cb]">
+                                            {fastViewLaunch.assistantTitle}
+                                        </p>
+                                        <p className="mt-1 text-base font-semibold leading-6 text-white">
+                                            {fastViewAssistantHint}
+                                        </p>
+                                        <p className="mt-2 text-xs leading-5 text-slate-300">
+                                            {ui.instruction}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleCallFastViewAssistant}
+                                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#66d9cb] px-4 py-3 text-sm font-semibold text-[#04110f] transition hover:bg-[#84e7dd]"
+                                    >
+                                        <Bot size={16} />
+                                        <span>{fastViewAssistantCta}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <div className="flex flex-col h-full justify-between p-4 md:p-6 lg:p-8">
 
                     {/* Header */}
@@ -1453,7 +1509,7 @@ export default function ExperiencePage() {
 
                         <div className="flex items-start gap-3 pointer-events-auto">
                             <p className="hidden max-w-[34rem] pt-1 text-right text-[10px] uppercase tracking-[0.14em] text-[#9fcfdf] md:block">
-                                {isFastViewRoute ? fastViewAssistantHint : ui.instruction}
+                                {sceneInstruction}
                             </p>
                             {isFastViewRoute && (
                                 <button
