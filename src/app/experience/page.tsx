@@ -3,7 +3,7 @@
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Send, Menu, X, Monitor } from "lucide-react";
+import { Bot, Send, Menu, X, Monitor, Play, Volume2 } from "lucide-react";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
@@ -607,12 +607,15 @@ export default function ExperiencePage() {
     const [isVideoStreamingFrames, setIsVideoStreamingFrames] = useState(false);
     const [hasCompletedFastViewCutscene, setHasCompletedFastViewCutscene] = useState(() => !isFastViewRoute);
     const [isFastViewCutsceneExiting, setIsFastViewCutsceneExiting] = useState(false);
+    const [hasStartedFastViewCutscene, setHasStartedFastViewCutscene] = useState(() => !isFastViewRoute);
+    const fastViewCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const fastViewCutsceneExitTimerRef = useRef<number | null>(null);
 
     useEffect(() => {
         if (isFastViewRoute) return;
         setHasCompletedFastViewCutscene(true);
         setIsFastViewCutsceneExiting(false);
+        setHasStartedFastViewCutscene(true);
     }, [isFastViewRoute]);
 
     useEffect(() => {
@@ -707,6 +710,34 @@ export default function ExperiencePage() {
 
         setHasStartedExperience(true);
     }, [hasStartedExperience, videoElement, assistantKeyCode, isFastViewRoute]);
+
+    const handleStartFastViewCutscene = useCallback(() => {
+        if (
+            !isFastViewRoute ||
+            hasCompletedFastViewCutscene ||
+            hasStartedFastViewCutscene ||
+            isFastViewCutsceneExiting
+        ) {
+            return;
+        }
+
+        setHasStartedFastViewCutscene(true);
+
+        const cutsceneVideo = fastViewCutsceneVideoRef.current;
+        if (!cutsceneVideo) return;
+
+        cutsceneVideo.muted = false;
+        cutsceneVideo.volume = 1;
+        cutsceneVideo.play().catch(() => {
+            cutsceneVideo.muted = true;
+            cutsceneVideo.play().catch(() => {});
+        });
+    }, [
+        hasCompletedFastViewCutscene,
+        hasStartedFastViewCutscene,
+        isFastViewCutsceneExiting,
+        isFastViewRoute,
+    ]);
 
     const handleCompleteFastViewCutscene = useCallback(() => {
         if (!isFastViewRoute || hasCompletedFastViewCutscene || isFastViewCutsceneExiting) return;
@@ -1327,28 +1358,75 @@ export default function ExperiencePage() {
 
             {showFastViewCutscene && (
                 <div
-                    className={`absolute inset-0 z-[130] bg-black transition-opacity duration-700 ${
+                    className={`absolute inset-0 z-[130] bg-[#05070b] transition-opacity duration-700 ${
                         isFastViewCutsceneExiting ? 'opacity-0 pointer-events-none' : 'opacity-100'
                     }`}
+                    onClick={hasStartedFastViewCutscene ? undefined : handleStartFastViewCutscene}
                 >
-                    <video
-                        className="h-full w-full object-cover"
-                        src={FASTVIEW_CUTSCENE_SRC}
-                        data-cutscene-video="true"
-                        autoPlay
-                        muted
-                        playsInline
-                        preload="auto"
-                        onEnded={handleCompleteFastViewCutscene}
-                        onError={handleCompleteFastViewCutscene}
-                    />
-                    <button
-                        type="button"
-                        onClick={handleCompleteFastViewCutscene}
-                        className="absolute bottom-5 right-5 rounded-full border border-white/25 bg-black/45 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur-md transition hover:border-white/45 hover:bg-white/10 sm:bottom-6 sm:right-6"
-                    >
-                        Skip
-                    </button>
+                    <div className="absolute inset-x-0 bottom-0 top-16 overflow-hidden sm:top-20">
+                        <video
+                            ref={fastViewCutsceneVideoRef}
+                            className="h-full w-full object-cover"
+                            src={FASTVIEW_CUTSCENE_SRC}
+                            data-cutscene-video="true"
+                            muted={!hasStartedFastViewCutscene}
+                            playsInline
+                            preload="auto"
+                            onEnded={handleCompleteFastViewCutscene}
+                            onError={handleCompleteFastViewCutscene}
+                        />
+                        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.2),transparent_26%,rgba(0,0,0,0.16))]" />
+                    </div>
+
+                    <header className="absolute inset-x-0 top-0 z-20 border-b border-[#66d9cb]/20 bg-[#02070b]/[0.82] shadow-[0_10px_40px_rgba(0,0,0,0.32)] backdrop-blur-md">
+                        <div className="flex h-16 items-center justify-between gap-3 px-4 sm:h-20 sm:px-6 lg:px-8">
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                    <div className="h-7 w-7 shrink-0 rounded-md border border-[#66d9cb]/50 bg-[#66d9cb]/15 shadow-[0_0_18px_rgba(102,217,203,0.35)] sm:h-8 sm:w-8" />
+                                    <div className="truncate text-xl tracking-tight text-white sm:text-3xl">
+                                        3D<span className="text-[#66d9cb]">SFERA</span>
+                                    </div>
+                                </div>
+                                <div className="mt-1 hidden w-fit items-center gap-2 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-300 sm:flex">
+                                    <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+                                    {ui.statusOnline}
+                                </div>
+                            </div>
+
+                            <p className="hidden max-w-[34rem] text-center text-[10px] font-semibold uppercase leading-relaxed tracking-[0.14em] text-[#9fcfdf] md:block">
+                                {sceneInstruction}
+                            </p>
+
+                            <button
+                                type="button"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleCompleteFastViewCutscene();
+                                }}
+                                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.08] px-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/90 transition hover:border-white/30 hover:bg-white/[0.14] sm:h-11 sm:px-4"
+                            >
+                                <X className="h-4 w-4" />
+                                <span className="hidden sm:inline">Skip</span>
+                            </button>
+                        </div>
+                    </header>
+
+                    {!hasStartedFastViewCutscene && (
+                        <div className="absolute inset-x-4 bottom-0 top-16 z-10 flex items-center justify-center sm:top-20">
+                            <button
+                                type="button"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleStartFastViewCutscene();
+                                }}
+                                className="inline-flex max-w-full items-center justify-center gap-2 rounded-2xl border border-[#66d9cb]/35 bg-black/55 px-5 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:border-[#66d9cb]/60 hover:bg-[#66d9cb]/[0.16] sm:px-6"
+                            >
+                                <Play className="h-4 w-4 shrink-0 text-[#66d9cb]" />
+                                <span className="truncate">Start with sound</span>
+                                <Volume2 className="h-4 w-4 shrink-0 text-[#66d9cb]" />
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 
