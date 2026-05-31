@@ -608,6 +608,7 @@ export default function ExperiencePage() {
     const [hasCompletedFastViewCutscene, setHasCompletedFastViewCutscene] = useState(() => !isFastViewRoute);
     const [isFastViewCutsceneExiting, setIsFastViewCutsceneExiting] = useState(false);
     const [hasStartedFastViewCutscene, setHasStartedFastViewCutscene] = useState(() => !isFastViewRoute);
+    const [hasEndedFastViewCutscene, setHasEndedFastViewCutscene] = useState(() => !isFastViewRoute);
     const fastViewCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const fastViewCutsceneExitTimerRef = useRef<number | null>(null);
 
@@ -616,6 +617,7 @@ export default function ExperiencePage() {
         setHasCompletedFastViewCutscene(true);
         setIsFastViewCutsceneExiting(false);
         setHasStartedFastViewCutscene(true);
+        setHasEndedFastViewCutscene(true);
     }, [isFastViewRoute]);
 
     useEffect(() => {
@@ -739,12 +741,8 @@ export default function ExperiencePage() {
         isFastViewRoute,
     ]);
 
-    const handleCompleteFastViewCutscene = useCallback(() => {
+    const beginFastViewCutsceneExit = useCallback(() => {
         if (!isFastViewRoute || hasCompletedFastViewCutscene || isFastViewCutsceneExiting) return;
-
-        if (videoElement && !fastViewError) {
-            handleStartExperience();
-        }
 
         setIsFastViewCutsceneExiting(true);
         if (fastViewCutsceneExitTimerRef.current !== null) {
@@ -756,11 +754,43 @@ export default function ExperiencePage() {
             setIsFastViewCutsceneExiting(false);
             fastViewCutsceneExitTimerRef.current = null;
         }, FASTVIEW_CUTSCENE_FADE_MS);
+    }, [hasCompletedFastViewCutscene, isFastViewCutsceneExiting, isFastViewRoute]);
+
+    const handleCompleteFastViewCutscene = useCallback(() => {
+        if (!isFastViewRoute || hasCompletedFastViewCutscene) return;
+
+        setHasEndedFastViewCutscene(true);
+
+        if (videoElement && !fastViewError) {
+            handleStartExperience();
+        }
+
+        if (isVideoStreamingFrames) {
+            beginFastViewCutsceneExit();
+        }
     }, [
+        beginFastViewCutsceneExit,
         fastViewError,
         handleStartExperience,
         hasCompletedFastViewCutscene,
-        isFastViewCutsceneExiting,
+        isFastViewRoute,
+        isVideoStreamingFrames,
+        videoElement,
+    ]);
+
+    const handleSkipFastViewCutscene = useCallback(() => {
+        if (!isFastViewRoute || hasCompletedFastViewCutscene) return;
+
+        if (videoElement && !fastViewError) {
+            handleStartExperience();
+        }
+
+        beginFastViewCutsceneExit();
+    }, [
+        beginFastViewCutsceneExit,
+        fastViewError,
+        handleStartExperience,
+        hasCompletedFastViewCutscene,
         isFastViewRoute,
         videoElement,
     ]);
@@ -784,6 +814,27 @@ export default function ExperiencePage() {
         hasStartedExperience,
         isFastViewRoute,
         videoElement,
+    ]);
+
+    useEffect(() => {
+        if (
+            !isFastViewRoute ||
+            !hasEndedFastViewCutscene ||
+            hasCompletedFastViewCutscene ||
+            fastViewError ||
+            !isVideoStreamingFrames
+        ) {
+            return;
+        }
+
+        beginFastViewCutsceneExit();
+    }, [
+        beginFastViewCutsceneExit,
+        fastViewError,
+        hasCompletedFastViewCutscene,
+        hasEndedFastViewCutscene,
+        isFastViewRoute,
+        isVideoStreamingFrames,
     ]);
 
     const handleCallFastViewAssistant = useCallback(() => {
@@ -1366,7 +1417,9 @@ export default function ExperiencePage() {
                     <div className="absolute inset-x-0 bottom-0 top-16 overflow-hidden sm:top-20">
                         <video
                             ref={fastViewCutsceneVideoRef}
-                            className="h-full w-full object-cover"
+                            className={`h-full w-full object-cover transition-[filter,transform] duration-700 ${
+                                hasEndedFastViewCutscene && !isVideoStreamingFrames ? 'scale-[1.01] brightness-75' : ''
+                            }`}
                             src={FASTVIEW_CUTSCENE_SRC}
                             data-cutscene-video="true"
                             muted={!hasStartedFastViewCutscene}
@@ -1401,7 +1454,7 @@ export default function ExperiencePage() {
                                 type="button"
                                 onClick={(event) => {
                                     event.stopPropagation();
-                                    handleCompleteFastViewCutscene();
+                                    handleSkipFastViewCutscene();
                                 }}
                                 className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.08] px-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/90 transition hover:border-white/30 hover:bg-white/[0.14] sm:h-11 sm:px-4"
                             >
@@ -1425,6 +1478,15 @@ export default function ExperiencePage() {
                                 <span className="truncate">Start with sound</span>
                                 <Volume2 className="h-4 w-4 shrink-0 text-[#66d9cb]" />
                             </button>
+                        </div>
+                    )}
+
+                    {hasEndedFastViewCutscene && !isVideoStreamingFrames && (
+                        <div className="pointer-events-none absolute inset-x-4 bottom-5 z-10 flex justify-center sm:bottom-6">
+                            <div className="flex max-w-full items-center gap-3 rounded-full border border-white/15 bg-black/55 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-200 shadow-[0_14px_50px_rgba(0,0,0,0.35)] backdrop-blur-md">
+                                <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-[#66d9cb] shadow-[0_0_10px_rgba(102,217,203,0.85)]" />
+                                <span className="truncate">{fastViewLaunch.connectingCta}</span>
+                            </div>
                         </div>
                     )}
                 </div>
