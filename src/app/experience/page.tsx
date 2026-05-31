@@ -392,6 +392,8 @@ const resolveDefaultSignalingUrl = () => {
 };
 
 const DEFAULT_FASTVIEW_APP_ID = '69d615b641d102927ca911f3';
+const FASTVIEW_CUTSCENE_SRC = '/cutscenes/cutscene1.mov';
+const FASTVIEW_CUTSCENE_FADE_MS = 700;
 
 const buildStreamPixelPreviewUrl = (appId: string) => `https://share.streampixel.io/${appId}`;
 
@@ -603,6 +605,23 @@ export default function ExperiencePage() {
     // transition overlay visible between the user's "enter" click and the
     // first frame so they don't see a black screen while UE unpauses.
     const [isVideoStreamingFrames, setIsVideoStreamingFrames] = useState(false);
+    const [hasCompletedFastViewCutscene, setHasCompletedFastViewCutscene] = useState(() => !isFastViewRoute);
+    const [isFastViewCutsceneExiting, setIsFastViewCutsceneExiting] = useState(false);
+    const fastViewCutsceneExitTimerRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (isFastViewRoute) return;
+        setHasCompletedFastViewCutscene(true);
+        setIsFastViewCutsceneExiting(false);
+    }, [isFastViewRoute]);
+
+    useEffect(() => {
+        return () => {
+            if (fastViewCutsceneExitTimerRef.current !== null) {
+                window.clearTimeout(fastViewCutsceneExitTimerRef.current);
+            }
+        };
+    }, []);
 
     const handleStartExperience = useCallback(() => {
         if (hasStartedExperience) return;
@@ -618,6 +637,7 @@ export default function ExperiencePage() {
         // Unmute all media elements currently in the DOM.
         const unmuteAllDOM = () => {
             document.querySelectorAll('video, audio').forEach((el) => {
+                if (el instanceof HTMLElement && el.dataset.cutsceneVideo === 'true') return;
                 const m = el as HTMLMediaElement;
                 m.muted = false;
                 m.volume = 1.0;
@@ -688,6 +708,53 @@ export default function ExperiencePage() {
         setHasStartedExperience(true);
     }, [hasStartedExperience, videoElement, assistantKeyCode, isFastViewRoute]);
 
+    const handleCompleteFastViewCutscene = useCallback(() => {
+        if (!isFastViewRoute || hasCompletedFastViewCutscene || isFastViewCutsceneExiting) return;
+
+        if (videoElement && !fastViewError) {
+            handleStartExperience();
+        }
+
+        setIsFastViewCutsceneExiting(true);
+        if (fastViewCutsceneExitTimerRef.current !== null) {
+            window.clearTimeout(fastViewCutsceneExitTimerRef.current);
+        }
+
+        fastViewCutsceneExitTimerRef.current = window.setTimeout(() => {
+            setHasCompletedFastViewCutscene(true);
+            setIsFastViewCutsceneExiting(false);
+            fastViewCutsceneExitTimerRef.current = null;
+        }, FASTVIEW_CUTSCENE_FADE_MS);
+    }, [
+        fastViewError,
+        handleStartExperience,
+        hasCompletedFastViewCutscene,
+        isFastViewCutsceneExiting,
+        isFastViewRoute,
+        videoElement,
+    ]);
+
+    useEffect(() => {
+        if (
+            !isFastViewRoute ||
+            !hasCompletedFastViewCutscene ||
+            hasStartedExperience ||
+            fastViewError ||
+            !videoElement
+        ) {
+            return;
+        }
+
+        handleStartExperience();
+    }, [
+        fastViewError,
+        handleStartExperience,
+        hasCompletedFastViewCutscene,
+        hasStartedExperience,
+        isFastViewRoute,
+        videoElement,
+    ]);
+
     const handleCallFastViewAssistant = useCallback(() => {
         if (!isFastViewRoute) return;
 
@@ -716,8 +783,12 @@ export default function ExperiencePage() {
         ? 'Type message to supplier...'
         : ui.inputPlaceholder;
     const isChatPanelOpen = isMobile ? isMobileChatOpen : isDesktopChatOpen;
-    const showFastViewLaunchOverlay = isFastViewRoute && (!hasStartedExperience || Boolean(fastViewError));
-    const showExperienceHud = !isFastViewRoute || !showFastViewLaunchOverlay;
+    const showFastViewCutscene = isFastViewRoute && !hasCompletedFastViewCutscene && !fastViewError;
+    const showFastViewLaunchOverlay =
+        isFastViewRoute &&
+        !showFastViewCutscene &&
+        (!hasStartedExperience || Boolean(fastViewError));
+    const showExperienceHud = !isFastViewRoute || (!showFastViewCutscene && !showFastViewLaunchOverlay);
     const showFastViewAssistantScenePrompt =
         isFastViewRoute &&
         hasStartedExperience &&
@@ -1253,6 +1324,33 @@ export default function ExperiencePage() {
                     </>
                 )}
             </div>
+
+            {showFastViewCutscene && (
+                <div
+                    className={`absolute inset-0 z-[130] bg-black transition-opacity duration-700 ${
+                        isFastViewCutsceneExiting ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                    }`}
+                >
+                    <video
+                        className="h-full w-full object-cover"
+                        src={FASTVIEW_CUTSCENE_SRC}
+                        data-cutscene-video="true"
+                        autoPlay
+                        muted
+                        playsInline
+                        preload="auto"
+                        onEnded={handleCompleteFastViewCutscene}
+                        onError={handleCompleteFastViewCutscene}
+                    />
+                    <button
+                        type="button"
+                        onClick={handleCompleteFastViewCutscene}
+                        className="absolute bottom-5 right-5 rounded-full border border-white/25 bg-black/45 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur-md transition hover:border-white/45 hover:bg-white/10 sm:bottom-6 sm:right-6"
+                    >
+                        Skip
+                    </button>
+                </div>
+            )}
 
             {/* FastView launch overlay */}
             {showFastViewLaunchOverlay && (
