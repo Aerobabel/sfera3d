@@ -3,7 +3,7 @@
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Send, Menu, X, Monitor, Play, Volume2 } from "lucide-react";
+import { Activity, Bot, Send, Menu, X, Monitor, Play, Volume2 } from "lucide-react";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
@@ -112,6 +112,106 @@ type ChatApiResponse = {
         text?: string;
         timestamp?: number;
     };
+};
+
+type LiveActivityKind = 'enter' | 'exit' | 'message' | 'catalogue' | 'product' | 'booking' | 'market';
+
+type LiveActivityTemplate = {
+    kind: LiveActivityKind;
+    message: string;
+};
+
+type LiveActivityToast = LiveActivityTemplate & {
+    id: number;
+};
+
+const LIVE_ACTIVITY_INITIAL_DELAY_MS = 2800;
+const LIVE_ACTIVITY_INTERVAL_MS = 7600;
+const LIVE_ACTIVITY_VISIBLE_MS = 11800;
+
+const LIVE_ACTIVITY_LABEL: Record<AppLanguage, string> = {
+    en: 'Live activity',
+    ru: 'Активность',
+    zh: '实时动态',
+};
+
+const LIVE_ACTIVITY_NOW_LABEL: Record<AppLanguage, string> = {
+    en: 'now',
+    ru: 'сейчас',
+    zh: '刚刚',
+};
+
+const CUTSCENE_COPY: Record<AppLanguage, { skip: string; startWithSound: string }> = {
+    en: {
+        skip: 'Skip',
+        startWithSound: 'Start with sound',
+    },
+    ru: {
+        skip: 'Пропустить',
+        startWithSound: 'Начать со звуком',
+    },
+    zh: {
+        skip: '跳过',
+        startWithSound: '开启声音',
+    },
+};
+
+const LIVE_ACTIVITY_TEMPLATES: Record<AppLanguage, LiveActivityTemplate[]> = {
+    en: [
+        { kind: 'enter', message: 'Aryan just entered Youbo' },
+        { kind: 'market', message: '20 people are viewing Youbo' },
+        { kind: 'message', message: 'Chen texted the Youbo supplier' },
+        { kind: 'catalogue', message: 'Sofia requested the Double Lin catalogue' },
+        { kind: 'market', message: '14 visitors are browsing Double Lin' },
+        { kind: 'product', message: 'Maya is viewing Mira pendant lights' },
+        { kind: 'exit', message: 'Noah exited the Youbo pavilion' },
+        { kind: 'enter', message: 'Li Wei joined the Double Lin booth' },
+        { kind: 'product', message: 'Elena saved a Youbo product' },
+        { kind: 'booking', message: 'Omar booked a supplier follow-up' },
+        { kind: 'market', message: 'Nina opened the marketplace overlay' },
+        { kind: 'product', message: '6 buyers are comparing Youbo products' },
+        { kind: 'product', message: 'Dmitri is comparing 3 product specs' },
+    ],
+    ru: [
+        { kind: 'enter', message: 'Ариан только что вошел в Youbo' },
+        { kind: 'market', message: '20 человек смотрят Youbo' },
+        { kind: 'message', message: 'Чен написал поставщику Youbo' },
+        { kind: 'catalogue', message: 'София запросила каталог Double Lin' },
+        { kind: 'market', message: '14 посетителей смотрят Double Lin' },
+        { kind: 'product', message: 'Майя смотрит светильники Mira' },
+        { kind: 'exit', message: 'Ной вышел из павильона Youbo' },
+        { kind: 'enter', message: 'Ли Вэй вошел на стенд Double Lin' },
+        { kind: 'product', message: 'Елена сохранила товар Youbo' },
+        { kind: 'booking', message: 'Омар назначил встречу с поставщиком' },
+        { kind: 'market', message: 'Нина открыла маркетплейс' },
+        { kind: 'product', message: '6 покупателей сравнивают товары Youbo' },
+        { kind: 'product', message: 'Дмитрий сравнивает 3 товара' },
+    ],
+    zh: [
+        { kind: 'enter', message: 'Aryan 刚进入 Youbo' },
+        { kind: 'market', message: '20 人正在浏览 Youbo' },
+        { kind: 'message', message: 'Chen 给 Youbo 供应商发了消息' },
+        { kind: 'catalogue', message: 'Sofia 请求了 Double Lin 目录' },
+        { kind: 'market', message: '14 位访客正在浏览 Double Lin' },
+        { kind: 'product', message: 'Maya 正在查看 Mira 吊灯' },
+        { kind: 'exit', message: 'Noah 离开了 Youbo 展馆' },
+        { kind: 'enter', message: '李伟 进入 Double Lin 展位' },
+        { kind: 'product', message: 'Elena 收藏了 Youbo 产品' },
+        { kind: 'booking', message: 'Omar 预约了供应商跟进' },
+        { kind: 'market', message: 'Nina 打开了商城' },
+        { kind: 'product', message: '6 位买家正在对比 Youbo 产品' },
+        { kind: 'product', message: 'Dmitri 正在对比 3 个产品参数' },
+    ],
+};
+
+const LIVE_ACTIVITY_ACCENTS: Record<LiveActivityKind, string> = {
+    enter: 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]',
+    exit: 'bg-slate-300 shadow-[0_0_10px_rgba(203,213,225,0.75)]',
+    message: 'bg-[#66d9cb] shadow-[0_0_10px_rgba(102,217,203,0.9)]',
+    catalogue: 'bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.85)]',
+    product: 'bg-sky-300 shadow-[0_0_10px_rgba(125,211,252,0.85)]',
+    booking: 'bg-fuchsia-300 shadow-[0_0_10px_rgba(240,171,252,0.78)]',
+    market: 'bg-indigo-300 shadow-[0_0_10px_rgba(165,180,252,0.82)]',
 };
 
 const createClientChatMessage = (role: ChatMessage['role'], text: string): ChatMessage => ({
@@ -442,6 +542,9 @@ export default function ExperiencePage() {
     const { language } = useLanguage();
     const ui = EXPERIENCE_COPY[language];
     const fastViewLaunch = FASTVIEW_LAUNCH_COPY[language];
+    const cutsceneCopy = CUTSCENE_COPY[language];
+    const liveActivityLabel = LIVE_ACTIVITY_LABEL[language];
+    const liveActivityNowLabel = LIVE_ACTIVITY_NOW_LABEL[language];
     const assistantKeyCode = LANGUAGE_ASSISTANT_KEY_CODES[language];
     const assistantKeyLabel = String.fromCharCode(assistantKeyCode);
     const fastViewAssistantHint = fastViewLaunch.assistantHint(assistantKeyLabel);
@@ -504,6 +607,9 @@ export default function ExperiencePage() {
     const [isStreamPixelOpen, setIsStreamPixelOpen] = useState(false);
     const [fastViewError, setFastViewError] = useState<string | null>(null);
     const [hasDismissedFastViewAssistantPrompt, setHasDismissedFastViewAssistantPrompt] = useState(false);
+    const [liveActivityToasts, setLiveActivityToasts] = useState<LiveActivityToast[]>([]);
+    const liveActivityIndexRef = useRef(0);
+    const liveActivityRemovalTimersRef = useRef<number[]>([]);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
 
     const handleSensitivityChange = useCallback((value: number) => {
@@ -880,6 +986,16 @@ export default function ExperiencePage() {
         !activePavilion &&
         !isCatalogueOpen &&
         !fastViewError;
+    const shouldRunLiveActivity = showExperienceHud && hasStartedExperience && !fastViewError;
+    const showLiveActivityToasts =
+        shouldRunLiveActivity &&
+        liveActivityToasts.length > 0 &&
+        !activeProduct &&
+        !activePavilion &&
+        !isCatalogueOpen &&
+        !isChatPanelOpen &&
+        !isMenuOpen &&
+        !isStreamPixelOpen;
     const canEnterFastView = Boolean(videoElement) && !fastViewError;
     const fastViewLaunchTitle = fastViewError
         ? fastViewLaunch.errorTitle
@@ -891,6 +1007,45 @@ export default function ExperiencePage() {
         : canEnterFastView
           ? fastViewLaunch.readyBody
           : fastViewLaunch.loadingBody;
+
+    useEffect(() => {
+        liveActivityRemovalTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+        liveActivityRemovalTimersRef.current = [];
+        setLiveActivityToasts([]);
+
+        if (!shouldRunLiveActivity) return;
+
+        const templates = LIVE_ACTIVITY_TEMPLATES[language];
+
+        const pushLiveActivity = () => {
+            const nextIndex = liveActivityIndexRef.current;
+            const template = templates[nextIndex % templates.length];
+            const id = Date.now() + nextIndex;
+            liveActivityIndexRef.current = nextIndex + 1;
+
+            setLiveActivityToasts((previous) => [{ ...template, id }, ...previous].slice(0, 3));
+
+            const removalTimer = window.setTimeout(() => {
+                setLiveActivityToasts((previous) => previous.filter((toast) => toast.id !== id));
+                liveActivityRemovalTimersRef.current = liveActivityRemovalTimersRef.current.filter(
+                    (timerId) => timerId !== removalTimer
+                );
+            }, LIVE_ACTIVITY_VISIBLE_MS);
+
+            liveActivityRemovalTimersRef.current.push(removalTimer);
+        };
+
+        const initialTimer = window.setTimeout(pushLiveActivity, LIVE_ACTIVITY_INITIAL_DELAY_MS);
+        const intervalTimer = window.setInterval(pushLiveActivity, LIVE_ACTIVITY_INTERVAL_MS);
+
+        return () => {
+            window.clearTimeout(initialTimer);
+            window.clearInterval(intervalTimer);
+            liveActivityRemovalTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+            liveActivityRemovalTimersRef.current = [];
+        };
+    }, [language, shouldRunLiveActivity]);
+
     const handleReloadPage = () => {
         window.location.reload();
     };
@@ -1457,9 +1612,10 @@ export default function ExperiencePage() {
                                     handleSkipFastViewCutscene();
                                 }}
                                 className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.08] px-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/90 transition hover:border-white/30 hover:bg-white/[0.14] sm:h-11 sm:px-4"
+                                aria-label={cutsceneCopy.skip}
                             >
                                 <X className="h-4 w-4" />
-                                <span className="hidden sm:inline">Skip</span>
+                                <span className="hidden sm:inline">{cutsceneCopy.skip}</span>
                             </button>
                         </div>
                     </header>
@@ -1475,7 +1631,7 @@ export default function ExperiencePage() {
                                 className="inline-flex max-w-full items-center justify-center gap-2 rounded-2xl border border-[#66d9cb]/35 bg-black/55 px-5 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:border-[#66d9cb]/60 hover:bg-[#66d9cb]/[0.16] sm:px-6"
                             >
                                 <Play className="h-4 w-4 shrink-0 text-[#66d9cb]" />
-                                <span className="truncate">Start with sound</span>
+                                <span className="truncate">{cutsceneCopy.startWithSound}</span>
                                 <Volume2 className="h-4 w-4 shrink-0 text-[#66d9cb]" />
                             </button>
                         </div>
@@ -1685,6 +1841,40 @@ export default function ExperiencePage() {
                     />
 
                     <MarketplaceCrosshair />
+                    {showLiveActivityToasts && (
+                        <div
+                            className="absolute left-4 top-[7.25rem] z-30 flex w-[min(calc(100vw-2rem),22rem)] flex-col gap-2 pointer-events-none sm:left-6 sm:top-32 lg:left-8"
+                            aria-live="polite"
+                        >
+                            {liveActivityToasts.map((toast, index) => (
+                                <div
+                                    key={toast.id}
+                                    className={`overflow-hidden rounded-2xl border border-white/10 bg-[#03080e]/72 px-3.5 py-3 text-white shadow-[0_18px_55px_rgba(0,0,0,0.36)] backdrop-blur-md transition ${
+                                        index > 1 ? 'hidden md:block' : ''
+                                    }`}
+                                    style={{ opacity: Math.max(0.68, 1 - index * 0.14) }}
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="flex min-w-0 items-center gap-2">
+                                            <Activity className="h-3.5 w-3.5 shrink-0 text-[#66d9cb]" />
+                                            <span className="truncate text-[10px] font-bold uppercase tracking-[0.18em] text-[#9fcfdf]">
+                                                {liveActivityLabel}
+                                            </span>
+                                        </div>
+                                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                                            {liveActivityNowLabel}
+                                        </span>
+                                    </div>
+                                    <div className="mt-2 flex items-start gap-2.5">
+                                        <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${LIVE_ACTIVITY_ACCENTS[toast.kind]}`} />
+                                        <p className="min-w-0 text-sm font-medium leading-5 text-slate-100">
+                                            {toast.message}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     {showFastViewAssistantScenePrompt && (
                         <div className="absolute left-1/2 top-24 z-40 w-[min(calc(100vw-2rem),36rem)] -translate-x-1/2 pointer-events-auto md:top-28">
                             <div className="relative overflow-hidden rounded-2xl border border-[#66d9cb]/35 bg-[linear-gradient(160deg,rgba(3,8,14,0.88),rgba(8,18,28,0.78))] p-4 text-white shadow-[0_20px_60px_rgba(0,0,0,0.42)] backdrop-blur-xl">
