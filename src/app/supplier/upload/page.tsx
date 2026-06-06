@@ -1,5 +1,6 @@
 'use client';
 
+import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -10,7 +11,6 @@ import {
   Mail,
   UploadCloud,
 } from "lucide-react";
-import SferaLogo from "@/components/SferaLogo";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -533,7 +533,7 @@ export default function SupplierUploadPage() {
       <header className="border-b border-white/10 bg-[#080b12]/82 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center">
-            <SferaLogo size="md" priority />
+            <Image src="/logo_brown" alt="3DSFERA" width={220} height={72} unoptimized className="h-9 w-auto object-contain drop-shadow-[0_10px_28px_rgba(246,186,79,0.22)] sm:h-10" onError={(event) => { event.currentTarget.hidden = true; }} />
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
