@@ -15,6 +15,7 @@ import Link from 'next/link';
 import BrandLogo from '@/components/BrandLogo';
 import { useRouter } from 'next/navigation';
 import { IBM_Plex_Mono, Space_Grotesk } from 'next/font/google';
+import BrandLogo from '@/components/BrandLogo';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import { clearServerAuthSession } from '@/lib/auth/browser';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
