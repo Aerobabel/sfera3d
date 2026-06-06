@@ -1,10 +1,10 @@
 'use client';
 
+import BrandLogo from "@/components/BrandLogo";
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Activity, Bot, Send, Menu, X, Monitor, Play, Volume2 } from "lucide-react";
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
@@ -1597,7 +1597,7 @@ export default function ExperiencePage() {
                         <div className="flex h-16 items-center justify-between gap-3 px-4 sm:h-20 sm:px-6 lg:px-8">
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2 sm:gap-3">
-                                    <Image src="/logo_brown" alt="3DSFERA" width={220} height={72} unoptimized className="h-11 w-auto object-contain drop-shadow-[0_10px_28px_rgba(246,186,79,0.22)] sm:h-12" onError={(event) => { event.currentTarget.hidden = true; }} />
+                                    <BrandLogo size="lg" priority />
                                 </div>
                                 <div className="mt-1 hidden w-fit items-center gap-2 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-300 sm:flex">
                                     <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
@@ -1767,7 +1767,7 @@ export default function ExperiencePage() {
                             <span className="absolute inset-[30%] rounded-full bg-[#66d9cb] shadow-[0_0_20px_rgba(102,217,203,0.8)] animate-pulse" />
                         </div>
                         <div className="text-center">
-                            <Image src="/logo_brown" alt="3DSFERA" width={220} height={72} unoptimized className="mx-auto h-7 w-auto object-contain drop-shadow-[0_10px_28px_rgba(246,186,79,0.22)] sm:h-8" onError={(event) => { event.currentTarget.hidden = true; }} />
+                            <BrandLogo size="sm" className="justify-center" />
                             <div className="mt-2 text-sm font-mono uppercase tracking-[0.2em] text-slate-300 animate-pulse">
                                 {fastViewLaunch.connectingCta}
                             </div>
@@ -1923,7 +1923,7 @@ export default function ExperiencePage() {
                     <header className="flex justify-between items-start pointer-events-none w-full z-50">
                         <div className="group cursor-default">
                             <div className="flex items-center gap-3">
-                                <Image src="/logo_brown" alt="3DSFERA" width={220} height={72} unoptimized className="h-11 w-auto object-contain drop-shadow-[0_10px_28px_rgba(246,186,79,0.22)] sm:h-12" onError={(event) => { event.currentTarget.hidden = true; }} />
+                                <BrandLogo size="lg" priority />
                             </div>
 
                             {/* System Status Indicator */}
