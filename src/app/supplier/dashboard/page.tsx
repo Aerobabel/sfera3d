@@ -12,6 +12,7 @@ import {
   Send,
 } from 'lucide-react';
 import Link from 'next/link';
+import BrandLogo from '@/components/BrandLogo';
 import { useRouter } from 'next/navigation';
 import { IBM_Plex_Mono, Space_Grotesk } from 'next/font/google';
 import BrandLogo from '@/components/BrandLogo';
