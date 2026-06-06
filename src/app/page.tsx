@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from "next/link";
 import {
@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Manrope, Space_Mono, Syne } from "next/font/google";
+import BrandLogo from "@/components/BrandLogo";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 const display = Syne({
@@ -452,11 +453,8 @@ export default function LandingPage() {
 
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[#090b10]/72 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="fade-up flex items-center gap-3">
-            <div className="h-7 w-7 rounded-md border border-[#66d9cb]/50 bg-[#66d9cb]/15 shadow-[0_0_18px_rgba(102,217,203,0.35)]" />
-            <span className="text-lg tracking-tight [font-family:var(--font-display)] sm:text-xl">
-              3D<span className="text-[#66d9cb]">SFERA</span>
-            </span>
+          <div className="fade-up flex items-center">
+            <BrandLogo size="md" priority />
           </div>
 
           <nav className="hidden items-center gap-8 text-sm text-[#d6d1c8] md:flex">
