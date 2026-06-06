@@ -27,19 +27,19 @@ const FALLBACK_SIZE_CLASSES = {
     xl: 'text-4xl sm:text-5xl',
 } as const;
 
-type BrandLogoProps = {
+type SferaLogoProps = {
     className?: string;
     imageClassName?: string;
     priority?: boolean;
     size?: keyof typeof SIZE_CLASSES;
 };
 
-export default function BrandLogo({
+export default function SferaLogo({
     className,
     imageClassName,
     priority = false,
     size = 'md',
-}: BrandLogoProps) {
+}: SferaLogoProps) {
     const [sourceIndex, setSourceIndex] = useState(0);
     const [showFallback, setShowFallback] = useState(false);
 

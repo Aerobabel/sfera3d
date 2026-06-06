@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
-import BrandLogo from "@/components/BrandLogo";
+import SferaLogo from "@/components/SferaLogo";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { clearServerAuthSession, syncServerAuthSession } from "@/lib/auth/browser";
 import {
@@ -593,7 +593,7 @@ function LoginPageContent() {
       <div className="sfera-card z-10 w-full max-w-md space-y-6 rounded-2xl p-8 shadow-2xl">
         <div className="text-center">
           <Link href="/" className="inline-flex justify-center">
-            <BrandLogo size="xl" priority />
+            <SferaLogo size="xl" priority />
           </Link>
           <p className="mt-2 text-sm text-gray-400">{subtitle}</p>
         </div>

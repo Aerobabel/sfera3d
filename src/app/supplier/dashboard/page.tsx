@@ -14,7 +14,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { IBM_Plex_Mono, Space_Grotesk } from 'next/font/google';
-import BrandLogo from '@/components/BrandLogo';
+import SferaLogo from '@/components/SferaLogo';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import { clearServerAuthSession } from '@/lib/auth/browser';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -405,7 +405,7 @@ export default function SupplierDashboard() {
       <div className="relative flex min-h-screen">
         <aside className="hidden w-80 flex-col border-r border-white/10 bg-[#0c1220]/85 backdrop-blur-xl xl:flex">
           <div className="p-7">
-            <BrandLogo size="lg" priority />
+            <SferaLogo size="lg" priority />
             <p className="mt-1 text-[11px] uppercase tracking-[0.24em] text-slate-400">{t.portal}</p>
             <p className="mt-4 inline-flex rounded-full border border-[#66d9cb]/35 bg-[#66d9cb]/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#78e9dc]">
               {supplierPavilionName || t.supplierPavilion}
