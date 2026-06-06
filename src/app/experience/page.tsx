@@ -1,5 +1,6 @@
 'use client';
 
+import BrandLogo from "@/components/BrandLogo";
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -1596,10 +1597,7 @@ export default function ExperiencePage() {
                         <div className="flex h-16 items-center justify-between gap-3 px-4 sm:h-20 sm:px-6 lg:px-8">
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2 sm:gap-3">
-                                    <div className="h-7 w-7 shrink-0 rounded-md border border-[#66d9cb]/50 bg-[#66d9cb]/15 shadow-[0_0_18px_rgba(102,217,203,0.35)] sm:h-8 sm:w-8" />
-                                    <div className="truncate text-xl tracking-tight text-white sm:text-3xl">
-                                        3D<span className="text-[#66d9cb]">SFERA</span>
-                                    </div>
+                                    <BrandLogo size="lg" priority />
                                 </div>
                                 <div className="mt-1 hidden w-fit items-center gap-2 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-300 sm:flex">
                                     <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
@@ -1769,7 +1767,7 @@ export default function ExperiencePage() {
                             <span className="absolute inset-[30%] rounded-full bg-[#66d9cb] shadow-[0_0_20px_rgba(102,217,203,0.8)] animate-pulse" />
                         </div>
                         <div className="text-center">
-                            <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#66d9cb]">3DSFERA</div>
+                            <BrandLogo size="sm" className="justify-center" />
                             <div className="mt-2 text-sm font-mono uppercase tracking-[0.2em] text-slate-300 animate-pulse">
                                 {fastViewLaunch.connectingCta}
                             </div>
@@ -1925,10 +1923,7 @@ export default function ExperiencePage() {
                     <header className="flex justify-between items-start pointer-events-none w-full z-50">
                         <div className="group cursor-default">
                             <div className="flex items-center gap-3">
-                                <div className="h-7 w-7 rounded-md border border-[#66d9cb]/50 bg-[#66d9cb]/15 shadow-[0_0_18px_rgba(102,217,203,0.35)]" />
-                                <h1 className="text-2xl tracking-tight text-white sm:text-3xl">
-                                    3D<span className="text-[#66d9cb]">SFERA</span>
-                                </h1>
+                                <BrandLogo size="lg" priority />
                             </div>
 
                             {/* System Status Indicator */}
