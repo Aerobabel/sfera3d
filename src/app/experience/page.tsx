@@ -492,7 +492,11 @@ const resolveDefaultSignalingUrl = () => {
 };
 
 const DEFAULT_FASTVIEW_APP_ID = '69d615b641d102927ca911f3';
-const FASTVIEW_CUTSCENE_SRC = '/cutscenes/cutscene1.mov';
+const FASTVIEW_CUTSCENE_SRC: Record<AppLanguage, string> = {
+    en: '/cutscenes/englishsphere.MP4',
+    ru: '/cutscenes/russiansphere.MP4',
+    zh: '/cutscenes/chinesesphere.MOV',
+};
 const FASTVIEW_CUTSCENE_FADE_MS = 700;
 
 const buildStreamPixelPreviewUrl = (appId: string) => `https://share.streampixel.io/${appId}`;
@@ -543,6 +547,7 @@ export default function ExperiencePage() {
     const ui = EXPERIENCE_COPY[language];
     const fastViewLaunch = FASTVIEW_LAUNCH_COPY[language];
     const cutsceneCopy = CUTSCENE_COPY[language];
+    const fastViewCutsceneSrc = FASTVIEW_CUTSCENE_SRC[language];
     const liveActivityLabel = LIVE_ACTIVITY_LABEL[language];
     const liveActivityNowLabel = LIVE_ACTIVITY_NOW_LABEL[language];
     const assistantKeyCode = LANGUAGE_ASSISTANT_KEY_CODES[language];
@@ -1575,7 +1580,8 @@ export default function ExperiencePage() {
                             className={`h-full w-full object-cover transition-[filter,transform] duration-700 ${
                                 hasEndedFastViewCutscene && !isVideoStreamingFrames ? 'scale-[1.01] brightness-75' : ''
                             }`}
-                            src={FASTVIEW_CUTSCENE_SRC}
+                            key={fastViewCutsceneSrc}
+                            src={fastViewCutsceneSrc}
                             data-cutscene-video="true"
                             muted={!hasStartedFastViewCutscene}
                             playsInline
