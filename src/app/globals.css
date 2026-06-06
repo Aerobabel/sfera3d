@@ -11,6 +11,13 @@
   --sfera-accent-2: #f6ba4f;
   --background: var(--sfera-bg);
   --foreground: var(--sfera-text);
+  --font-geist-sans: Arial, Helvetica, sans-serif;
+  --font-geist-mono: "Courier New", Courier, monospace;
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-body: Arial, Helvetica, sans-serif;
+  --font-mono: "Courier New", Courier, monospace;
+  --font-dashboard-display: Arial, Helvetica, sans-serif;
+  --font-dashboard-mono: "Courier New", Courier, monospace;
 }
 
 @theme inline {
