@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from "next/link";
 import {
@@ -17,26 +17,8 @@ import {
   Sun,
   type LucideIcon,
 } from "lucide-react";
-import { Manrope, Space_Mono, Syne } from "next/font/google";
+import BrandLogo from "@/components/BrandLogo";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-
-const display = Syne({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
-});
-
-const body = Manrope({
-  variable: "--font-body",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const mono = Space_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400", "700"],
-});
 
 const RULE_ICONS: LucideIcon[] = [
   Camera,
@@ -364,7 +346,7 @@ export default function OnboardingPage() {
 
   return (
     <div
-      className={`${display.variable} ${body.variable} ${mono.variable} relative min-h-screen overflow-x-clip bg-[#090b10] text-[#f5f1e9] [font-family:var(--font-body)] print:bg-white print:text-black`}
+      className={`relative min-h-screen overflow-x-clip bg-[#090b10] text-[#f5f1e9] [font-family:var(--font-body)] print:bg-white print:text-black`}
     >
       <div className="pointer-events-none absolute inset-0 print:hidden">
         <div className="absolute -left-28 top-20 h-[26rem] w-[26rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(93,233,214,0.2),rgba(93,233,214,0)_70%)] blur-2xl" />
@@ -374,11 +356,8 @@ export default function OnboardingPage() {
 
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[#090b10]/75 backdrop-blur-xl print:hidden">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="h-7 w-7 rounded-md border border-[#66d9cb]/50 bg-[#66d9cb]/15 shadow-[0_0_18px_rgba(102,217,203,0.35)]" />
-            <span className="text-lg tracking-tight [font-family:var(--font-display)] sm:text-xl">
-              3D<span className="text-[#66d9cb]">SFERA</span>
-            </span>
+          <Link href="/" className="flex items-center">
+            <BrandLogo size="md" priority />
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -12,8 +12,8 @@ import {
   Send,
 } from 'lucide-react';
 import Link from 'next/link';
+import BrandLogo from '@/components/BrandLogo';
 import { useRouter } from 'next/navigation';
-import { IBM_Plex_Mono, Space_Grotesk } from 'next/font/google';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import { clearServerAuthSession } from '@/lib/auth/browser';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -22,18 +22,6 @@ import {
   SupplierChatApiResponse,
   readSupplierChatApiResponse,
 } from '@/lib/supplierChat';
-
-const dashboardDisplay = Space_Grotesk({
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-dashboard-display',
-});
-
-const dashboardMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--font-dashboard-mono',
-});
 
 type SupplierMessage = SupplierChatApiMessage;
 
@@ -378,7 +366,7 @@ export default function SupplierDashboard() {
   if (!authReady) {
     return (
       <div
-        className={`${dashboardDisplay.variable} ${dashboardMono.variable} min-h-screen bg-[#070b14] px-4 text-center text-slate-200 [font-family:var(--font-dashboard-display)]`}
+        className={`min-h-screen bg-[#070b14] px-4 text-center text-slate-200 [font-family:var(--font-dashboard-display)]`}
       >
         <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center">
           <div className="w-full rounded-3xl border border-white/10 bg-white/[0.04] p-8 backdrop-blur-xl">
@@ -393,7 +381,7 @@ export default function SupplierDashboard() {
 
   return (
     <div
-      className={`${dashboardDisplay.variable} ${dashboardMono.variable} relative min-h-screen overflow-hidden bg-[#070b14] text-[#e8edf7] [font-family:var(--font-dashboard-display)]`}
+      className={`relative min-h-screen overflow-hidden bg-[#070b14] text-[#e8edf7] [font-family:var(--font-dashboard-display)]`}
     >
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-20 top-20 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_center,rgba(35,222,189,0.26),rgba(35,222,189,0)_72%)] blur-2xl" />
@@ -404,7 +392,7 @@ export default function SupplierDashboard() {
       <div className="relative flex min-h-screen">
         <aside className="hidden w-80 flex-col border-r border-white/10 bg-[#0c1220]/85 backdrop-blur-xl xl:flex">
           <div className="p-7">
-            <h2 className="text-3xl font-bold tracking-tight text-[#66d9cb]">3DSFERA</h2>
+            <BrandLogo size="lg" priority />
             <p className="mt-1 text-[11px] uppercase tracking-[0.24em] text-slate-400">{t.portal}</p>
             <p className="mt-4 inline-flex rounded-full border border-[#66d9cb]/35 bg-[#66d9cb]/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#78e9dc]">
               {supplierPavilionName || t.supplierPavilion}

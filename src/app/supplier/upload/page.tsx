@@ -10,6 +10,7 @@ import {
   Mail,
   UploadCloud,
 } from "lucide-react";
+import BrandLogo from "@/components/BrandLogo";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -531,11 +532,8 @@ export default function SupplierUploadPage() {
     <div className="min-h-screen bg-[#080b12] text-[#f1ece1]">
       <header className="border-b border-white/10 bg-[#080b12]/82 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="h-7 w-7 rounded-md border border-[#66d9cb]/50 bg-[#66d9cb]/15 shadow-[0_0_18px_rgba(102,217,203,0.35)]" />
-            <span className="text-lg tracking-tight">
-              3D<span className="text-[#66d9cb]">SFERA</span>
-            </span>
+          <Link href="/" className="flex items-center">
+            <BrandLogo size="md" priority />
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
