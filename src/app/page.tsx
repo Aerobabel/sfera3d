@@ -1,6 +1,5 @@
 'use client';
 
-import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -14,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Manrope, Space_Mono, Syne } from "next/font/google";
+import BrandLogo from "@/components/BrandLogo";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 const display = Syne({
@@ -454,7 +454,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[#090b10]/72 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="fade-up flex items-center">
-            <Image src="/logo_brown" alt="3DSFERA" width={220} height={72} unoptimized className="h-9 w-auto object-contain drop-shadow-[0_10px_28px_rgba(246,186,79,0.22)] sm:h-10" onError={(event) => { event.currentTarget.hidden = true; }} />
+            <BrandLogo size="md" priority />
           </div>
 
           <nav className="hidden items-center gap-8 text-sm text-[#d6d1c8] md:flex">

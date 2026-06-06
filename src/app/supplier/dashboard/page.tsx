@@ -11,8 +11,8 @@ import {
   LogOut,
   Send,
 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
+import BrandLogo from '@/components/BrandLogo';
 import { useRouter } from 'next/navigation';
 import { IBM_Plex_Mono, Space_Grotesk } from 'next/font/google';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
@@ -405,7 +405,7 @@ export default function SupplierDashboard() {
       <div className="relative flex min-h-screen">
         <aside className="hidden w-80 flex-col border-r border-white/10 bg-[#0c1220]/85 backdrop-blur-xl xl:flex">
           <div className="p-7">
-            <Image src="/logo_brown" alt="3DSFERA" width={220} height={72} unoptimized className="h-11 w-auto object-contain drop-shadow-[0_10px_28px_rgba(246,186,79,0.22)] sm:h-12" onError={(event) => { event.currentTarget.hidden = true; }} />
+            <BrandLogo size="lg" priority />
             <p className="mt-1 text-[11px] uppercase tracking-[0.24em] text-slate-400">{t.portal}</p>
             <p className="mt-4 inline-flex rounded-full border border-[#66d9cb]/35 bg-[#66d9cb]/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#78e9dc]">
               {supplierPavilionName || t.supplierPavilion}

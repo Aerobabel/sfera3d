@@ -7,8 +7,8 @@
 //
 // Localised via useLanguage().
 
-import Image from 'next/image';
 import { ArrowDown, Mouse, MousePointer2, Space } from 'lucide-react';
+import BrandLogo from '@/components/BrandLogo';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import type { AppLanguage } from '@/lib/i18n';
 
@@ -150,7 +150,7 @@ export default function WelcomeControls({ progress = null, title, subtitle }: We
                     <span className="absolute inset-[30%] rounded-full bg-[#66d9cb] shadow-[0_0_20px_rgba(102,217,203,0.8)] animate-pulse" />
                 </div>
                 <div className="min-w-0">
-                    <Image src="/logo_brown" alt="3DSFERA" width={220} height={72} unoptimized className="h-7 w-auto object-contain drop-shadow-[0_10px_28px_rgba(246,186,79,0.22)] sm:h-8" onError={(event) => { event.currentTarget.hidden = true; }} />
+                    <BrandLogo size="sm" />
                     <h3 className="mt-1 text-xl sm:text-2xl font-semibold text-white tracking-tight">
                         {title ?? copy.heading}
                     </h3>
