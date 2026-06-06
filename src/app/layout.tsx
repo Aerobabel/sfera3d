@@ -1,30 +1,10 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { Geist, Geist_Mono, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import AuthSessionBridge from "@/components/auth/AuthSessionBridge";
 import { LanguageProvider } from "@/components/i18n/LanguageProvider";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import { getDefaultLanguageForHostname, toHtmlLanguageTag } from "@/lib/i18n";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-// Editorial display serif — used for pavilion names and exhibition-style
-// headings to lift the catalogue beyond a generic e-commerce look.
-const cormorantDisplay = Cormorant_Garamond({
-  variable: "--font-display",
-  subsets: ["latin", "cyrillic"],
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
-});
 
 export const metadata: Metadata = {
   title: "3DSFERA",
@@ -56,7 +36,7 @@ export default async function RootLayout({
   return (
     <html lang={toHtmlLanguageTag(defaultLanguage)}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${cormorantDisplay.variable} antialiased`}
+        className="antialiased"
       >
         <LanguageProvider defaultLanguage={defaultLanguage}>
           <AuthSessionBridge />

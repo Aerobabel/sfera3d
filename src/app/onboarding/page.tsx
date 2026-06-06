@@ -17,27 +17,8 @@ import {
   Sun,
   type LucideIcon,
 } from "lucide-react";
-import { Manrope, Space_Mono, Syne } from "next/font/google";
 import BrandLogo from "@/components/BrandLogo";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-
-const display = Syne({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
-});
-
-const body = Manrope({
-  variable: "--font-body",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const mono = Space_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400", "700"],
-});
 
 const RULE_ICONS: LucideIcon[] = [
   Camera,
@@ -365,7 +346,7 @@ export default function OnboardingPage() {
 
   return (
     <div
-      className={`${display.variable} ${body.variable} ${mono.variable} relative min-h-screen overflow-x-clip bg-[#090b10] text-[#f5f1e9] [font-family:var(--font-body)] print:bg-white print:text-black`}
+      className={`relative min-h-screen overflow-x-clip bg-[#090b10] text-[#f5f1e9] [font-family:var(--font-body)] print:bg-white print:text-black`}
     >
       <div className="pointer-events-none absolute inset-0 print:hidden">
         <div className="absolute -left-28 top-20 h-[26rem] w-[26rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(93,233,214,0.2),rgba(93,233,214,0)_70%)] blur-2xl" />
