@@ -1,10 +1,10 @@
 'use client';
 
-import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
+import BrandLogo from "@/components/BrandLogo";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { clearServerAuthSession, syncServerAuthSession } from "@/lib/auth/browser";
 import {
@@ -593,7 +593,7 @@ function LoginPageContent() {
       <div className="sfera-card z-10 w-full max-w-md space-y-6 rounded-2xl p-8 shadow-2xl">
         <div className="text-center">
           <Link href="/" className="inline-flex justify-center">
-            <Image src="/logo_brown" alt="3DSFERA" width={220} height={72} unoptimized className="h-14 w-auto object-contain drop-shadow-[0_10px_28px_rgba(246,186,79,0.22)] sm:h-16" onError={(event) => { event.currentTarget.hidden = true; }} />
+            <BrandLogo size="xl" priority />
           </Link>
           <p className="mt-2 text-sm text-gray-400">{subtitle}</p>
         </div>
