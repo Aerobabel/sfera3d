@@ -22,6 +22,8 @@ import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { clearServerAuthSession } from "@/lib/auth/browser";
 import { AppLanguage, getLocalizedProduct } from "@/lib/i18n";
 import { readSupplierChatApiResponse } from "@/lib/supplierChat";
+import { useUnrealEventBridge } from "@/hooks/useUnrealEventBridge";
+import { GAME_RULES } from "@/lib/unreal/gameRules";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type MobileInputMode = 'joystick' | 'touch';
@@ -541,6 +543,52 @@ const BLOCKED_UNREAL_KEY_CODES = [
     'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
 ];
 
+
+type FrontendCinematic = {
+    id: number;
+    eyebrow: string;
+    title: string;
+    description: string;
+    destinationLabel: string;
+};
+
+const FRONTEND_CINEMATIC_DURATION_MS = 3200;
+
+const resolveFrontendCinematic = (event: unknown): Omit<FrontendCinematic, 'id'> | null => {
+    if (!event || typeof event !== 'object') return null;
+
+    const payload = event as Record<string, unknown>;
+
+    if (payload.event === 'portal_entered' && payload.portal === 'SferaHall') {
+        return {
+            eyebrow: 'Entering marketplace',
+            title: 'Opening Sfera Hall',
+            description: 'Crossing from the city streets into the shared mall and pavilion floor.',
+            destinationLabel: 'Sfera Hall',
+        };
+    }
+
+    if (payload.event === 'game_entered' && payload.game === 'ZombieArena') {
+        return {
+            eyebrow: 'Player Mode gateway',
+            title: 'Loading Zombie Arena',
+            description: 'Preparing the arena HUD, score rules, health state, and reward preview.',
+            destinationLabel: 'Zombie Arena',
+        };
+    }
+
+    if (payload.event === 'returned_to_city') {
+        return {
+            eyebrow: 'Returning to city',
+            title: 'Rebuilding city view',
+            description: 'Syncing the website state back to the main marketplace world.',
+            destinationLabel: 'Main City',
+        };
+    }
+
+    return null;
+};
+
 export default function ExperiencePage() {
     const pathname = usePathname();
     const isFastViewRoute = pathname === '/fastview';
@@ -576,6 +624,8 @@ export default function ExperiencePage() {
             : language === 'zh'
               ? '\u8FD4\u56DE\u9996\u9875'
               : 'Back to Home';
+    const unrealBridge = useUnrealEventBridge();
+    const [frontendCinematic, setFrontendCinematic] = useState<FrontendCinematic | null>(null);
     const [signalingServerUrl] = useState<string>(() => resolveDefaultSignalingUrl());
     const [fastViewAppId] = useState<string>(() => resolveDefaultFastViewAppId());
     const [chatInput, setChatInput] = useState('');
@@ -626,6 +676,20 @@ export default function ExperiencePage() {
     useEffect(() => {
         setIsMobile(detectMobileDevice());
     }, []);
+
+    useEffect(() => {
+        const cinematic = resolveFrontendCinematic(unrealBridge.lastUnrealEvent);
+        if (!cinematic) return;
+
+        const id = Date.now();
+        setFrontendCinematic({ ...cinematic, id });
+
+        const timer = window.setTimeout(() => {
+            setFrontendCinematic((current) => (current?.id === id ? null : current));
+        }, FRONTEND_CINEMATIC_DURATION_MS);
+
+        return () => window.clearTimeout(timer);
+    }, [unrealBridge.lastUnrealEvent]);
 
 
     useEffect(() => {
@@ -1482,9 +1546,12 @@ export default function ExperiencePage() {
     }, [videoElement, sendUnrealExitFocus]);
 
     const handlePixelStreamingResponse = (jsonString: string) => {
-        // Debug: surface every raw message from UE so you can confirm the
-        // blueprint is actually emitting "entered_pavilion:<id>".
-        console.info('[UE→Web] raw response:', jsonString);
+        const normalizedUnrealEvent = unrealBridge.handleUnrealResponse(jsonString);
+        if (normalizedUnrealEvent) return;
+
+        if (process.env.NODE_ENV === 'development') {
+            console.info('[UE→Web] raw response:', jsonString);
+        }
 
         // Pavilion entry messages arrive as plain strings: "entered_pavilion:youbo"
         // or "entered_pavilion:doublelin". Handle them before JSON parsing so
@@ -1525,6 +1592,8 @@ export default function ExperiencePage() {
 
         console.warn('Unrecognized Unreal payload shape:', payload);
     };
+
+    const zombieCoinsPreview = unrealBridge.zombieCoins || Math.floor(unrealBridge.zombieScore / GAME_RULES.zombieArena.zombieKillPoints) * GAME_RULES.zombieArena.coinsPerKill;
 
     const handleClosePavilionExposition = useCallback(() => {
         _suppressProductSelectionUntil = Date.now() + 3000;
@@ -1649,6 +1718,24 @@ export default function ExperiencePage() {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {frontendCinematic && showExperienceHud && (
+                <div className="pointer-events-none absolute inset-0 z-[90] flex items-center justify-center bg-[radial-gradient(circle_at_center,rgba(102,217,203,0.18),rgba(2,6,23,0.76)_52%,rgba(2,6,23,0.92))] px-6 backdrop-blur-sm">
+                    <div className="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-[#66d9cb]/30 bg-slate-950/82 p-6 text-center text-white shadow-[0_30px_120px_rgba(0,0,0,0.55)]">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-[#66d9cb] to-transparent animate-[shimmer_1.4s_linear_infinite]" />
+                        <p className="text-[11px] font-bold uppercase tracking-[0.26em] text-[#66d9cb]">{frontendCinematic.eyebrow}</p>
+                        <h2 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">{frontendCinematic.title}</h2>
+                        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-300">{frontendCinematic.description}</p>
+                        <div className="mx-auto mt-6 flex h-24 w-24 items-center justify-center rounded-full border border-[#66d9cb]/30 bg-[#66d9cb]/10 shadow-[0_0_50px_rgba(102,217,203,0.25)]">
+                            <span className="h-12 w-12 animate-pulse rounded-full bg-[#66d9cb]/30 shadow-[0_0_35px_rgba(102,217,203,0.7)]" />
+                        </div>
+                        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">Destination</p>
+                            <p className="mt-1 text-lg font-semibold text-white">{frontendCinematic.destinationLabel}</p>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -1795,6 +1882,22 @@ export default function ExperiencePage() {
                 </div>
             )}
 
+            {showExperienceHud && unrealBridge.currentGame === 'ZombieArena' && unrealBridge.arenaMoments.length > 0 && (
+                <div className="pointer-events-none absolute right-4 top-32 z-40 flex w-[min(92vw,22rem)] flex-col gap-2 md:right-6 md:top-40">
+                    {unrealBridge.arenaMoments.slice(0, 3).map((moment) => (
+                        <div key={moment.id} className="rounded-2xl border border-[#66d9cb]/25 bg-slate-950/78 p-3 text-white shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-md">
+                            <div className="flex items-start gap-3">
+                                <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#66d9cb] shadow-[0_0_14px_rgba(102,217,203,0.9)]" />
+                                <div>
+                                    <p className="text-sm font-bold">{moment.title}</p>
+                                    <p className="mt-1 text-xs leading-5 text-slate-300">{moment.description}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* StreamPixel Live Preview Overlay */}
             {!isFastViewRoute && isStreamPixelOpen && (
                 <div className="absolute inset-0 z-[200] flex flex-col bg-black">
@@ -1934,6 +2037,34 @@ export default function ExperiencePage() {
                                 </div>
                                 <span className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em]">{ui.statusOnline}</span>
                             </div>
+
+                            <div className="mt-3 grid w-fit max-w-[min(92vw,32rem)] gap-2 rounded-2xl border border-[#66d9cb]/20 bg-black/45 p-3 text-xs text-slate-200 backdrop-blur-md">
+                                <div className="flex flex-wrap gap-2">
+                                    <span className="rounded-full bg-[#66d9cb]/15 px-3 py-1 font-semibold text-[#66d9cb]">
+                                        {unrealBridge.currentMode === 'player' ? 'Player Mode' : 'Shopper Mode'}
+                                    </span>
+                                    <span className="rounded-full border border-white/10 px-3 py-1">Location: {unrealBridge.currentLocation}</span>
+                                    <span className="rounded-full border border-white/10 px-3 py-1">Game: {unrealBridge.currentGame ?? 'None'}</span>
+                                </div>
+                                {unrealBridge.currentGame === 'ZombieArena' && (
+                                    <div className="grid grid-cols-3 gap-2 text-center">
+                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">Score</span><strong>{unrealBridge.zombieScore}</strong></div>
+                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">Health</span><strong>{unrealBridge.zombieHealth}</strong></div>
+                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">Coins</span><strong>{zombieCoinsPreview}</strong></div>
+                                        <div className="rounded-xl bg-[#66d9cb]/15 p-2"><span className="block text-[10px] uppercase text-[#9ff4ec]">Combo</span><strong>{unrealBridge.zombieCombo}x</strong></div>
+                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">Rank</span><strong>{unrealBridge.zombieRank}</strong></div>
+                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">Threat</span><strong>{unrealBridge.zombieThreatLevel}</strong></div>
+                                    </div>
+                                )}
+                                {unrealBridge.zombieGameOver && <p className="text-red-300">You were overwhelmed</p>}
+                                {unrealBridge.accessDeniedMessage && <p className="rounded-xl border border-amber-300/25 bg-amber-400/10 p-2 text-amber-100">{unrealBridge.accessDeniedMessage}</p>}
+                                {unrealBridge.currentLocation !== 'city' && (
+                                    <div>
+                                        <button type="button" className="rounded-full border border-white/15 px-3 py-1 font-semibold text-white/90">Back to City</button>
+                                        <p className="mt-1 text-[10px] text-slate-400">Use the return portal in the game world.</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="flex items-start gap-3 pointer-events-auto">
@@ -2014,6 +2145,18 @@ export default function ExperiencePage() {
                                 {accountSignOutLabel}
                             </button>
                             <div className="h-px bg-white/10 my-2"></div>
+                            <Link href="/roles" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
+                                Role Selection
+                            </Link>
+                            <Link href="/player/dashboard" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                                Player Dashboard
+                            </Link>
+                            <Link href="/shopper/dashboard" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                                Shopper Dashboard
+                            </Link>
+                            <Link href="/business/dashboard" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                                Business Dashboard
+                            </Link>
                             <Link href="/" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition">
                                 {returnHomeLabel}
                             </Link>
