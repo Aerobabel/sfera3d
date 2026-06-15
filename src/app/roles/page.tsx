@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
@@ -64,6 +65,8 @@ const roleCopy = {
     roles: Array<{ href: string; icon: string; title: string; text: string; mode: string }>;
 }>;
 
+const CITY_INTRO_CUTSCENE_SRC = '/cutscenes/cityvideo.mp4';
+
 const roleAccents: Record<string, string> = {
     '/player/dashboard': 'from-sky-300 via-cyan-200 to-indigo-300',
     '/shopper/dashboard': 'from-fuchsia-300 via-rose-200 to-amber-200',
@@ -81,10 +84,36 @@ export default function RoleSelectionPage() {
     const searchParams = useSearchParams();
     const copy = roleCopy[language];
     const returnToScene = searchParams.get('returnTo') === '/fastview' || searchParams.get('from') === 'scene';
+    const shouldPlayIntro = !returnToScene && searchParams.get('skipIntro') !== 'true';
+    const [isIntroCutsceneVisible, setIsIntroCutsceneVisible] = useState(shouldPlayIntro);
     const sceneReturnHref = '/fastview?resume=scene';
 
     return (
         <main className="min-h-screen overflow-hidden bg-[#02050b] text-white">
+            {isIntroCutsceneVisible && (
+                <div className="fixed inset-0 z-50 bg-black">
+                    <video
+                        className="h-full w-full object-cover"
+                        src={CITY_INTRO_CUTSCENE_SRC}
+                        autoPlay
+                        muted
+                        playsInline
+                        preload="auto"
+                        onEnded={() => setIsIntroCutsceneVisible(false)}
+                        onError={() => setIsIntroCutsceneVisible(false)}
+                    />
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.15),transparent_45%,rgba(0,0,0,0.72))]" />
+                    <div className="absolute inset-x-0 bottom-8 flex justify-center px-6">
+                        <button
+                            type="button"
+                            onClick={() => setIsIntroCutsceneVisible(false)}
+                            className="rounded-full border border-white/20 bg-black/45 px-5 py-3 text-xs font-black uppercase tracking-[0.2em] text-white shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:border-[#66d9cb]/60 hover:bg-[#66d9cb]/15"
+                        >
+                            Skip to role selection
+                        </button>
+                    </div>
+                </div>
+            )}
             <section className="relative flex min-h-screen items-center justify-center px-6 py-12">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(102,217,203,0.26),transparent_30%),radial-gradient(circle_at_80%_20%,rgba(99,102,241,0.18),transparent_28%),linear-gradient(145deg,rgba(2,6,23,0.72),rgba(3,7,18,1)_58%,rgba(0,0,0,1))]" />
                 <div className="relative z-10 w-full max-w-6xl">
