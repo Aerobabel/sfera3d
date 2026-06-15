@@ -1,0 +1,12 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="1200" height="760" rx="52" fill="#050A12"/>
+<path d="M0 0h1200v760H0z" fill="url(#a)"/>
+<circle cx="600" cy="386" r="218" fill="#66D9CB" fill-opacity=".08" stroke="#66D9CB" stroke-opacity=".35" stroke-width="2"/>
+<circle cx="600" cy="386" r="142" fill="#66D9CB" fill-opacity=".08" stroke="#66D9CB" stroke-opacity=".5" stroke-width="2"/>
+<path d="M238 594c94-96 201-145 362-145s267 49 362 145" stroke="url(#b)" stroke-width="18" stroke-linecap="round"/>
+<path d="M306 540h588" stroke="#66D9CB" stroke-opacity=".45" stroke-width="2" stroke-dasharray="14 18"/>
+<path d="M600 202l37 75 83 12-60 58 14 82-74-39-74 39 14-82-60-58 83-12 37-75z" fill="#D9FFF9" fill-opacity=".9"/>
+<g filter="url(#c)"><rect x="100" y="94" width="230" height="92" rx="24" fill="#0D1728" stroke="#66D9CB" stroke-opacity=".3"/><text x="130" y="138" fill="#9FF4EC" font-family="Arial" font-size="22" font-weight="800">SURVIVOR</text><text x="130" y="166" fill="white" font-family="Arial" font-size="30" font-weight="900">ARENA</text></g>
+<g filter="url(#c)"><rect x="870" y="104" width="230" height="126" rx="24" fill="#0D1728" stroke="#66D9CB" stroke-opacity=".3"/><text x="902" y="150" fill="#9FF4EC" font-family="Arial" font-size="20" font-weight="800">COMBO</text><text x="902" y="196" fill="white" font-family="Arial" font-size="52" font-weight="900">12x</text></g>
+<defs><radialGradient id="a" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(609 211) rotate(90) scale(548 751)"><stop stop-color="#66D9CB" stop-opacity=".28"/><stop offset=".48" stop-color="#243B75" stop-opacity=".24"/><stop offset="1" stop-color="#02050B"/></radialGradient><linearGradient id="b" x1="238" y1="594" x2="962" y2="594"><stop stop-color="#66D9CB" stop-opacity="0"/><stop offset=".5" stop-color="#66D9CB"/><stop offset="1" stop-color="#66D9CB" stop-opacity="0"/></linearGradient><filter id="c" x="70" y="64" width="1060" height="196" filterUnits="userSpaceOnUse"><feDropShadow dx="0" dy="20" stdDeviation="22" flood-color="#000" flood-opacity=".45"/></filter></defs>
+</svg>
