@@ -5,7 +5,7 @@ import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Activity, Send, Menu, X, Monitor, Play, Volume2 } from "lucide-react";
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
 import { getProductById, getSupplierById, getProductsBySupplier } from "@/lib/db";
 import ProductCard from "@/components/overlay/ProductCard";
@@ -605,6 +605,7 @@ const resolveFrontendCinematic = (event: unknown): Omit<FrontendCinematic, 'id'>
 
 export default function ExperiencePage() {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
     const isFastViewRoute = pathname === '/fastview';
     const { language } = useLanguage();
     const ui = EXPERIENCE_COPY[language];
@@ -632,6 +633,12 @@ export default function ExperiencePage() {
             : language === 'zh'
               ? '\u8FD4\u56DE\u9996\u9875'
               : 'Back to Home';
+    const backToSceneLabel =
+        language === 'ru'
+            ? '\u041D\u0430\u0437\u0430\u0434 \u0432 \u0441\u0446\u0435\u043D\u0443'
+            : language === 'zh'
+              ? '\u8FD4\u56DE\u573A\u666F'
+              : 'Back to scene';
     const unrealBridge = useUnrealEventBridge();
     const [frontendCinematic, setFrontendCinematic] = useState<FrontendCinematic | null>(null);
     const [signalingServerUrl] = useState<string>(() => resolveDefaultSignalingUrl());
@@ -674,6 +681,7 @@ export default function ExperiencePage() {
     const [liveActivityToasts, setLiveActivityToasts] = useState<LiveActivityToast[]>([]);
     const liveActivityIndexRef = useRef(0);
     const liveActivityRemovalTimersRef = useRef<number[]>([]);
+    const hasAppliedInitialModeRef = useRef(false);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
 
     const handleSensitivityChange = useCallback((value: number) => {
@@ -813,6 +821,20 @@ export default function ExperiencePage() {
     const [isSferaHallCutsceneVisible, setIsSferaHallCutsceneVisible] = useState(false);
     const sferaHallCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const fastViewCutsceneExitTimerRef = useRef<number | null>(null);
+
+
+    useEffect(() => {
+        if (!isFastViewRoute || !hasStartedExperience || hasAppliedInitialModeRef.current) return;
+        if (searchParams.get('mode') !== 'gamer') return;
+
+        hasAppliedInitialModeRef.current = true;
+        const modeTimer = window.setTimeout(() => {
+            sendUnrealKeyPress(71);
+            window.setTimeout(() => sendUnrealKeyPress(13), 150);
+        }, 900);
+
+        return () => window.clearTimeout(modeTimer);
+    }, [hasStartedExperience, isFastViewRoute, searchParams]);
 
     useEffect(() => {
         if (isFastViewRoute) return;
@@ -1753,7 +1775,7 @@ export default function ExperiencePage() {
                                 className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#66d9cb]/30 bg-[#66d9cb]/10 px-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/90 transition hover:border-[#66d9cb]/60 hover:bg-[#66d9cb]/[0.18] sm:px-4"
                             >
                                 <Volume2 className="h-4 w-4" />
-                                <span className="hidden sm:inline">Sound</span>
+                                <span className="hidden sm:inline">{cutsceneCopy.startWithSound}</span>
                             </button>
                             <button
                                 type="button"
@@ -2176,7 +2198,7 @@ export default function ExperiencePage() {
                                 Business Dashboard
                             </Link>
                             <Link href="/fastview?resume=scene" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
-                                Back to scene
+                                {backToSceneLabel}
                             </Link>
                         </div>
                     )}

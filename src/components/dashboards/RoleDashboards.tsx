@@ -126,14 +126,17 @@ const dashboardCopy = {
 const list = (items: string[]) => items.map((item) => <li key={item}>{item}</li>);
 
 const DashboardBackNav = () => {
+    const { language } = useLanguage();
     const searchParams = useSearchParams();
     const returnToScene = searchParams.get('returnTo') === '/fastview';
     const sceneHref = '/fastview?resume=scene';
+    const rolesLabel = language === 'ru' ? 'Роли' : language === 'zh' ? '角色' : 'Roles';
+    const backToSceneLabel = language === 'ru' ? 'Назад в сцену' : language === 'zh' ? '返回场景' : 'Back to scene';
 
     return (
         <div className="relative mb-5 flex flex-wrap items-center gap-2">
-            <Link href={returnToScene ? '/roles?returnTo=/fastview' : '/roles'} className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">← Roles</Link>
-            <Link href={sceneHref} className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">Back to scene</Link>
+            <Link href={returnToScene ? '/roles?returnTo=/fastview' : '/roles'} className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">← {rolesLabel}</Link>
+            <Link href={sceneHref} className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">{backToSceneLabel}</Link>
         </div>
     );
 };
