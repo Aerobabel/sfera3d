@@ -67,15 +67,19 @@ export default function RoleSelectionPage() {
     const copy = roleCopy[language];
 
     return (
-        <main className="min-h-screen overflow-hidden bg-[#030712] text-white">
+        <main className="min-h-screen overflow-hidden bg-[#02050b] text-white">
             <section className="relative flex min-h-screen items-center justify-center px-6 py-12">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(102,217,203,0.22),transparent_36%),linear-gradient(180deg,rgba(15,23,42,0.2),rgba(3,7,18,1))]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(102,217,203,0.26),transparent_30%),radial-gradient(circle_at_80%_20%,rgba(99,102,241,0.18),transparent_28%),linear-gradient(145deg,rgba(2,6,23,0.72),rgba(3,7,18,1)_58%,rgba(0,0,0,1))]" />
                 <div className="relative z-10 w-full max-w-6xl">
-                    <div className="rounded-[2rem] border border-white/10 bg-white/[0.06] p-6 shadow-2xl backdrop-blur-xl md:p-10">
+                    <div className="mb-4 flex flex-wrap gap-2">
+                        <Link href="/" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">← Home</Link>
+                        <Link href="/experience" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">World</Link>
+                    </div>
+                    <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.1),rgba(255,255,255,0.035))] p-6 shadow-[0_45px_160px_rgba(0,0,0,0.6)] backdrop-blur-2xl md:p-10">
                         <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
                             <div>
-                                <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#66d9cb]">{copy.eyebrow}</p>
-                                <h1 className="mt-4 text-4xl font-black uppercase tracking-tight md:text-6xl">{copy.title}</h1>
+                                <p className="inline-flex rounded-full border border-[#66d9cb]/25 bg-[#66d9cb]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.28em] text-[#9ff4ec]">{copy.eyebrow}</p>
+                                <h1 className="mt-5 bg-[linear-gradient(135deg,#ffffff,#9ff4ec_48%,#ffffff)] bg-clip-text text-5xl font-black uppercase tracking-tight text-transparent md:text-7xl">{copy.title}</h1>
                                 <p className="mt-3 text-xl text-slate-200">{copy.subtitle}</p>
                                 <div className="mt-8 space-y-5 text-sm leading-7 text-slate-300">
                                     <p className="text-slate-500">{copy.screen1}</p>
@@ -83,12 +87,12 @@ export default function RoleSelectionPage() {
                                     <p className="text-lg font-semibold text-white">{copy.question}</p>
                                     <p>{copy.welcome}</p>
                                 </div>
-                                <Link href="/experience" className="mt-8 inline-flex rounded-full bg-[#66d9cb] px-6 py-3 text-sm font-black uppercase tracking-[0.16em] text-slate-950">{copy.enter}</Link>
+                                <Link href="/experience" className="mt-8 inline-flex rounded-full bg-[linear-gradient(135deg,#66d9cb,#d9fff9)] px-7 py-3.5 text-sm font-black uppercase tracking-[0.16em] text-slate-950 shadow-[0_18px_55px_rgba(102,217,203,0.28)] transition hover:scale-[1.02]">{copy.enter}</Link>
                             </div>
                             <div className="grid gap-4">
                                 {copy.roles.map((role) => (
-                                    <Link key={role.title} href={role.href} className="group rounded-3xl border border-white/10 bg-slate-950/70 p-5 transition hover:border-[#66d9cb]/50 hover:bg-[#66d9cb]/10">
-                                        <div className="flex gap-4"><span className="text-4xl">{role.icon}</span><div><div className="flex flex-wrap items-center gap-3"><h2 className="text-xl font-black tracking-wide">{role.title}</h2><span className="rounded-full border border-[#66d9cb]/30 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#66d9cb]">{role.mode}</span></div><p className="mt-2 text-sm leading-6 text-slate-300">{role.text}</p></div></div>
+                                    <Link key={role.title} href={role.href} className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(145deg,rgba(15,23,42,0.84),rgba(2,6,23,0.72))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_60px_rgba(0,0,0,0.26)] backdrop-blur-md transition duration-300 hover:-translate-y-1 hover:border-[#66d9cb]/55 hover:bg-[#66d9cb]/10 hover:shadow-[0_28px_90px_rgba(102,217,203,0.16)]">
+                                        <div className="flex gap-4"><span className="text-4xl">{role.icon}</span><div><div className="flex flex-wrap items-center gap-3"><h2 className="text-xl font-black tracking-wide">{role.title}</h2><span className="rounded-full border border-[#66d9cb]/35 bg-[#66d9cb]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#9ff4ec]">{role.mode}</span></div><p className="mt-2 text-sm leading-6 text-slate-300">{role.text}</p></div></div>
                                     </Link>
                                 ))}
                             </div>

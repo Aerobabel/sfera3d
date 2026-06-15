@@ -31,9 +31,9 @@ const fallback: UnrealEventBridgeState = {
     recentActivity: ['entered Zombie Arena', 'zombie killed', 'player hit', 'returned to city'],
 };
 
-const shell = 'rounded-3xl border border-white/10 bg-slate-950/80 p-6 text-white shadow-2xl backdrop-blur-xl';
-const card = 'rounded-2xl border border-white/10 bg-white/[0.06] p-4';
-const sectionTitle = 'text-xs font-bold uppercase tracking-[0.22em] text-[#66d9cb]';
+const shell = 'relative overflow-hidden rounded-[2.25rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(102,217,203,0.18),transparent_34%),linear-gradient(145deg,rgba(3,7,18,0.96),rgba(15,23,42,0.9)_48%,rgba(3,7,18,0.98))] p-6 text-white shadow-[0_40px_140px_rgba(0,0,0,0.55)] backdrop-blur-xl md:p-8';
+const card = 'group relative overflow-hidden rounded-[1.35rem] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.09),rgba(255,255,255,0.035))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:border-[#66d9cb]/35 hover:bg-[#66d9cb]/[0.08] hover:shadow-[0_24px_70px_rgba(102,217,203,0.12)]';
+const sectionTitle = 'inline-flex rounded-full border border-[#66d9cb]/25 bg-[#66d9cb]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] text-[#9ff4ec] shadow-[0_0_30px_rgba(102,217,203,0.12)]';
 
 const dashboardCopy = {
     en: {
@@ -123,18 +123,105 @@ const dashboardCopy = {
 
 const list = (items: string[]) => items.map((item) => <li key={item}>{item}</li>);
 
+const DashboardBackNav = () => (
+    <div className="relative mb-5 flex flex-wrap items-center gap-2">
+        <Link href="/roles" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">← Roles</Link>
+        <Link href="/experience" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">World</Link>
+        <Link href="/" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">Home</Link>
+    </div>
+);
+
 export function GamerDashboard({ bridge = fallback }: DashboardProps) {
     const { language } = useLanguage();
     const t = dashboardCopy[language];
     const coinsPreview = bridge.zombieCoins || Math.floor(bridge.zombieScore / GAME_RULES.zombieArena.zombieKillPoints) * GAME_RULES.zombieArena.coinsPerKill;
+    const healthPercent = Math.max(0, Math.min(100, bridge.zombieHealth));
+    const nextRewardProgress = Math.min(100, (bridge.zombieKills % 5) * 20);
 
     return (
         <section className={shell}>
-            <div className="flex flex-wrap items-start justify-between gap-4"><div><p className={sectionTitle}>{t.playerTitle}</p><h2 className="mt-2 text-3xl font-semibold">{t.playerMode}</h2><p className="mt-2 text-sm text-slate-300">{bridge.isInGame ? `${bridge.currentGame}` : t.playerReady}</p></div><Link href="/experience" className="rounded-full bg-[#66d9cb] px-4 py-2 text-sm font-bold text-slate-950">{t.enterWorld}</Link></div>
-            <div className="mt-6 grid gap-4 md:grid-cols-3"><div className={card}><p className="text-xs uppercase text-slate-400">{t.zombieScore}</p><p className="mt-2 text-3xl font-bold">{bridge.zombieScore}</p></div><div className={card}><p className="text-xs uppercase text-slate-400">{t.health}</p><p className="mt-2 text-3xl font-bold">{bridge.zombieHealth}</p>{bridge.zombieGameOver && <p className="mt-2 text-red-300">{t.overwhelmed}</p>}</div><div className={card}><p className="text-xs uppercase text-slate-400">{t.coins}</p><p className="mt-2 text-3xl font-bold">{coinsPreview}</p><p className="mt-2 text-xs text-slate-300">{GAME_RULES.zombieArena.rewardPreview}</p></div></div>
-            <div className="mt-6 grid gap-4 md:grid-cols-4"><div className={card}><h3 className="font-semibold">{t.arenaStreak}</h3><p className="mt-2 text-3xl font-bold">{bridge.zombieCombo}x</p><p className="mt-2 text-xs text-slate-300">{t.maxCombo} {bridge.maxZombieCombo}x · {t.threat} {bridge.zombieThreatLevel}</p></div><div className={card}><h3 className="font-semibold">{t.survivorRank}</h3><p className="mt-2 text-lg font-bold text-[#66d9cb]">{bridge.zombieRank}</p><p className="mt-2 text-xs text-slate-300">{t.kills} {bridge.zombieKills} · {t.hits} {bridge.playerHits}</p></div><div className={card}><h3 className="font-semibold">{t.quests}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{list(t.playerQuestItems as string[])}</ul></div><div className={card}><h3 className="font-semibold">{t.gameZones}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{list(t.zoneItems as string[])}</ul></div></div>
-            <div className="mt-6 grid gap-4 lg:grid-cols-3"><div className={card}><h3 className="font-semibold">{t.giftsTitle}</h3><ul className="mt-3 space-y-3 text-sm text-slate-300">{list(t.gifts as string[])}</ul></div><div className={card}><h3 className="font-semibold">{t.playerOrdersTitle}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{list(t.playerOrders as string[])}</ul></div><div className={card}><h3 className="font-semibold">{t.messages}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{list(t.playerMessages as string[])}</ul></div><div className={card}><h3 className="font-semibold">{t.deliveryLocation}</h3><p className="mt-3 text-sm text-slate-300">{t.playerDelivery}</p><button className="mt-4 rounded-full border border-[#66d9cb]/40 px-4 py-2 text-xs font-bold text-[#66d9cb]">{t.addDelivery}</button></div><div className={card}><h3 className="font-semibold">{t.recentActivity}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{bridge.recentActivity.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul></div><div className={card}><h3 className="font-semibold">{t.wallet}</h3><p className="mt-3 text-sm text-slate-300">{t.walletText}</p></div></div>
-            {bridge.arenaMoments.length > 0 && <div className="mt-4 rounded-2xl border border-[#66d9cb]/20 bg-[#66d9cb]/10 p-4"><h3 className="font-semibold">{t.arenaMoments}</h3><div className="mt-3 grid gap-2 md:grid-cols-2">{bridge.arenaMoments.map((moment) => <div key={moment.id} className="rounded-xl border border-white/10 bg-black/20 p-3"><p className="text-sm font-semibold text-white">{moment.title}</p><p className="mt-1 text-xs text-slate-300">{moment.description}</p></div>)}</div></div>}
+            <DashboardBackNav />
+            <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#66d9cb]/15 blur-[90px]" />
+            <div className="pointer-events-none absolute -bottom-32 left-1/3 h-80 w-80 rounded-full bg-indigo-500/10 blur-[110px]" />
+
+            <div className="relative grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+                <div className="overflow-hidden rounded-[2rem] border border-[#66d9cb]/20 bg-[radial-gradient(circle_at_18%_18%,rgba(102,217,203,0.2),transparent_32%),linear-gradient(145deg,rgba(15,23,42,0.72),rgba(2,6,23,0.82))] p-6 shadow-[0_28px_100px_rgba(0,0,0,0.35)]">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                            <p className={sectionTitle}>{t.playerTitle}</p>
+                            <h2 className="mt-5 max-w-2xl text-4xl font-black leading-tight tracking-tight md:text-6xl">
+                                <span className="bg-[linear-gradient(135deg,#ffffff,#9ff4ec_55%,#ffffff)] bg-clip-text text-transparent">{t.survivorRank}</span>
+                                <span className="block text-2xl text-white/80 md:text-3xl">{bridge.zombieRank}</span>
+                            </h2>
+                            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300">
+                                {bridge.isInGame ? `${bridge.currentGame}` : t.playerReady}
+                            </p>
+                        </div>
+                        <Link href="/experience" className="rounded-full bg-[linear-gradient(135deg,#66d9cb,#d9fff9)] px-5 py-2.5 text-sm font-black text-slate-950 shadow-[0_12px_35px_rgba(102,217,203,0.28)] transition hover:scale-[1.02]">
+                            {t.enterWorld}
+                        </Link>
+                    </div>
+
+                    <div className="mt-8 grid gap-4 md:grid-cols-[13rem_1fr]">
+                        <div className="relative mx-auto flex h-52 w-52 items-center justify-center rounded-full border border-white/10 bg-black/30 shadow-[inset_0_0_45px_rgba(102,217,203,0.14)]" style={{ background: `conic-gradient(#66d9cb ${healthPercent}%, rgba(255,255,255,0.08) 0)` }}>
+                            <div className="flex h-40 w-40 flex-col items-center justify-center rounded-full border border-white/10 bg-slate-950 text-center shadow-[0_18px_55px_rgba(0,0,0,0.45)]">
+                                <span className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{t.health}</span>
+                                <strong className="mt-1 text-5xl font-black text-white">{bridge.zombieHealth}</strong>
+                                <span className="text-xs text-[#9ff4ec]">{bridge.zombieCombo}x {t.arenaStreak}</span>
+                            </div>
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <div className={card}><p className="text-xs uppercase text-slate-400">{t.zombieScore}</p><p className="mt-2 text-4xl font-black">{bridge.zombieScore}</p></div>
+                            <div className={card}><p className="text-xs uppercase text-slate-400">{t.coins}</p><p className="mt-2 text-4xl font-black">{coinsPreview}</p></div>
+                            <div className={card}><p className="text-xs uppercase text-slate-400">{t.maxCombo}</p><p className="mt-2 text-4xl font-black">{bridge.maxZombieCombo}x</p></div>
+                            <div className={card}><p className="text-xs uppercase text-slate-400">{t.threat}</p><p className="mt-2 text-4xl font-black">{bridge.zombieThreatLevel}</p></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="rounded-[2rem] border border-white/10 bg-black/25 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md">
+                    <div className="flex items-center justify-between gap-3">
+                        <div><p className={sectionTitle}>{t.quests}</p><h3 className="mt-3 text-2xl font-black">Mission constellation</h3></div>
+                        <span className="rounded-full border border-[#66d9cb]/25 bg-[#66d9cb]/10 px-3 py-1 text-xs font-black text-[#9ff4ec]">{nextRewardProgress}%</span>
+                    </div>
+                    <div className="relative mt-8 min-h-64 rounded-[1.5rem] border border-white/10 bg-[radial-gradient(circle_at_center,rgba(102,217,203,0.12),transparent_44%)] p-5">
+                        <div className="absolute left-[18%] top-[28%] h-2 w-[62%] rotate-6 bg-gradient-to-r from-[#66d9cb]/10 via-[#66d9cb]/60 to-[#66d9cb]/10" />
+                        {(t.playerQuestItems as string[]).map((item, index) => (
+                            <div key={item} className={`absolute ${index === 0 ? 'left-[6%] top-[18%]' : index === 1 ? 'right-[10%] top-[36%]' : 'left-[28%] bottom-[12%]'}`}>
+                                <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border border-[#66d9cb]/35 bg-slate-950/85 p-3 text-center shadow-[0_0_45px_rgba(102,217,203,0.16)]">
+                                    <span className="text-lg">{index === 0 ? '⚔️' : index === 1 ? '🏁' : '🎁'}</span>
+                                    <span className="mt-1 text-[10px] font-bold leading-tight text-slate-200">{item}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <div className="relative mt-6 grid gap-4 lg:grid-cols-[0.85fr_1.15fr_0.9fr]">
+                <div className={card}>
+                    <h3 className="font-semibold">{t.giftsTitle}</h3>
+                    <div className="mt-4 space-y-3">{(t.gifts as string[]).map((gift, index) => <div key={gift} className="rounded-2xl border border-white/10 bg-black/25 p-3"><div className="flex items-start gap-3"><span className="text-2xl">{index === 0 ? '🎲' : index === 1 ? '🔥' : '📦'}</span><p className="text-sm leading-5 text-slate-300">{gift}</p></div></div>)}</div>
+                </div>
+                <div className={card}>
+                    <div className="flex items-center justify-between"><h3 className="font-semibold">Reward vault</h3><span className="text-xs font-bold text-[#9ff4ec]">{coinsPreview} coins</span></div>
+                    <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[linear-gradient(90deg,#66d9cb,#d9fff9)]" style={{ width: `${nextRewardProgress}%` }} /></div>
+                    <ul className="mt-4 grid gap-2 text-sm text-slate-300 md:grid-cols-3">{list(t.playerOrders as string[])}</ul>
+                </div>
+                <div className={card}>
+                    <h3 className="font-semibold">{t.messages}</h3>
+                    <ul className="mt-4 space-y-3 text-sm text-slate-300">{list(t.playerMessages as string[])}</ul>
+                </div>
+            </div>
+
+            <div className="relative mt-6 grid gap-4 lg:grid-cols-3">
+                <div className={card}><h3 className="font-semibold">{t.deliveryLocation}</h3><p className="mt-3 text-sm text-slate-300">{t.playerDelivery}</p><button className="mt-4 rounded-full border border-[#66d9cb]/45 bg-[#66d9cb]/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#9ff4ec] transition hover:bg-[#66d9cb]/20">{t.addDelivery}</button></div>
+                <div className={card}><h3 className="font-semibold">{t.recentActivity}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{bridge.recentActivity.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul></div>
+                <div className={card}><h3 className="font-semibold">{t.wallet}</h3><p className="mt-3 text-sm text-slate-300">{t.walletText}</p></div>
+            </div>
+
+            {bridge.arenaMoments.length > 0 && <div className="relative mt-4 rounded-[1.5rem] border border-[#66d9cb]/20 bg-[#66d9cb]/10 p-4"><h3 className="font-semibold">{t.arenaMoments}</h3><div className="mt-3 grid gap-2 md:grid-cols-2">{bridge.arenaMoments.map((moment) => <div key={moment.id} className="rounded-xl border border-white/10 bg-black/30 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"><p className="text-sm font-semibold text-white">{moment.title}</p><p className="mt-1 text-xs text-slate-300">{moment.description}</p></div>)}</div></div>}
         </section>
     );
 }
@@ -142,11 +229,11 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
 export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
     const { language } = useLanguage();
     const t = dashboardCopy[language];
-    return <section className={shell}><p className={sectionTitle}>{t.shopperTitle}</p><h2 className="mt-2 text-3xl font-semibold">{t.shopperMode}</h2><p className="mt-2 text-sm text-slate-300">{t.currentLocation}: {bridge.currentLocation}. {t.hallAccess}</p><div className="mt-6 grid gap-4 md:grid-cols-4"><div className={card}><h3 className="font-semibold">{t.productDiscovery}</h3><p className="mt-2 text-sm text-slate-300">{t.productDiscoveryText}</p></div><div className={card}><h3 className="font-semibold">{t.savedProducts}</h3><p className="mt-2 text-sm text-slate-300">{t.savedProductsText}</p></div><div className={card}><h3 className="font-semibold">{t.orderStatus}</h3><p className="mt-2 text-sm text-slate-300">{t.orderStatusText}</p></div><div className={card}><h3 className="font-semibold">{t.gameZones}</h3><p className="mt-2 text-sm text-amber-200">{t.gameZonesShopper}</p></div></div><div className="mt-6 grid gap-4 lg:grid-cols-3"><div className={card}><h3 className="font-semibold">{t.ordersDelivery}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{list(t.buyerOrders as string[])}</ul></div><div className={card}><h3 className="font-semibold">{t.deliveryLocation}</h3><p className="mt-3 text-sm text-slate-300">{t.buyerDelivery}</p><button className="mt-4 rounded-full border border-[#66d9cb]/40 px-4 py-2 text-xs font-bold text-[#66d9cb]">{t.manageDelivery}</button></div><div className={card}><h3 className="font-semibold">{t.messages}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{list(t.buyerMessages as string[])}</ul></div><div className={card}><h3 className="font-semibold">{t.deals}</h3><p className="mt-3 text-sm text-slate-300">{t.dealsText}</p></div><div className={card}><h3 className="font-semibold">{t.shoppingList}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{list(t.shoppingItems as string[])}</ul></div><div className={card}><h3 className="font-semibold">{t.buyerProtection}</h3><p className="mt-3 text-sm text-slate-300">{t.buyerProtectionText}</p></div></div></section>;
+    return <section className={shell}><DashboardBackNav /><p className={sectionTitle}>{t.shopperTitle}</p><h2 className="mt-2 text-3xl font-semibold">{t.shopperMode}</h2><p className="mt-2 text-sm text-slate-300">{t.currentLocation}: {bridge.currentLocation}. {t.hallAccess}</p><div className="mt-6 grid gap-4 md:grid-cols-4"><div className={card}><h3 className="font-semibold">{t.productDiscovery}</h3><p className="mt-2 text-sm text-slate-300">{t.productDiscoveryText}</p></div><div className={card}><h3 className="font-semibold">{t.savedProducts}</h3><p className="mt-2 text-sm text-slate-300">{t.savedProductsText}</p></div><div className={card}><h3 className="font-semibold">{t.orderStatus}</h3><p className="mt-2 text-sm text-slate-300">{t.orderStatusText}</p></div><div className={card}><h3 className="font-semibold">{t.gameZones}</h3><p className="mt-2 text-sm text-amber-200">{t.gameZonesShopper}</p></div></div><div className="mt-6 grid gap-4 lg:grid-cols-3"><div className={card}><h3 className="font-semibold">{t.ordersDelivery}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{list(t.buyerOrders as string[])}</ul></div><div className={card}><h3 className="font-semibold">{t.deliveryLocation}</h3><p className="mt-3 text-sm text-slate-300">{t.buyerDelivery}</p><button className="mt-4 rounded-full border border-[#66d9cb]/45 bg-[#66d9cb]/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#9ff4ec] transition hover:bg-[#66d9cb]/20">{t.manageDelivery}</button></div><div className={card}><h3 className="font-semibold">{t.messages}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{list(t.buyerMessages as string[])}</ul></div><div className={card}><h3 className="font-semibold">{t.deals}</h3><p className="mt-3 text-sm text-slate-300">{t.dealsText}</p></div><div className={card}><h3 className="font-semibold">{t.shoppingList}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{list(t.shoppingItems as string[])}</ul></div><div className={card}><h3 className="font-semibold">{t.buyerProtection}</h3><p className="mt-3 text-sm text-slate-300">{t.buyerProtectionText}</p></div></div></section>;
 }
 
 export function SupplierDashboard() {
     const { language } = useLanguage();
     const t = dashboardCopy[language];
-    return <section className={shell}><p className={sectionTitle}>{t.businessTitle}</p><h2 className="mt-2 text-3xl font-semibold">{t.businessHeading}</h2><p className="mt-2 text-sm text-slate-300">{t.businessSub}</p><div className="mt-6 grid gap-4 md:grid-cols-4"><div className={card}><h3 className="font-semibold">{t.pavilionManagement}</h3><p className="mt-2 text-sm text-slate-300">{t.pavilionManagementText}</p></div><div className={card}><h3 className="font-semibold">{t.rentPavilion}</h3><p className="mt-2 text-sm text-slate-300">{t.rentPavilionText}</p></div><div className={card}><h3 className="font-semibold">{t.hostGame}</h3><p className="mt-2 text-sm text-slate-300">{t.hostGameText}</p></div><div className={card}><h3 className="font-semibold">{t.leads}</h3><p className="mt-2 text-sm text-slate-300">{t.leadsText}</p></div></div><div className="mt-6 grid gap-4 lg:grid-cols-3"><div className={card}><h3 className="font-semibold">{t.productUpload}</h3><p className="mt-3 text-sm text-slate-300">{t.productUploadText}</p></div><div className={card}><h3 className="font-semibold">{t.messages}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{list(t.supplierMessages as string[])}</ul></div><div className={card}><h3 className="font-semibold">{t.orderPipeline}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{list(t.supplierOrders as string[])}</ul></div><div className={card}><h3 className="font-semibold">{t.analytics}</h3><p className="mt-3 text-sm text-slate-300">{t.analyticsText}</p></div><div className={card}><h3 className="font-semibold">{t.fulfilment}</h3><p className="mt-3 text-sm text-slate-300">{t.fulfilmentText}</p></div><div className={card}><h3 className="font-semibold">{t.showroomPreview}</h3><p className="mt-3 text-sm text-slate-300">{t.showroomPreviewText}</p></div></div></section>;
+    return <section className={shell}><DashboardBackNav /><p className={sectionTitle}>{t.businessTitle}</p><h2 className="mt-2 text-3xl font-semibold">{t.businessHeading}</h2><p className="mt-2 text-sm text-slate-300">{t.businessSub}</p><div className="mt-6 grid gap-4 md:grid-cols-4"><div className={card}><h3 className="font-semibold">{t.pavilionManagement}</h3><p className="mt-2 text-sm text-slate-300">{t.pavilionManagementText}</p></div><div className={card}><h3 className="font-semibold">{t.rentPavilion}</h3><p className="mt-2 text-sm text-slate-300">{t.rentPavilionText}</p></div><div className={card}><h3 className="font-semibold">{t.hostGame}</h3><p className="mt-2 text-sm text-slate-300">{t.hostGameText}</p></div><div className={card}><h3 className="font-semibold">{t.leads}</h3><p className="mt-2 text-sm text-slate-300">{t.leadsText}</p></div></div><div className="mt-6 grid gap-4 lg:grid-cols-3"><div className={card}><h3 className="font-semibold">{t.productUpload}</h3><p className="mt-3 text-sm text-slate-300">{t.productUploadText}</p></div><div className={card}><h3 className="font-semibold">{t.messages}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{list(t.supplierMessages as string[])}</ul></div><div className={card}><h3 className="font-semibold">{t.orderPipeline}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{list(t.supplierOrders as string[])}</ul></div><div className={card}><h3 className="font-semibold">{t.analytics}</h3><p className="mt-3 text-sm text-slate-300">{t.analyticsText}</p></div><div className={card}><h3 className="font-semibold">{t.fulfilment}</h3><p className="mt-3 text-sm text-slate-300">{t.fulfilmentText}</p></div><div className={card}><h3 className="font-semibold">{t.showroomPreview}</h3><p className="mt-3 text-sm text-slate-300">{t.showroomPreviewText}</p></div></div></section>;
 }
