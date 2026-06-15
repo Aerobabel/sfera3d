@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
+import { useSearchParams } from 'next/navigation';
 import type { AppLanguage } from '@/lib/i18n';
 
 const roleCopy = {
@@ -63,6 +64,12 @@ const roleCopy = {
     roles: Array<{ href: string; icon: string; title: string; text: string; mode: string }>;
 }>;
 
+const roleAccents: Record<string, string> = {
+    '/player/dashboard': 'from-sky-300 via-cyan-200 to-indigo-300',
+    '/shopper/dashboard': 'from-fuchsia-300 via-rose-200 to-amber-200',
+    '/business/dashboard': 'from-emerald-200 via-teal-200 to-cyan-200',
+};
+
 const roleVisuals: Record<string, string> = {
     '/player/dashboard': '/visuals/player-arena.svg',
     '/shopper/dashboard': '/visuals/shopper-market.svg',
@@ -71,7 +78,10 @@ const roleVisuals: Record<string, string> = {
 
 export default function RoleSelectionPage() {
     const { language } = useLanguage();
+    const searchParams = useSearchParams();
     const copy = roleCopy[language];
+    const returnToScene = searchParams.get('returnTo') === '/fastview' || searchParams.get('from') === 'scene';
+    const sceneReturnHref = '/fastview?resume=scene';
 
     return (
         <main className="min-h-screen overflow-hidden bg-[#02050b] text-white">
@@ -79,8 +89,8 @@ export default function RoleSelectionPage() {
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(102,217,203,0.26),transparent_30%),radial-gradient(circle_at_80%_20%,rgba(99,102,241,0.18),transparent_28%),linear-gradient(145deg,rgba(2,6,23,0.72),rgba(3,7,18,1)_58%,rgba(0,0,0,1))]" />
                 <div className="relative z-10 w-full max-w-6xl">
                     <div className="mb-4 flex flex-wrap gap-2">
-                        <Link href="/" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">← Home</Link>
-                        <Link href="/experience" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">World</Link>
+                        <Link href={returnToScene ? sceneReturnHref : "/"} className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">← {returnToScene ? 'Back to scene' : 'Home'}</Link>
+                        <Link href="/fastview" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">World</Link>
                     </div>
                     <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.1),rgba(255,255,255,0.035))] p-6 shadow-[0_45px_160px_rgba(0,0,0,0.6)] backdrop-blur-2xl md:p-10">
                         <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
@@ -94,14 +104,35 @@ export default function RoleSelectionPage() {
                                     <p className="text-lg font-semibold text-white">{copy.question}</p>
                                     <p>{copy.welcome}</p>
                                 </div>
-                                <Link href="/experience" className="mt-8 inline-flex rounded-full bg-[linear-gradient(135deg,#66d9cb,#d9fff9)] px-7 py-3.5 text-sm font-black uppercase tracking-[0.16em] text-slate-950 shadow-[0_18px_55px_rgba(102,217,203,0.28)] transition hover:scale-[1.02]">{copy.enter}</Link>
+                                <Link href={sceneReturnHref} className="mt-8 inline-flex rounded-full bg-[linear-gradient(135deg,#66d9cb,#d9fff9)] px-7 py-3.5 text-sm font-black uppercase tracking-[0.16em] text-slate-950 shadow-[0_18px_55px_rgba(102,217,203,0.28)] transition hover:scale-[1.02]">{copy.enter}</Link>
                             </div>
                             <div className="grid gap-4">
-                                {copy.roles.map((role) => (
-                                    <Link key={role.title} href={role.href} className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(145deg,rgba(15,23,42,0.84),rgba(2,6,23,0.72))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_60px_rgba(0,0,0,0.26)] backdrop-blur-md transition duration-300 hover:-translate-y-1 hover:border-[#66d9cb]/55 hover:bg-[#66d9cb]/10 hover:shadow-[0_28px_90px_rgba(102,217,203,0.16)]">
-                                        <div className="mb-4 overflow-hidden rounded-2xl border border-white/10"><Image src={roleVisuals[role.href]} alt="" width={1200} height={760} className="h-32 w-full object-cover" /></div><div className="flex gap-4"><span className="text-4xl">{role.icon}</span><div><div className="flex flex-wrap items-center gap-3"><h2 className="text-xl font-black tracking-wide">{role.title}</h2><span className="rounded-full border border-[#66d9cb]/35 bg-[#66d9cb]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#9ff4ec]">{role.mode}</span></div><p className="mt-2 text-sm leading-6 text-slate-300">{role.text}</p></div></div>
-                                    </Link>
-                                ))}
+                                {copy.roles.map((role) => {
+                                    const roleHref = returnToScene ? `${role.href}?returnTo=/fastview` : role.href;
+                                    return (
+                                        <Link key={role.title} href={roleHref} className="group relative overflow-hidden rounded-[1.9rem] border border-white/10 bg-[linear-gradient(145deg,rgba(15,23,42,0.9),rgba(2,6,23,0.74))] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_24px_80px_rgba(0,0,0,0.34)] backdrop-blur-md transition duration-300 hover:-translate-y-1.5 hover:border-white/25 hover:shadow-[0_34px_110px_rgba(102,217,203,0.2)]">
+                                            <div className={`absolute -inset-24 bg-gradient-to-br ${roleAccents[role.href]} opacity-0 blur-3xl transition duration-500 group-hover:opacity-25`} />
+                                            <div className="relative overflow-hidden rounded-[1.65rem] border border-white/10 bg-slate-950/60 p-4">
+                                                <div className="relative mb-4 overflow-hidden rounded-2xl border border-white/10 shadow-[0_18px_60px_rgba(0,0,0,0.35)]">
+                                                    <Image src={roleVisuals[role.href]} alt="" width={1200} height={760} className="h-32 w-full object-cover transition duration-500 group-hover:scale-105" />
+                                                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.05),rgba(2,6,23,0.68))]" />
+                                                    <div className="absolute bottom-3 left-3 rounded-full border border-white/15 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-md">Premium access</div>
+                                                </div>
+                                                <div className="flex gap-4">
+                                                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/[0.07] text-3xl shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">{role.icon}</span>
+                                                    <div>
+                                                        <div className="flex flex-wrap items-center gap-3">
+                                                            <h2 className="bg-[linear-gradient(135deg,#ffffff,#c7fff8)] bg-clip-text text-xl font-black tracking-wide text-transparent">{role.title}</h2>
+                                                            <span className="rounded-full border border-[#66d9cb]/35 bg-[#66d9cb]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#9ff4ec]">{role.mode}</span>
+                                                        </div>
+                                                        <p className="mt-2 text-sm leading-6 text-slate-300">{role.text}</p>
+                                                        <span className="mt-4 inline-flex text-xs font-black uppercase tracking-[0.16em] text-[#9ff4ec]">Enter dashboard →</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
