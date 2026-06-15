@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import type { AppLanguage } from '@/lib/i18n';
@@ -62,6 +63,12 @@ const roleCopy = {
     roles: Array<{ href: string; icon: string; title: string; text: string; mode: string }>;
 }>;
 
+const roleVisuals: Record<string, string> = {
+    '/player/dashboard': '/visuals/player-arena.svg',
+    '/shopper/dashboard': '/visuals/shopper-market.svg',
+    '/business/dashboard': '/visuals/business-pavilion.svg',
+};
+
 export default function RoleSelectionPage() {
     const { language } = useLanguage();
     const copy = roleCopy[language];
@@ -92,7 +99,7 @@ export default function RoleSelectionPage() {
                             <div className="grid gap-4">
                                 {copy.roles.map((role) => (
                                     <Link key={role.title} href={role.href} className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(145deg,rgba(15,23,42,0.84),rgba(2,6,23,0.72))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_60px_rgba(0,0,0,0.26)] backdrop-blur-md transition duration-300 hover:-translate-y-1 hover:border-[#66d9cb]/55 hover:bg-[#66d9cb]/10 hover:shadow-[0_28px_90px_rgba(102,217,203,0.16)]">
-                                        <div className="flex gap-4"><span className="text-4xl">{role.icon}</span><div><div className="flex flex-wrap items-center gap-3"><h2 className="text-xl font-black tracking-wide">{role.title}</h2><span className="rounded-full border border-[#66d9cb]/35 bg-[#66d9cb]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#9ff4ec]">{role.mode}</span></div><p className="mt-2 text-sm leading-6 text-slate-300">{role.text}</p></div></div>
+                                        <div className="mb-4 overflow-hidden rounded-2xl border border-white/10"><Image src={roleVisuals[role.href]} alt="" width={1200} height={760} className="h-32 w-full object-cover" /></div><div className="flex gap-4"><span className="text-4xl">{role.icon}</span><div><div className="flex flex-wrap items-center gap-3"><h2 className="text-xl font-black tracking-wide">{role.title}</h2><span className="rounded-full border border-[#66d9cb]/35 bg-[#66d9cb]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#9ff4ec]">{role.mode}</span></div><p className="mt-2 text-sm leading-6 text-slate-300">{role.text}</p></div></div>
                                     </Link>
                                 ))}
                             </div>
