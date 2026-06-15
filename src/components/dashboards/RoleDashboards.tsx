@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
+import { useSearchParams } from 'next/navigation';
 import { GAME_RULES } from '@/lib/unreal/gameRules';
 import type { AppLanguage } from '@/lib/i18n';
 import type { UnrealEventBridgeState } from '@/lib/unreal/types';
@@ -124,13 +125,18 @@ const dashboardCopy = {
 
 const list = (items: string[]) => items.map((item) => <li key={item}>{item}</li>);
 
-const DashboardBackNav = () => (
-    <div className="relative mb-5 flex flex-wrap items-center gap-2">
-        <Link href="/roles" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">← Roles</Link>
-        <Link href="/fastview" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">World</Link>
-        <Link href="/" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">Home</Link>
-    </div>
-);
+const DashboardBackNav = () => {
+    const searchParams = useSearchParams();
+    const returnToScene = searchParams.get('returnTo') === '/fastview';
+    const sceneHref = '/fastview?resume=scene';
+
+    return (
+        <div className="relative mb-5 flex flex-wrap items-center gap-2">
+            <Link href={returnToScene ? '/roles?returnTo=/fastview' : '/roles'} className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">← Roles</Link>
+            <Link href={sceneHref} className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">Back to scene</Link>
+        </div>
+    );
+};
 
 export function GamerDashboard({ bridge = fallback }: DashboardProps) {
     const { language } = useLanguage();

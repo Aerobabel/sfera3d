@@ -508,7 +508,7 @@ const resolveDefaultSignalingUrl = () => {
 };
 
 const DEFAULT_FASTVIEW_APP_ID = '69d615b641d102927ca911f3';
-const FASTVIEW_CUTSCENE_SRC: Record<AppLanguage, string> = {
+const SFERA_HALL_CUTSCENE_SRC: Record<AppLanguage, string> = {
     en: '/cutscenes/englishsphere.MP4',
     ru: '/cutscenes/russiansphere.MP4',
     zh: '/cutscenes/chinesesphere.MOV',
@@ -610,7 +610,7 @@ export default function ExperiencePage() {
     const ui = EXPERIENCE_COPY[language];
     const fastViewLaunch = FASTVIEW_LAUNCH_COPY[language];
     const cutsceneCopy = CUTSCENE_COPY[language];
-    const fastViewCutsceneSrc = FASTVIEW_CUTSCENE_SRC[language];
+    const sferaHallCutsceneSrc = SFERA_HALL_CUTSCENE_SRC[language];
     const liveActivityLabel = LIVE_ACTIVITY_LABEL[language];
     const liveActivityNowLabel = LIVE_ACTIVITY_NOW_LABEL[language];
     const sceneInstruction = ui.instruction;
@@ -688,6 +688,15 @@ export default function ExperiencePage() {
     useEffect(() => {
         const cinematic = resolveFrontendCinematic(unrealBridge.lastUnrealEvent);
         if (!cinematic) return;
+
+        if (unrealBridge.lastUnrealEvent &&
+            typeof unrealBridge.lastUnrealEvent === 'object' &&
+            'event' in unrealBridge.lastUnrealEvent &&
+            unrealBridge.lastUnrealEvent.event === 'portal_entered' &&
+            'portal' in unrealBridge.lastUnrealEvent &&
+            unrealBridge.lastUnrealEvent.portal === 'SferaHall') {
+            setIsSferaHallCutsceneVisible(true);
+        }
 
         const id = Date.now();
         setFrontendCinematic({ ...cinematic, id });
@@ -796,11 +805,13 @@ export default function ExperiencePage() {
     // transition overlay visible between the user's "enter" click and the
     // first frame so they don't see a black screen while UE unpauses.
     const [isVideoStreamingFrames, setIsVideoStreamingFrames] = useState(false);
-    const [hasCompletedFastViewCutscene, setHasCompletedFastViewCutscene] = useState(() => !isFastViewRoute);
+    const [hasCompletedFastViewCutscene, setHasCompletedFastViewCutscene] = useState(true);
     const [isFastViewCutsceneExiting, setIsFastViewCutsceneExiting] = useState(false);
     const [hasStartedFastViewCutscene, setHasStartedFastViewCutscene] = useState(() => !isFastViewRoute);
     const [hasEndedFastViewCutscene, setHasEndedFastViewCutscene] = useState(() => !isFastViewRoute);
     const fastViewCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
+    const [isSferaHallCutsceneVisible, setIsSferaHallCutsceneVisible] = useState(false);
+    const sferaHallCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const fastViewCutsceneExitTimerRef = useRef<number | null>(null);
 
     useEffect(() => {
@@ -963,6 +974,18 @@ export default function ExperiencePage() {
         isVideoStreamingFrames,
         videoElement,
     ]);
+
+    const handleStartSferaHallCutsceneWithSound = useCallback(() => {
+        const video = sferaHallCutsceneVideoRef.current;
+        if (!video) return;
+
+        video.muted = false;
+        video.volume = 1;
+        video.play().catch(() => {
+            video.muted = true;
+            video.play().catch(() => {});
+        });
+    }, []);
 
     const handleSkipFastViewCutscene = useCallback(() => {
         if (!isFastViewRoute || hasCompletedFastViewCutscene) return;
@@ -1634,8 +1657,8 @@ export default function ExperiencePage() {
                             className={`h-full w-full object-cover transition-[filter,transform] duration-700 ${
                                 hasEndedFastViewCutscene && !isVideoStreamingFrames ? 'scale-[1.01] brightness-75' : ''
                             }`}
-                            key={fastViewCutsceneSrc}
-                            src={fastViewCutsceneSrc}
+                            key={sferaHallCutsceneSrc}
+                            src={sferaHallCutsceneSrc}
                             data-cutscene-video="true"
                             muted={!hasStartedFastViewCutscene}
                             playsInline
@@ -1702,6 +1725,47 @@ export default function ExperiencePage() {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {isSferaHallCutsceneVisible && showExperienceHud && (
+                <div className="absolute inset-0 z-[125] bg-[#05070b]">
+                    <video
+                        ref={sferaHallCutsceneVideoRef}
+                        className="h-full w-full object-cover"
+                        key={sferaHallCutsceneSrc}
+                        src={sferaHallCutsceneSrc}
+                        data-cutscene-video="true"
+                        autoPlay
+                        muted
+                        playsInline
+                        preload="auto"
+                        onEnded={() => setIsSferaHallCutsceneVisible(false)}
+                        onError={() => setIsSferaHallCutsceneVisible(false)}
+                    />
+                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.25),transparent_34%,rgba(0,0,0,0.62))]" />
+                    <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 border-b border-[#66d9cb]/20 bg-[#02070b]/[0.82] px-4 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.32)] backdrop-blur-md sm:px-6 lg:px-8">
+                        <div className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/25 bg-slate-950/45 px-3 py-2 text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,0.16)] backdrop-blur-md"><span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-300/35 bg-cyan-400/10 text-sm font-black text-cyan-200">S</span><span className="text-sm font-black uppercase tracking-[0.18em]">3DSFERA Hall</span></div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={handleStartSferaHallCutsceneWithSound}
+                                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#66d9cb]/30 bg-[#66d9cb]/10 px-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/90 transition hover:border-[#66d9cb]/60 hover:bg-[#66d9cb]/[0.18] sm:px-4"
+                            >
+                                <Volume2 className="h-4 w-4" />
+                                <span className="hidden sm:inline">Sound</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setIsSferaHallCutsceneVisible(false)}
+                                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.08] px-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/90 transition hover:border-white/30 hover:bg-white/[0.14] sm:px-4"
+                                aria-label={cutsceneCopy.skip}
+                            >
+                                <X className="h-4 w-4" />
+                                <span className="hidden sm:inline">{cutsceneCopy.skip}</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -2099,20 +2163,20 @@ export default function ExperiencePage() {
                                 {accountSignOutLabel}
                             </button>
                             <div className="h-px bg-white/10 my-2"></div>
-                            <Link href="/roles" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
+                            <Link href="/roles?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 Role Selection
                             </Link>
-                            <Link href="/player/dashboard" target="_blank" rel="noopener noreferrer" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
-                                Player Dashboard (opens new tab)
+                            <Link href="/player/dashboard?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                                Player Dashboard
                             </Link>
-                            <Link href="/shopper/dashboard" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            <Link href="/shopper/dashboard?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 Shopper Dashboard
                             </Link>
-                            <Link href="/business/dashboard" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            <Link href="/business/dashboard?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 Business Dashboard
                             </Link>
-                            <Link href="/" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition">
-                                {returnHomeLabel}
+                            <Link href="/fastview?resume=scene" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
+                                Back to scene
                             </Link>
                         </div>
                     )}
