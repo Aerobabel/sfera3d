@@ -4,7 +4,7 @@ import BrandLogo from "@/components/BrandLogo";
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, Bot, Send, Menu, X, Monitor, Play, Volume2 } from "lucide-react";
+import { Activity, Send, Menu, X, Monitor, Play, Volume2 } from "lucide-react";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
@@ -43,12 +43,6 @@ type PixelStreamingWindow = Window & {
     };
 };
 const DEFAULT_MOUSE_SENSITIVITY = 0.5;
-const LANGUAGE_ASSISTANT_KEY_CODES: Record<AppLanguage, number> = {
-    zh: 48,
-    ru: 49,
-    en: 50,
-};
-
 // Module-level suppression — avoids any React ref/closure timing issues.
 let _suppressProductSelectionUntil = 0;
 
@@ -553,6 +547,7 @@ type FrontendCinematic = {
 };
 
 const FRONTEND_CINEMATIC_DURATION_MS = 3200;
+const RETURN_TO_CITY_CINEMATIC_DURATION_MS = 5600;
 
 const resolveFrontendCinematic = (event: unknown): Omit<FrontendCinematic, 'id'> | null => {
     if (!event || typeof event !== 'object') return null;
@@ -599,13 +594,7 @@ export default function ExperiencePage() {
     const fastViewCutsceneSrc = FASTVIEW_CUTSCENE_SRC[language];
     const liveActivityLabel = LIVE_ACTIVITY_LABEL[language];
     const liveActivityNowLabel = LIVE_ACTIVITY_NOW_LABEL[language];
-    const assistantKeyCode = LANGUAGE_ASSISTANT_KEY_CODES[language];
-    const assistantKeyLabel = String.fromCharCode(assistantKeyCode);
-    const fastViewAssistantHint = fastViewLaunch.assistantHint(assistantKeyLabel);
-    const fastViewAssistantCta = fastViewLaunch.assistantCta(assistantKeyLabel);
-    const sceneInstruction = isFastViewRoute
-        ? `${fastViewAssistantHint} ${ui.instruction}`
-        : ui.instruction;
+    const sceneInstruction = ui.instruction;
     const accountLabel =
         language === 'ru'
             ? '\u0412\u044B \u0432\u043E\u0448\u043B\u0438 \u043A\u0430\u043A'
@@ -662,7 +651,6 @@ export default function ExperiencePage() {
     const [needsPointerResume, setNeedsPointerResume] = useState(false);
     const [isStreamPixelOpen, setIsStreamPixelOpen] = useState(false);
     const [fastViewError, setFastViewError] = useState<string | null>(null);
-    const [hasDismissedFastViewAssistantPrompt, setHasDismissedFastViewAssistantPrompt] = useState(false);
     const [liveActivityToasts, setLiveActivityToasts] = useState<LiveActivityToast[]>([]);
     const liveActivityIndexRef = useRef(0);
     const liveActivityRemovalTimersRef = useRef<number[]>([]);
@@ -684,9 +672,16 @@ export default function ExperiencePage() {
         const id = Date.now();
         setFrontendCinematic({ ...cinematic, id });
 
+        const duration = unrealBridge.lastUnrealEvent &&
+            typeof unrealBridge.lastUnrealEvent === 'object' &&
+            'event' in unrealBridge.lastUnrealEvent &&
+            unrealBridge.lastUnrealEvent.event === 'returned_to_city'
+            ? RETURN_TO_CITY_CINEMATIC_DURATION_MS
+            : FRONTEND_CINEMATIC_DURATION_MS;
+
         const timer = window.setTimeout(() => {
             setFrontendCinematic((current) => (current?.id === id ? null : current));
-        }, FRONTEND_CINEMATIC_DURATION_MS);
+        }, duration);
 
         return () => window.clearTimeout(timer);
     }, [unrealBridge.lastUnrealEvent]);
@@ -869,11 +864,6 @@ export default function ExperiencePage() {
         // FastView: let the SDK handle the first lock on the user's next
         // click so we can capture the exact element via pointerlockchange.
         if (!isFastViewRoute) {
-            // Epic PS uses the same key to sync locale on start. In FastView,
-            // the key calls the speaking avatar assistant, so only the user
-            // should trigger it from the in-scene prompt/button.
-            sendUnrealKeyPress(assistantKeyCode);
-
             try {
                 const parent = psWindow.ps?.videoElementParent;
                 if (parent && typeof parent.requestPointerLock === 'function') {
@@ -887,7 +877,7 @@ export default function ExperiencePage() {
         }
 
         setHasStartedExperience(true);
-    }, [hasStartedExperience, videoElement, assistantKeyCode, isFastViewRoute]);
+    }, [hasStartedExperience, videoElement, isFastViewRoute]);
 
     const handleStartFastViewCutscene = useCallback(() => {
         if (
@@ -1013,17 +1003,13 @@ export default function ExperiencePage() {
         isVideoStreamingFrames,
     ]);
 
-    const handleCallFastViewAssistant = useCallback(() => {
-        if (!isFastViewRoute) return;
-
+    const handleSwitchToPlayerMode = useCallback(() => {
         if (!hasStartedExperience) {
             handleStartExperience();
-            return;
         }
 
-        sendUnrealKeyPress(assistantKeyCode);
-        setHasDismissedFastViewAssistantPrompt(true);
-    }, [assistantKeyCode, handleStartExperience, hasStartedExperience, isFastViewRoute]);
+        sendUnrealKeyPress(80); // P — Player Mode shortcut in the Unreal build.
+    }, [handleStartExperience, hasStartedExperience]);
 
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
     const streamPixelPreviewUrl = useMemo(
@@ -1047,15 +1033,6 @@ export default function ExperiencePage() {
         !showFastViewCutscene &&
         (!hasStartedExperience || Boolean(fastViewError));
     const showExperienceHud = !isFastViewRoute || (!showFastViewCutscene && !showFastViewLaunchOverlay);
-    const showFastViewAssistantScenePrompt =
-        isFastViewRoute &&
-        hasStartedExperience &&
-        isVideoStreamingFrames &&
-        !hasDismissedFastViewAssistantPrompt &&
-        !activeProduct &&
-        !activePavilion &&
-        !isCatalogueOpen &&
-        !fastViewError;
     const shouldRunLiveActivity = showExperienceHud && hasStartedExperience && !fastViewError;
     const showLiveActivityToasts =
         shouldRunLiveActivity &&
@@ -1313,29 +1290,7 @@ export default function ExperiencePage() {
         };
     }, [isSupplierMode, activeSupplierId, syncSupplierMessages]);
 
-    useEffect(() => {
-        if (!isFastViewRoute || !hasStartedExperience || hasDismissedFastViewAssistantPrompt) return;
 
-        const handleAssistantKeyDown = (event: KeyboardEvent) => {
-            if (
-                event.key === assistantKeyLabel ||
-                event.code === `Digit${assistantKeyLabel}` ||
-                event.code === `Numpad${assistantKeyLabel}`
-            ) {
-                setHasDismissedFastViewAssistantPrompt(true);
-            }
-        };
-
-        document.addEventListener('keydown', handleAssistantKeyDown, true);
-        return () => {
-            document.removeEventListener('keydown', handleAssistantKeyDown, true);
-        };
-    }, [
-        assistantKeyLabel,
-        hasDismissedFastViewAssistantPrompt,
-        hasStartedExperience,
-        isFastViewRoute,
-    ]);
 
     useEffect(() => {
         if (!localizedActiveProduct) return;
@@ -1854,8 +1809,7 @@ export default function ExperiencePage() {
                             <span className="absolute inset-[30%] rounded-full bg-[#66d9cb] shadow-[0_0_20px_rgba(102,217,203,0.8)] animate-pulse" />
                         </div>
                         <div className="text-center">
-                            <BrandLogo size="sm" className="justify-center" />
-                            <div className="mt-2 text-sm font-mono uppercase tracking-[0.2em] text-slate-300 animate-pulse">
+                            <div className="text-sm font-mono uppercase tracking-[0.2em] text-slate-300 animate-pulse">
                                 {fastViewLaunch.connectingCta}
                             </div>
                         </div>
@@ -1982,44 +1936,22 @@ export default function ExperiencePage() {
                             ))}
                         </div>
                     )}
-                    {showFastViewAssistantScenePrompt && (
-                        <div className="absolute left-1/2 top-24 z-40 w-[min(calc(100vw-2rem),36rem)] -translate-x-1/2 pointer-events-auto md:top-28">
-                            <div className="relative overflow-hidden rounded-2xl border border-[#66d9cb]/35 bg-[linear-gradient(160deg,rgba(3,8,14,0.88),rgba(8,18,28,0.78))] p-4 text-white shadow-[0_20px_60px_rgba(0,0,0,0.42)] backdrop-blur-xl">
+                    {unrealBridge.accessDeniedMessage && (
+                        <div className="absolute left-1/2 top-1/2 z-[70] w-[min(calc(100vw-2rem),26rem)] -translate-x-1/2 -translate-y-1/2 pointer-events-auto" role="dialog" aria-live="assertive" aria-label="Player Mode required">
+                            <div className="rounded-3xl border border-amber-300/35 bg-slate-950/90 p-5 text-white shadow-[0_30px_90px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+                                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-200">Player Mode required</p>
+                                <p className="mt-3 text-sm leading-6 text-slate-200">{unrealBridge.accessDeniedMessage}</p>
                                 <button
                                     type="button"
-                                    onClick={() => setHasDismissedFastViewAssistantPrompt(true)}
-                                    className="absolute right-3 top-3 rounded-md border border-white/10 bg-white/5 p-1.5 text-slate-300 transition hover:bg-white/10 hover:text-white"
-                                    aria-label={ui.close}
+                                    onClick={handleSwitchToPlayerMode}
+                                    className="mt-4 w-full rounded-2xl bg-[linear-gradient(135deg,#66d9cb,#d9fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:scale-[1.01]"
                                 >
-                                    <X size={14} />
+                                    Switch to Player Mode now
                                 </button>
-                                <div className="flex flex-col gap-4 pr-8 sm:flex-row sm:items-center">
-                                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-[#66d9cb]/45 bg-[#66d9cb]/12 font-mono text-3xl font-semibold text-[#66d9cb] shadow-[0_0_28px_rgba(102,217,203,0.24)]">
-                                        {assistantKeyLabel}
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#66d9cb]">
-                                            {fastViewLaunch.assistantTitle}
-                                        </p>
-                                        <p className="mt-1 text-base font-semibold leading-6 text-white">
-                                            {fastViewAssistantHint}
-                                        </p>
-                                        <p className="mt-2 text-xs leading-5 text-slate-300">
-                                            {ui.instruction}
-                                        </p>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={handleCallFastViewAssistant}
-                                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#66d9cb] px-4 py-3 text-sm font-semibold text-[#04110f] transition hover:bg-[#84e7dd]"
-                                    >
-                                        <Bot size={16} />
-                                        <span>{fastViewAssistantCta}</span>
-                                    </button>
-                                </div>
                             </div>
                         </div>
                     )}
+
                     <div className="flex flex-col h-full justify-between p-4 md:p-6 lg:p-8">
 
                     {/* Header */}
@@ -2038,13 +1970,13 @@ export default function ExperiencePage() {
                                 <span className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em]">{ui.statusOnline}</span>
                             </div>
 
-                            <div className="mt-3 grid w-fit max-w-[min(92vw,32rem)] gap-2 rounded-2xl border border-[#66d9cb]/20 bg-black/45 p-3 text-xs text-slate-200 backdrop-blur-md">
+                            <div className="mt-3 grid w-fit max-w-[min(92vw,24rem)] gap-2 rounded-2xl border border-[#66d9cb]/20 bg-black/35 p-2 text-[11px] text-slate-200 backdrop-blur-md">
                                 <div className="flex flex-wrap gap-2">
                                     <span className="rounded-full bg-[#66d9cb]/15 px-3 py-1 font-semibold text-[#66d9cb]">
                                         {unrealBridge.currentMode === 'player' ? 'Player Mode' : 'Shopper Mode'}
                                     </span>
                                     <span className="rounded-full border border-white/10 px-3 py-1">Location: {unrealBridge.currentLocation}</span>
-                                    <span className="rounded-full border border-white/10 px-3 py-1">Game: {unrealBridge.currentGame ?? 'None'}</span>
+                                    {unrealBridge.currentGame && <span className="rounded-full border border-white/10 px-3 py-1">Game: {unrealBridge.currentGame}</span>}
                                 </div>
                                 {unrealBridge.currentGame === 'ZombieArena' && (
                                     <div className="grid grid-cols-3 gap-2 text-center">
@@ -2057,7 +1989,7 @@ export default function ExperiencePage() {
                                     </div>
                                 )}
                                 {unrealBridge.zombieGameOver && <p className="text-red-300">You were overwhelmed</p>}
-                                {unrealBridge.accessDeniedMessage && <p className="rounded-xl border border-amber-300/25 bg-amber-400/10 p-2 text-amber-100">{unrealBridge.accessDeniedMessage}</p>}
+
                                 {unrealBridge.currentLocation !== 'city' && (
                                     <div>
                                         <button type="button" className="rounded-full border border-white/15 px-3 py-1 font-semibold text-white/90">Back to City</button>
@@ -2071,23 +2003,7 @@ export default function ExperiencePage() {
                             <p className="hidden max-w-[34rem] pt-1 text-right text-[10px] uppercase tracking-[0.14em] text-[#9fcfdf] md:block">
                                 {sceneInstruction}
                             </p>
-                            {isFastViewRoute && (
-                                <button
-                                    type="button"
-                                    onClick={handleCallFastViewAssistant}
-                                    className="group relative inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#66d9cb]/25 bg-slate-900/45 px-3 text-[#c8fff8] backdrop-blur-md transition hover:border-[#66d9cb]/45 hover:bg-slate-800/65"
-                                    aria-label={fastViewAssistantCta}
-                                    title={fastViewAssistantHint}
-                                >
-                                    <Bot size={15} className="text-[#66d9cb]" />
-                                    <span className="font-mono text-[11px] font-semibold leading-none">
-                                        {assistantKeyLabel}
-                                    </span>
-                                    <span className="hidden text-[10px] font-semibold uppercase tracking-wider text-gray-300 lg:inline">
-                                        AI
-                                    </span>
-                                </button>
-                            )}
+
                             <button
                                 onClick={toggleChatPanel}
                                 className="group relative px-4 py-2 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-md border border-white/5 rounded-lg transition overflow-hidden"

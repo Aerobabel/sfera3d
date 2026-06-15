@@ -127,7 +127,7 @@ const list = (items: string[]) => items.map((item) => <li key={item}>{item}</li>
 const DashboardBackNav = () => (
     <div className="relative mb-5 flex flex-wrap items-center gap-2">
         <Link href="/roles" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">← Roles</Link>
-        <Link href="/experience" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">World</Link>
+        <Link href="/fastview" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">World</Link>
         <Link href="/" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">Home</Link>
     </div>
 );
@@ -138,98 +138,180 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
     const coinsPreview = bridge.zombieCoins || Math.floor(bridge.zombieScore / GAME_RULES.zombieArena.zombieKillPoints) * GAME_RULES.zombieArena.coinsPerKill;
     const healthPercent = Math.max(0, Math.min(100, bridge.zombieHealth));
     const nextRewardProgress = Math.min(100, (bridge.zombieKills % 5) * 20);
+    const levelProgress = Math.min(100, Math.max(18, bridge.zombieScore / 100));
+    const rewardCount = Math.max(bridge.zombieKills + bridge.maxZombieCombo, 27);
+    const activityItems = bridge.recentActivity.length > 0 ? bridge.recentActivity : fallback.recentActivity;
+    const currentGame = bridge.currentGame ?? 'Zombie Arena';
+    const currentLocation = bridge.currentLocation === 'city' ? '3DSFERA City' : bridge.currentLocation;
+    const zoneItems = [
+        { name: 'Zombie Arena', tone: 'red', meta: 'Fight. Survive. Earn.', risk: 'High Risk', icon: '☠️' },
+        { name: 'Racing Zone', tone: 'cyan', meta: 'Speed. Drift. Dominate.', risk: 'Medium Risk', icon: '🏁' },
+        { name: 'Treasure Hunt', tone: 'amber', meta: 'Explore. Find. Collect.', risk: 'Low Risk', icon: '🎁' },
+    ];
+    const navItems = ['Dashboard', 'Marketplace', 'Sfera Hall', 'Zombie Arena', 'Racing Zone', 'Treasure Hunt', 'Quests', 'Rewards', 'Profile'];
 
     return (
-        <section className={shell}>
-            <DashboardBackNav />
-            <div className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#66d9cb]/20 shadow-[0_28px_90px_rgba(0,0,0,0.36)]">
-                <Image src="/visuals/player-arena.svg" alt="Premium Zombie Arena dashboard illustration" width={1200} height={760} className="h-56 w-full object-cover md:h-72" priority />
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/70 via-transparent to-slate-950/20" />
-            </div>
-            <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#66d9cb]/15 blur-[90px]" />
-            <div className="pointer-events-none absolute -bottom-32 left-1/3 h-80 w-80 rounded-full bg-indigo-500/10 blur-[110px]" />
-
-            <div className="relative grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-                <div className="overflow-hidden rounded-[2rem] border border-[#66d9cb]/20 bg-[radial-gradient(circle_at_18%_18%,rgba(102,217,203,0.2),transparent_32%),linear-gradient(145deg,rgba(15,23,42,0.72),rgba(2,6,23,0.82))] p-6 shadow-[0_28px_100px_rgba(0,0,0,0.35)]">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                            <p className={sectionTitle}>{t.playerTitle}</p>
-                            <h2 className="mt-5 max-w-2xl text-4xl font-black leading-tight tracking-tight md:text-6xl">
-                                <span className="bg-[linear-gradient(135deg,#ffffff,#9ff4ec_55%,#ffffff)] bg-clip-text text-transparent">{t.survivorRank}</span>
-                                <span className="block text-2xl text-white/80 md:text-3xl">{bridge.zombieRank}</span>
-                            </h2>
-                            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300">
-                                {bridge.isInGame ? `${bridge.currentGame}` : t.playerReady}
-                            </p>
-                        </div>
-                        <Link href="/experience" className="rounded-full bg-[linear-gradient(135deg,#66d9cb,#d9fff9)] px-5 py-2.5 text-sm font-black text-slate-950 shadow-[0_12px_35px_rgba(102,217,203,0.28)] transition hover:scale-[1.02]">
-                            {t.enterWorld}
-                        </Link>
+        <section className="relative overflow-hidden rounded-[2.25rem] border border-sky-400/15 bg-[#020711] text-white shadow-[0_40px_140px_rgba(0,0,0,0.65)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_12%,rgba(0,153,255,0.22),transparent_30%),radial-gradient(circle_at_18%_72%,rgba(102,217,203,0.14),transparent_34%)]" />
+            <div className="relative grid min-h-[56rem] lg:grid-cols-[16rem_1fr]">
+                <aside className="hidden border-r border-sky-200/10 bg-black/20 p-5 backdrop-blur-xl lg:flex lg:flex-col">
+                    <div className="flex items-center gap-3 text-2xl font-black tracking-tight">
+                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-300/35 bg-sky-400/10 text-sky-300 shadow-[0_0_28px_rgba(56,189,248,0.22)]">S</span>
+                        <span>3DSFERA</span>
                     </div>
-
-                    <div className="mt-8 grid gap-4 md:grid-cols-[13rem_1fr]">
-                        <div className="relative mx-auto flex h-52 w-52 items-center justify-center rounded-full border border-white/10 bg-black/30 shadow-[inset_0_0_45px_rgba(102,217,203,0.14)]" style={{ background: `conic-gradient(#66d9cb ${healthPercent}%, rgba(255,255,255,0.08) 0)` }}>
-                            <div className="flex h-40 w-40 flex-col items-center justify-center rounded-full border border-white/10 bg-slate-950 text-center shadow-[0_18px_55px_rgba(0,0,0,0.45)]">
-                                <span className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{t.health}</span>
-                                <strong className="mt-1 text-5xl font-black text-white">{bridge.zombieHealth}</strong>
-                                <span className="text-xs text-[#9ff4ec]">{bridge.zombieCombo}x {t.arenaStreak}</span>
-                            </div>
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            <div className={card}><p className="text-xs uppercase text-slate-400">{t.zombieScore}</p><p className="mt-2 text-4xl font-black">{bridge.zombieScore}</p></div>
-                            <div className={card}><p className="text-xs uppercase text-slate-400">{t.coins}</p><p className="mt-2 text-4xl font-black">{coinsPreview}</p></div>
-                            <div className={card}><p className="text-xs uppercase text-slate-400">{t.maxCombo}</p><p className="mt-2 text-4xl font-black">{bridge.maxZombieCombo}x</p></div>
-                            <div className={card}><p className="text-xs uppercase text-slate-400">{t.threat}</p><p className="mt-2 text-4xl font-black">{bridge.zombieThreatLevel}</p></div>
-                        </div>
+                    <nav className="mt-9 space-y-2">
+                        {navItems.map((item, index) => (
+                            <Link
+                                key={item}
+                                href={item === 'Marketplace' || item === 'Sfera Hall' ? '/fastview' : item === 'Dashboard' ? '/player/dashboard' : '/fastview'}
+                                className={`group flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                                    index === 0
+                                        ? 'border-sky-300/40 bg-sky-400/15 text-white shadow-[0_0_32px_rgba(14,165,233,0.22)]'
+                                        : 'border-transparent text-slate-400 hover:border-sky-300/20 hover:bg-white/[0.04] hover:text-slate-100'
+                                }`}
+                            >
+                                <span className="flex items-center gap-3"><span className="text-lg">{['▦', '🛒', '🏛️', '☠️', '🏁', '🎁', '▤', '🎁', '●'][index]}</span>{item}</span>
+                                {index === 0 && <span className="text-sky-300">›</span>}
+                            </Link>
+                        ))}
+                    </nav>
+                    <div className="mt-auto overflow-hidden rounded-2xl border border-sky-300/15 bg-[linear-gradient(135deg,rgba(14,165,233,0.16),rgba(15,23,42,0.42))] p-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-200">Season 1</p>
+                        <p className="mt-2 text-2xl font-black uppercase leading-none">Rise of the players</p>
+                        <Link href="/fastview" className="mt-4 inline-flex rounded-xl border border-sky-300/30 bg-sky-400/10 px-3 py-2 text-xs font-black text-sky-200">View Battle Pass →</Link>
                     </div>
-                </div>
+                </aside>
 
-                <div className="rounded-[2rem] border border-white/10 bg-black/25 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md">
-                    <div className="flex items-center justify-between gap-3">
-                        <div><p className={sectionTitle}>{t.quests}</p><h3 className="mt-3 text-2xl font-black">Mission constellation</h3></div>
-                        <span className="rounded-full border border-[#66d9cb]/25 bg-[#66d9cb]/10 px-3 py-1 text-xs font-black text-[#9ff4ec]">{nextRewardProgress}%</span>
-                    </div>
-                    <div className="relative mt-8 min-h-64 rounded-[1.5rem] border border-white/10 bg-[radial-gradient(circle_at_center,rgba(102,217,203,0.12),transparent_44%)] p-5">
-                        <div className="absolute left-[18%] top-[28%] h-2 w-[62%] rotate-6 bg-gradient-to-r from-[#66d9cb]/10 via-[#66d9cb]/60 to-[#66d9cb]/10" />
-                        {(t.playerQuestItems as string[]).map((item, index) => (
-                            <div key={item} className={`absolute ${index === 0 ? 'left-[6%] top-[18%]' : index === 1 ? 'right-[10%] top-[36%]' : 'left-[28%] bottom-[12%]'}`}>
-                                <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border border-[#66d9cb]/35 bg-slate-950/85 p-3 text-center shadow-[0_0_45px_rgba(102,217,203,0.16)]">
-                                    <span className="text-lg">{index === 0 ? '⚔️' : index === 1 ? '🏁' : '🎁'}</span>
-                                    <span className="mt-1 text-[10px] font-bold leading-tight text-slate-200">{item}</span>
+                <div className="min-w-0 p-4 md:p-6">
+                    <DashboardBackNav />
+                    <header className="mb-5 flex flex-col gap-4 border-b border-white/10 pb-5 xl:flex-row xl:items-center xl:justify-between">
+                        <div className="relative max-w-xl flex-1">
+                            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">⌕</span>
+                            <input className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-24 text-sm text-slate-200 outline-none transition placeholder:text-slate-500 focus:border-sky-300/40 focus:bg-sky-400/[0.07]" placeholder="Search 3DSFERA..." readOnly />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-white/5 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Ctrl + K</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span className="inline-flex items-center gap-2 rounded-2xl border border-sky-300/35 bg-sky-400/12 px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-sky-300 shadow-[0_0_30px_rgba(14,165,233,0.16)]">🎮 Player Mode <span className="h-2 w-2 rounded-full bg-emerald-400" /></span>
+                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-slate-300">Player · Level 24</span>
+                        </div>
+                    </header>
+
+                    <div className="grid gap-5 xl:grid-cols-[1fr_27rem]">
+                        <main className="min-w-0 space-y-5">
+                            <div className="relative overflow-hidden rounded-3xl border border-sky-300/20 bg-slate-950/70 p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                                <Image src="/visuals/player-arena.svg" alt="3DSFERA neon city player dashboard hero" width={1200} height={760} className="absolute inset-0 h-full w-full object-cover opacity-45" priority />
+                                <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.96),rgba(2,6,23,0.72)_48%,rgba(2,6,23,0.24))]" />
+                                <div className="relative max-w-2xl">
+                                    <h1 className="text-4xl font-black tracking-tight md:text-5xl">Welcome back, <span className="text-sky-300">Player</span></h1>
+                                    <p className="mt-3 text-2xl font-semibold text-slate-300">Play. Earn. Explore.</p>
+                                    <div className="mt-8 grid gap-4 border-t border-white/10 pt-5 sm:grid-cols-2">
+                                        <div>
+                                            <div className="flex items-center justify-between text-sm"><span className="font-bold">Level 24</span><span className="text-slate-400">{bridge.zombieScore.toLocaleString()} / 10,000 XP</span></div>
+                                            <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-sky-400 shadow-[0_0_16px_rgba(56,189,248,0.8)]" style={{ width: `${levelProgress}%` }} /></div>
+                                        </div>
+                                        <div className="rounded-2xl border border-orange-300/20 bg-black/35 p-3">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-200">Player ID</p>
+                                            <p className="mt-1 font-mono text-sm text-slate-200">3DSF-7A2B-9C4D</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        ))}
+
+                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                                <PlayerMetric title="Current Mode" value="Player" helper="Active" icon="🎮" tone="sky" />
+                                <PlayerMetric title="Current Location" value={currentLocation} helper="Open Map" icon="🏙️" tone="cyan" />
+                                <PlayerMetric title="Current Game" value={currentGame} helper="Enter Arena" icon="☠️" tone="red" />
+                                <PlayerMetric title={String(t.zombieScore)} value={bridge.zombieScore.toLocaleString()} helper="Top 18% this week ↗" icon="◎" tone="red" />
+                                <PlayerMetric title={String(t.health)} value={`${bridge.zombieHealth} / 100`} helper={`Regenerates in 02:45`} icon="💗" tone="rose" progress={healthPercent} />
+                                <PlayerMetric title="Coin Balance" value={coinsPreview.toLocaleString()} helper="+320 earned today" icon="🪙" tone="amber" />
+                                <PlayerMetric title="Quest Progress" value={`${nextRewardProgress}%`} helper={`${Math.max(bridge.zombieKills, 15)} / 22 quests completed`} icon="☑" tone="purple" progress={nextRewardProgress} />
+                                <PlayerMetric title="Rewards Earned" value={String(rewardCount)} helper="View all rewards →" icon="🎁" tone="amber" />
+                            </div>
+
+                            <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                                <div className="mb-4 flex items-center justify-between">
+                                    <h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-300">Available Game Zones</h2>
+                                    <Link href="/fastview" className="text-xs font-black uppercase tracking-[0.16em] text-sky-300">Enter world →</Link>
+                                </div>
+                                <div className="grid gap-4 lg:grid-cols-3">
+                                    {zoneItems.map((zone) => <GameZoneCard key={zone.name} {...zone} />)}
+                                </div>
+                            </section>
+                        </main>
+
+                        <aside className="space-y-5">
+                            <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                                <div className="mb-4 flex items-center justify-between">
+                                    <h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-300">{t.recentActivity}</h2>
+                                    <span className="text-xs font-bold text-sky-300">View All</span>
+                                </div>
+                                <div className="space-y-3">
+                                    {activityItems.slice(0, 5).map((item, index) => (
+                                        <div key={`${item}-${index}`} className="flex items-center gap-3 border-b border-white/8 pb-3 last:border-0 last:pb-0">
+                                            <span className={`flex h-10 w-10 items-center justify-center rounded-xl border ${index % 3 === 0 ? 'border-emerald-400/30 bg-emerald-400/10' : index % 3 === 1 ? 'border-red-400/30 bg-red-400/10' : 'border-sky-400/30 bg-sky-400/10'}`}>{index % 3 === 0 ? '🏛️' : index % 3 === 1 ? '☠️' : '💙'}</span>
+                                            <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-100">{item}</p><p className="text-xs text-slate-500">3DSFERA City</p></div>
+                                            <span className="text-xs text-slate-500">10:{42 - index} AM</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+
+                            <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                                <div className="p-5 pb-3"><h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-300">3DSFERA City Overview</h2></div>
+                                <div className="relative mx-5 mb-5 h-64 overflow-hidden rounded-2xl border border-sky-300/15 bg-slate-950">
+                                    <Image src="/visuals/shopper-market.svg" alt="3DSFERA city overview map" width={1200} height={760} className="h-full w-full object-cover opacity-70" />
+                                    <span className="absolute left-[18%] top-[24%] rounded-lg border border-sky-300/50 bg-sky-500/20 px-3 py-1 text-xs font-black text-sky-100">SFERA HALL</span>
+                                    <span className="absolute right-[10%] top-[34%] rounded-lg border border-red-300/50 bg-red-500/20 px-3 py-1 text-xs font-black text-red-100">ZOMBIE ARENA</span>
+                                    <span className="absolute bottom-[22%] left-[10%] rounded-lg border border-cyan-300/50 bg-cyan-500/20 px-3 py-1 text-xs font-black text-cyan-100">RACING ZONE</span>
+                                    <span className="absolute bottom-[18%] right-[12%] rounded-lg border border-amber-300/50 bg-amber-500/20 px-3 py-1 text-xs font-black text-amber-100">TREASURE HUNT</span>
+                                </div>
+                            </section>
+
+                            <section className="rounded-3xl border border-sky-300/15 bg-[linear-gradient(135deg,rgba(14,165,233,0.14),rgba(15,23,42,0.45))] p-5">
+                                <div className="flex items-center gap-4"><span className="text-4xl">🛡️</span><div><p className="font-black">Double Coin Event</p><p className="text-sm text-slate-300">Earn 2X coins in all zones!</p></div><div className="ml-auto text-right font-mono text-lg">02:18:45</div></div>
+                            </section>
+                        </aside>
                     </div>
                 </div>
             </div>
-
-            <div className="relative mt-6 grid gap-4 lg:grid-cols-[0.85fr_1.15fr_0.9fr]">
-                <div className={card}>
-                    <h3 className="font-semibold">{t.giftsTitle}</h3>
-                    <div className="mt-4 space-y-3">{(t.gifts as string[]).map((gift, index) => <div key={gift} className="rounded-2xl border border-white/10 bg-black/25 p-3"><div className="flex items-start gap-3"><span className="text-2xl">{index === 0 ? '🎲' : index === 1 ? '🔥' : '📦'}</span><p className="text-sm leading-5 text-slate-300">{gift}</p></div></div>)}</div>
-                </div>
-                <div className={card}>
-                    <div className="flex items-center justify-between"><h3 className="font-semibold">Reward vault</h3><span className="text-xs font-bold text-[#9ff4ec]">{coinsPreview} coins</span></div>
-                    <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[linear-gradient(90deg,#66d9cb,#d9fff9)]" style={{ width: `${nextRewardProgress}%` }} /></div>
-                    <ul className="mt-4 grid gap-2 text-sm text-slate-300 md:grid-cols-3">{list(t.playerOrders as string[])}</ul>
-                </div>
-                <div className={card}>
-                    <h3 className="font-semibold">{t.messages}</h3>
-                    <ul className="mt-4 space-y-3 text-sm text-slate-300">{list(t.playerMessages as string[])}</ul>
-                </div>
-            </div>
-
-            <div className="relative mt-6 grid gap-4 lg:grid-cols-3">
-                <div className={card}><h3 className="font-semibold">{t.deliveryLocation}</h3><p className="mt-3 text-sm text-slate-300">{t.playerDelivery}</p><button className="mt-4 rounded-full border border-[#66d9cb]/45 bg-[#66d9cb]/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#9ff4ec] transition hover:bg-[#66d9cb]/20">{t.addDelivery}</button></div>
-                <div className={card}><h3 className="font-semibold">{t.recentActivity}</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{bridge.recentActivity.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul></div>
-                <div className={card}><h3 className="font-semibold">{t.wallet}</h3><p className="mt-3 text-sm text-slate-300">{t.walletText}</p></div>
-            </div>
-
-            {bridge.arenaMoments.length > 0 && <div className="relative mt-4 rounded-[1.5rem] border border-[#66d9cb]/20 bg-[#66d9cb]/10 p-4"><h3 className="font-semibold">{t.arenaMoments}</h3><div className="mt-3 grid gap-2 md:grid-cols-2">{bridge.arenaMoments.map((moment) => <div key={moment.id} className="rounded-xl border border-white/10 bg-black/30 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"><p className="text-sm font-semibold text-white">{moment.title}</p><p className="mt-1 text-xs text-slate-300">{moment.description}</p></div>)}</div></div>}
         </section>
     );
 }
+
+type PlayerMetricTone = 'sky' | 'cyan' | 'red' | 'rose' | 'amber' | 'purple';
+
+const playerMetricToneClasses: Record<PlayerMetricTone, string> = {
+    sky: 'text-sky-300 border-sky-300/25 bg-sky-400/10',
+    cyan: 'text-cyan-300 border-cyan-300/25 bg-cyan-400/10',
+    red: 'text-red-300 border-red-300/25 bg-red-400/10',
+    rose: 'text-rose-300 border-rose-300/25 bg-rose-400/10',
+    amber: 'text-amber-300 border-amber-300/25 bg-amber-400/10',
+    purple: 'text-purple-300 border-purple-300/25 bg-purple-400/10',
+};
+
+const PlayerMetric = ({ title, value, helper, icon, tone, progress }: { title: string; value: string; helper: string; icon: string; tone: PlayerMetricTone; progress?: number }) => (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{title}</p>
+        <div className="mt-5 flex items-center gap-4">
+            <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border text-2xl ${playerMetricToneClasses[tone]}`}>{icon}</span>
+            <div className="min-w-0"><p className="truncate text-2xl font-black text-white">{value}</p><p className="mt-1 text-xs text-slate-400">{helper}</p></div>
+        </div>
+        {typeof progress === 'number' && <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-current text-sky-400" style={{ width: `${progress}%` }} /></div>}
+    </div>
+);
+
+const GameZoneCard = ({ name, meta, risk, icon, tone }: { name: string; meta: string; risk: string; icon: string; tone: string }) => {
+    const toneClass = tone === 'red' ? 'border-red-400/25 from-red-950/75 text-red-200' : tone === 'amber' ? 'border-amber-400/25 from-amber-950/75 text-amber-200' : 'border-cyan-400/25 from-cyan-950/75 text-cyan-200';
+    return (
+        <Link href="/fastview" className={`group relative min-h-44 overflow-hidden rounded-2xl border bg-gradient-to-br ${toneClass} to-slate-950 p-5 transition hover:-translate-y-1 hover:shadow-[0_24px_70px_rgba(14,165,233,0.16)]`}>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.18),transparent_34%)] opacity-60" />
+            <div className="relative flex h-full flex-col justify-between">
+                <div><h3 className="text-2xl font-black uppercase tracking-tight text-white">{name}</h3><p className="mt-2 text-sm text-slate-300">{meta}</p></div>
+                <div className="flex items-end justify-between"><span className="text-sm font-bold">{icon} {risk}</span><span className="rounded-xl border border-current/35 bg-black/25 px-3 py-2 text-xs font-black">Enter Zone</span></div>
+            </div>
+        </Link>
+    );
+};
 
 export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
     const { language } = useLanguage();
