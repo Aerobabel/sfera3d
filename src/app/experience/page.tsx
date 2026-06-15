@@ -1,6 +1,5 @@
 'use client';
 
-import BrandLogo from "@/components/BrandLogo";
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -35,6 +34,7 @@ type PixelStreamingWindow = Window & {
         config?: {
             setFlagEnabled?: (flagName: string, enabled: boolean) => void;
         };
+        emitUIInteraction?: (descriptor: string | Record<string, unknown>) => void;
         _webRtcController?: {
             streamController?: {
                 audioElement?: HTMLMediaElement | null;
@@ -69,6 +69,25 @@ const releaseAllInputs = () => {
     }
 
     mouseLeaveHandler?.();
+};
+
+
+const sendUnrealUiInteraction = (descriptor: Record<string, unknown>) => {
+    const psWindow = window as PixelStreamingWindow;
+
+    try {
+        psWindow.ps?.emitUIInteraction?.(descriptor);
+    } catch { /* best-effort */ }
+
+    const handler = psWindow.ps?.toStreamerHandlers?.get('UIInteraction')
+        ?? psWindow.ps?.toStreamerHandlers?.get('uiInteraction')
+        ?? psWindow.ps?.toStreamerHandlers?.get('Message');
+
+    if (handler) {
+        try {
+            handler([JSON.stringify(descriptor)]);
+        } catch { /* best-effort */ }
+    }
 };
 
 const sendUnrealKeyPress = (keyCode: number) => {
@@ -651,6 +670,7 @@ export default function ExperiencePage() {
     const [needsPointerResume, setNeedsPointerResume] = useState(false);
     const [isStreamPixelOpen, setIsStreamPixelOpen] = useState(false);
     const [fastViewError, setFastViewError] = useState<string | null>(null);
+    const [isPlayerModePromptDismissed, setIsPlayerModePromptDismissed] = useState(false);
     const [liveActivityToasts, setLiveActivityToasts] = useState<LiveActivityToast[]>([]);
     const liveActivityIndexRef = useRef(0);
     const liveActivityRemovalTimersRef = useRef<number[]>([]);
@@ -1003,12 +1023,21 @@ export default function ExperiencePage() {
         isVideoStreamingFrames,
     ]);
 
+    useEffect(() => {
+        if (!unrealBridge.accessDeniedMessage) {
+            setIsPlayerModePromptDismissed(false);
+        }
+    }, [unrealBridge.accessDeniedMessage]);
+
     const handleSwitchToPlayerMode = useCallback(() => {
         if (!hasStartedExperience) {
             handleStartExperience();
         }
 
-        sendUnrealKeyPress(80); // P — Player Mode shortcut in the Unreal build.
+        sendUnrealUiInteraction({ type: 'set_mode', mode: 'player' });
+        sendUnrealUiInteraction({ event: 'mode_changed', mode: 'player' });
+        sendUnrealKeyPress(80);
+        setIsPlayerModePromptDismissed(true);
     }, [handleStartExperience, hasStartedExperience]);
 
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
@@ -1621,7 +1650,7 @@ export default function ExperiencePage() {
                         <div className="flex h-16 items-center justify-between gap-3 px-4 sm:h-20 sm:px-6 lg:px-8">
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2 sm:gap-3">
-                                    <BrandLogo size="lg" priority />
+                                    <div className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/25 bg-slate-950/45 px-3 py-2 text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,0.16)] backdrop-blur-md"><span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-300/35 bg-cyan-400/10 text-sm font-black text-cyan-200">S</span><span className="text-sm font-black uppercase tracking-[0.18em]">3DSFERA</span></div>
                                 </div>
                                 <div className="mt-1 hidden w-fit items-center gap-2 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-300 sm:flex">
                                     <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
@@ -1936,18 +1965,27 @@ export default function ExperiencePage() {
                             ))}
                         </div>
                     )}
-                    {unrealBridge.accessDeniedMessage && (
+                    {unrealBridge.accessDeniedMessage && !isPlayerModePromptDismissed && (
                         <div className="absolute left-1/2 top-1/2 z-[70] w-[min(calc(100vw-2rem),26rem)] -translate-x-1/2 -translate-y-1/2 pointer-events-auto" role="dialog" aria-live="assertive" aria-label="Player Mode required">
                             <div className="rounded-3xl border border-amber-300/35 bg-slate-950/90 p-5 text-white shadow-[0_30px_90px_rgba(0,0,0,0.55)] backdrop-blur-xl">
                                 <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-200">Player Mode required</p>
                                 <p className="mt-3 text-sm leading-6 text-slate-200">{unrealBridge.accessDeniedMessage}</p>
-                                <button
-                                    type="button"
-                                    onClick={handleSwitchToPlayerMode}
-                                    className="mt-4 w-full rounded-2xl bg-[linear-gradient(135deg,#66d9cb,#d9fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:scale-[1.01]"
-                                >
-                                    Switch to Player Mode now
-                                </button>
+                                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsPlayerModePromptDismissed(true)}
+                                        className="rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/10"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleSwitchToPlayerMode}
+                                        className="rounded-2xl bg-[linear-gradient(135deg,#66d9cb,#d9fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:scale-[1.01]"
+                                    >
+                                        Switch mode
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -1958,7 +1996,7 @@ export default function ExperiencePage() {
                     <header className="flex justify-between items-start pointer-events-none w-full z-50">
                         <div className="group cursor-default">
                             <div className="flex items-center gap-3">
-                                <BrandLogo size="lg" priority />
+                                <div className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/25 bg-slate-950/45 px-3 py-2 text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,0.16)] backdrop-blur-md"><span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-300/35 bg-cyan-400/10 text-sm font-black text-cyan-200">S</span><span className="text-sm font-black uppercase tracking-[0.18em]">3DSFERA</span></div>
                             </div>
 
                             {/* System Status Indicator */}
@@ -2064,8 +2102,8 @@ export default function ExperiencePage() {
                             <Link href="/roles" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 Role Selection
                             </Link>
-                            <Link href="/player/dashboard" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
-                                Player Dashboard
+                            <Link href="/player/dashboard" target="_blank" rel="noopener noreferrer" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                                Player Dashboard (opens new tab)
                             </Link>
                             <Link href="/shopper/dashboard" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 Shopper Dashboard

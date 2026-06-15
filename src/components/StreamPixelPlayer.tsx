@@ -29,6 +29,7 @@ type StreamPixelStream = {
         };
     };
     disconnect?: () => void;
+    emitUIInteraction?: (descriptor: string | Record<string, unknown>) => void;
 };
 
 type StreamPixelCompatibleWindow = Window & {
@@ -553,6 +554,9 @@ export default function StreamPixelPlayer({
                     },
                     disconnect: () => {
                         stream.disconnect?.();
+                    },
+                    emitUIInteraction: (descriptor) => {
+                        pixelStreaming?.emitUIInteraction?.(descriptor);
                     },
                 };
 

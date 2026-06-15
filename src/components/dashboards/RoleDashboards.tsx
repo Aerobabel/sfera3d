@@ -153,9 +153,9 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
     return (
         <section className="relative overflow-hidden rounded-[2.25rem] border border-sky-400/15 bg-[#020711] text-white shadow-[0_40px_140px_rgba(0,0,0,0.65)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_12%,rgba(0,153,255,0.22),transparent_30%),radial-gradient(circle_at_18%_72%,rgba(102,217,203,0.14),transparent_34%)]" />
-            <div className="relative grid min-h-[56rem] lg:grid-cols-[16rem_1fr]">
-                <aside className="hidden border-r border-sky-200/10 bg-black/20 p-5 backdrop-blur-xl lg:flex lg:flex-col">
-                    <div className="flex items-center gap-3 text-2xl font-black tracking-tight">
+            <div className="relative grid min-h-[56rem] lg:grid-cols-[14rem_1fr]">
+                <aside className="hidden border-r border-sky-200/10 bg-black/20 p-4 backdrop-blur-xl lg:flex lg:flex-col">
+                    <div className="flex items-center gap-3 text-xl font-black tracking-tight">
                         <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-300/35 bg-sky-400/10 text-sky-300 shadow-[0_0_28px_rgba(56,189,248,0.22)]">S</span>
                         <span>3DSFERA</span>
                     </div>
@@ -164,7 +164,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                             <Link
                                 key={item}
                                 href={item === 'Marketplace' || item === 'Sfera Hall' ? '/fastview' : item === 'Dashboard' ? '/player/dashboard' : '/fastview'}
-                                className={`group flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                                className={`group flex items-center justify-between rounded-2xl border px-3 py-3 text-sm font-semibold transition ${
                                     index === 0
                                         ? 'border-sky-300/40 bg-sky-400/15 text-white shadow-[0_0_32px_rgba(14,165,233,0.22)]'
                                         : 'border-transparent text-slate-400 hover:border-sky-300/20 hover:bg-white/[0.04] hover:text-slate-100'
@@ -177,7 +177,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                     </nav>
                     <div className="mt-auto overflow-hidden rounded-2xl border border-sky-300/15 bg-[linear-gradient(135deg,rgba(14,165,233,0.16),rgba(15,23,42,0.42))] p-4">
                         <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-200">Season 1</p>
-                        <p className="mt-2 text-2xl font-black uppercase leading-none">Rise of the players</p>
+                        <p className="mt-2 text-xl font-black uppercase leading-none">Rise of the players</p>
                         <Link href="/fastview" className="mt-4 inline-flex rounded-xl border border-sky-300/30 bg-sky-400/10 px-3 py-2 text-xs font-black text-sky-200">View Battle Pass →</Link>
                     </div>
                 </aside>
@@ -196,13 +196,13 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                         </div>
                     </header>
 
-                    <div className="grid gap-5 xl:grid-cols-[1fr_27rem]">
+                    <div className="grid gap-5 2xl:grid-cols-[1fr_26rem]">
                         <main className="min-w-0 space-y-5">
                             <div className="relative overflow-hidden rounded-3xl border border-sky-300/20 bg-slate-950/70 p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                                 <Image src="/visuals/player-arena.svg" alt="3DSFERA neon city player dashboard hero" width={1200} height={760} className="absolute inset-0 h-full w-full object-cover opacity-45" priority />
                                 <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.96),rgba(2,6,23,0.72)_48%,rgba(2,6,23,0.24))]" />
                                 <div className="relative max-w-2xl">
-                                    <h1 className="text-4xl font-black tracking-tight md:text-5xl">Welcome back, <span className="text-sky-300">Player</span></h1>
+                                    <h1 className="text-4xl font-black tracking-tight">Welcome back, <span className="text-sky-300">Player</span></h1>
                                     <p className="mt-3 text-2xl font-semibold text-slate-300">Play. Earn. Explore.</p>
                                     <div className="mt-8 grid gap-4 border-t border-white/10 pt-5 sm:grid-cols-2">
                                         <div>
@@ -217,7 +217,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                                 </div>
                             </div>
 
-                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                            <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
                                 <PlayerMetric title="Current Mode" value="Player" helper="Active" icon="🎮" tone="sky" />
                                 <PlayerMetric title="Current Location" value={currentLocation} helper="Open Map" icon="🏙️" tone="cyan" />
                                 <PlayerMetric title="Current Game" value={currentGame} helper="Enter Arena" icon="☠️" tone="red" />
@@ -290,11 +290,11 @@ const playerMetricToneClasses: Record<PlayerMetricTone, string> = {
 };
 
 const PlayerMetric = ({ title, value, helper, icon, tone, progress }: { title: string; value: string; helper: string; icon: string; tone: PlayerMetricTone; progress?: number }) => (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{title}</p>
-        <div className="mt-5 flex items-center gap-4">
-            <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border text-2xl ${playerMetricToneClasses[tone]}`}>{icon}</span>
-            <div className="min-w-0"><p className="truncate text-2xl font-black text-white">{value}</p><p className="mt-1 text-xs text-slate-400">{helper}</p></div>
+    <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{title}</p>
+        <div className="mt-4 flex items-center gap-3">
+            <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border text-2xl ${playerMetricToneClasses[tone]}`}>{icon}</span>
+            <div className="min-w-0"><p className="truncate text-xl font-black text-white">{value}</p><p className="mt-1 text-xs text-slate-400">{helper}</p></div>
         </div>
         {typeof progress === 'number' && <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-current text-sky-400" style={{ width: `${progress}%` }} /></div>}
     </div>
@@ -306,7 +306,7 @@ const GameZoneCard = ({ name, meta, risk, icon, tone }: { name: string; meta: st
         <Link href="/fastview" className={`group relative min-h-44 overflow-hidden rounded-2xl border bg-gradient-to-br ${toneClass} to-slate-950 p-5 transition hover:-translate-y-1 hover:shadow-[0_24px_70px_rgba(14,165,233,0.16)]`}>
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.18),transparent_34%)] opacity-60" />
             <div className="relative flex h-full flex-col justify-between">
-                <div><h3 className="text-2xl font-black uppercase tracking-tight text-white">{name}</h3><p className="mt-2 text-sm text-slate-300">{meta}</p></div>
+                <div><h3 className="text-xl font-black uppercase tracking-tight text-white">{name}</h3><p className="mt-2 text-sm text-slate-300">{meta}</p></div>
                 <div className="flex items-end justify-between"><span className="text-sm font-bold">{icon} {risk}</span><span className="rounded-xl border border-current/35 bg-black/25 px-3 py-2 text-xs font-black">Enter Zone</span></div>
             </div>
         </Link>
