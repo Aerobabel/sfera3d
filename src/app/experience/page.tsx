@@ -2099,20 +2099,20 @@ export default function ExperiencePage() {
                                 {accountSignOutLabel}
                             </button>
                             <div className="h-px bg-white/10 my-2"></div>
-                            <Link href="/roles" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
+                            <Link href="/roles?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 Role Selection
                             </Link>
-                            <Link href="/player/dashboard" target="_blank" rel="noopener noreferrer" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
-                                Player Dashboard (opens new tab)
+                            <Link href="/player/dashboard?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                                Player Dashboard
                             </Link>
-                            <Link href="/shopper/dashboard" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            <Link href="/shopper/dashboard?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 Shopper Dashboard
                             </Link>
-                            <Link href="/business/dashboard" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            <Link href="/business/dashboard?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 Business Dashboard
                             </Link>
-                            <Link href="/" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition">
-                                {returnHomeLabel}
+                            <Link href="/fastview?resume=scene" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
+                                Back to scene
                             </Link>
                         </div>
                     )}
