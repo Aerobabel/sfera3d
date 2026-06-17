@@ -5,7 +5,7 @@ import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Activity, Send, Menu, X, Monitor, Play, Volume2 } from "lucide-react";
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
 import { getProductById, getSupplierById, getProductsBySupplier } from "@/lib/db";
 import ProductCard from "@/components/overlay/ProductCard";
@@ -22,6 +22,7 @@ import { clearServerAuthSession } from "@/lib/auth/browser";
 import { AppLanguage, getLocalizedProduct } from "@/lib/i18n";
 import { readSupplierChatApiResponse } from "@/lib/supplierChat";
 import { useUnrealEventBridge } from "@/hooks/useUnrealEventBridge";
+import { GamerDashboard, ShopperDashboard, SupplierDashboard } from "@/components/dashboards/RoleDashboards";
 import { GAME_RULES } from "@/lib/unreal/gameRules";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -102,9 +103,10 @@ const sendUnrealKeyPress = (keyCode: number) => {
     }
 
     const keyString = String.fromCharCode(keyCode);
+    const isLetter = /^[A-Z]$/.test(keyString);
     const keyboardEventInit: KeyboardEventInit = {
-        key: keyString,
-        code: `Digit${keyString}`,
+        key: isLetter ? keyString.toLowerCase() : keyString,
+        code: isLetter ? `Key${keyString}` : `Digit${keyString}`,
         bubbles: true,
         cancelable: true,
     };
@@ -605,6 +607,7 @@ const resolveFrontendCinematic = (event: unknown): Omit<FrontendCinematic, 'id'>
 
 export default function ExperiencePage() {
     const pathname = usePathname();
+    const router = useRouter();
     const searchParams = useSearchParams();
     const isFastViewRoute = pathname === '/fastview';
     const { language } = useLanguage();
@@ -678,6 +681,7 @@ export default function ExperiencePage() {
     const [isStreamPixelOpen, setIsStreamPixelOpen] = useState(false);
     const [fastViewError, setFastViewError] = useState<string | null>(null);
     const [isPlayerModePromptDismissed, setIsPlayerModePromptDismissed] = useState(false);
+    const [dashboardOverlay, setDashboardOverlay] = useState<'player' | 'shopper' | 'business' | null>(null);
     const [liveActivityToasts, setLiveActivityToasts] = useState<LiveActivityToast[]>([]);
     const liveActivityIndexRef = useRef(0);
     const liveActivityRemovalTimersRef = useRef<number[]>([]);
@@ -1074,16 +1078,36 @@ export default function ExperiencePage() {
         }
     }, [unrealBridge.accessDeniedMessage]);
 
+    const switchToPlayerMode = useCallback(() => {
+        sendUnrealUiInteraction({ type: 'set_mode', mode: 'player' });
+        sendUnrealUiInteraction({ event: 'mode_changed', mode: 'player' });
+        unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: 'player' }));
+        sendUnrealKeyPress(71);
+    }, [unrealBridge]);
+
     const handleSwitchToPlayerMode = useCallback(() => {
         if (!hasStartedExperience) {
             handleStartExperience();
         }
 
-        sendUnrealUiInteraction({ type: 'set_mode', mode: 'player' });
-        sendUnrealUiInteraction({ event: 'mode_changed', mode: 'player' });
-        sendUnrealKeyPress(80);
+        switchToPlayerMode();
         setIsPlayerModePromptDismissed(true);
-    }, [handleStartExperience, hasStartedExperience]);
+    }, [handleStartExperience, hasStartedExperience, switchToPlayerMode]);
+
+    useEffect(() => {
+        if (!hasStartedExperience || isChatFocused || activeProduct || isCatalogueOpen || activePavilion || isMenuOpen) return;
+
+        const handleModeHotkey = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement | null;
+            const isEditableTarget = Boolean(target?.closest('input, textarea, select, [contenteditable="true"]'));
+            if (isEditableTarget || event.repeat || event.key.toLowerCase() !== 'g') return;
+
+            switchToPlayerMode();
+        };
+
+        document.addEventListener('keydown', handleModeHotkey, true);
+        return () => document.removeEventListener('keydown', handleModeHotkey, true);
+    }, [activePavilion, activeProduct, isCatalogueOpen, isChatFocused, isMenuOpen, hasStartedExperience, switchToPlayerMode]);
 
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
     const streamPixelPreviewUrl = useMemo(
@@ -2019,7 +2043,7 @@ export default function ExperiencePage() {
                     <MarketplaceCrosshair />
                     {showLiveActivityToasts && (
                         <div
-                            className="absolute left-4 top-[7.25rem] z-30 flex w-[min(calc(100vw-2rem),22rem)] flex-col gap-2 pointer-events-none sm:left-6 sm:top-32 lg:left-8"
+                            className="absolute left-4 top-[12.5rem] z-30 flex w-[min(calc(100vw-2rem),22rem)] flex-col gap-2 pointer-events-none sm:left-6 sm:top-52 lg:left-8"
                             aria-live="polite"
                         >
                             {liveActivityToasts.map((toast, index) => (
@@ -2188,18 +2212,38 @@ export default function ExperiencePage() {
                             <Link href="/roles?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 Role Selection
                             </Link>
-                            <Link href="/player/dashboard?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            <button type="button" onClick={() => { setDashboardOverlay('player'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 Player Dashboard
-                            </Link>
-                            <Link href="/shopper/dashboard?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            </button>
+                            <button type="button" onClick={() => { setDashboardOverlay('shopper'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 Shopper Dashboard
-                            </Link>
-                            <Link href="/business/dashboard?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            </button>
+                            <button type="button" onClick={() => { setDashboardOverlay('business'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 Business Dashboard
-                            </Link>
-                            <Link href="/fastview?resume=scene" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
+                            </button>
+                            <button type="button" onClick={() => { setDashboardOverlay(null); setIsMenuOpen(false); router.replace('/fastview?resume=scene', { scroll: false }); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 {backToSceneLabel}
-                            </Link>
+                            </button>
+                        </div>
+                    )}
+
+
+                    {dashboardOverlay && (
+                        <div className="absolute inset-0 z-[85] overflow-y-auto bg-slate-950/78 p-3 text-white backdrop-blur-xl pointer-events-auto md:p-6" role="dialog" aria-modal="true" aria-label="Dashboard overlay">
+                            <div className="sticky top-3 z-10 mb-3 flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setDashboardOverlay(null)}
+                                    className="rounded-full border border-white/15 bg-black/65 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white shadow-xl backdrop-blur-md transition hover:border-[#66d9cb]/45 hover:text-[#9ff4ec]"
+                                >
+                                    Close overlay
+                                </button>
+                            </div>
+                            <div className="mx-auto max-w-7xl pb-8">
+                                {dashboardOverlay === 'player' && <GamerDashboard bridge={unrealBridge} />}
+                                {dashboardOverlay === 'shopper' && <ShopperDashboard bridge={unrealBridge} />}
+                                {dashboardOverlay === 'business' && <SupplierDashboard />}
+                            </div>
                         </div>
                     )}
 
