@@ -1,80 +1,102 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import Image from 'next/image';
+import { useRef, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import { useSearchParams } from 'next/navigation';
+import {
+    ArrowRight,
+    BadgeCheck,
+    Building2,
+    Gamepad2,
+    Globe2,
+    MousePointer2,
+    PackageCheck,
+    ShoppingBag,
+    Sparkles,
+    Trophy,
+    type LucideIcon,
+} from 'lucide-react';
 import type { AppLanguage } from '@/lib/i18n';
+
+type RoleHref = '/player/dashboard' | '/shopper/dashboard' | '/business/dashboard';
+type Role = {
+    href: RoleHref;
+    title: string;
+    text: string;
+    mode: string;
+    stat: string;
+    statLabel: string;
+};
 
 const roleCopy = {
     en: {
-        eyebrow: '3DSFERA cutscene',
-        title: '3DSFERA',
-        subtitle: 'A new standard. A new starting point.',
-        screen1: 'SCREEN 1 — 5 seconds without text: the camera slowly flies into a futuristic city. Lights. Skyscrapers. Living streets. People. Cars. Music rises.',
-        voice: '“Every day billions of people buy, sell, work, and play — in different worlds. For the first time in history, all of it is in one place.”',
-        question: '“Who are you in this world?”',
-        welcome: '“Welcome to the city where your actions have real weight. Welcome to 3DSFERA.”',
-        enter: 'ENTER',
+        eyebrow: 'Choose your 3DSFERA path',
+        title: 'Enter the city as the role that moves you forward.',
+        subtitle: 'A unified immersive marketplace for play, discovery, and global trade.',
+        screen1: 'The same premium world adapts to your intent: compete in live experiences, shop inside spatial showrooms, or operate a branded pavilion.',
+        voice: 'Every role is connected to the same real-time city, with refined controls, direct conversations, and commercial actions that matter beyond the screen.',
+        question: 'Who are you in this world?',
+        welcome: 'Pick your entry point. You can return here whenever your mission changes.',
+        enter: 'Enter live world',
         home: 'Home',
         backToScene: 'Back to scene',
         world: 'World',
         startWithSound: 'Start with sound',
         skipIntro: 'Skip to role selection',
         premiumAccess: 'Live mode',
-        selectMode: 'Select mode →',
-        enterGameMode: 'Enter game mode →',
+        selectMode: 'Select mode',
+        enterGameMode: 'Enter game mode',
         roles: [
-            { href: '/player/dashboard', icon: '🎮', title: 'GAMER', text: 'Complete quests. Race. Win arenas. Earn real rewards.', mode: 'Player Mode' },
-            { href: '/shopper/dashboard', icon: '🛍️', title: 'SHOPPER', text: 'Explore photoreal 3D stores. Buy real products for less. Get delivery home.', mode: 'Shopper Mode' },
-            { href: '/business/dashboard', icon: '🏛️', title: 'BUSINESS', text: 'Open a pavilion. Sell to a global audience. No intermediaries. No expensive rent. No borders.', mode: 'Supplier Dashboard' },
+            { href: '/player/dashboard', title: 'GAMER', text: 'Complete quests, race through live districts, win arenas, and unlock rewards with cinematic responsiveness.', mode: 'Player Mode', stat: '3D', statLabel: 'quests' },
+            { href: '/shopper/dashboard', title: 'SHOPPER', text: 'Browse photoreal pavilions, inspect products at scale, compare details, and move from discovery to delivery.', mode: 'Shopper Mode', stat: '4K', statLabel: 'showrooms' },
+            { href: '/business/dashboard', title: 'BUSINESS', text: 'Launch a premium pavilion, qualify global buyers, and manage direct supplier conversations without borders.', mode: 'Supplier Dashboard', stat: 'B2B', statLabel: 'pipeline' },
         ],
     },
     ru: {
-        eyebrow: 'Катсцена 3DSFERA',
-        title: '3DSFERA',
-        subtitle: 'Новый стандарт. Новая точка отсчёта.',
-        screen1: 'ЭКРАН 1 — 5 секунд без текста: камера медленно влетает в футуристический город. Огни. Небоскрёбы. Живые улицы. Люди. Машины. Музыка нарастает.',
-        voice: '“Каждый день миллиарды людей покупают, продают, работают и играют — в разных мирах. Впервые в истории — всё это в одном месте.”',
-        question: '“Кто ты в этом мире?”',
-        welcome: '“Добро пожаловать в город где твои действия имеют реальный вес. Добро пожаловать в 3DSFERA.”',
-        enter: 'ВОЙТИ',
+        eyebrow: 'Выберите путь в 3DSFERA',
+        title: 'Войдите в город в роли, которая ведёт вас дальше.',
+        subtitle: 'Единый иммерсивный маркетплейс для игры, выбора товаров и мировой торговли.',
+        screen1: 'Один премиальный мир подстраивается под вашу цель: соревнуйтесь, покупайте в пространственных шоурумах или управляйте фирменным павильоном.',
+        voice: 'Каждая роль связана с одним real-time городом: точное управление, прямые диалоги и коммерческие действия за пределами экрана.',
+        question: 'Кто вы в этом мире?',
+        welcome: 'Выберите точку входа. Сюда можно вернуться, когда миссия изменится.',
+        enter: 'Войти в live-мир',
         home: 'Главная',
         backToScene: 'Назад в сцену',
         world: 'Мир',
         startWithSound: 'Начать со звуком',
         skipIntro: 'К выбору роли',
         premiumAccess: 'Живой режим',
-        selectMode: 'Выбрать режим →',
-        enterGameMode: 'Войти в игровой режим →',
+        selectMode: 'Выбрать режим',
+        enterGameMode: 'Войти в игровой режим',
         roles: [
-            { href: '/player/dashboard', icon: '🎮', title: 'ГЕЙМЕР', text: 'Проходи квесты. Участвуй в гонках. Побеждай на аренах. Зарабатывай реальные деньги.', mode: 'Игровой режим' },
-            { href: '/shopper/dashboard', icon: '🛍️', title: 'ПОКУПАТЕЛЬ', text: 'Изучай магазины в фотореалистичном 3D. Покупай реальные товары дешевле чем где-либо. Получай домой.', mode: 'Режим покупателя' },
-            { href: '/business/dashboard', icon: '🏛️', title: 'БИЗНЕС', text: 'Открой павильон. Продавай глобальной аудитории. Без посредников. Без дорогой аренды. Без границ.', mode: 'Панель поставщика' },
+            { href: '/player/dashboard', title: 'ГЕЙМЕР', text: 'Выполняйте квесты, участвуйте в гонках по live-районам, побеждайте на аренах и открывайте награды.', mode: 'Игровой режим', stat: '3D', statLabel: 'квесты' },
+            { href: '/shopper/dashboard', title: 'ПОКУПАТЕЛЬ', text: 'Изучайте фотореалистичные павильоны, смотрите товары в масштабе, сравнивайте детали и оформляйте доставку.', mode: 'Режим покупателя', stat: '4K', statLabel: 'шоурумы' },
+            { href: '/business/dashboard', title: 'БИЗНЕС', text: 'Запустите премиальный павильон, получайте глобальных покупателей и ведите прямые диалоги без границ.', mode: 'Панель поставщика', stat: 'B2B', statLabel: 'воронка' },
         ],
     },
     zh: {
-        eyebrow: '3DSFERA 过场',
-        title: '3DSFERA',
-        subtitle: '新标准。新起点。',
-        screen1: '画面 1 — 5 秒无文字：镜头缓慢飞入未来城市。灯光、摩天楼、热闹街道、人群、车辆，音乐逐渐增强。',
-        voice: '“每天，数十亿人在不同世界中购买、销售、工作和游戏。历史上第一次，所有这些都在同一个地方。”',
-        question: '“你在这个世界中是谁？”',
-        welcome: '“欢迎来到行动具有真实重量的城市。欢迎来到 3DSFERA。”',
-        enter: '进入',
+        eyebrow: '选择你的 3DSFERA 路径',
+        title: '以推动你前进的身份进入城市。',
+        subtitle: '集游戏、探索与全球贸易于一体的沉浸式市场。',
+        screen1: '同一个高级世界会根据你的目标改变：参与实时体验、在空间展厅购物，或运营品牌展馆。',
+        voice: '每个角色都连接到同一座实时城市，拥有精致控制、直接沟通，以及真正有价值的商业动作。',
+        question: '你在这个世界中是谁？',
+        welcome: '选择入口。当任务改变时，你可以随时回到这里。',
+        enter: '进入实时世界',
         home: '首页',
         backToScene: '返回场景',
         world: '世界',
         startWithSound: '开启声音',
         skipIntro: '跳到角色选择',
         premiumAccess: '实时模式',
-        selectMode: '选择模式 →',
-        enterGameMode: '进入游戏模式 →',
+        selectMode: '选择模式',
+        enterGameMode: '进入游戏模式',
         roles: [
-            { href: '/player/dashboard', icon: '🎮', title: '玩家', text: '完成任务。参加赛车。赢得竞技场。获得真实奖励。', mode: '玩家模式' },
-            { href: '/shopper/dashboard', icon: '🛍️', title: '买家', text: '探索照片级 3D 商店。更低价格购买真实商品。配送到家。', mode: '购物者模式' },
-            { href: '/business/dashboard', icon: '🏛️', title: '商家', text: '开设展馆。面向全球观众销售。无中间商。无高额租金。无边界。', mode: '供应商仪表盘' },
+            { href: '/player/dashboard', title: '玩家', text: '完成任务，穿越实时街区竞速，赢得竞技场，并以电影级响应获得奖励。', mode: '玩家模式', stat: '3D', statLabel: '任务' },
+            { href: '/shopper/dashboard', title: '买家', text: '浏览照片级展馆，按真实比例查看产品，比较细节，并从发现走向配送。', mode: '购物者模式', stat: '4K', statLabel: '展厅' },
+            { href: '/business/dashboard', title: '商家', text: '发布高级展馆，获取全球买家，并在无边界环境中管理直接供应商对话。', mode: '供应商仪表盘', stat: 'B2B', statLabel: '商机' },
         ],
     },
 } satisfies Record<AppLanguage, {
@@ -94,22 +116,45 @@ const roleCopy = {
     premiumAccess: string;
     selectMode: string;
     enterGameMode: string;
-    roles: Array<{ href: string; icon: string; title: string; text: string; mode: string }>;
+    roles: Role[];
 }>;
 
 const CITY_INTRO_CUTSCENE_SRC = '/cutscenes/cityvideo.mp4';
 
-const roleAccents: Record<string, string> = {
-    '/player/dashboard': 'from-sky-300 via-cyan-200 to-indigo-300',
-    '/shopper/dashboard': 'from-fuchsia-300 via-rose-200 to-amber-200',
-    '/business/dashboard': 'from-emerald-200 via-teal-200 to-cyan-200',
+const roleThemes: Record<RoleHref, { accent: string; aura: string; Icon: LucideIcon; DetailIcon: LucideIcon }> = {
+    '/player/dashboard': { accent: 'from-cyan-200 via-sky-300 to-violet-300', aura: 'rgba(56,189,248,0.35)', Icon: Gamepad2, DetailIcon: Trophy },
+    '/shopper/dashboard': { accent: 'from-amber-100 via-rose-200 to-fuchsia-300', aura: 'rgba(251,191,36,0.28)', Icon: ShoppingBag, DetailIcon: PackageCheck },
+    '/business/dashboard': { accent: 'from-emerald-200 via-teal-200 to-cyan-200', aura: 'rgba(45,212,191,0.3)', Icon: Building2, DetailIcon: BadgeCheck },
 };
 
-const roleVisuals: Record<string, string> = {
-    '/player/dashboard': '/visuals/player-arena.svg',
-    '/shopper/dashboard': '/visuals/shopper-market.svg',
-    '/business/dashboard': '/visuals/business-pavilion.svg',
-};
+function RoleArtwork({ role }: { role: Role }) {
+    const theme = roleThemes[role.href];
+    const Icon = theme.Icon;
+    const DetailIcon = theme.DetailIcon;
+
+    return (
+        <div className="relative h-44 overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#0b1018] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <div className={`absolute -inset-16 bg-gradient-to-br ${theme.accent} opacity-25 blur-3xl`} />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.18),transparent_22%),linear-gradient(135deg,rgba(255,255,255,0.08),transparent_46%),linear-gradient(180deg,transparent,rgba(2,6,23,0.78))]" />
+            <div className="absolute left-5 top-5 rounded-full border border-white/10 bg-white/[0.07] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white/85 backdrop-blur-md">{role.mode}</div>
+            <div className="absolute right-5 top-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/15 bg-black/25 text-white backdrop-blur-md">
+                <Icon className="h-6 w-6" strokeWidth={1.7} />
+            </div>
+            <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between gap-4">
+                <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/55">{role.statLabel}</p>
+                    <p className="mt-1 text-4xl font-black tracking-tight text-white">{role.stat}</p>
+                </div>
+                <div className="relative flex h-20 w-28 items-center justify-center rounded-[1.4rem] border border-white/15 bg-white/[0.08] backdrop-blur-md">
+                    <div className="absolute inset-x-4 top-1/2 h-px bg-white/25" />
+                    <div className="absolute inset-y-4 left-1/2 w-px bg-white/20" />
+                    <DetailIcon className="relative h-9 w-9 text-white" strokeWidth={1.4} />
+                </div>
+            </div>
+            <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+        </div>
+    );
+}
 
 export default function RoleSelectionPage() {
     const { language } = useLanguage();
@@ -137,85 +182,66 @@ export default function RoleSelectionPage() {
     };
 
     return (
-        <main className="min-h-screen overflow-hidden bg-[#02050b] text-white">
+        <main className="min-h-screen overflow-hidden bg-[var(--sfera-bg)] text-[var(--sfera-text)]">
             {isIntroCutsceneVisible && (
                 <div className="fixed inset-0 z-50 bg-black">
-                    <video
-                        ref={introCutsceneVideoRef}
-                        className="h-full w-full object-cover"
-                        src={CITY_INTRO_CUTSCENE_SRC}
-                        muted={!hasStartedIntroCutscene}
-                        playsInline
-                        preload="auto"
-                        onEnded={() => setIsIntroCutsceneVisible(false)}
-                        onError={() => setIsIntroCutsceneVisible(false)}
-                    />
+                    <video ref={introCutsceneVideoRef} className="h-full w-full object-cover" src={CITY_INTRO_CUTSCENE_SRC} muted={!hasStartedIntroCutscene} playsInline preload="auto" onEnded={() => setIsIntroCutsceneVisible(false)} onError={() => setIsIntroCutsceneVisible(false)} />
                     <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.15),transparent_45%,rgba(0,0,0,0.72))]" />
                     <div className="absolute inset-x-0 bottom-8 flex flex-wrap justify-center gap-3 px-6">
-                        {!hasStartedIntroCutscene && (
-                            <button
-                                type="button"
-                                onClick={handleStartIntroCutsceneWithSound}
-                                className="rounded-full bg-[linear-gradient(135deg,#66d9cb,#d9fff9)] px-5 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-950 shadow-[0_18px_70px_rgba(102,217,203,0.35)] transition hover:scale-[1.02]"
-                            >
-                                {copy.startWithSound}
-                            </button>
-                        )}
-                        <button
-                            type="button"
-                            onClick={() => setIsIntroCutsceneVisible(false)}
-                            className="rounded-full border border-white/20 bg-black/45 px-5 py-3 text-xs font-black uppercase tracking-[0.2em] text-white shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:border-[#66d9cb]/60 hover:bg-[#66d9cb]/15"
-                        >
-                            {copy.skipIntro}
-                        </button>
+                        {!hasStartedIntroCutscene && <button type="button" onClick={handleStartIntroCutsceneWithSound} className="sfera-btn-primary rounded-full px-5 py-3 text-xs font-black uppercase tracking-[0.2em] shadow-[0_18px_70px_rgba(102,217,203,0.35)] transition hover:scale-[1.02]">{copy.startWithSound}</button>}
+                        <button type="button" onClick={() => setIsIntroCutsceneVisible(false)} className="sfera-btn-ghost rounded-full px-5 py-3 text-xs font-black uppercase tracking-[0.2em] shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-md">{copy.skipIntro}</button>
                     </div>
                 </div>
             )}
-            <section className="relative flex min-h-screen items-center justify-center px-6 py-12">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(102,217,203,0.26),transparent_30%),radial-gradient(circle_at_80%_20%,rgba(99,102,241,0.18),transparent_28%),linear-gradient(145deg,rgba(2,6,23,0.72),rgba(3,7,18,1)_58%,rgba(0,0,0,1))]" />
-                <div className="relative z-10 w-full max-w-6xl">
-                    <div className="mb-4 flex flex-wrap gap-2">
-                        <Link href={returnToScene ? sceneReturnHref : "/"} className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">← {returnToScene ? copy.backToScene : copy.home}</Link>
-                        <Link href="/fastview" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#66d9cb]/40 hover:bg-[#66d9cb]/10 hover:text-[#9ff4ec]">{copy.world}</Link>
+            <section className="relative flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:py-12">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(102,217,203,0.24),transparent_28%),radial-gradient(circle_at_84%_16%,rgba(246,186,79,0.16),transparent_26%),linear-gradient(145deg,rgba(9,11,16,0.86),rgba(15,20,29,1)_52%,rgba(3,6,13,1))]" />
+                <div className="grain-overlay" />
+                <div className="relative z-10 w-full max-w-7xl">
+                    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap gap-2">
+                            <Link href={returnToScene ? sceneReturnHref : '/'} className="sfera-btn-ghost rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.16em]">← {returnToScene ? copy.backToScene : copy.home}</Link>
+                            <Link href="/fastview" className="sfera-btn-ghost rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.16em]">{copy.world}</Link>
+                        </div>
+                        <span className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[var(--sfera-text-muted)] sm:inline-flex"><Globe2 className="h-4 w-4 text-[var(--sfera-accent)]" /> 3DSFERA</span>
                     </div>
-                    <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.1),rgba(255,255,255,0.035))] p-6 shadow-[0_45px_160px_rgba(0,0,0,0.6)] backdrop-blur-2xl md:p-10">
-                        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-                            <div>
-                                <p className="inline-flex rounded-full border border-[#66d9cb]/25 bg-[#66d9cb]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.28em] text-[#9ff4ec]">{copy.eyebrow}</p>
-                                <h1 className="mt-5 bg-[linear-gradient(135deg,#ffffff,#9ff4ec_48%,#ffffff)] bg-clip-text text-5xl font-black uppercase tracking-tight text-transparent md:text-7xl">{copy.title}</h1>
-                                <p className="mt-3 text-xl text-slate-200">{copy.subtitle}</p>
-                                <div className="mt-8 space-y-5 text-sm leading-7 text-slate-300">
-                                    <p className="text-slate-500">{copy.screen1}</p>
-                                    <p>{copy.voice}</p>
-                                    <p className="text-lg font-semibold text-white">{copy.question}</p>
-                                    <p>{copy.welcome}</p>
+                    <div className="sfera-card relative overflow-hidden rounded-[2rem] p-5 shadow-[0_45px_160px_rgba(0,0,0,0.58)] md:rounded-[2.75rem] md:p-8 lg:p-10">
+                        <div className="absolute left-1/2 top-0 h-px w-2/3 -translate-x-1/2 bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+                        <div className="grid items-stretch gap-8 xl:grid-cols-[0.82fr_1.18fr]">
+                            <div className="flex flex-col justify-between rounded-[1.6rem] border border-white/10 bg-black/15 p-6 md:p-8">
+                                <div>
+                                    <p className="sfera-pill inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.26em]"><Sparkles className="h-3.5 w-3.5" />{copy.eyebrow}</p>
+                                    <h1 className="mt-6 max-w-2xl font-display text-5xl font-black leading-[0.92] tracking-tight text-white md:text-7xl">{copy.title}</h1>
+                                    <p className="mt-5 max-w-xl text-lg leading-8 text-[var(--sfera-text-muted)]">{copy.subtitle}</p>
+                                    <div className="mt-8 grid gap-4 text-sm leading-7 text-slate-300">
+                                        <p className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 text-slate-300">{copy.screen1}</p>
+                                        <p>{copy.voice}</p>
+                                        <p className="font-display text-2xl font-semibold text-white">{copy.question}</p>
+                                        <p className="text-[var(--sfera-text-muted)]">{copy.welcome}</p>
+                                    </div>
                                 </div>
-                                <Link href={sceneReturnHref} className="mt-8 inline-flex rounded-full bg-[linear-gradient(135deg,#66d9cb,#d9fff9)] px-7 py-3.5 text-sm font-black uppercase tracking-[0.16em] text-slate-950 shadow-[0_18px_55px_rgba(102,217,203,0.28)] transition hover:scale-[1.02]">{copy.enter}</Link>
+                                <Link href={sceneReturnHref} className="sfera-btn-primary mt-8 inline-flex w-fit items-center gap-3 rounded-full px-6 py-3.5 text-sm font-black uppercase tracking-[0.16em] shadow-[0_18px_55px_rgba(102,217,203,0.24)] transition hover:scale-[1.02]">{copy.enter}<ArrowRight className="h-4 w-4" /></Link>
                             </div>
-                            <div className="grid gap-4">
+                            <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-1">
                                 {copy.roles.map((role) => {
                                     const isGamerRole = role.href === '/player/dashboard';
                                     const roleHref = isGamerRole ? gamerSceneHref : (returnToScene ? `${role.href}?returnTo=/fastview` : role.href);
+                                    const theme = roleThemes[role.href];
+                                    const Icon = theme.Icon;
                                     return (
-                                        <Link key={role.title} href={roleHref} className="group relative overflow-hidden rounded-[1.9rem] border border-white/10 bg-[linear-gradient(145deg,rgba(15,23,42,0.9),rgba(2,6,23,0.74))] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_24px_80px_rgba(0,0,0,0.34)] backdrop-blur-md transition duration-300 hover:-translate-y-1.5 hover:border-white/25 hover:shadow-[0_34px_110px_rgba(102,217,203,0.2)]">
-                                            <div className={`absolute -inset-24 bg-gradient-to-br ${roleAccents[role.href]} opacity-0 blur-3xl transition duration-500 group-hover:opacity-25`} />
-                                            <div className="relative overflow-hidden rounded-[1.65rem] border border-white/10 bg-slate-950/60 p-4">
-                                                <div className="relative mb-4 overflow-hidden rounded-2xl border border-white/10 shadow-[0_18px_60px_rgba(0,0,0,0.35)]">
-                                                    <Image src={roleVisuals[role.href]} alt="" width={1200} height={760} className="h-32 w-full object-cover transition duration-500 group-hover:scale-105" />
-                                                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.05),rgba(2,6,23,0.68))]" />
-                                                    <div className="absolute bottom-3 left-3 rounded-full border border-white/15 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-md">{copy.premiumAccess}</div>
-                                                </div>
-                                                <div className="flex gap-4">
-                                                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/[0.07] text-3xl shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">{role.icon}</span>
-                                                    <div>
-                                                        <div className="flex flex-wrap items-center gap-3">
-                                                            <h2 className="bg-[linear-gradient(135deg,#ffffff,#c7fff8)] bg-clip-text text-xl font-black tracking-wide text-transparent">{role.title}</h2>
-                                                            <span className="rounded-full border border-[#66d9cb]/35 bg-[#66d9cb]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#9ff4ec]">{role.mode}</span>
+                                        <Link key={role.title} href={roleHref} style={{ '--role-aura': theme.aura } as CSSProperties} className="group relative min-h-full overflow-hidden rounded-[1.9rem] border border-white/10 bg-[linear-gradient(145deg,rgba(20,27,39,0.9),rgba(9,11,16,0.76))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_24px_80px_rgba(0,0,0,0.3)] backdrop-blur-md transition duration-300 hover:-translate-y-1 hover:border-white/25 hover:shadow-[0_34px_110px_var(--role-aura)] xl:grid xl:grid-cols-[0.85fr_1fr] xl:gap-5">
+                                            <RoleArtwork role={role} />
+                                            <div className="relative flex h-full flex-col justify-between p-3 xl:p-4">
+                                                <div>
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div>
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--sfera-accent)]">{copy.premiumAccess}</p>
+                                                            <h2 className="mt-2 text-2xl font-black tracking-tight text-white">{role.title}</h2>
                                                         </div>
-                                                        <p className="mt-2 text-sm leading-6 text-slate-300">{role.text}</p>
-                                                        <span className="mt-4 inline-flex text-xs font-black uppercase tracking-[0.16em] text-[#9ff4ec]">{isGamerRole ? copy.enterGameMode : copy.selectMode}</span>
+                                                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/[0.06]"><Icon className="h-5 w-5 text-white" /></span>
                                                     </div>
+                                                    <p className="mt-4 text-sm leading-6 text-[var(--sfera-text-muted)]">{role.text}</p>
                                                 </div>
+                                                <span className="mt-6 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-[var(--sfera-accent)]">{isGamerRole ? copy.enterGameMode : copy.selectMode}<MousePointer2 className="h-4 w-4" /></span>
                                             </div>
                                         </Link>
                                     );
