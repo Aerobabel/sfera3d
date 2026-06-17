@@ -162,8 +162,8 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
     return (
         <section className="relative overflow-hidden rounded-[2.25rem] border border-sky-400/15 bg-[#020711] text-white shadow-[0_40px_140px_rgba(0,0,0,0.65)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_12%,rgba(0,153,255,0.22),transparent_30%),radial-gradient(circle_at_18%_72%,rgba(102,217,203,0.14),transparent_34%)]" />
-            <div className="relative grid min-h-[56rem] lg:grid-cols-[14rem_1fr]">
-                <aside className="hidden border-r border-sky-200/10 bg-black/20 p-4 backdrop-blur-xl lg:flex lg:flex-col">
+            <div className="relative grid min-h-[56rem] xl:grid-cols-[13rem_1fr]">
+                <aside className="hidden border-r border-sky-200/10 bg-black/20 p-4 backdrop-blur-xl xl:flex xl:flex-col">
                     <div className="flex items-center gap-3 text-xl font-black tracking-tight">
                         <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-300/35 bg-sky-400/10 text-sky-300 shadow-[0_0_28px_rgba(56,189,248,0.22)]">S</span>
                         <span>3DSFERA</span>
@@ -191,7 +191,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                     </div>
                 </aside>
 
-                <div className="min-w-0 p-4 md:p-6">
+                <div className="min-w-0 p-4 md:p-6 xl:p-8">
                     <DashboardBackNav />
                     <header className="mb-5 flex flex-col gap-4 border-b border-white/10 pb-5 xl:flex-row xl:items-center xl:justify-between">
                         <div className="relative max-w-xl flex-1">
@@ -205,14 +205,14 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                         </div>
                     </header>
 
-                    <div className="grid gap-5 2xl:grid-cols-[1fr_26rem]">
+                    <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_24rem]">
                         <main className="min-w-0 space-y-5">
-                            <div className="relative overflow-hidden rounded-3xl border border-sky-300/20 bg-slate-950/70 p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                            <div className="relative overflow-hidden rounded-3xl border border-sky-300/20 bg-slate-950/70 p-6 md:p-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                                 <Image src="/visuals/player-arena.svg" alt="3DSFERA neon city player dashboard hero" width={1200} height={760} className="absolute inset-0 h-full w-full object-cover opacity-45" priority />
                                 <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.96),rgba(2,6,23,0.72)_48%,rgba(2,6,23,0.24))]" />
                                 <div className="relative max-w-2xl">
-                                    <h1 className="text-4xl font-black tracking-tight">Welcome back, <span className="text-sky-300">Player</span></h1>
-                                    <p className="mt-3 text-2xl font-semibold text-slate-300">Play. Earn. Explore.</p>
+                                    <h1 className="text-3xl font-black tracking-tight md:text-5xl">Welcome back, <span className="text-sky-300">Player</span></h1>
+                                    <p className="mt-3 text-xl font-semibold text-slate-300 md:text-2xl">Play. Earn. Explore.</p>
                                     <div className="mt-8 grid gap-4 border-t border-white/10 pt-5 sm:grid-cols-2">
                                         <div>
                                             <div className="flex items-center justify-between text-sm"><span className="font-bold">Level 24</span><span className="text-slate-400">{bridge.zombieScore.toLocaleString()} / 10,000 XP</span></div>
@@ -226,7 +226,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                                 </div>
                             </div>
 
-                            <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+                            <div className="grid gap-4 md:grid-cols-2">
                                 <PlayerMetric title="Current Mode" value="Player" helper="Active" icon="🎮" tone="sky" />
                                 <PlayerMetric title="Current Location" value={currentLocation} helper="Open Map" icon="🏙️" tone="cyan" />
                                 <PlayerMetric title="Current Game" value={currentGame} helper="Enter Arena" icon="☠️" tone="red" />
@@ -248,7 +248,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                             </section>
                         </main>
 
-                        <aside className="space-y-5">
+                        <aside className="space-y-5 2xl:sticky 2xl:top-6 2xl:self-start">
                             <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                                 <div className="mb-4 flex items-center justify-between">
                                     <h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-300">{t.recentActivity}</h2>
@@ -259,7 +259,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                                         <div key={`${item}-${index}`} className="flex items-center gap-3 border-b border-white/8 pb-3 last:border-0 last:pb-0">
                                             <span className={`flex h-10 w-10 items-center justify-center rounded-xl border ${index % 3 === 0 ? 'border-emerald-400/30 bg-emerald-400/10' : index % 3 === 1 ? 'border-red-400/30 bg-red-400/10' : 'border-sky-400/30 bg-sky-400/10'}`}>{index % 3 === 0 ? '🏛️' : index % 3 === 1 ? '☠️' : '💙'}</span>
                                             <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-100">{item}</p><p className="text-xs text-slate-500">3DSFERA City</p></div>
-                                            <span className="text-xs text-slate-500">10:{42 - index} AM</span>
+                                            <span className="hidden text-xs text-slate-500 sm:inline">10:{42 - index} AM</span>
                                         </div>
                                     ))}
                                 </div>
@@ -299,11 +299,11 @@ const playerMetricToneClasses: Record<PlayerMetricTone, string> = {
 };
 
 const PlayerMetric = ({ title, value, helper, icon, tone, progress }: { title: string; value: string; helper: string; icon: string; tone: PlayerMetricTone; progress?: number }) => (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+    <div className="min-h-40 rounded-3xl border border-white/10 bg-white/[0.045] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_18px_50px_rgba(2,8,23,0.28)]">
         <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{title}</p>
         <div className="mt-4 flex items-center gap-3">
             <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border text-2xl ${playerMetricToneClasses[tone]}`}>{icon}</span>
-            <div className="min-w-0"><p className="truncate text-xl font-black text-white">{value}</p><p className="mt-1 text-xs text-slate-400">{helper}</p></div>
+            <div className="min-w-0"><p className="break-words text-2xl font-black leading-tight text-white">{value}</p><p className="mt-1 text-sm leading-5 text-slate-400">{helper}</p></div>
         </div>
         {typeof progress === 'number' && <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-current text-sky-400" style={{ width: `${progress}%` }} /></div>}
     </div>

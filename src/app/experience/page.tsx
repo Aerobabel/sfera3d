@@ -838,17 +838,25 @@ export default function ExperiencePage() {
 
 
     useEffect(() => {
-        if (!isFastViewRoute || !hasStartedExperience || hasAppliedInitialModeRef.current) return;
-        if (searchParams.get('mode') !== 'gamer') return;
+        if (!isFastViewRoute || !hasStartedExperience) return;
+        if (searchParams.get('mode') !== 'gamer') {
+            hasAppliedInitialModeRef.current = false;
+            return;
+        }
+        if (hasAppliedInitialModeRef.current && unrealBridge.currentMode === 'player') return;
 
         hasAppliedInitialModeRef.current = true;
+        unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: 'player' }));
+        sendUnrealUiInteraction({ type: 'set_mode', mode: 'player' });
+        sendUnrealUiInteraction({ event: 'mode_changed', mode: 'player' });
         const modeTimer = window.setTimeout(() => {
-            sendUnrealKeyPress(71);
-            window.setTimeout(() => sendUnrealKeyPress(13), 150);
-        }, 900);
+            if (unrealBridge.currentMode !== 'player') {
+                sendUnrealKeyPress(71);
+            }
+        }, 700);
 
         return () => window.clearTimeout(modeTimer);
-    }, [hasStartedExperience, isFastViewRoute, searchParams]);
+    }, [hasStartedExperience, isFastViewRoute, searchParams, unrealBridge]);
 
     useEffect(() => {
         if (isFastViewRoute) return;
