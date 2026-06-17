@@ -5,7 +5,7 @@ import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Activity, Send, Menu, X, Monitor, Play, Volume2 } from "lucide-react";
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
 import { getProductById, getSupplierById, getProductsBySupplier } from "@/lib/db";
 import ProductCard from "@/components/overlay/ProductCard";
@@ -22,6 +22,7 @@ import { clearServerAuthSession } from "@/lib/auth/browser";
 import { AppLanguage, getLocalizedProduct } from "@/lib/i18n";
 import { readSupplierChatApiResponse } from "@/lib/supplierChat";
 import { useUnrealEventBridge } from "@/hooks/useUnrealEventBridge";
+import { GamerDashboard, ShopperDashboard, SupplierDashboard } from "@/components/dashboards/RoleDashboards";
 import { GAME_RULES } from "@/lib/unreal/gameRules";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -102,9 +103,10 @@ const sendUnrealKeyPress = (keyCode: number) => {
     }
 
     const keyString = String.fromCharCode(keyCode);
+    const isLetter = /^[A-Z]$/.test(keyString);
     const keyboardEventInit: KeyboardEventInit = {
-        key: keyString,
-        code: `Digit${keyString}`,
+        key: isLetter ? keyString.toLowerCase() : keyString,
+        code: isLetter ? `Key${keyString}` : `Digit${keyString}`,
         bubbles: true,
         cancelable: true,
     };
@@ -157,18 +159,27 @@ const LIVE_ACTIVITY_NOW_LABEL: Record<AppLanguage, string> = {
     zh: '刚刚',
 };
 
-const CUTSCENE_COPY: Record<AppLanguage, { skip: string; startWithSound: string }> = {
+const CUTSCENE_COPY: Record<AppLanguage, { skip: string; startWithSound: string; pressAnyKey: string; soundHint: string; closeMenu: string }> = {
     en: {
         skip: 'Skip',
         startWithSound: 'Start with sound',
+        pressAnyKey: 'Press any key to start',
+        soundHint: 'Starts the cinematic with sound before entering the hall',
+        closeMenu: 'Close menu',
     },
     ru: {
         skip: 'Пропустить',
         startWithSound: 'Начать со звуком',
+        pressAnyKey: 'Нажмите любую клавишу, чтобы начать',
+        soundHint: 'Запускает ролик со звуком перед входом в холл',
+        closeMenu: 'Закрыть меню',
     },
     zh: {
         skip: '跳过',
         startWithSound: '开启声音',
+        pressAnyKey: '按任意键开始',
+        soundHint: '进入大厅前开启有声影片',
+        closeMenu: '关闭菜单',
     },
 };
 
@@ -605,6 +616,7 @@ const resolveFrontendCinematic = (event: unknown): Omit<FrontendCinematic, 'id'>
 
 export default function ExperiencePage() {
     const pathname = usePathname();
+    const router = useRouter();
     const searchParams = useSearchParams();
     const isFastViewRoute = pathname === '/fastview';
     const { language } = useLanguage();
@@ -678,6 +690,8 @@ export default function ExperiencePage() {
     const [isStreamPixelOpen, setIsStreamPixelOpen] = useState(false);
     const [fastViewError, setFastViewError] = useState<string | null>(null);
     const [isPlayerModePromptDismissed, setIsPlayerModePromptDismissed] = useState(false);
+    const [hasStartedSferaHallCutsceneSound, setHasStartedSferaHallCutsceneSound] = useState(false);
+    const [dashboardOverlay, setDashboardOverlay] = useState<'player' | 'shopper' | 'business' | null>(null);
     const [liveActivityToasts, setLiveActivityToasts] = useState<LiveActivityToast[]>([]);
     const liveActivityIndexRef = useRef(0);
     const liveActivityRemovalTimersRef = useRef<number[]>([]);
@@ -824,17 +838,25 @@ export default function ExperiencePage() {
 
 
     useEffect(() => {
-        if (!isFastViewRoute || !hasStartedExperience || hasAppliedInitialModeRef.current) return;
-        if (searchParams.get('mode') !== 'gamer') return;
+        if (!isFastViewRoute || !hasStartedExperience) return;
+        if (searchParams.get('mode') !== 'gamer') {
+            hasAppliedInitialModeRef.current = false;
+            return;
+        }
+        if (hasAppliedInitialModeRef.current && unrealBridge.currentMode === 'player') return;
 
         hasAppliedInitialModeRef.current = true;
+        unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: 'player' }));
+        sendUnrealUiInteraction({ type: 'set_mode', mode: 'player' });
+        sendUnrealUiInteraction({ event: 'mode_changed', mode: 'player' });
         const modeTimer = window.setTimeout(() => {
-            sendUnrealKeyPress(71);
-            window.setTimeout(() => sendUnrealKeyPress(13), 150);
-        }, 900);
+            if (unrealBridge.currentMode !== 'player') {
+                sendUnrealKeyPress(71);
+            }
+        }, 700);
 
         return () => window.clearTimeout(modeTimer);
-    }, [hasStartedExperience, isFastViewRoute, searchParams]);
+    }, [hasStartedExperience, isFastViewRoute, searchParams, unrealBridge]);
 
     useEffect(() => {
         if (isFastViewRoute) return;
@@ -1001,6 +1023,7 @@ export default function ExperiencePage() {
         const video = sferaHallCutsceneVideoRef.current;
         if (!video) return;
 
+        setHasStartedSferaHallCutsceneSound(true);
         video.muted = false;
         video.volume = 1;
         video.play().catch(() => {
@@ -1008,6 +1031,26 @@ export default function ExperiencePage() {
             video.play().catch(() => {});
         });
     }, []);
+
+    useEffect(() => {
+        if (!isFastViewRoute || hasCompletedFastViewCutscene || fastViewError || hasStartedFastViewCutscene) return;
+        const startFromKey = (event: KeyboardEvent) => {
+            if (event.metaKey || event.ctrlKey || event.altKey) return;
+            handleStartFastViewCutscene();
+        };
+        window.addEventListener('keydown', startFromKey);
+        return () => window.removeEventListener('keydown', startFromKey);
+    }, [fastViewError, handleStartFastViewCutscene, hasCompletedFastViewCutscene, hasStartedFastViewCutscene, isFastViewRoute]);
+
+    useEffect(() => {
+        if (!isSferaHallCutsceneVisible || hasStartedSferaHallCutsceneSound) return;
+        const startFromKey = (event: KeyboardEvent) => {
+            if (event.metaKey || event.ctrlKey || event.altKey) return;
+            handleStartSferaHallCutsceneWithSound();
+        };
+        window.addEventListener('keydown', startFromKey);
+        return () => window.removeEventListener('keydown', startFromKey);
+    }, [handleStartSferaHallCutsceneWithSound, hasStartedSferaHallCutsceneSound, isSferaHallCutsceneVisible]);
 
     const handleSkipFastViewCutscene = useCallback(() => {
         if (!isFastViewRoute || hasCompletedFastViewCutscene) return;
@@ -1074,16 +1117,40 @@ export default function ExperiencePage() {
         }
     }, [unrealBridge.accessDeniedMessage]);
 
+    const switchUnrealMode = useCallback((mode: 'player' | 'shopper') => {
+        sendUnrealUiInteraction({ type: 'set_mode', mode });
+        sendUnrealUiInteraction({ event: 'mode_changed', mode });
+        unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode }));
+        sendUnrealKeyPress(71);
+    }, [unrealBridge]);
+
+    const toggleUnrealMode = useCallback(() => {
+        switchUnrealMode(unrealBridge.currentMode === 'player' ? 'shopper' : 'player');
+    }, [switchUnrealMode, unrealBridge.currentMode]);
+
     const handleSwitchToPlayerMode = useCallback(() => {
         if (!hasStartedExperience) {
             handleStartExperience();
         }
 
-        sendUnrealUiInteraction({ type: 'set_mode', mode: 'player' });
-        sendUnrealUiInteraction({ event: 'mode_changed', mode: 'player' });
-        sendUnrealKeyPress(80);
+        switchUnrealMode('player');
         setIsPlayerModePromptDismissed(true);
-    }, [handleStartExperience, hasStartedExperience]);
+    }, [handleStartExperience, hasStartedExperience, switchUnrealMode]);
+
+    useEffect(() => {
+        if (!hasStartedExperience || isChatFocused || activeProduct || isCatalogueOpen || activePavilion || isMenuOpen) return;
+
+        const handleModeHotkey = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement | null;
+            const isEditableTarget = Boolean(target?.closest('input, textarea, select, [contenteditable="true"]'));
+            if (isEditableTarget || event.repeat || event.key.toLowerCase() !== 'g') return;
+
+            toggleUnrealMode();
+        };
+
+        document.addEventListener('keydown', handleModeHotkey, true);
+        return () => document.removeEventListener('keydown', handleModeHotkey, true);
+    }, [activePavilion, activeProduct, isCatalogueOpen, isChatFocused, isMenuOpen, hasStartedExperience, toggleUnrealMode]);
 
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
     const streamPixelPreviewUrl = useMemo(
@@ -1733,9 +1800,10 @@ export default function ExperiencePage() {
                                 className="inline-flex max-w-full items-center justify-center gap-2 rounded-2xl border border-[#66d9cb]/35 bg-black/55 px-5 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:border-[#66d9cb]/60 hover:bg-[#66d9cb]/[0.16] sm:px-6"
                             >
                                 <Play className="h-4 w-4 shrink-0 text-[#66d9cb]" />
-                                <span className="truncate">{cutsceneCopy.startWithSound}</span>
+                                <span className="truncate">{cutsceneCopy.pressAnyKey}</span>
                                 <Volume2 className="h-4 w-4 shrink-0 text-[#66d9cb]" />
                             </button>
+                            <p className="mt-3 max-w-md text-center text-xs font-semibold uppercase tracking-[0.16em] text-slate-300/80">{cutsceneCopy.soundHint}</p>
                         </div>
                     )}
 
@@ -1759,13 +1827,21 @@ export default function ExperiencePage() {
                         src={sferaHallCutsceneSrc}
                         data-cutscene-video="true"
                         autoPlay
-                        muted
+                        muted={!hasStartedSferaHallCutsceneSound}
                         playsInline
                         preload="auto"
                         onEnded={() => setIsSferaHallCutsceneVisible(false)}
                         onError={() => setIsSferaHallCutsceneVisible(false)}
                     />
                     <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.25),transparent_34%,rgba(0,0,0,0.62))]" />
+                    {!hasStartedSferaHallCutsceneSound && (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center px-4" onClick={handleStartSferaHallCutsceneWithSound}>
+                            <button type="button" className="rounded-3xl border border-[#66d9cb]/35 bg-black/60 px-6 py-4 text-center text-sm font-black uppercase tracking-[0.16em] text-white shadow-[0_22px_80px_rgba(0,0,0,0.5)] backdrop-blur-md transition hover:border-[#66d9cb]/65 hover:bg-[#66d9cb]/15">
+                                <span className="block text-[#9ff4ec]">{cutsceneCopy.pressAnyKey}</span>
+                                <span className="mt-2 block text-[11px] font-semibold text-slate-300">{cutsceneCopy.soundHint}</span>
+                            </button>
+                        </div>
+                    )}
                     <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 border-b border-[#66d9cb]/20 bg-[#02070b]/[0.82] px-4 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.32)] backdrop-blur-md sm:px-6 lg:px-8">
                         <div className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/25 bg-slate-950/45 px-3 py-2 text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,0.16)] backdrop-blur-md"><span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-300/35 bg-cyan-400/10 text-sm font-black text-cyan-200">S</span><span className="text-sm font-black uppercase tracking-[0.18em]">3DSFERA Hall</span></div>
                         <div className="flex items-center gap-2">
@@ -2019,7 +2095,7 @@ export default function ExperiencePage() {
                     <MarketplaceCrosshair />
                     {showLiveActivityToasts && (
                         <div
-                            className="absolute left-4 top-[7.25rem] z-30 flex w-[min(calc(100vw-2rem),22rem)] flex-col gap-2 pointer-events-none sm:left-6 sm:top-32 lg:left-8"
+                            className="absolute left-4 top-[12.5rem] z-30 flex w-[min(calc(100vw-2rem),22rem)] flex-col gap-2 pointer-events-none sm:left-6 sm:top-52 lg:left-8"
                             aria-live="polite"
                         >
                             {liveActivityToasts.map((toast, index) => (
@@ -2188,18 +2264,38 @@ export default function ExperiencePage() {
                             <Link href="/roles?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 Role Selection
                             </Link>
-                            <Link href="/player/dashboard?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            <button type="button" onClick={() => { setDashboardOverlay('player'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 Player Dashboard
-                            </Link>
-                            <Link href="/shopper/dashboard?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            </button>
+                            <button type="button" onClick={() => { setDashboardOverlay('shopper'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 Shopper Dashboard
-                            </Link>
-                            <Link href="/business/dashboard?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            </button>
+                            <button type="button" onClick={() => { setDashboardOverlay('business'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 Business Dashboard
-                            </Link>
-                            <Link href="/fastview?resume=scene" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
+                            </button>
+                            <button type="button" onClick={() => { setDashboardOverlay(null); setIsMenuOpen(false); router.replace('/fastview?resume=scene', { scroll: false }); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 {backToSceneLabel}
-                            </Link>
+                            </button>
+                        </div>
+                    )}
+
+
+                    {dashboardOverlay && (
+                        <div className="absolute inset-0 z-[85] overflow-y-auto bg-slate-950/88 p-3 text-white backdrop-blur-2xl pointer-events-auto md:p-6" role="dialog" aria-modal="true" aria-label="Dashboard overlay">
+                            <div className="sticky top-3 z-10 mx-auto mb-3 flex max-w-7xl justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setDashboardOverlay(null)}
+                                    className="rounded-full border border-white/15 bg-black/65 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white shadow-xl backdrop-blur-md transition hover:border-[#66d9cb]/45 hover:text-[#9ff4ec]"
+                                >
+                                    {cutsceneCopy.closeMenu}
+                                </button>
+                            </div>
+                            <div className="mx-auto max-w-7xl pb-8">
+                                {dashboardOverlay === 'player' && <GamerDashboard bridge={unrealBridge} />}
+                                {dashboardOverlay === 'shopper' && <ShopperDashboard bridge={unrealBridge} />}
+                                {dashboardOverlay === 'business' && <SupplierDashboard />}
+                            </div>
                         </div>
                     )}
 
