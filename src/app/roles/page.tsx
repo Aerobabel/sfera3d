@@ -152,18 +152,18 @@ function RoleArtwork({ role }: { role: Role }) {
     const DetailIcon = theme.DetailIcon;
 
     return (
-        <div className="relative h-52 overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#0b1018] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <img src={roleImageFor(role)} alt={role.imageAlt} onError={useNextImageFallback} className="absolute inset-0 h-full w-full object-cover opacity-80 transition duration-700 group-hover:scale-105" />
+        <div className="relative h-56 overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#0b1018] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] xl:h-full xl:min-h-[14rem]">
+            <img src={roleImageFor(role)} alt={role.imageAlt} onError={useNextImageFallback} className="absolute inset-0 h-full w-full object-cover opacity-90 transition duration-700 group-hover:scale-105" />
             <div className={`absolute -inset-16 bg-gradient-to-br ${theme.accent} opacity-25 blur-3xl`} />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.18),transparent_22%),linear-gradient(135deg,rgba(255,255,255,0.08),transparent_46%),linear-gradient(180deg,rgba(2,6,23,0.1),rgba(2,6,23,0.82))]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.16),transparent_22%),linear-gradient(135deg,rgba(255,255,255,0.06),transparent_46%),linear-gradient(180deg,rgba(2,6,23,0.08),rgba(2,6,23,0.76))]" />
             <div className="absolute left-5 top-5 rounded-full border border-white/10 bg-white/[0.07] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white/85 backdrop-blur-md">{role.mode}</div>
             <div className="absolute right-5 top-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/15 bg-black/25 text-white backdrop-blur-md">
                 <Icon className="h-6 w-6" strokeWidth={1.7} />
             </div>
             <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between gap-4">
                 <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/65">{role.destinationTitle}</p>
-                    <p className="mt-1 max-w-[13rem] text-sm font-semibold leading-5 text-white">{role.destinationText}</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/70">Destination</p>
+                    <p className="mt-1 text-2xl font-black tracking-tight text-white">{role.destinationTitle}</p>
                 </div>
                 <div className="relative flex h-20 w-28 items-center justify-center rounded-[1.4rem] border border-white/15 bg-white/[0.08] backdrop-blur-md">
                     <div className="absolute inset-x-4 top-1/2 h-px bg-white/25" />
@@ -230,8 +230,8 @@ export default function RoleSelectionPage() {
                             <div className="flex flex-col justify-between rounded-[1.6rem] border border-white/10 bg-black/15 p-6 md:p-8">
                                 <div>
                                     <p className="sfera-pill inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.26em]"><Sparkles className="h-3.5 w-3.5" />{copy.eyebrow}</p>
-                                    <h1 className="mt-6 max-w-2xl font-display text-5xl font-black leading-[0.92] tracking-tight text-white md:text-7xl">{copy.title}</h1>
-                                    <p className="mt-5 max-w-xl text-lg leading-8 text-[var(--sfera-text-muted)]">{copy.subtitle}</p>
+                                    <h1 className="mt-6 max-w-2xl font-display text-4xl font-black leading-[0.98] tracking-tight text-white sm:text-5xl 2xl:text-6xl">{copy.title}</h1>
+                                    <p className="mt-5 max-w-xl text-base leading-7 text-[var(--sfera-text-muted)] md:text-lg">{copy.subtitle}</p>
                                     <div className="mt-8 grid gap-4 text-sm leading-7 text-slate-300">
                                         <p className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 text-slate-300">{copy.screen1}</p>
                                         <p>{copy.voice}</p>
@@ -253,16 +253,16 @@ export default function RoleSelectionPage() {
                                 </div>
                                 <Link href={sceneReturnHref} className="sfera-btn-primary mt-8 inline-flex w-fit items-center gap-3 rounded-full px-6 py-3.5 text-sm font-black uppercase tracking-[0.16em] shadow-[0_18px_55px_rgba(102,217,203,0.24)] transition hover:scale-[1.02]">{copy.enter}<ArrowRight className="h-4 w-4" /></Link>
                             </div>
-                            <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-1">
+                            <div className="grid content-start gap-4 lg:grid-cols-3 xl:grid-cols-1">
                                 {copy.roles.map((role) => {
                                     const isGamerRole = role.href === '/player/dashboard';
                                     const roleHref = isGamerRole ? gamerSceneHref : (returnToScene ? `${role.href}?returnTo=/fastview` : role.href);
                                     const theme = roleThemes[role.href];
                                     const Icon = theme.Icon;
                                     return (
-                                        <Link key={role.title} href={roleHref} style={{ '--role-aura': theme.aura } as CSSProperties} className="group relative min-h-full overflow-hidden rounded-[1.9rem] border border-white/10 bg-[linear-gradient(145deg,rgba(20,27,39,0.9),rgba(9,11,16,0.76))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_24px_80px_rgba(0,0,0,0.3)] backdrop-blur-md transition-all duration-500 ease-out hover:-translate-y-1 hover:border-white/25 hover:shadow-[0_34px_110px_var(--role-aura)] xl:grid xl:grid-cols-[0.85fr_1fr] xl:gap-5">
+                                        <Link key={role.title} href={roleHref} style={{ '--role-aura': theme.aura } as CSSProperties} className="group relative overflow-hidden rounded-[1.9rem] border border-white/10 bg-[linear-gradient(145deg,rgba(20,27,39,0.9),rgba(9,11,16,0.76))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_24px_80px_rgba(0,0,0,0.3)] backdrop-blur-md transition-all duration-500 ease-out hover:-translate-y-1 hover:border-white/25 hover:shadow-[0_34px_110px_var(--role-aura)] xl:grid xl:grid-cols-[0.78fr_1fr] xl:gap-5">
                                             <RoleArtwork role={role} />
-                                            <div className="relative flex h-full flex-col justify-between p-3 xl:p-4">
+                                            <div className="relative flex min-h-[14rem] flex-col justify-between p-3 xl:p-4">
                                                 <div>
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div>
@@ -272,8 +272,9 @@ export default function RoleSelectionPage() {
                                                         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/[0.06]"><Icon className="h-5 w-5 text-white" /></span>
                                                     </div>
                                                     <p className="mt-4 text-sm leading-6 text-[var(--sfera-text-muted)]">{role.text}</p>
+                                                    <p className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] p-3 text-xs font-semibold leading-5 text-slate-300">{role.destinationText}</p>
                                                 </div>
-                                                <span className="mt-6 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-[var(--sfera-accent)]">{isGamerRole ? copy.enterGameMode : copy.selectMode}<MousePointer2 className="h-4 w-4" /></span>
+                                                <span className="mt-5 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-[var(--sfera-accent)]">{isGamerRole ? copy.enterGameMode : copy.selectMode}<MousePointer2 className="h-4 w-4" /></span>
                                             </div>
                                         </Link>
                                     );
