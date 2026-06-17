@@ -839,18 +839,21 @@ export default function ExperiencePage() {
 
     useEffect(() => {
         if (!isFastViewRoute || !hasStartedExperience) return;
-        if (searchParams.get('mode') !== 'gamer') {
+
+        const requestedMode = searchParams.get('mode');
+        const targetMode = requestedMode === 'gamer' ? 'player' : requestedMode === 'shopper' ? 'shopper' : null;
+        if (!targetMode) {
             hasAppliedInitialModeRef.current = false;
             return;
         }
-        if (hasAppliedInitialModeRef.current && unrealBridge.currentMode === 'player') return;
+        if (hasAppliedInitialModeRef.current && unrealBridge.currentMode === targetMode) return;
 
         hasAppliedInitialModeRef.current = true;
-        unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: 'player' }));
-        sendUnrealUiInteraction({ type: 'set_mode', mode: 'player' });
-        sendUnrealUiInteraction({ event: 'mode_changed', mode: 'player' });
+        unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: targetMode }));
+        sendUnrealUiInteraction({ type: 'set_mode', mode: targetMode });
+        sendUnrealUiInteraction({ event: 'mode_changed', mode: targetMode });
         const modeTimer = window.setTimeout(() => {
-            if (unrealBridge.currentMode !== 'player') {
+            if (unrealBridge.currentMode !== targetMode) {
                 sendUnrealKeyPress(71);
             }
         }, 700);

@@ -187,6 +187,7 @@ export default function RoleSelectionPage() {
     const introCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const sceneReturnHref = '/fastview?resume=scene';
     const gamerSceneHref = '/fastview?resume=scene&mode=gamer';
+    const shopperSceneHref = '/fastview?resume=scene&mode=shopper';
 
     const handleStartIntroCutsceneWithSound = () => {
         setHasStartedIntroCutscene(true);
@@ -256,7 +257,7 @@ export default function RoleSelectionPage() {
                             <div className="grid content-start gap-4 lg:grid-cols-3 xl:grid-cols-1">
                                 {copy.roles.map((role) => {
                                     const isGamerRole = role.href === '/player/dashboard';
-                                    const roleHref = isGamerRole ? gamerSceneHref : (returnToScene ? `${role.href}?returnTo=/fastview` : role.href);
+                                    const roleHref = isGamerRole ? gamerSceneHref : shopperSceneHref;
                                     const theme = roleThemes[role.href];
                                     const Icon = theme.Icon;
                                     return (
