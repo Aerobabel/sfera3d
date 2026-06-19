@@ -63,8 +63,10 @@ const getAudienceMetadata = (audience: AppAudience, email: string) => {
 const copy = {
   en: {
     visitorTab: "Visitor Access",
+    playerTab: "Player Access",
     supplierTab: "Supplier Access",
     visitorSubtitle: "Sign in to unlock the exhibition experience.",
+    playerSubtitle: "Sign in to open your player dashboard, rewards wallet, delivery queue, and game activity.",
     supplierSubtitle: "Authentication for the supplier dashboard and live inquiry console.",
     email: "Email address",
     password: "Password",
@@ -78,6 +80,7 @@ const copy = {
     verifyOtp: "Verify code",
     loading: "Processing...",
     passwordSignUpVisitor: "Create a visitor account with email and password.",
+    playerPasswordHint: "Use your player email and password to open the private dashboard. New players can create an account from this same form.",
     passwordSignUpSupplier: "Create a supplier account for your pavilion.",
     otpHintVisitor: "Email OTP can sign in existing visitors or create a new visitor account automatically.",
     otpHintSupplier: "Email OTP works only for existing supplier accounts.",
@@ -102,8 +105,10 @@ const copy = {
   },
   ru: {
     visitorTab: "Доступ посетителя",
+    playerTab: "Доступ игрока",
     supplierTab: "Доступ поставщика",
     visitorSubtitle: "Войдите, чтобы открыть выставочный опыт.",
+    playerSubtitle: "Войдите, чтобы открыть панель игрока, кошелек наград, доставку и игровую активность.",
     supplierSubtitle: "Авторизация для панели поставщика и live-очереди запросов.",
     email: "Email",
     password: "Пароль",
@@ -117,6 +122,7 @@ const copy = {
     verifyOtp: "Подтвердить код",
     loading: "Обработка...",
     passwordSignUpVisitor: "Создайте аккаунт посетителя по email и паролю.",
+    playerPasswordHint: "Используйте email и пароль игрока, чтобы открыть личную панель. Новые игроки могут создать аккаунт в этой же форме.",
     passwordSignUpSupplier: "Создайте аккаунт поставщика для своего павильона.",
     otpHintVisitor:
       "Вход по email-коду подходит для посетителей и может автоматически создать новый аккаунт.",
@@ -143,8 +149,10 @@ const copy = {
   },
   zh: {
     visitorTab: "访客访问",
+    playerTab: "玩家访问",
     supplierTab: "供应商访问",
     visitorSubtitle: "登录后即可进入展厅体验。",
+    playerSubtitle: "登录后打开玩家仪表盘、奖励钱包、配送队列和游戏活动。",
     supplierSubtitle: "用于供应商后台和实时询盘控制台的身份验证。",
     email: "邮箱地址",
     password: "密码",
@@ -158,6 +166,7 @@ const copy = {
     verifyOtp: "验证验证码",
     loading: "处理中...",
     passwordSignUpVisitor: "使用邮箱和密码创建访客账号。",
+    playerPasswordHint: "使用玩家邮箱和密码打开私人仪表盘。新玩家也可以在此表单创建账号。",
     passwordSignUpSupplier: "为您的展馆创建供应商账号。",
     otpHintVisitor: "邮箱 OTP 适用于访客登录，也可以自动创建新访客账号。",
     otpHintSupplier: "邮箱 OTP 仅适用于现有供应商账号。",
@@ -562,7 +571,7 @@ function LoginPageContent() {
 
   const hintText =
     isPlayerLoginRequest && authMethod === "password"
-      ? "Use your player email and password to open the private dashboard. New players can create an account from this same form."
+      ? t.playerPasswordHint
       : authMethod === "otp"
       ? audience === "supplier"
         ? t.otpHintSupplier
@@ -575,7 +584,7 @@ function LoginPageContent() {
 
   const subtitle =
     isPlayerLoginRequest
-      ? "Sign in to open your player dashboard, rewards wallet, delivery queue, and game activity."
+      ? t.playerSubtitle
       : audience === "supplier" ? t.supplierSubtitle : t.visitorSubtitle;
 
   const handleAudienceChange = (nextAudience: AppAudience) => {
@@ -613,7 +622,7 @@ function LoginPageContent() {
                 : "text-gray-300 hover:bg-white/10"
             }`}
           >
-            {isPlayerLoginRequest ? "Player Access" : t.visitorTab}
+            {isPlayerLoginRequest ? t.playerTab : t.visitorTab}
           </button>
           <button
             type="button"
