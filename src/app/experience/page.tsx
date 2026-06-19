@@ -19,6 +19,7 @@ import MarketplaceCrosshair from "@/components/pixelstreaming/MarketplaceCrossha
 import SensitivitySlider from "@/components/pixelstreaming/SensitivitySlider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { clearServerAuthSession } from "@/lib/auth/browser";
+import { getUserRole, type AppAuthRole } from "@/lib/auth/shared";
 import { AppLanguage, getLocalizedProduct } from "@/lib/i18n";
 import { readSupplierChatApiResponse } from "@/lib/supplierChat";
 import { useUnrealEventBridge } from "@/hooks/useUnrealEventBridge";
@@ -712,6 +713,7 @@ type FrontendCinematic = {
     description: string;
     destinationLabel: string;
 };
+type SceneDashboardOverlay = 'player' | 'shopper' | 'business';
 
 const FRONTEND_CINEMATIC_DURATION_MS = 3200;
 const RETURN_TO_CITY_CINEMATIC_DURATION_MS = 5600;
@@ -826,13 +828,14 @@ export default function ExperiencePage() {
     const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
     const [isDesktopChatOpen, setIsDesktopChatOpen] = useState(() => !isFastViewRoute);
     const [viewerEmail, setViewerEmail] = useState<string | null>(null);
+    const [viewerRole, setViewerRole] = useState<AppAuthRole | null>(null);
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [needsPointerResume, setNeedsPointerResume] = useState(false);
     const [isStreamPixelOpen, setIsStreamPixelOpen] = useState(false);
     const [fastViewError, setFastViewError] = useState<string | null>(null);
     const [isPlayerModePromptDismissed, setIsPlayerModePromptDismissed] = useState(false);
     const [hasStartedSferaHallCutsceneSound, setHasStartedSferaHallCutsceneSound] = useState(false);
-    const [dashboardOverlay, setDashboardOverlay] = useState<'player' | 'shopper' | 'business' | null>(null);
+    const [dashboardOverlay, setDashboardOverlay] = useState<SceneDashboardOverlay | null>(null);
     const [liveActivityToasts, setLiveActivityToasts] = useState<LiveActivityToast[]>([]);
     const liveActivityIndexRef = useRef(0);
     const liveActivityRemovalTimersRef = useRef<number[]>([]);
@@ -929,9 +932,11 @@ export default function ExperiencePage() {
 
                 if (!isMounted) return;
                 setViewerEmail(session?.user.email ?? null);
+                setViewerRole(session ? getUserRole(session.user) : null);
             } catch {
                 if (!isMounted) return;
                 setViewerEmail(null);
+                setViewerRole(null);
             }
         };
 
@@ -1339,6 +1344,21 @@ export default function ExperiencePage() {
         : canEnterFastView
           ? fastViewLaunch.readyBody
           : fastViewLaunch.loadingBody;
+    const activeSceneDashboard: SceneDashboardOverlay =
+        viewerRole === 'supplier'
+            ? 'business'
+            : viewerEmail
+              ? 'player'
+              : unrealBridge.currentMode === 'player'
+                ? 'player'
+                : 'shopper';
+    const activeSceneDashboardLabel =
+        activeSceneDashboard === 'business'
+            ? sceneHud.businessDashboard
+            : activeSceneDashboard === 'player'
+              ? sceneHud.playerDashboard
+              : sceneHud.shopperDashboard;
+    const activeSceneDashboardLoginHref = '/login?role=player&next=%2Ffastview%3Fresume%3Dscene%26mode%3Dplayer';
 
     useEffect(() => {
         liveActivityRemovalTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
@@ -1418,6 +1438,8 @@ export default function ExperiencePage() {
             // Ignore and still redirect.
         }
 
+        setViewerEmail(null);
+        setViewerRole(null);
         window.location.assign('/login?role=user');
     };
 
@@ -2504,15 +2526,15 @@ export default function ExperiencePage() {
                             <Link href="/roles?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 {sceneHud.roleSelection}
                             </Link>
-                            <button type="button" onClick={() => { setDashboardOverlay('player'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
-                                {sceneHud.playerDashboard}
-                            </button>
-                            <button type="button" onClick={() => { setDashboardOverlay('shopper'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
-                                {sceneHud.shopperDashboard}
-                            </button>
-                            <button type="button" onClick={() => { setDashboardOverlay('business'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
-                                {sceneHud.businessDashboard}
-                            </button>
+                            {activeSceneDashboard === 'player' && !viewerEmail ? (
+                                <Link href={activeSceneDashboardLoginHref} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                                    {activeSceneDashboardLabel}
+                                </Link>
+                            ) : (
+                                <button type="button" onClick={() => { setDashboardOverlay(activeSceneDashboard); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                                    {activeSceneDashboardLabel}
+                                </button>
+                            )}
                             <button type="button" onClick={() => { setDashboardOverlay(null); setIsMenuOpen(false); router.replace('/fastview?resume=scene', { scroll: false }); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 {backToSceneLabel}
                             </button>

@@ -1563,7 +1563,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                     </div>
                 </main>
 
-                <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
+                <aside className="space-y-4 self-start">
                     <ListPanel title={copy.player.recentTitle} icon={Clock3} tone="sky" items={activityItems.slice(0, 5)} />
                     <RewardPanel rewards={bridge.questRewards} language={language} />
                     <VisualPanel src="/visuals/shopper-market.svg" alt="3DSFERA city overview map" title={copy.player.cityOverview} markers={copy.player.markers} />
@@ -1648,7 +1648,7 @@ export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
                     </section>
                 </main>
 
-                <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
+                <aside className="space-y-4 self-start">
                     <OrderDetailsPanel
                         title={copy.shopper.orderDetailsTitle}
                         subtitle={copy.shopper.orderDetailsSub}
@@ -1729,7 +1729,7 @@ export function SupplierDashboard({ bridge = fallback }: DashboardProps) {
                     </section>
                 </main>
 
-                <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
+                <aside className="space-y-4 self-start">
                     <VisualPanel src="/visuals/business-pavilion.svg" alt="Supplier pavilion preview" title={copy.business.previewTitle} markers={copy.business.markers} />
                     <ListPanel title={copy.business.pipelineTitle} icon={PackageCheck} tone="emerald" items={copy.business.pipeline} />
                     <ListPanel title={copy.business.checklistTitle} icon={CalendarCheck} tone="cyan" items={copy.business.checklist} />
