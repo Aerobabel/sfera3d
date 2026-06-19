@@ -77,6 +77,18 @@ type Marker = {
     className: string;
 };
 
+type ShopperOrderDetail = {
+    id: string;
+    title: string;
+    supplier: string;
+    status: string;
+    eta: string;
+    total: string;
+    progress: number;
+    steps: string[];
+    action: string;
+};
+
 type DashboardText = {
     roles: string;
     backToScene: string;
@@ -157,6 +169,11 @@ type DashboardText = {
         markers: Marker[];
         ordersTitle: string;
         orders: string[];
+        orderDetailsTitle: string;
+        orderDetailsSub: string;
+        orderEtaLabel: string;
+        orderTotalLabel: string;
+        orderDetails: ShopperOrderDetail[];
         messagesTitle: string;
         messages: string[];
         dealsTitle: string;
@@ -327,6 +344,34 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
                 'Mira pendant lights - supplier confirmed, awaiting payment',
                 'Double Lin sample box - in delivery, ETA 3 to 5 days',
                 'Saved cart - 3 products waiting for checkout',
+            ],
+            orderDetailsTitle: 'Order details',
+            orderDetailsSub: 'Payment, supplier, delivery, and next action for every active order.',
+            orderEtaLabel: 'ETA',
+            orderTotalLabel: 'Total',
+            orderDetails: [
+                {
+                    id: 'ORD-2048',
+                    title: 'Mira pendant lights',
+                    supplier: 'Youbo Lighting',
+                    status: 'Awaiting payment',
+                    eta: 'Ships after payment',
+                    total: '$1,240',
+                    progress: 42,
+                    steps: ['Quote accepted', 'Supplier confirmed', 'Payment pending'],
+                    action: 'Pay deposit',
+                },
+                {
+                    id: 'ORD-2031',
+                    title: 'Double Lin sample box',
+                    supplier: 'Double Lin Studio',
+                    status: 'In delivery',
+                    eta: '3 to 5 days',
+                    total: '$86',
+                    progress: 76,
+                    steps: ['Packed', 'Courier pickup', 'Customs check'],
+                    action: 'Track package',
+                },
             ],
             messagesTitle: 'Supplier messages',
             messages: [
@@ -504,6 +549,34 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
                 'Набор образцов Double Lin - в доставке, 3-5 дней',
                 'Сохраненная корзина - 3 товара ждут оформления',
             ],
+            orderDetailsTitle: 'Детали заказа',
+            orderDetailsSub: 'Оплата, поставщик, доставка и следующий шаг по каждому активному заказу.',
+            orderEtaLabel: 'Срок',
+            orderTotalLabel: 'Сумма',
+            orderDetails: [
+                {
+                    id: 'ORD-2048',
+                    title: 'Светильники Mira',
+                    supplier: 'Youbo Lighting',
+                    status: 'Ожидается оплата',
+                    eta: 'Отправка после оплаты',
+                    total: '$1,240',
+                    progress: 42,
+                    steps: ['КП принято', 'Поставщик подтвердил', 'Ожидается оплата'],
+                    action: 'Оплатить депозит',
+                },
+                {
+                    id: 'ORD-2031',
+                    title: 'Набор образцов Double Lin',
+                    supplier: 'Double Lin Studio',
+                    status: 'В доставке',
+                    eta: '3-5 дней',
+                    total: '$86',
+                    progress: 76,
+                    steps: ['Упаковано', 'Передано курьеру', 'Проверка на таможне'],
+                    action: 'Отследить посылку',
+                },
+            ],
             messagesTitle: 'Сообщения поставщиков',
             messages: [
                 'Поставщик Youbo ответил со скидкой на объем.',
@@ -680,6 +753,34 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
                 'Double Lin 样品盒 - 配送中，预计 3 到 5 天',
                 '已保存购物车 - 3 件商品等待结算',
             ],
+            orderDetailsTitle: '订单详情',
+            orderDetailsSub: '每个活跃订单的付款、供应商、配送和下一步操作。',
+            orderEtaLabel: '预计',
+            orderTotalLabel: '合计',
+            orderDetails: [
+                {
+                    id: 'ORD-2048',
+                    title: 'Mira 吊灯',
+                    supplier: 'Youbo Lighting',
+                    status: '等待付款',
+                    eta: '付款后发货',
+                    total: '$1,240',
+                    progress: 42,
+                    steps: ['报价已接受', '供应商已确认', '等待付款'],
+                    action: '支付定金',
+                },
+                {
+                    id: 'ORD-2031',
+                    title: 'Double Lin 样品盒',
+                    supplier: 'Double Lin Studio',
+                    status: '配送中',
+                    eta: '3 到 5 天',
+                    total: '$86',
+                    progress: 76,
+                    steps: ['已打包', '快递已取件', '海关检查'],
+                    action: '跟踪包裹',
+                },
+            ],
             messagesTitle: '供应商消息',
             messages: [
                 'Youbo 供应商回复了批量折扣。',
@@ -788,10 +889,10 @@ const toneStyles: Record<Tone, { icon: string; ring: string; accent: string; bar
     },
 };
 
-const panel = 'rounded-[1.35rem] border border-white/10 bg-white/[0.045] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_18px_60px_rgba(0,0,0,0.24)] backdrop-blur-xl';
-const compactPanel = 'rounded-[1.15rem] border border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]';
-const metricGrid = 'grid gap-4 sm:grid-cols-2 min-[1800px]:grid-cols-4';
-const threeCardGrid = 'grid gap-4 md:grid-cols-2 min-[1800px]:grid-cols-3';
+const panel = 'rounded-xl border border-white/10 bg-[#111821]/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl';
+const compactPanel = 'rounded-lg border border-white/10 bg-[#0d131c] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]';
+const metricGrid = 'grid gap-3 sm:grid-cols-2 min-[1680px]:grid-cols-4';
+const threeCardGrid = 'grid gap-3 md:grid-cols-2 min-[1680px]:grid-cols-3';
 
 const clampPercent = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
 
@@ -857,17 +958,17 @@ function DashboardBackNav() {
     const returnToScene = searchParams.get('returnTo') === '/fastview';
 
     return (
-        <div className="mb-5 flex flex-wrap items-center gap-2">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
             <Link
                 href={returnToScene ? '/roles?returnTo=/fastview' : '/roles?skipIntro=true'}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-200 transition hover:border-cyan-300/35 hover:bg-cyan-300/10 hover:text-cyan-100"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.055] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-cyan-300/35 hover:bg-cyan-300/10 hover:text-cyan-100"
             >
                 <Home className="h-3.5 w-3.5" />
                 {copy.roles}
             </Link>
             <Link
                 href="/fastview?resume=scene"
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-200 transition hover:border-cyan-300/35 hover:bg-cyan-300/10 hover:text-cyan-100"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.055] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-cyan-300/35 hover:bg-cyan-300/10 hover:text-cyan-100"
             >
                 <Globe2 className="h-3.5 w-3.5" />
                 {copy.backToScene}
@@ -892,12 +993,12 @@ function DashboardFrame({
     }[mode];
 
     return (
-        <section className="relative overflow-hidden border border-white/10 bg-[#070b14] text-white shadow-[0_40px_140px_rgba(0,0,0,0.52)] md:rounded-[2rem]">
+        <section className="relative overflow-hidden border border-white/10 bg-[#0a1018] text-white shadow-[0_40px_140px_rgba(0,0,0,0.5)] md:rounded-xl">
             <div className="pointer-events-none absolute inset-0" style={{ background: modeGlow }} />
-            <div className="pointer-events-none absolute inset-0 opacity-[0.13] [background-image:linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:54px_54px]" />
-            <div className="relative grid min-h-screen xl:grid-cols-[15rem_minmax(0,1fr)]">
+            <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:48px_48px]" />
+            <div className="relative grid min-h-screen xl:grid-cols-[13.75rem_minmax(0,1fr)]">
                 {sidebar}
-                <div className="min-w-0 p-4 sm:p-5 lg:p-7 xl:p-8">{children}</div>
+                <div className="min-w-0 p-3 sm:p-4 lg:p-5 xl:p-6">{children}</div>
             </div>
         </section>
     );
@@ -906,9 +1007,9 @@ function DashboardFrame({
 function HeaderSearch({ label, shortcut }: { label: string; shortcut: string }) {
     return (
         <div className="relative w-full max-w-xl">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input
-                className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.045] pl-11 pr-24 text-sm text-slate-200 outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 focus:bg-cyan-300/[0.07]"
+                className="h-11 w-full rounded-lg border border-white/10 bg-[#0d131c] pl-10 pr-24 text-sm text-slate-200 outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 focus:bg-cyan-300/[0.07]"
                 placeholder={label}
                 readOnly
             />
@@ -921,7 +1022,7 @@ function HeaderSearch({ label, shortcut }: { label: string; shortcut: string }) 
 
 function StatusPill({ children, tone = 'cyan' }: { children: ReactNode; tone?: Tone }) {
     return (
-        <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] ${toneStyles[tone].icon}`}>
+        <span className={`inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[11px] font-black uppercase tracking-[0.12em] ${toneStyles[tone].icon}`}>
             <span className={`h-2 w-2 rounded-full ${toneStyles[tone].bar}`} />
             {children}
         </span>
@@ -930,19 +1031,19 @@ function StatusPill({ children, tone = 'cyan' }: { children: ReactNode; tone?: T
 
 function MetricCard({ title, value, helper, icon: Icon, tone, progress }: MetricProps) {
     return (
-        <article className={`${panel} ${toneStyles[tone].ring} min-h-40 p-4 sm:p-5`}>
+        <article className={`${panel} ${toneStyles[tone].ring} min-h-32 p-4`}>
             <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">{title}</p>
-                    <p className="mt-3 break-words text-2xl font-black leading-tight text-white sm:text-3xl">{value}</p>
+                    <p className="truncate text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">{title}</p>
+                    <p className="mt-2 truncate text-xl font-black leading-tight text-white sm:text-2xl">{value}</p>
                 </div>
-                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${toneStyles[tone].icon}`}>
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${toneStyles[tone].icon}`}>
                     <Icon className="h-5 w-5" strokeWidth={1.8} />
                 </span>
             </div>
-            <p className="mt-3 text-sm leading-5 text-slate-400">{helper}</p>
+            <p className="mt-2 text-sm leading-5 text-slate-400">{helper}</p>
             {typeof progress === 'number' && (
-                <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
                     <div className={`h-full rounded-full ${toneStyles[tone].bar}`} style={{ width: `${clampPercent(progress)}%` }} />
                 </div>
             )}
@@ -966,12 +1067,12 @@ function WorkCard({
     action: string;
 }) {
     return (
-        <Link href={href} className={`${compactPanel} group flex min-h-40 flex-col justify-between p-4 transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/[0.065]`}>
+        <Link href={href} className={`${compactPanel} group flex min-h-36 flex-col justify-between p-4 transition hover:border-cyan-300/30 hover:bg-white/[0.055]`}>
             <div>
-                <span className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border ${toneStyles[tone].icon}`}>
+                <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border ${toneStyles[tone].icon}`}>
                     <Icon className="h-5 w-5" />
                 </span>
-                <h3 className="mt-4 text-lg font-black tracking-tight text-white">{title}</h3>
+                <h3 className="mt-3 text-base font-black tracking-tight text-white">{title}</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-400">{text}</p>
             </div>
             <span className={`mt-5 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] ${toneStyles[tone].accent}`}>
@@ -994,16 +1095,16 @@ function ListPanel({
     tone?: Tone;
 }) {
     return (
-        <section className={`${panel} p-5`}>
+        <section className={`${panel} p-4`}>
             <div className="mb-4 flex items-center justify-between gap-3">
                 <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{title}</h2>
-                <span className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${toneStyles[tone].icon}`}>
+                <span className={`flex h-9 w-9 items-center justify-center rounded-lg border ${toneStyles[tone].icon}`}>
                     <Icon className="h-5 w-5" />
                 </span>
             </div>
             <div className="space-y-3">
                 {items.map((item) => (
-                    <div key={item} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+                    <div key={item} className="flex gap-3 rounded-lg border border-white/10 bg-black/20 p-3">
                         <CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${toneStyles[tone].accent}`} />
                         <p className="text-sm leading-5 text-slate-300">{item}</p>
                     </div>
@@ -1026,21 +1127,21 @@ function QuestPanel({
     const roleProgress = getRoleQuestProgress(progress, role).slice(0, 3);
 
     return (
-        <section className={`${panel} p-5`}>
+        <section className={`${panel} p-4`}>
             <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                     <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{copy.activeQuests}</h2>
                     <p className="mt-1 text-sm text-slate-500">{copy.objectives}</p>
                 </div>
-                <span className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${toneStyles.emerald.icon}`}>
+                <span className={`flex h-9 w-9 items-center justify-center rounded-lg border ${toneStyles.emerald.icon}`}>
                     <ClipboardCheck className="h-5 w-5" />
                 </span>
             </div>
 
             {roleProgress.length === 0 ? (
-                <p className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm text-slate-400">{copy.noQuests}</p>
+                <p className="rounded-lg border border-white/10 bg-black/20 p-4 text-sm text-slate-400">{copy.noQuests}</p>
             ) : (
-                <div className="grid gap-4 xl:grid-cols-2">
+                <div className="grid gap-3 xl:grid-cols-2">
                     {roleProgress.map((item) => {
                         const quest = getQuestDefinition(item.questId);
                         if (!quest) return null;
@@ -1055,7 +1156,7 @@ function QuestPanel({
                                         <p className={`text-[10px] font-black uppercase tracking-[0.18em] ${toneStyles[statusTone].accent}`}>
                                             {questText.sponsor ?? '3DSFERA'}
                                         </p>
-                                        <h3 className="mt-1 text-lg font-black leading-tight text-white">{questText.title}</h3>
+                                        <h3 className="mt-1 text-base font-black leading-tight text-white">{questText.title}</h3>
                                         <p className="mt-2 text-sm leading-6 text-slate-400">{questText.description}</p>
                                     </div>
                                     <StatusPill tone={statusTone}>{questStatusLabel(item, copy)}</StatusPill>
@@ -1098,22 +1199,22 @@ function RewardPanel({
     const visibleRewards = [...rewards].reverse().slice(0, 4);
 
     return (
-        <section className={`${panel} p-5`}>
+        <section className={`${panel} p-4`}>
             <div className="mb-4 flex items-center justify-between gap-3">
                 <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{copy.rewardWallet}</h2>
-                <span className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${toneStyles.amber.icon}`}>
+                <span className={`flex h-9 w-9 items-center justify-center rounded-lg border ${toneStyles.amber.icon}`}>
                     <Gift className="h-5 w-5" />
                 </span>
             </div>
             {visibleRewards.length === 0 ? (
-                <p className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm text-slate-400">{copy.noRewards}</p>
+                <p className="rounded-lg border border-white/10 bg-black/20 p-4 text-sm text-slate-400">{copy.noRewards}</p>
             ) : (
                 <div className="space-y-3">
                     {visibleRewards.map((reward) => {
                         const quest = getQuestDefinition(reward.questId);
                         const questText = quest ? getQuestText(quest, language) : null;
                         return (
-                            <div key={reward.id} className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.06] p-3">
+                            <div key={reward.id} className="rounded-lg border border-amber-300/15 bg-amber-300/[0.06] p-3">
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
                                         <p className="text-sm font-black text-white">{getQuestRewardText(reward, reward.questId, language)}</p>
@@ -1132,6 +1233,84 @@ function RewardPanel({
     );
 }
 
+function OrderDetailsPanel({
+    title,
+    subtitle,
+    etaLabel,
+    totalLabel,
+    orders,
+}: {
+    title: string;
+    subtitle: string;
+    etaLabel: string;
+    totalLabel: string;
+    orders: ShopperOrderDetail[];
+}) {
+    return (
+        <section className={`${panel} p-4`}>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{title}</h2>
+                    <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+                </div>
+                <span className={`flex h-9 w-9 items-center justify-center rounded-lg border ${toneStyles.emerald.icon}`}>
+                    <PackageCheck className="h-5 w-5" />
+                </span>
+            </div>
+
+            <div className="grid gap-3 xl:grid-cols-2">
+                {orders.map((order) => (
+                    <article key={order.id} className={`${compactPanel} min-w-0 p-4`}>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                                <p className="font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">{order.id}</p>
+                                <h3 className="mt-1 truncate text-lg font-black text-white">{order.title}</h3>
+                                <p className="mt-1 text-sm text-slate-400">{order.supplier}</p>
+                            </div>
+                            <StatusPill tone="emerald">{order.status}</StatusPill>
+                        </div>
+
+                        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                            <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">{etaLabel}</p>
+                                <p className="mt-1 text-sm font-bold text-slate-200">{order.eta}</p>
+                            </div>
+                            <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">{totalLabel}</p>
+                                <p className="mt-1 text-sm font-bold text-slate-200">{order.total}</p>
+                            </div>
+                        </div>
+
+                        <div className="mt-4">
+                            <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+                                <span>{order.status}</span>
+                                <span>{clampPercent(order.progress)}%</span>
+                            </div>
+                            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                                <div className="h-full rounded-full bg-emerald-300" style={{ width: `${clampPercent(order.progress)}%` }} />
+                            </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-2">
+                            {order.steps.map((step) => (
+                                <div key={step} className="flex items-center gap-2 text-sm text-slate-300">
+                                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-200" />
+                                    <span>{step}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <Link href="/fastview?resume=scene&mode=shopper" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-300/25 bg-emerald-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-emerald-100 transition hover:bg-emerald-300/15">
+                            {order.action}
+                            <ArrowRight className="h-4 w-4" />
+                        </Link>
+                    </article>
+                ))}
+            </div>
+        </section>
+    );
+}
+
 function VisualPanel({
     src,
     alt,
@@ -1145,10 +1324,10 @@ function VisualPanel({
 }) {
     return (
         <section className={`${panel} overflow-hidden`}>
-            <div className="p-5 pb-3">
+            <div className="p-4 pb-3">
                 <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{title}</h2>
             </div>
-            <div className="relative mx-5 mb-5 h-64 overflow-hidden rounded-2xl border border-white/10 bg-slate-950">
+            <div className="relative mx-4 mb-4 h-56 overflow-hidden rounded-lg border border-white/10 bg-slate-950">
                 <Image src={src} alt={alt} width={1200} height={760} className="h-full w-full object-cover opacity-75" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/15" />
                 {markers.map((marker) => (
@@ -1166,15 +1345,15 @@ function PlayerSidebar({ copy }: { copy: DashboardText }) {
     const hrefs = ['/player/dashboard', '/fastview?resume=scene', '/fastview?resume=scene&mode=gamer', '/fastview', '/fastview', '/fastview'];
 
     return (
-        <aside className="hidden border-r border-white/10 bg-black/25 p-4 backdrop-blur-xl xl:flex xl:flex-col">
+        <aside className="hidden border-r border-white/10 bg-black/25 p-3 backdrop-blur-xl xl:flex xl:flex-col">
             <div className="flex items-center gap-3 px-2 py-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-300/10 text-lg font-black text-cyan-100">3D</span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-300/30 bg-cyan-300/10 text-lg font-black text-cyan-100">3D</span>
                 <div>
                     <p className="text-sm font-black uppercase tracking-[0.12em] text-white">3DSFERA</p>
                     <p className="text-xs text-slate-500">{copy.player.suite}</p>
                 </div>
             </div>
-            <nav className="mt-8 space-y-2">
+            <nav className="mt-6 space-y-1.5">
                 {copy.player.nav.map((label, index) => {
                     const Icon = icons[index];
                     const active = index === 0;
@@ -1182,7 +1361,7 @@ function PlayerSidebar({ copy }: { copy: DashboardText }) {
                         <Link
                             key={label}
                             href={hrefs[index]}
-                            className={`flex items-center justify-between rounded-2xl border px-3 py-3 text-sm font-semibold transition ${
+                            className={`flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
                                 active
                                     ? 'border-cyan-300/35 bg-cyan-300/12 text-white shadow-[0_0_32px_rgba(34,211,238,0.16)]'
                                     : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.05] hover:text-slate-100'
@@ -1197,10 +1376,10 @@ function PlayerSidebar({ copy }: { copy: DashboardText }) {
                     );
                 })}
             </nav>
-            <div className="mt-auto rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4">
+            <div className="mt-auto rounded-lg border border-amber-300/20 bg-amber-300/10 p-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-200">{copy.player.seasonLabel}</p>
                 <p className="mt-2 text-lg font-black leading-tight text-white">{copy.player.seasonTitle}</p>
-                <Link href="/fastview?resume=scene&mode=gamer" className="mt-4 inline-flex items-center gap-2 rounded-xl border border-amber-300/30 bg-black/20 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-amber-100">
+                <Link href="/fastview?resume=scene&mode=gamer" className="mt-4 inline-flex items-center gap-2 rounded-md border border-amber-300/30 bg-black/20 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-amber-100">
                     {copy.player.playNow}
                     <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
@@ -1227,13 +1406,13 @@ function DashboardHero({
     children?: ReactNode;
 }) {
     return (
-        <section className="relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-slate-950/75 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-7">
-            <Image src={src} alt={alt} width={1200} height={760} className="absolute inset-0 h-full w-full object-cover opacity-45" priority />
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.98),rgba(2,6,23,0.78)_52%,rgba(2,6,23,0.28))]" />
+        <section className="relative overflow-hidden rounded-xl border border-white/10 bg-slate-950/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-5">
+            <Image src={src} alt={alt} width={1200} height={760} className="absolute inset-0 h-full w-full object-cover opacity-35" priority />
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.98),rgba(2,6,23,0.82)_56%,rgba(2,6,23,0.38))]" />
             <div className="relative max-w-3xl">
                 <StatusPill tone={tone}>{kicker}</StatusPill>
-                <h1 className="mt-5 text-3xl font-black tracking-tight text-white sm:text-5xl">{title}</h1>
-                <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">{subtitle}</p>
+                <h1 className="mt-4 text-2xl font-black tracking-tight text-white sm:text-3xl">{title}</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">{subtitle}</p>
                 {children}
             </div>
         </section>
@@ -1264,19 +1443,19 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
     return (
         <DashboardFrame mode="player" sidebar={<PlayerSidebar copy={copy} />}>
             <DashboardBackNav />
-            <header className="mb-5 flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-center lg:justify-between">
+            <header className="mb-4 flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
                 <HeaderSearch label={copy.search.player} shortcut={copy.search.shortcut} />
                 <div className="flex flex-wrap items-center gap-3">
                     <StatusPill tone="sky">{copy.player.mode}</StatusPill>
-                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-slate-300">
+                    <span className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-slate-300">
                         <LockKeyhole className="h-4 w-4 text-emerald-200" />
                         {copy.player.signed}
                     </span>
                 </div>
             </header>
 
-            <div className="grid gap-6 min-[1800px]:grid-cols-[minmax(0,1fr)_24rem]">
-                <main className="min-w-0 space-y-5">
+            <div className="grid gap-4 min-[1680px]:grid-cols-[minmax(0,1fr)_22rem]">
+                <main className="min-w-0 space-y-4">
                     <DashboardHero
                         kicker={copy.player.kicker}
                         title={copy.player.title}
@@ -1285,7 +1464,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                         alt="3DSFERA player arena dashboard"
                         tone="sky"
                     >
-                        <div className="mt-7 grid gap-4 border-t border-white/10 pt-5 sm:grid-cols-2">
+                        <div className="mt-5 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2">
                             <div>
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="font-bold text-slate-200">{copy.player.level}</span>
@@ -1295,7 +1474,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                                     <div className="h-full rounded-full bg-sky-300 shadow-[0_0_16px_rgba(56,189,248,0.75)]" style={{ width: `${levelProgress}%` }} />
                                 </div>
                             </div>
-                            <div className="rounded-2xl border border-white/10 bg-black/35 p-3">
+                            <div className="rounded-lg border border-white/10 bg-black/35 p-3">
                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{copy.player.playerId}</p>
                                 <p className="mt-1 font-mono text-sm text-slate-200">3DSF-7A2B-9C4D</p>
                             </div>
@@ -1315,13 +1494,13 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
 
                     <QuestPanel role="player" progress={bridge.questProgress} language={language} />
 
-                    <section className={`${panel} p-5`}>
+                    <section className={`${panel} p-4`}>
                         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{copy.player.zonesTitle}</h2>
                                 <p className="mt-1 text-sm text-slate-500">{copy.player.zonesSub}</p>
                             </div>
-                            <Link href="/fastview?resume=scene&mode=gamer" className="inline-flex items-center gap-2 rounded-full border border-sky-300/30 bg-sky-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-sky-100">
+                            <Link href="/fastview?resume=scene&mode=gamer" className="inline-flex items-center gap-2 rounded-lg border border-sky-300/30 bg-sky-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-sky-100">
                                 {copy.enterWorld}
                                 <ArrowRight className="h-4 w-4" />
                             </Link>
@@ -1333,19 +1512,19 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                         </div>
                     </section>
 
-                    <div className="grid gap-5 lg:grid-cols-2">
+                    <div className="grid gap-4 lg:grid-cols-2">
                         <ListPanel title={copy.player.rewardQueueTitle} icon={Truck} tone="amber" items={copy.player.rewardQueue} />
                         <ListPanel title={copy.player.messagesTitle} icon={MessageSquare} tone="cyan" items={copy.player.messages} />
                     </div>
                 </main>
 
-                <aside className="space-y-5 min-[1800px]:sticky min-[1800px]:top-6 min-[1800px]:self-start">
+                <aside className="space-y-4 min-[1680px]:sticky min-[1680px]:top-6 min-[1680px]:self-start">
                     <ListPanel title={copy.player.recentTitle} icon={Clock3} tone="sky" items={activityItems.slice(0, 5)} />
                     <RewardPanel rewards={bridge.questRewards} language={language} />
                     <VisualPanel src="/visuals/shopper-market.svg" alt="3DSFERA city overview map" title={copy.player.cityOverview} markers={copy.player.markers} />
-                    <section className={`${panel} p-5`}>
+                    <section className={`${panel} p-4`}>
                         <div className="flex items-center gap-4">
-                            <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-300/25 bg-emerald-300/10 text-emerald-200">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-300/25 bg-emerald-300/10 text-emerald-200">
                                 <ShieldCheck className="h-6 w-6" />
                             </span>
                             <div>
@@ -1369,18 +1548,18 @@ export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
     return (
         <DashboardFrame mode="shopper">
             <DashboardBackNav />
-            <header className="mb-5 flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-center lg:justify-between">
+            <header className="mb-4 flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
                 <HeaderSearch label={copy.search.shopper} shortcut={copy.search.shortcut} />
                 <div className="flex flex-wrap items-center gap-3">
                     <StatusPill tone="amber">{copy.shopper.mode}</StatusPill>
-                    <Link href="/fastview?resume=scene&mode=shopper" className="inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-amber-100">
+                    <Link href="/fastview?resume=scene&mode=shopper" className="inline-flex items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-amber-100">
                         {copy.shopper.openHall}
                         <ArrowRight className="h-4 w-4" />
                     </Link>
                 </div>
             </header>
 
-            <div className="space-y-5">
+            <div className="space-y-4">
                 <DashboardHero
                     kicker={copy.shopper.kicker}
                     title={copy.shopper.title}
@@ -1389,7 +1568,7 @@ export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
                     alt="3DSFERA shopper marketplace dashboard"
                     tone="amber"
                 >
-                    <div className="mt-7 flex flex-wrap gap-3">
+                    <div className="mt-5 flex flex-wrap gap-3">
                         <StatusPill tone="cyan">{copy.shopper.location}: {currentLocation}</StatusPill>
                         <StatusPill tone="emerald">{copy.shopper.suppliersOnline}</StatusPill>
                     </div>
@@ -1404,14 +1583,14 @@ export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
 
                 <QuestPanel role="shopper" progress={bridge.questProgress} language={language} />
 
-                <div className="grid gap-5 min-[1800px]:grid-cols-[minmax(0,1fr)_23rem]">
-                    <section className={`${panel} p-5`}>
+                <div className="grid gap-4 min-[1680px]:grid-cols-[minmax(0,1fr)_22rem]">
+                    <section className={`${panel} p-4`}>
                         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{copy.shopper.workflowTitle}</h2>
                                 <p className="mt-1 text-sm text-slate-500">{copy.shopper.workflowSub}</p>
                             </div>
-                            <Link href="/fastview?resume=scene&mode=shopper" className="inline-flex items-center gap-2 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-100">
+                            <Link href="/fastview?resume=scene&mode=shopper" className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/30 bg-cyan-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-100">
                                 {copy.shopper.shopIn3d}
                                 <ArrowRight className="h-4 w-4" />
                             </Link>
@@ -1426,8 +1605,15 @@ export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
                     <VisualPanel src="/visuals/shopper-market.svg" alt="Sfera Hall shopper map" title={copy.shopper.mapTitle} markers={copy.shopper.markers} />
                 </div>
 
-                <div className="grid gap-5 lg:grid-cols-3">
-                    <ListPanel title={copy.shopper.ordersTitle} icon={Truck} tone="emerald" items={copy.shopper.orders} />
+                <OrderDetailsPanel
+                    title={copy.shopper.orderDetailsTitle}
+                    subtitle={copy.shopper.orderDetailsSub}
+                    etaLabel={copy.shopper.orderEtaLabel}
+                    totalLabel={copy.shopper.orderTotalLabel}
+                    orders={copy.shopper.orderDetails}
+                />
+
+                <div className="grid gap-4 lg:grid-cols-2">
                     <ListPanel title={copy.shopper.messagesTitle} icon={MessageSquare} tone="cyan" items={copy.shopper.messages} />
                     <ListPanel title={copy.shopper.dealsTitle} icon={Gift} tone="amber" items={copy.shopper.deals} />
                 </div>
@@ -1445,18 +1631,18 @@ export function SupplierDashboard({ bridge = fallback }: DashboardProps) {
     return (
         <DashboardFrame mode="business">
             <DashboardBackNav />
-            <header className="mb-5 flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-center lg:justify-between">
+            <header className="mb-4 flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
                 <HeaderSearch label={copy.search.business} shortcut={copy.search.shortcut} />
                 <div className="flex flex-wrap items-center gap-3">
                     <StatusPill tone="emerald">{copy.business.mode}</StatusPill>
-                    <Link href="/login?role=supplier&next=/supplier/dashboard" className="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-emerald-100">
+                    <Link href="/login?role=supplier&next=/supplier/dashboard" className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-emerald-100">
                         {copy.business.portal}
                         <ArrowRight className="h-4 w-4" />
                     </Link>
                 </div>
             </header>
 
-            <div className="space-y-5">
+            <div className="space-y-4">
                 <DashboardHero
                     kicker={copy.business.kicker}
                     title={copy.business.title}
@@ -1465,7 +1651,7 @@ export function SupplierDashboard({ bridge = fallback }: DashboardProps) {
                     alt="3DSFERA supplier pavilion dashboard"
                     tone="emerald"
                 >
-                    <div className="mt-7 flex flex-wrap gap-3">
+                    <div className="mt-5 flex flex-wrap gap-3">
                         <StatusPill tone="emerald">{copy.business.pavilionHealth}</StatusPill>
                         <StatusPill tone="cyan">{copy.business.buyersOnline}</StatusPill>
                         <StatusPill tone="amber">{copy.business.questsLive}</StatusPill>
@@ -1481,14 +1667,14 @@ export function SupplierDashboard({ bridge = fallback }: DashboardProps) {
 
                 <QuestPanel role="business" progress={bridge.questProgress} language={language} />
 
-                <div className="grid gap-5 min-[1800px]:grid-cols-[minmax(0,1fr)_24rem]">
-                    <section className={`${panel} p-5`}>
+                <div className="grid gap-4 min-[1680px]:grid-cols-[minmax(0,1fr)_22rem]">
+                    <section className={`${panel} p-4`}>
                         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{copy.business.operationsTitle}</h2>
                                 <p className="mt-1 text-sm text-slate-500">{copy.business.operationsSub}</p>
                             </div>
-                            <Link href="/supplier/upload" className="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-emerald-100">
+                            <Link href="/supplier/upload" className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-emerald-100">
                                 {copy.business.uploadProducts}
                                 <ArrowRight className="h-4 w-4" />
                             </Link>
@@ -1503,7 +1689,7 @@ export function SupplierDashboard({ bridge = fallback }: DashboardProps) {
                     <VisualPanel src="/visuals/business-pavilion.svg" alt="Supplier pavilion preview" title={copy.business.previewTitle} markers={copy.business.markers} />
                 </div>
 
-                <div className="grid gap-5 lg:grid-cols-3">
+                <div className="grid gap-4 lg:grid-cols-3">
                     <ListPanel title={copy.business.pipelineTitle} icon={PackageCheck} tone="emerald" items={copy.business.pipeline} />
                     <ListPanel title={copy.business.checklistTitle} icon={CalendarCheck} tone="cyan" items={copy.business.checklist} />
                     <ListPanel title={copy.business.revenueTitle} icon={CreditCard} tone="amber" items={copy.business.revenue} />

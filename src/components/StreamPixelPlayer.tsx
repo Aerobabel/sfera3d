@@ -37,7 +37,6 @@ type StreamPixelCompatibleWindow = Window & {
 };
 
 const POINTER_LOCK_GRACE_MS = 240;
-const MAX_MOUSE_DELTA = 120;
 const NORMALIZED_CENTER = 32768;
 const COMMON_KEY_CODES_TO_RELEASE = [87, 65, 83, 68, 38, 37, 40, 39, 32, 16, 17, 18, 88, 70, 84];
 
@@ -456,20 +455,13 @@ export default function StreamPixelPlayer({
                 }
 
                 const sensitivity = mouseSensitivityRef.current;
-                const rawDeltaX = typeof messageData[2] === 'number'
-                    ? Math.max(-MAX_MOUSE_DELTA, Math.min(MAX_MOUSE_DELTA, messageData[2]))
-                    : messageData[2];
-                const rawDeltaY = typeof messageData[3] === 'number'
-                    ? Math.max(-MAX_MOUSE_DELTA, Math.min(MAX_MOUSE_DELTA, messageData[3]))
-                    : messageData[3];
+                const rawDeltaX = messageData[2];
+                const rawDeltaY = messageData[3];
 
                 // Fast path: at sensitivity = 1 the SDK's integer deltas are
                 // already correct, no scaling/rounding is needed.
                 if (sensitivity === 1) {
-                    const clampedMessageData = [...messageData];
-                    clampedMessageData[2] = rawDeltaX;
-                    clampedMessageData[3] = rawDeltaY;
-                    originalMouseMove(clampedMessageData);
+                    originalMouseMove(messageData);
                     return;
                 }
 

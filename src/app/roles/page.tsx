@@ -318,52 +318,55 @@ function RoleCard({ base, text, rolePath }: { base: RoleBase; text: RoleText; ro
     return (
         <Link
             href={base.href}
-            className={`group relative flex min-h-[34rem] flex-col overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.045] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_80px_rgba(0,0,0,0.3)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-white/[0.065] ${tone.border}`}
+            className={`group grid overflow-hidden rounded-xl border border-white/10 bg-[#101721]/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl transition duration-200 hover:border-white/20 hover:bg-[#151d28] lg:grid-cols-[14rem_minmax(0,1fr)] ${tone.border}`}
         >
-            <div className="relative h-56 overflow-hidden bg-slate-950">
-                <Image src={base.image} alt={base.imageAlt} fill sizes="(min-width: 1024px) 32vw, 100vw" className="object-cover opacity-85 transition duration-700 group-hover:scale-105" />
+            <div className="relative min-h-44 overflow-hidden bg-slate-950 lg:min-h-full">
+                <Image src={base.image} alt={base.imageAlt} fill sizes="(min-width: 1024px) 14rem, 100vw" className="object-cover opacity-80 transition duration-500 group-hover:scale-105" />
                 <div className={`absolute inset-0 bg-gradient-to-br ${tone.glow}`} />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#070b14] via-[#070b14]/20 to-transparent" />
-                <span className={`absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] backdrop-blur ${tone.icon}`}>
+                <span className={`absolute left-3 top-3 inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] backdrop-blur ${tone.icon}`}>
                     {base.tone === 'player' && <LockKeyhole className="h-3.5 w-3.5" />}
                     {text.label}
                 </span>
-                <span className={`absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-2xl border backdrop-blur ${tone.icon}`}>
-                    <Icon className="h-6 w-6" strokeWidth={1.8} />
+                <span className={`absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-lg border backdrop-blur ${tone.icon}`}>
+                    <Icon className="h-5 w-5" strokeWidth={1.8} />
                 </span>
             </div>
 
-            <div className="flex flex-1 flex-col p-5">
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{rolePath}</p>
-                        <h2 className="mt-2 text-3xl font-black tracking-tight text-white">{text.title}</h2>
+            <div className="grid gap-4 p-4 sm:p-5 xl:grid-cols-[minmax(0,1fr)_15rem]">
+                <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">{rolePath}</p>
+                    <div className="mt-2 flex min-w-0 items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <h2 className="break-words text-2xl font-black tracking-tight text-white sm:text-3xl">{text.title}</h2>
+                            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">{text.description}</p>
+                        </div>
+                        <ArrowRight className={`mt-2 h-5 w-5 shrink-0 transition group-hover:translate-x-0.5 ${tone.text}`} />
                     </div>
-                    <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
-                        {text.metrics.map((metric) => (
-                            <div key={metric.label} className="min-w-20 border-r border-white/10 px-3 py-2 text-center last:border-r-0">
-                                <p className={`text-lg font-black ${tone.text}`}>{metric.value}</p>
-                                <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-slate-500">{metric.label}</p>
+
+                    <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                        {text.proof.map((item) => (
+                            <div key={item} className="flex min-w-0 items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+                                <BadgeCheck className={`h-4 w-4 shrink-0 ${tone.text}`} />
+                                <span className="text-sm leading-5 text-slate-300">{item}</span>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                <p className="mt-4 text-sm leading-6 text-slate-300">{text.description}</p>
-
-                <div className="mt-5 grid gap-2">
-                    {text.proof.map((item) => (
-                        <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2">
-                            <BadgeCheck className={`h-4 w-4 shrink-0 ${tone.text}`} />
-                            <span className="text-sm text-slate-300">{item}</span>
-                        </div>
-                    ))}
+                <div className="flex flex-col justify-between gap-4">
+                    <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-white/10 bg-black/20">
+                        {text.metrics.map((metric) => (
+                            <div key={metric.label} className="min-w-0 border-r border-white/10 px-3 py-2 text-center last:border-r-0">
+                                <p className={`text-lg font-black ${tone.text}`}>{metric.value}</p>
+                                <p className="mt-0.5 truncate text-[10px] uppercase tracking-[0.12em] text-slate-500">{metric.label}</p>
+                            </div>
+                        ))}
+                    </div>
+                    <span className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-xs font-black uppercase tracking-[0.12em] transition group-hover:bg-white/[0.08] ${tone.button}`}>
+                        {text.action}
+                    </span>
                 </div>
-
-                <span className={`mt-auto inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-xs font-black uppercase tracking-[0.12em] transition group-hover:bg-white/[0.08] ${tone.button}`}>
-                    {text.action}
-                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-                </span>
             </div>
         </Link>
     );
@@ -371,12 +374,12 @@ function RoleCard({ base, text, rolePath }: { base: RoleBase; text: RoleText; ro
 
 function Insight({ icon: Icon, title, text }: { icon: LucideIcon; title: string; text: string }) {
     return (
-        <article className="rounded-[1.1rem] border border-white/10 bg-white/[0.04] p-4">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-100">
-                <Icon className="h-5 w-5" />
+        <article className="rounded-lg border border-white/10 bg-black/20 p-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-300/10 text-cyan-100">
+                <Icon className="h-4 w-4" />
             </span>
-            <h3 className="mt-4 font-black text-white">{title}</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-400">{text}</p>
+            <h3 className="mt-3 text-sm font-black text-white">{title}</h3>
+            <p className="mt-2 text-sm leading-5 text-slate-400">{text}</p>
         </article>
     );
 }
@@ -405,7 +408,7 @@ export default function RoleSelectionPage() {
     };
 
     return (
-        <main className="min-h-screen overflow-hidden bg-[#070b14] text-white">
+        <main className="min-h-screen overflow-hidden bg-[#080d14] text-white">
             {isIntroVisible && (
                 <div className="fixed inset-0 z-50 bg-black">
                     <video
@@ -441,54 +444,54 @@ export default function RoleSelectionPage() {
                 </div>
             )}
 
-            <section className="relative px-4 py-5 sm:px-6 lg:px-8">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_12%,rgba(34,211,238,0.16),transparent_30%),radial-gradient(circle_at_18%_82%,rgba(251,191,36,0.12),transparent_34%)]" />
-                <div className="pointer-events-none absolute inset-0 opacity-[0.13] [background-image:linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:54px_54px]" />
+            <section className="relative px-3 py-4 sm:px-5 lg:px-7">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_12%,rgba(34,211,238,0.12),transparent_30%),radial-gradient(circle_at_18%_82%,rgba(251,191,36,0.1),transparent_34%)]" />
+                <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:48px_48px]" />
 
                 <div className="relative mx-auto max-w-7xl">
-                    <nav className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                    <nav className="mb-4 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap gap-2">
-                            <Link href={returnToScene ? '/fastview?resume=scene' : '/'} className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-200 transition hover:border-cyan-300/35 hover:bg-cyan-300/10">
+                            <Link href={returnToScene ? '/fastview?resume=scene' : '/'} className="rounded-lg border border-white/10 bg-white/[0.055] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-cyan-300/35 hover:bg-cyan-300/10">
                                 {returnToScene ? copy.backToScene : copy.home}
                             </Link>
-                            <Link href="/fastview?resume=scene" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-200 transition hover:border-cyan-300/35 hover:bg-cyan-300/10">
+                            <Link href="/fastview?resume=scene" className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.055] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-cyan-300/35 hover:bg-cyan-300/10">
                                 <Globe2 className="h-4 w-4" />
                                 {copy.liveWorld}
                             </Link>
                         </div>
-                        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                        <span className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
                             <Sparkles className="h-4 w-4 text-cyan-200" />
                             {copy.eyebrow}
                         </span>
                     </nav>
 
-                    <header className="grid gap-6 rounded-[1.7rem] border border-white/10 bg-white/[0.045] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_28px_100px_rgba(0,0,0,0.34)] backdrop-blur-xl sm:p-7 lg:grid-cols-[minmax(0,1fr)_25rem] lg:p-8">
+                    <header className="grid gap-5 rounded-xl border border-white/10 bg-[#101721]/95 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_24px_90px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:p-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
                         <div>
-                            <p className="inline-flex rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-cyan-100">{copy.introTag}</p>
-                            <h1 className="mt-5 max-w-4xl text-4xl font-black tracking-tight text-white sm:text-6xl">{copy.title}</h1>
-                            <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">{copy.subtitle}</p>
-                            <div className="mt-7 grid gap-3 sm:grid-cols-3">
+                            <p className="inline-flex rounded-md border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-cyan-100">{copy.introTag}</p>
+                            <h1 className="mt-4 max-w-4xl text-3xl font-black tracking-tight text-white sm:text-5xl">{copy.title}</h1>
+                            <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">{copy.subtitle}</p>
+                            <div className="mt-5 grid gap-3 sm:grid-cols-3">
                                 {copy.insights.map((insight) => (
                                     <Insight key={insight.title} icon={insight.icon} title={insight.title} text={insight.text} />
                                 ))}
                             </div>
                         </div>
 
-                        <div className="relative min-h-72 overflow-hidden rounded-[1.35rem] border border-white/10 bg-slate-950">
+                        <div className="relative min-h-64 overflow-hidden rounded-lg border border-white/10 bg-slate-950">
                             <Image src="/visuals/business-pavilion.svg" alt="3DSFERA premium city dashboard preview" fill sizes="(min-width: 1024px) 25rem, 100vw" className="object-cover opacity-80" priority />
                             <div className="absolute inset-0 bg-gradient-to-t from-[#070b14] via-transparent to-transparent" />
-                            <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/10 bg-black/45 p-4 backdrop-blur-md">
-                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{copy.status.label}</p>
+                            <div className="absolute bottom-3 left-3 right-3 rounded-lg border border-white/10 bg-black/50 p-3 backdrop-blur-md">
+                                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{copy.status.label}</p>
                                 <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-2">
+                                    <div className="rounded-lg border border-white/10 bg-white/[0.05] p-2">
                                         <p className="text-lg font-black text-cyan-100">3</p>
                                         <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">{copy.status.roles}</p>
                                     </div>
-                                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-2">
+                                    <div className="rounded-lg border border-white/10 bg-white/[0.05] p-2">
                                         <p className="text-lg font-black text-amber-100">Live</p>
                                         <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">{copy.status.world}</p>
                                     </div>
-                                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-2">
+                                    <div className="rounded-lg border border-white/10 bg-white/[0.05] p-2">
                                         <p className="text-lg font-black text-emerald-100">B2B</p>
                                         <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">{copy.status.trade}</p>
                                     </div>
@@ -497,13 +500,13 @@ export default function RoleSelectionPage() {
                         </div>
                     </header>
 
-                    <div className="mt-5 grid gap-5 lg:grid-cols-3">
+                    <div className="mt-4 grid gap-3">
                         {roleBases.map((base) => (
                             <RoleCard key={base.tone} base={base} text={copy.roles[base.tone]} rolePath={copy.rolePath} />
                         ))}
                     </div>
 
-                    <section className="mt-5 grid gap-5 rounded-[1.7rem] border border-white/10 bg-white/[0.035] p-5 sm:p-6 lg:grid-cols-4">
+                    <section className="mt-4 grid gap-3 rounded-xl border border-white/10 bg-[#101721]/80 p-4 sm:p-5 lg:grid-cols-4">
                         {copy.footerInsights.map((insight) => (
                             <Insight key={insight.title} icon={insight.icon} title={insight.title} text={insight.text} />
                         ))}
