@@ -1391,19 +1391,6 @@ export default function ExperiencePage() {
         setIsDesktopChatOpen((previous) => !previous);
     };
 
-    const toggleSceneMenu = () => {
-        releaseAllInputs();
-        try { document.exitPointerLock?.(); } catch {}
-        setIsMenuOpen((previous) => !previous);
-    };
-
-    const openDashboardOverlay = (overlay: 'player' | 'shopper' | 'business') => {
-        releaseAllInputs();
-        try { document.exitPointerLock?.(); } catch {}
-        setDashboardOverlay(overlay);
-        setIsMenuOpen(false);
-    };
-
     const closeChatPanel = () => {
         if (isMobile) {
             setIsMobileChatOpen(false);
@@ -2471,7 +2458,7 @@ export default function ExperiencePage() {
 
                             {/* Menu Button */}
                             <button
-                                onClick={toggleSceneMenu}
+                                onClick={() => setIsMenuOpen(!isMenuOpen)}
                                 className="group relative p-3 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-md border border-white/5 rounded-full transition overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition duration-300" />
@@ -2517,13 +2504,13 @@ export default function ExperiencePage() {
                             <Link href="/roles?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 {sceneHud.roleSelection}
                             </Link>
-                            <button type="button" onClick={() => openDashboardOverlay('player')} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            <button type="button" onClick={() => { setDashboardOverlay('player'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 {sceneHud.playerDashboard}
                             </button>
-                            <button type="button" onClick={() => openDashboardOverlay('shopper')} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            <button type="button" onClick={() => { setDashboardOverlay('shopper'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 {sceneHud.shopperDashboard}
                             </button>
-                            <button type="button" onClick={() => openDashboardOverlay('business')} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            <button type="button" onClick={() => { setDashboardOverlay('business'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 {sceneHud.businessDashboard}
                             </button>
                             <button type="button" onClick={() => { setDashboardOverlay(null); setIsMenuOpen(false); router.replace('/fastview?resume=scene', { scroll: false }); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
@@ -2534,7 +2521,7 @@ export default function ExperiencePage() {
 
 
                     {dashboardOverlay && (
-                        <div className="absolute inset-0 z-[85] overflow-y-auto bg-slate-950/88 p-3 text-white backdrop-blur-2xl pointer-events-auto md:p-6" role="dialog" aria-modal="true" aria-label="Dashboard overlay">
+                        <div className="absolute inset-0 z-[85] overflow-y-auto bg-slate-950/96 p-3 text-white pointer-events-auto md:p-6" role="dialog" aria-modal="true" aria-label="Dashboard overlay">
                             <div className="sticky top-3 z-10 mx-auto mb-3 flex max-w-7xl justify-end">
                                 <button
                                     type="button"

@@ -98,12 +98,12 @@ const rolePageCopy: Record<AppLanguage, RolePageText> = {
         backToScene: 'Back to scene',
         liveWorld: 'Live world',
         eyebrow: '3DSFERA role selection',
-        introTag: 'Choose your operating mode',
-        title: 'One immersive city, three serious product workflows.',
-        subtitle: 'Pick the dashboard that matches what you need to do now: play and earn, shop and coordinate delivery, or operate a commercial pavilion.',
+        introTag: 'Choose your role',
+        title: 'Choose how you want to enter 3DSFERA.',
+        subtitle: 'Select one role. You can switch later from the scene menu.',
         startWithSound: 'Start with sound',
         skipIntro: 'Skip to role selection',
-        rolePath: 'Role path',
+        rolePath: 'Role',
         status: {
             label: 'Platform status',
             roles: 'roles',
@@ -162,12 +162,12 @@ const rolePageCopy: Record<AppLanguage, RolePageText> = {
         backToScene: 'Назад в сцену',
         liveWorld: 'Live-мир',
         eyebrow: 'Выбор роли 3DSFERA',
-        introTag: 'Выберите рабочий режим',
-        title: 'Один иммерсивный город, три серьезных продуктовых сценария.',
-        subtitle: 'Выберите панель под текущую задачу: играть и зарабатывать, покупать и вести доставку или управлять коммерческим павильоном.',
+        introTag: 'Выберите роль',
+        title: 'Выберите, как войти в 3DSFERA.',
+        subtitle: 'Выберите одну роль. Позже можно переключиться из меню сцены.',
         startWithSound: 'Начать со звуком',
         skipIntro: 'К выбору роли',
-        rolePath: 'Путь роли',
+        rolePath: 'Роль',
         status: {
             label: 'Статус платформы',
             roles: 'роли',
@@ -226,12 +226,12 @@ const rolePageCopy: Record<AppLanguage, RolePageText> = {
         backToScene: '返回场景',
         liveWorld: '实时世界',
         eyebrow: '3DSFERA 角色选择',
-        introTag: '选择你的操作模式',
-        title: '一个沉浸式城市，三个严肃的产品流程。',
-        subtitle: '根据当前目标选择仪表盘：游戏并赚取奖励、购物并协调配送，或运营商业展馆。',
+        introTag: '选择角色',
+        title: '选择你如何进入 3DSFERA。',
+        subtitle: '选择一个角色。之后可在场景菜单中切换。',
         startWithSound: '开启声音',
         skipIntro: '跳到角色选择',
-        rolePath: '角色路径',
+        rolePath: '角色',
         status: {
             label: '平台状态',
             roles: '角色',
@@ -318,69 +318,36 @@ function RoleCard({ base, text, rolePath }: { base: RoleBase; text: RoleText; ro
     return (
         <Link
             href={base.href}
-            className={`group grid overflow-hidden rounded-xl border border-white/10 bg-[#101721]/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl transition duration-200 hover:border-white/20 hover:bg-[#151d28] lg:grid-cols-[14rem_minmax(0,1fr)] ${tone.border}`}
+            className={`group grid overflow-hidden rounded-xl border border-white/10 bg-[#101721]/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl transition duration-200 hover:border-white/20 hover:bg-[#151d28] lg:grid-cols-[10rem_minmax(0,1fr)_auto] ${tone.border}`}
         >
-            <div className="relative min-h-44 overflow-hidden bg-slate-950 lg:min-h-full">
-                <Image src={base.image} alt={base.imageAlt} fill sizes="(min-width: 1024px) 14rem, 100vw" className="object-cover opacity-80 transition duration-500 group-hover:scale-105" />
+            <div className="relative min-h-36 overflow-hidden bg-slate-950 lg:min-h-full">
+                <Image src={base.image} alt={base.imageAlt} fill sizes="(min-width: 1024px) 10rem, 100vw" className="object-cover opacity-80 transition duration-500 group-hover:scale-105" />
                 <div className={`absolute inset-0 bg-gradient-to-br ${tone.glow}`} />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#070b14] via-[#070b14]/20 to-transparent" />
-                <span className={`absolute left-3 top-3 inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] backdrop-blur ${tone.icon}`}>
-                    {base.tone === 'player' && <LockKeyhole className="h-3.5 w-3.5" />}
-                    {text.label}
-                </span>
                 <span className={`absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-lg border backdrop-blur ${tone.icon}`}>
                     <Icon className="h-5 w-5" strokeWidth={1.8} />
                 </span>
             </div>
 
-            <div className="grid gap-4 p-4 sm:p-5 xl:grid-cols-[minmax(0,1fr)_15rem]">
-                <div className="min-w-0">
+            <div className="min-w-0 p-4 sm:p-5">
+                <div className="flex flex-wrap items-center gap-2">
                     <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">{rolePath}</p>
-                    <div className="mt-2 flex min-w-0 items-start justify-between gap-3">
-                        <div className="min-w-0">
-                            <h2 className="break-words text-2xl font-black tracking-tight text-white sm:text-3xl">{text.title}</h2>
-                            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">{text.description}</p>
-                        </div>
-                        <ArrowRight className={`mt-2 h-5 w-5 shrink-0 transition group-hover:translate-x-0.5 ${tone.text}`} />
-                    </div>
-
-                    <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                        {text.proof.map((item) => (
-                            <div key={item} className="flex min-w-0 items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-                                <BadgeCheck className={`h-4 w-4 shrink-0 ${tone.text}`} />
-                                <span className="text-sm leading-5 text-slate-300">{item}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="flex flex-col justify-between gap-4">
-                    <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-white/10 bg-black/20">
-                        {text.metrics.map((metric) => (
-                            <div key={metric.label} className="min-w-0 border-r border-white/10 px-3 py-2 text-center last:border-r-0">
-                                <p className={`text-lg font-black ${tone.text}`}>{metric.value}</p>
-                                <p className="mt-0.5 truncate text-[10px] uppercase tracking-[0.12em] text-slate-500">{metric.label}</p>
-                            </div>
-                        ))}
-                    </div>
-                    <span className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-xs font-black uppercase tracking-[0.12em] transition group-hover:bg-white/[0.08] ${tone.button}`}>
-                        {text.action}
+                    <span className={`inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${tone.icon}`}>
+                        {base.tone === 'player' && <LockKeyhole className="h-3.5 w-3.5" />}
+                        {text.label}
                     </span>
                 </div>
+                <h2 className="mt-3 break-words text-2xl font-black tracking-tight text-white sm:text-3xl">{text.title}</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{text.description}</p>
+            </div>
+
+            <div className="flex items-center px-4 pb-4 lg:px-5 lg:py-5">
+                <span className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-xs font-black uppercase tracking-[0.12em] transition group-hover:bg-white/[0.08] lg:w-auto ${tone.button}`}>
+                    {text.action}
+                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                </span>
             </div>
         </Link>
-    );
-}
-
-function Insight({ icon: Icon, title, text }: { icon: LucideIcon; title: string; text: string }) {
-    return (
-        <article className="rounded-lg border border-white/10 bg-black/20 p-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-300/10 text-cyan-100">
-                <Icon className="h-4 w-4" />
-            </span>
-            <h3 className="mt-3 text-sm font-black text-white">{title}</h3>
-            <p className="mt-2 text-sm leading-5 text-slate-400">{text}</p>
-        </article>
     );
 }
 
@@ -465,36 +432,25 @@ export default function RoleSelectionPage() {
                         </span>
                     </nav>
 
-                    <header className="grid gap-5 rounded-xl border border-white/10 bg-[#101721]/95 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_24px_90px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:p-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-                        <div>
-                            <p className="inline-flex rounded-md border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-cyan-100">{copy.introTag}</p>
-                            <h1 className="mt-4 max-w-4xl text-3xl font-black tracking-tight text-white sm:text-5xl">{copy.title}</h1>
-                            <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">{copy.subtitle}</p>
-                            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                                {copy.insights.map((insight) => (
-                                    <Insight key={insight.title} icon={insight.icon} title={insight.title} text={insight.text} />
-                                ))}
+                    <header className="rounded-xl border border-white/10 bg-[#101721]/95 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_24px_90px_rgba(0,0,0,0.24)] backdrop-blur-xl sm:p-5">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                            <div>
+                                <p className="inline-flex rounded-md border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-cyan-100">{copy.introTag}</p>
+                                <h1 className="mt-4 max-w-4xl text-3xl font-black tracking-tight text-white sm:text-4xl">{copy.title}</h1>
+                                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">{copy.subtitle}</p>
                             </div>
-                        </div>
-
-                        <div className="relative min-h-64 overflow-hidden rounded-lg border border-white/10 bg-slate-950">
-                            <Image src="/visuals/business-pavilion.svg" alt="3DSFERA premium city dashboard preview" fill sizes="(min-width: 1024px) 25rem, 100vw" className="object-cover opacity-80" priority />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#070b14] via-transparent to-transparent" />
-                            <div className="absolute bottom-3 left-3 right-3 rounded-lg border border-white/10 bg-black/50 p-3 backdrop-blur-md">
-                                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{copy.status.label}</p>
-                                <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                                    <div className="rounded-lg border border-white/10 bg-white/[0.05] p-2">
-                                        <p className="text-lg font-black text-cyan-100">3</p>
-                                        <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">{copy.status.roles}</p>
-                                    </div>
-                                    <div className="rounded-lg border border-white/10 bg-white/[0.05] p-2">
-                                        <p className="text-lg font-black text-amber-100">Live</p>
-                                        <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">{copy.status.world}</p>
-                                    </div>
-                                    <div className="rounded-lg border border-white/10 bg-white/[0.05] p-2">
-                                        <p className="text-lg font-black text-emerald-100">B2B</p>
-                                        <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">{copy.status.trade}</p>
-                                    </div>
+                            <div className="grid grid-cols-3 gap-2 text-center lg:w-64">
+                                <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+                                    <p className="text-lg font-black text-cyan-100">3</p>
+                                    <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">{copy.status.roles}</p>
+                                </div>
+                                <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+                                    <p className="text-lg font-black text-amber-100">Live</p>
+                                    <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">{copy.status.world}</p>
+                                </div>
+                                <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+                                    <p className="text-lg font-black text-emerald-100">B2B</p>
+                                    <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">{copy.status.trade}</p>
                                 </div>
                             </div>
                         </div>
@@ -506,11 +462,6 @@ export default function RoleSelectionPage() {
                         ))}
                     </div>
 
-                    <section className="mt-4 grid gap-3 rounded-xl border border-white/10 bg-[#101721]/80 p-4 sm:p-5 lg:grid-cols-4">
-                        {copy.footerInsights.map((insight) => (
-                            <Insight key={insight.title} icon={insight.icon} title={insight.title} text={insight.text} />
-                        ))}
-                    </section>
                 </div>
             </section>
         </main>

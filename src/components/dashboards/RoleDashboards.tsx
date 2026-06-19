@@ -253,7 +253,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             seasonLabel: 'Season 1',
             seasonTitle: 'Weekly arena rewards are live',
             playNow: 'Play now',
-            mode: 'Player mode',
+            mode: 'Player role',
             signed: 'Signed player dashboard',
             kicker: 'Live player operations',
             title: 'Player command center',
@@ -309,7 +309,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             eventText: 'Earn 2X coins in all player zones.',
         },
         shopper: {
-            mode: 'Buyer mode',
+            mode: 'Buyer role',
             openHall: 'Open hall',
             kicker: 'Spatial commerce dashboard',
             title: 'Shopper workspace',
@@ -387,7 +387,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             ],
         },
         business: {
-            mode: 'Supplier mode',
+            mode: 'Supplier role',
             portal: 'Supplier portal',
             kicker: 'Pavilion and supplier operations',
             title: 'Business control room',
@@ -457,7 +457,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             seasonLabel: 'Сезон 1',
             seasonTitle: 'Еженедельные награды арены активны',
             playNow: 'Играть',
-            mode: 'Режим игрока',
+            mode: 'Роль игрока',
             signed: 'Личный кабинет игрока',
             kicker: 'Операции игрока в реальном времени',
             title: 'Центр игрока',
@@ -513,7 +513,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             eventText: 'Получайте 2X монет во всех игровых зонах.',
         },
         shopper: {
-            mode: 'Режим покупателя',
+            mode: 'Роль покупателя',
             openHall: 'Открыть холл',
             kicker: 'Панель пространственной торговли',
             title: 'Рабочее место покупателя',
@@ -591,7 +591,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             ],
         },
         business: {
-            mode: 'Режим поставщика',
+            mode: 'Роль поставщика',
             portal: 'Портал поставщика',
             kicker: 'Операции павильона и поставщика',
             title: 'Центр управления бизнесом',
@@ -661,7 +661,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             seasonLabel: '第 1 赛季',
             seasonTitle: '每周竞技场奖励已开启',
             playNow: '开始游戏',
-            mode: '玩家模式',
+            mode: '玩家角色',
             signed: '玩家登录仪表盘',
             kicker: '实时玩家运营',
             title: '玩家控制中心',
@@ -717,7 +717,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             eventText: '所有玩家区域获得 2X 金币。',
         },
         shopper: {
-            mode: '买家模式',
+            mode: '买家角色',
             openHall: '打开大厅',
             kicker: '空间商务仪表盘',
             title: '买家工作区',
@@ -795,7 +795,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             ],
         },
         business: {
-            mode: '供应商模式',
+            mode: '供应商角色',
             portal: '供应商门户',
             kicker: '展馆与供应商运营',
             title: '商务控制室',
@@ -889,10 +889,10 @@ const toneStyles: Record<Tone, { icon: string; ring: string; accent: string; bar
     },
 };
 
-const panel = 'rounded-xl border border-white/10 bg-[#111821]/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl';
-const compactPanel = 'rounded-lg border border-white/10 bg-[#0d131c] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]';
-const metricGrid = 'grid gap-3 sm:grid-cols-2 min-[1680px]:grid-cols-4';
-const threeCardGrid = 'grid gap-3 md:grid-cols-2 min-[1680px]:grid-cols-3';
+const panel = 'rounded-xl border border-white/10 bg-[#10161f]/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl';
+const compactPanel = 'rounded-lg border border-white/10 bg-[#0c121a] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]';
+const metricGrid = 'grid gap-3 sm:grid-cols-2 xl:grid-cols-4';
+const threeCardGrid = 'grid gap-3 md:grid-cols-3';
 
 const clampPercent = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
 
@@ -977,6 +977,49 @@ function DashboardBackNav() {
     );
 }
 
+function DashboardRail({ mode }: { mode: 'player' | 'shopper' | 'business' }) {
+    const activeTone: Tone = mode === 'business' ? 'emerald' : mode === 'shopper' ? 'amber' : 'sky';
+    const railItems = [
+        { href: '/roles?skipIntro=true', icon: Home, label: 'Roles' },
+        { href: '/fastview?resume=scene', icon: Globe2, label: 'Scene' },
+        { href: '/player/dashboard', icon: Gamepad2, label: 'Player' },
+        { href: '/shopper/dashboard', icon: ShoppingBag, label: 'Shopper' },
+        { href: '/business/dashboard', icon: Store, label: 'Business' },
+    ];
+
+    return (
+        <aside className="hidden border-r border-white/10 bg-[#070b11]/92 px-2 py-3 lg:flex lg:flex-col lg:items-center">
+            <Link href="/roles?skipIntro=true" className={`grid h-10 w-10 place-items-center rounded-xl border text-sm font-black ${toneStyles[activeTone].icon}`}>
+                3D
+            </Link>
+            <nav className="mt-5 flex flex-1 flex-col items-center gap-2">
+                {railItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive =
+                        (mode === 'player' && item.href === '/player/dashboard') ||
+                        (mode === 'shopper' && item.href === '/shopper/dashboard') ||
+                        (mode === 'business' && item.href === '/business/dashboard');
+                    return (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            aria-label={item.label}
+                            title={item.label}
+                            className={`grid h-9 w-9 place-items-center rounded-lg border text-slate-400 transition ${
+                                isActive
+                                    ? `${toneStyles[activeTone].icon} shadow-[0_0_22px_rgba(56,189,248,0.12)]`
+                                    : 'border-transparent bg-white/[0.035] hover:border-white/10 hover:bg-white/[0.07] hover:text-white'
+                            }`}
+                        >
+                            <Icon className="h-4 w-4" />
+                        </Link>
+                    );
+                })}
+            </nav>
+        </aside>
+    );
+}
+
 function DashboardFrame({
     children,
     sidebar,
@@ -993,12 +1036,13 @@ function DashboardFrame({
     }[mode];
 
     return (
-        <section className="relative overflow-hidden border border-white/10 bg-[#0a1018] text-white shadow-[0_40px_140px_rgba(0,0,0,0.5)] md:rounded-xl">
+        <section className="relative overflow-hidden border border-white/10 bg-[#090d14] text-white shadow-[0_40px_140px_rgba(0,0,0,0.5)] md:rounded-xl">
             <div className="pointer-events-none absolute inset-0" style={{ background: modeGlow }} />
-            <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:48px_48px]" />
-            <div className="relative grid min-h-screen xl:grid-cols-[13.75rem_minmax(0,1fr)]">
+            <div className="pointer-events-none absolute inset-0 opacity-[0.055] [background-image:linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:48px_48px]" />
+            <div className={`relative grid min-h-screen lg:grid-cols-[3.75rem_minmax(0,1fr)] ${sidebar ? 'xl:grid-cols-[3.75rem_12.75rem_minmax(0,1fr)]' : ''}`}>
+                <DashboardRail mode={mode} />
                 {sidebar}
-                <div className="min-w-0 p-3 sm:p-4 lg:p-5 xl:p-6">{children}</div>
+                <div className="min-w-0 p-3 sm:p-4 lg:p-5">{children}</div>
             </div>
         </section>
     );
@@ -1031,19 +1075,19 @@ function StatusPill({ children, tone = 'cyan' }: { children: ReactNode; tone?: T
 
 function MetricCard({ title, value, helper, icon: Icon, tone, progress }: MetricProps) {
     return (
-        <article className={`${panel} ${toneStyles[tone].ring} min-h-32 p-4`}>
-            <div className="flex items-start justify-between gap-4">
+        <article className={`${panel} ${toneStyles[tone].ring} min-h-24 p-3`}>
+            <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                     <p className="truncate text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">{title}</p>
-                    <p className="mt-2 truncate text-xl font-black leading-tight text-white sm:text-2xl">{value}</p>
+                    <p className="mt-1.5 truncate text-lg font-black leading-tight text-white sm:text-xl">{value}</p>
                 </div>
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${toneStyles[tone].icon}`}>
-                    <Icon className="h-5 w-5" strokeWidth={1.8} />
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${toneStyles[tone].icon}`}>
+                    <Icon className="h-4 w-4" strokeWidth={1.8} />
                 </span>
             </div>
-            <p className="mt-2 text-sm leading-5 text-slate-400">{helper}</p>
+            <p className="mt-1.5 truncate text-xs leading-5 text-slate-400">{helper}</p>
             {typeof progress === 'number' && (
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/10">
                     <div className={`h-full rounded-full ${toneStyles[tone].bar}`} style={{ width: `${clampPercent(progress)}%` }} />
                 </div>
             )}
@@ -1067,15 +1111,15 @@ function WorkCard({
     action: string;
 }) {
     return (
-        <Link href={href} className={`${compactPanel} group flex min-h-36 flex-col justify-between p-4 transition hover:border-cyan-300/30 hover:bg-white/[0.055]`}>
+        <Link href={href} className={`${compactPanel} group flex min-h-28 flex-col justify-between p-3 transition hover:border-cyan-300/30 hover:bg-white/[0.055]`}>
             <div>
-                <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border ${toneStyles[tone].icon}`}>
-                    <Icon className="h-5 w-5" />
+                <span className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border ${toneStyles[tone].icon}`}>
+                    <Icon className="h-4 w-4" />
                 </span>
-                <h3 className="mt-3 text-base font-black tracking-tight text-white">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-400">{text}</p>
+                <h3 className="mt-2.5 text-sm font-black tracking-tight text-white">{title}</h3>
+                <p className="mt-1.5 text-xs leading-5 text-slate-400">{text}</p>
             </div>
-            <span className={`mt-5 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] ${toneStyles[tone].accent}`}>
+            <span className={`mt-4 inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] ${toneStyles[tone].accent}`}>
                 {action}
                 <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
             </span>
@@ -1095,18 +1139,18 @@ function ListPanel({
     tone?: Tone;
 }) {
     return (
-        <section className={`${panel} p-4`}>
-            <div className="mb-4 flex items-center justify-between gap-3">
-                <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{title}</h2>
-                <span className={`flex h-9 w-9 items-center justify-center rounded-lg border ${toneStyles[tone].icon}`}>
-                    <Icon className="h-5 w-5" />
+        <section className={`${panel} p-3`}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">{title}</h2>
+                <span className={`flex h-8 w-8 items-center justify-center rounded-lg border ${toneStyles[tone].icon}`}>
+                    <Icon className="h-4 w-4" />
                 </span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
                 {items.map((item) => (
-                    <div key={item} className="flex gap-3 rounded-lg border border-white/10 bg-black/20 p-3">
+                    <div key={item} className="flex gap-2.5 rounded-lg border border-white/10 bg-black/20 p-2.5">
                         <CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${toneStyles[tone].accent}`} />
-                        <p className="text-sm leading-5 text-slate-300">{item}</p>
+                        <p className="text-xs leading-5 text-slate-300">{item}</p>
                     </div>
                 ))}
             </div>
@@ -1127,19 +1171,19 @@ function QuestPanel({
     const roleProgress = getRoleQuestProgress(progress, role).slice(0, 3);
 
     return (
-        <section className={`${panel} p-4`}>
-            <div className="mb-4 flex items-center justify-between gap-3">
+        <section className={`${panel} p-3`}>
+            <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{copy.activeQuests}</h2>
+                    <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">{copy.activeQuests}</h2>
                     <p className="mt-1 text-sm text-slate-500">{copy.objectives}</p>
                 </div>
-                <span className={`flex h-9 w-9 items-center justify-center rounded-lg border ${toneStyles.emerald.icon}`}>
-                    <ClipboardCheck className="h-5 w-5" />
+                <span className={`flex h-8 w-8 items-center justify-center rounded-lg border ${toneStyles.emerald.icon}`}>
+                    <ClipboardCheck className="h-4 w-4" />
                 </span>
             </div>
 
             {roleProgress.length === 0 ? (
-                <p className="rounded-lg border border-white/10 bg-black/20 p-4 text-sm text-slate-400">{copy.noQuests}</p>
+                <p className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-400">{copy.noQuests}</p>
             ) : (
                 <div className="grid gap-3 xl:grid-cols-2">
                     {roleProgress.map((item) => {
@@ -1150,18 +1194,18 @@ function QuestPanel({
                         const statusTone: Tone = item.status === 'active' ? 'cyan' : 'emerald';
 
                         return (
-                            <article key={item.questId} className={`${compactPanel} min-w-0 p-4`}>
+                            <article key={item.questId} className={`${compactPanel} min-w-0 p-3`}>
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                     <div className="min-w-0">
                                         <p className={`text-[10px] font-black uppercase tracking-[0.18em] ${toneStyles[statusTone].accent}`}>
                                             {questText.sponsor ?? '3DSFERA'}
                                         </p>
                                         <h3 className="mt-1 text-base font-black leading-tight text-white">{questText.title}</h3>
-                                        <p className="mt-2 text-sm leading-6 text-slate-400">{questText.description}</p>
+                                        <p className="mt-1.5 text-xs leading-5 text-slate-400">{questText.description}</p>
                                     </div>
                                     <StatusPill tone={statusTone}>{questStatusLabel(item, copy)}</StatusPill>
                                 </div>
-                                <div className="mt-4">
+                                <div className="mt-3">
                                     <div className="flex items-center justify-between text-xs font-bold text-slate-400">
                                         <span>{percent}%</span>
                                         <span>{copy.reward}: {getQuestRewardText(quest.reward, quest.id, language)}</span>
@@ -1170,11 +1214,11 @@ function QuestPanel({
                                         <div className={`h-full rounded-full ${toneStyles[statusTone].bar}`} style={{ width: `${clampPercent(percent)}%` }} />
                                     </div>
                                 </div>
-                                <div className="mt-4 grid gap-2">
+                                <div className="mt-3 grid gap-2">
                                     {Object.entries(item.objectives).map(([objectiveId, objective]) => (
-                                        <div key={objectiveId} className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                                        <div key={objectiveId} className="flex min-w-0 items-center gap-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
                                             <CheckCircle2 className={`h-4 w-4 shrink-0 ${objective.completed ? 'text-emerald-200' : 'text-slate-600'}`} />
-                                            <p className="min-w-0 flex-1 text-sm leading-5 text-slate-300">{getQuestObjectiveText(quest, objectiveId, language)}</p>
+                                            <p className="min-w-0 flex-1 text-xs leading-5 text-slate-300">{getQuestObjectiveText(quest, objectiveId, language)}</p>
                                             <span className="shrink-0 font-mono text-xs text-slate-500">{objective.current}/{objective.target}</span>
                                         </div>
                                     ))}
@@ -1199,22 +1243,22 @@ function RewardPanel({
     const visibleRewards = [...rewards].reverse().slice(0, 4);
 
     return (
-        <section className={`${panel} p-4`}>
-            <div className="mb-4 flex items-center justify-between gap-3">
-                <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{copy.rewardWallet}</h2>
-                <span className={`flex h-9 w-9 items-center justify-center rounded-lg border ${toneStyles.amber.icon}`}>
-                    <Gift className="h-5 w-5" />
+        <section className={`${panel} p-3`}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">{copy.rewardWallet}</h2>
+                <span className={`flex h-8 w-8 items-center justify-center rounded-lg border ${toneStyles.amber.icon}`}>
+                    <Gift className="h-4 w-4" />
                 </span>
             </div>
             {visibleRewards.length === 0 ? (
-                <p className="rounded-lg border border-white/10 bg-black/20 p-4 text-sm text-slate-400">{copy.noRewards}</p>
+                <p className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-400">{copy.noRewards}</p>
             ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                     {visibleRewards.map((reward) => {
                         const quest = getQuestDefinition(reward.questId);
                         const questText = quest ? getQuestText(quest, language) : null;
                         return (
-                            <div key={reward.id} className="rounded-lg border border-amber-300/15 bg-amber-300/[0.06] p-3">
+                            <div key={reward.id} className="rounded-lg border border-amber-300/15 bg-amber-300/[0.06] p-2.5">
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
                                         <p className="text-sm font-black text-white">{getQuestRewardText(reward, reward.questId, language)}</p>
@@ -1247,41 +1291,41 @@ function OrderDetailsPanel({
     orders: ShopperOrderDetail[];
 }) {
     return (
-        <section className={`${panel} p-4`}>
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <section className={`${panel} p-3`}>
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{title}</h2>
+                    <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">{title}</h2>
                     <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
                 </div>
-                <span className={`flex h-9 w-9 items-center justify-center rounded-lg border ${toneStyles.emerald.icon}`}>
-                    <PackageCheck className="h-5 w-5" />
+                <span className={`flex h-8 w-8 items-center justify-center rounded-lg border ${toneStyles.emerald.icon}`}>
+                    <PackageCheck className="h-4 w-4" />
                 </span>
             </div>
 
-            <div className="grid gap-3 xl:grid-cols-2">
+            <div className="grid gap-2.5">
                 {orders.map((order) => (
-                    <article key={order.id} className={`${compactPanel} min-w-0 p-4`}>
+                    <article key={order.id} className={`${compactPanel} min-w-0 p-3`}>
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0">
                                 <p className="font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">{order.id}</p>
-                                <h3 className="mt-1 truncate text-lg font-black text-white">{order.title}</h3>
+                                <h3 className="mt-1 truncate text-base font-black text-white">{order.title}</h3>
                                 <p className="mt-1 text-sm text-slate-400">{order.supplier}</p>
                             </div>
                             <StatusPill tone="emerald">{order.status}</StatusPill>
                         </div>
 
-                        <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                            <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            <div className="rounded-lg border border-white/10 bg-black/20 p-2.5">
                                 <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">{etaLabel}</p>
                                 <p className="mt-1 text-sm font-bold text-slate-200">{order.eta}</p>
                             </div>
-                            <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                            <div className="rounded-lg border border-white/10 bg-black/20 p-2.5">
                                 <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">{totalLabel}</p>
                                 <p className="mt-1 text-sm font-bold text-slate-200">{order.total}</p>
                             </div>
                         </div>
 
-                        <div className="mt-4">
+                        <div className="mt-3">
                             <div className="flex items-center justify-between text-xs font-bold text-slate-400">
                                 <span>{order.status}</span>
                                 <span>{clampPercent(order.progress)}%</span>
@@ -1291,16 +1335,16 @@ function OrderDetailsPanel({
                             </div>
                         </div>
 
-                        <div className="mt-4 grid gap-2">
+                        <div className="mt-3 grid gap-1.5">
                             {order.steps.map((step) => (
-                                <div key={step} className="flex items-center gap-2 text-sm text-slate-300">
+                                <div key={step} className="flex items-center gap-2 text-xs text-slate-300">
                                     <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-200" />
                                     <span>{step}</span>
                                 </div>
                             ))}
                         </div>
 
-                        <Link href="/fastview?resume=scene&mode=shopper" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-300/25 bg-emerald-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-emerald-100 transition hover:bg-emerald-300/15">
+                        <Link href="/fastview?resume=scene&mode=shopper" className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-300/25 bg-emerald-300/10 px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-emerald-100 transition hover:bg-emerald-300/15">
                             {order.action}
                             <ArrowRight className="h-4 w-4" />
                         </Link>
@@ -1324,10 +1368,10 @@ function VisualPanel({
 }) {
     return (
         <section className={`${panel} overflow-hidden`}>
-            <div className="p-4 pb-3">
-                <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{title}</h2>
+            <div className="p-3 pb-2">
+                <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">{title}</h2>
             </div>
-            <div className="relative mx-4 mb-4 h-56 overflow-hidden rounded-lg border border-white/10 bg-slate-950">
+            <div className="relative mx-3 mb-3 h-44 overflow-hidden rounded-lg border border-white/10 bg-slate-950">
                 <Image src={src} alt={alt} width={1200} height={760} className="h-full w-full object-cover opacity-75" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/15" />
                 {markers.map((marker) => (
@@ -1345,15 +1389,15 @@ function PlayerSidebar({ copy }: { copy: DashboardText }) {
     const hrefs = ['/player/dashboard', '/fastview?resume=scene', '/fastview?resume=scene&mode=gamer', '/fastview', '/fastview', '/fastview'];
 
     return (
-        <aside className="hidden border-r border-white/10 bg-black/25 p-3 backdrop-blur-xl xl:flex xl:flex-col">
+        <aside className="hidden border-r border-white/10 bg-[#0b1119]/88 p-3 backdrop-blur-xl xl:flex xl:flex-col">
             <div className="flex items-center gap-3 px-2 py-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-300/30 bg-cyan-300/10 text-lg font-black text-cyan-100">3D</span>
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-300/30 bg-cyan-300/10 text-base font-black text-cyan-100">3D</span>
                 <div>
-                    <p className="text-sm font-black uppercase tracking-[0.12em] text-white">3DSFERA</p>
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-white">3DSFERA</p>
                     <p className="text-xs text-slate-500">{copy.player.suite}</p>
                 </div>
             </div>
-            <nav className="mt-6 space-y-1.5">
+            <nav className="mt-5 space-y-1.5">
                 {copy.player.nav.map((label, index) => {
                     const Icon = icons[index];
                     const active = index === 0;
@@ -1361,7 +1405,7 @@ function PlayerSidebar({ copy }: { copy: DashboardText }) {
                         <Link
                             key={label}
                             href={hrefs[index]}
-                            className={`flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
+                            className={`flex items-center justify-between rounded-lg border px-2.5 py-2 text-xs font-semibold transition ${
                                 active
                                     ? 'border-cyan-300/35 bg-cyan-300/12 text-white shadow-[0_0_32px_rgba(34,211,238,0.16)]'
                                     : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.05] hover:text-slate-100'
@@ -1376,9 +1420,9 @@ function PlayerSidebar({ copy }: { copy: DashboardText }) {
                     );
                 })}
             </nav>
-            <div className="mt-auto rounded-lg border border-amber-300/20 bg-amber-300/10 p-4">
+            <div className="mt-auto rounded-lg border border-amber-300/20 bg-amber-300/10 p-3">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-200">{copy.player.seasonLabel}</p>
-                <p className="mt-2 text-lg font-black leading-tight text-white">{copy.player.seasonTitle}</p>
+                <p className="mt-2 text-base font-black leading-tight text-white">{copy.player.seasonTitle}</p>
                 <Link href="/fastview?resume=scene&mode=gamer" className="mt-4 inline-flex items-center gap-2 rounded-md border border-amber-300/30 bg-black/20 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-amber-100">
                     {copy.player.playNow}
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -1406,13 +1450,14 @@ function DashboardHero({
     children?: ReactNode;
 }) {
     return (
-        <section className="relative overflow-hidden rounded-xl border border-white/10 bg-slate-950/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-5">
-            <Image src={src} alt={alt} width={1200} height={760} className="absolute inset-0 h-full w-full object-cover opacity-35" priority />
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.98),rgba(2,6,23,0.82)_56%,rgba(2,6,23,0.38))]" />
-            <div className="relative max-w-3xl">
+        <section className="relative min-h-40 overflow-hidden rounded-xl border border-white/10 bg-slate-950/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-5">
+            <Image src={src} alt={alt} width={1200} height={760} className="absolute inset-y-0 right-0 hidden h-full w-1/2 object-cover opacity-60 sm:block" priority />
+            <Image src={src} alt="" width={900} height={560} className="absolute inset-0 h-full w-full object-cover opacity-20 sm:hidden" aria-hidden="true" />
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.98),rgba(2,6,23,0.86)_54%,rgba(2,6,23,0.28))]" />
+            <div className="relative max-w-2xl">
                 <StatusPill tone={tone}>{kicker}</StatusPill>
-                <h1 className="mt-4 text-2xl font-black tracking-tight text-white sm:text-3xl">{title}</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">{subtitle}</p>
+                <h1 className="mt-3 text-2xl font-black tracking-tight text-white sm:text-3xl">{title}</h1>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">{subtitle}</p>
                 {children}
             </div>
         </section>
@@ -1454,7 +1499,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                 </div>
             </header>
 
-            <div className="grid gap-4 min-[1680px]:grid-cols-[minmax(0,1fr)_22rem]">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
                 <main className="min-w-0 space-y-4">
                     <DashboardHero
                         kicker={copy.player.kicker}
@@ -1464,7 +1509,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                         alt="3DSFERA player arena dashboard"
                         tone="sky"
                     >
-                        <div className="mt-5 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2">
+                        <div className="mt-4 grid gap-3 border-t border-white/10 pt-3 sm:grid-cols-2">
                             <div>
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="font-bold text-slate-200">{copy.player.level}</span>
@@ -1494,10 +1539,10 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
 
                     <QuestPanel role="player" progress={bridge.questProgress} language={language} />
 
-                    <section className={`${panel} p-4`}>
-                        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <section className={`${panel} p-3`}>
+                        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{copy.player.zonesTitle}</h2>
+                                <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">{copy.player.zonesTitle}</h2>
                                 <p className="mt-1 text-sm text-slate-500">{copy.player.zonesSub}</p>
                             </div>
                             <Link href="/fastview?resume=scene&mode=gamer" className="inline-flex items-center gap-2 rounded-lg border border-sky-300/30 bg-sky-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-sky-100">
@@ -1518,11 +1563,11 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                     </div>
                 </main>
 
-                <aside className="space-y-4 min-[1680px]:sticky min-[1680px]:top-6 min-[1680px]:self-start">
+                <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
                     <ListPanel title={copy.player.recentTitle} icon={Clock3} tone="sky" items={activityItems.slice(0, 5)} />
                     <RewardPanel rewards={bridge.questRewards} language={language} />
                     <VisualPanel src="/visuals/shopper-market.svg" alt="3DSFERA city overview map" title={copy.player.cityOverview} markers={copy.player.markers} />
-                    <section className={`${panel} p-4`}>
+                    <section className={`${panel} p-3`}>
                         <div className="flex items-center gap-4">
                             <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-300/25 bg-emerald-300/10 text-emerald-200">
                                 <ShieldCheck className="h-6 w-6" />
@@ -1559,35 +1604,35 @@ export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
                 </div>
             </header>
 
-            <div className="space-y-4">
-                <DashboardHero
-                    kicker={copy.shopper.kicker}
-                    title={copy.shopper.title}
-                    subtitle={copy.shopper.subtitle}
-                    src="/visuals/shopper-market.svg"
-                    alt="3DSFERA shopper marketplace dashboard"
-                    tone="amber"
-                >
-                    <div className="mt-5 flex flex-wrap gap-3">
-                        <StatusPill tone="cyan">{copy.shopper.location}: {currentLocation}</StatusPill>
-                        <StatusPill tone="emerald">{copy.shopper.suppliersOnline}</StatusPill>
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+                <main className="min-w-0 space-y-4">
+                    <DashboardHero
+                        kicker={copy.shopper.kicker}
+                        title={copy.shopper.title}
+                        subtitle={copy.shopper.subtitle}
+                        src="/visuals/shopper-market.svg"
+                        alt="3DSFERA shopper marketplace dashboard"
+                        tone="amber"
+                    >
+                        <div className="mt-4 flex flex-wrap gap-3">
+                            <StatusPill tone="cyan">{copy.shopper.location}: {currentLocation}</StatusPill>
+                            <StatusPill tone="emerald">{copy.shopper.suppliersOnline}</StatusPill>
+                        </div>
+                    </DashboardHero>
+
+                    <div className={metricGrid}>
+                        <MetricCard title={copy.shopper.savedProducts} value="12" helper={copy.shopper.savedProductsHelper} icon={Star} tone="amber" />
+                        <MetricCard title={copy.shopper.activeOrders} value="3" helper={copy.shopper.activeOrdersHelper} icon={PackageCheck} tone="emerald" />
+                        <MetricCard title={copy.shopper.supplierReplies} value="5" helper={copy.shopper.supplierRepliesHelper} icon={MessageSquare} tone="cyan" />
+                        <MetricCard title={copy.shopper.protection} value={copy.shopper.protectionValue} helper={copy.shopper.protectionHelper} icon={ShieldCheck} tone="sky" />
                     </div>
-                </DashboardHero>
 
-                <div className={metricGrid}>
-                    <MetricCard title={copy.shopper.savedProducts} value="12" helper={copy.shopper.savedProductsHelper} icon={Star} tone="amber" />
-                    <MetricCard title={copy.shopper.activeOrders} value="3" helper={copy.shopper.activeOrdersHelper} icon={PackageCheck} tone="emerald" />
-                    <MetricCard title={copy.shopper.supplierReplies} value="5" helper={copy.shopper.supplierRepliesHelper} icon={MessageSquare} tone="cyan" />
-                    <MetricCard title={copy.shopper.protection} value={copy.shopper.protectionValue} helper={copy.shopper.protectionHelper} icon={ShieldCheck} tone="sky" />
-                </div>
+                    <QuestPanel role="shopper" progress={bridge.questProgress} language={language} />
 
-                <QuestPanel role="shopper" progress={bridge.questProgress} language={language} />
-
-                <div className="grid gap-4 min-[1680px]:grid-cols-[minmax(0,1fr)_22rem]">
-                    <section className={`${panel} p-4`}>
-                        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <section className={`${panel} p-3`}>
+                        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{copy.shopper.workflowTitle}</h2>
+                                <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">{copy.shopper.workflowTitle}</h2>
                                 <p className="mt-1 text-sm text-slate-500">{copy.shopper.workflowSub}</p>
                             </div>
                             <Link href="/fastview?resume=scene&mode=shopper" className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/30 bg-cyan-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-100">
@@ -1601,24 +1646,21 @@ export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
                             ))}
                         </div>
                     </section>
+                </main>
 
+                <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
+                    <OrderDetailsPanel
+                        title={copy.shopper.orderDetailsTitle}
+                        subtitle={copy.shopper.orderDetailsSub}
+                        etaLabel={copy.shopper.orderEtaLabel}
+                        totalLabel={copy.shopper.orderTotalLabel}
+                        orders={copy.shopper.orderDetails}
+                    />
                     <VisualPanel src="/visuals/shopper-market.svg" alt="Sfera Hall shopper map" title={copy.shopper.mapTitle} markers={copy.shopper.markers} />
-                </div>
-
-                <OrderDetailsPanel
-                    title={copy.shopper.orderDetailsTitle}
-                    subtitle={copy.shopper.orderDetailsSub}
-                    etaLabel={copy.shopper.orderEtaLabel}
-                    totalLabel={copy.shopper.orderTotalLabel}
-                    orders={copy.shopper.orderDetails}
-                />
-
-                <div className="grid gap-4 lg:grid-cols-2">
                     <ListPanel title={copy.shopper.messagesTitle} icon={MessageSquare} tone="cyan" items={copy.shopper.messages} />
                     <ListPanel title={copy.shopper.dealsTitle} icon={Gift} tone="amber" items={copy.shopper.deals} />
-                </div>
-
-                <RewardPanel rewards={bridge.questRewards} language={language} />
+                    <RewardPanel rewards={bridge.questRewards} language={language} />
+                </aside>
             </div>
         </DashboardFrame>
     );
@@ -1642,36 +1684,36 @@ export function SupplierDashboard({ bridge = fallback }: DashboardProps) {
                 </div>
             </header>
 
-            <div className="space-y-4">
-                <DashboardHero
-                    kicker={copy.business.kicker}
-                    title={copy.business.title}
-                    subtitle={copy.business.subtitle}
-                    src="/visuals/business-pavilion.svg"
-                    alt="3DSFERA supplier pavilion dashboard"
-                    tone="emerald"
-                >
-                    <div className="mt-5 flex flex-wrap gap-3">
-                        <StatusPill tone="emerald">{copy.business.pavilionHealth}</StatusPill>
-                        <StatusPill tone="cyan">{copy.business.buyersOnline}</StatusPill>
-                        <StatusPill tone="amber">{copy.business.questsLive}</StatusPill>
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+                <main className="min-w-0 space-y-4">
+                    <DashboardHero
+                        kicker={copy.business.kicker}
+                        title={copy.business.title}
+                        subtitle={copy.business.subtitle}
+                        src="/visuals/business-pavilion.svg"
+                        alt="3DSFERA supplier pavilion dashboard"
+                        tone="emerald"
+                    >
+                        <div className="mt-4 flex flex-wrap gap-3">
+                            <StatusPill tone="emerald">{copy.business.pavilionHealth}</StatusPill>
+                            <StatusPill tone="cyan">{copy.business.buyersOnline}</StatusPill>
+                            <StatusPill tone="amber">{copy.business.questsLive}</StatusPill>
+                        </div>
+                    </DashboardHero>
+
+                    <div className={metricGrid}>
+                        <MetricCard title={copy.business.buyerLeads} value="28" helper={copy.business.buyerLeadsHelper} icon={Users} tone="emerald" />
+                        <MetricCard title={copy.business.productReadiness} value="84%" helper={copy.business.productReadinessHelper} icon={Box} tone="cyan" progress={84} />
+                        <MetricCard title={copy.business.quotePipeline} value="$42K" helper={copy.business.quotePipelineHelper} icon={CircleDollarSign} tone="amber" />
+                        <MetricCard title={copy.business.pavilionRoi} value="3.8x" helper={copy.business.pavilionRoiHelper} icon={LineChart} tone="sky" />
                     </div>
-                </DashboardHero>
 
-                <div className={metricGrid}>
-                    <MetricCard title={copy.business.buyerLeads} value="28" helper={copy.business.buyerLeadsHelper} icon={Users} tone="emerald" />
-                    <MetricCard title={copy.business.productReadiness} value="84%" helper={copy.business.productReadinessHelper} icon={Box} tone="cyan" progress={84} />
-                    <MetricCard title={copy.business.quotePipeline} value="$42K" helper={copy.business.quotePipelineHelper} icon={CircleDollarSign} tone="amber" />
-                    <MetricCard title={copy.business.pavilionRoi} value="3.8x" helper={copy.business.pavilionRoiHelper} icon={LineChart} tone="sky" />
-                </div>
+                    <QuestPanel role="business" progress={bridge.questProgress} language={language} />
 
-                <QuestPanel role="business" progress={bridge.questProgress} language={language} />
-
-                <div className="grid gap-4 min-[1680px]:grid-cols-[minmax(0,1fr)_22rem]">
-                    <section className={`${panel} p-4`}>
-                        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <section className={`${panel} p-3`}>
+                        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{copy.business.operationsTitle}</h2>
+                                <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">{copy.business.operationsTitle}</h2>
                                 <p className="mt-1 text-sm text-slate-500">{copy.business.operationsSub}</p>
                             </div>
                             <Link href="/supplier/upload" className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-emerald-100">
@@ -1685,17 +1727,15 @@ export function SupplierDashboard({ bridge = fallback }: DashboardProps) {
                             ))}
                         </div>
                     </section>
+                </main>
 
+                <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
                     <VisualPanel src="/visuals/business-pavilion.svg" alt="Supplier pavilion preview" title={copy.business.previewTitle} markers={copy.business.markers} />
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-3">
                     <ListPanel title={copy.business.pipelineTitle} icon={PackageCheck} tone="emerald" items={copy.business.pipeline} />
                     <ListPanel title={copy.business.checklistTitle} icon={CalendarCheck} tone="cyan" items={copy.business.checklist} />
                     <ListPanel title={copy.business.revenueTitle} icon={CreditCard} tone="amber" items={copy.business.revenue} />
-                </div>
-
-                <RewardPanel rewards={bridge.questRewards} language={language} />
+                    <RewardPanel rewards={bridge.questRewards} language={language} />
+                </aside>
             </div>
         </DashboardFrame>
     );
