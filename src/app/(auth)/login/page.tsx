@@ -218,13 +218,14 @@ function LoginPageContent() {
   const roleParam = searchParams.get("role");
   const requestedAudience: AppAudience = roleParam === "supplier" ? "supplier" : "user";
   const requestedNext = searchParams.get("next");
+  const isPlayerLoginRequest = normalizeNextPath(requestedNext, "").startsWith("/player/dashboard");
 
   const [audience, setAudience] = useState<AppAudience>(requestedAudience);
   const [authMethod, setAuthMethod] = useState<AuthMethod>("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otpCode, setOtpCode] = useState("");
-  const [isSignUpMode, setIsSignUpMode] = useState(requestedAudience === "user");
+  const [isSignUpMode, setIsSignUpMode] = useState(requestedAudience === "user" && !isPlayerLoginRequest);
   const [otpRequested, setOtpRequested] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -232,13 +233,13 @@ function LoginPageContent() {
 
   useEffect(() => {
     setAudience(requestedAudience);
-    setIsSignUpMode(requestedAudience === "user");
+    setIsSignUpMode(requestedAudience === "user" && !isPlayerLoginRequest);
     setAuthMethod("password");
     setOtpRequested(false);
     setOtpCode("");
     setErrorMessage(null);
     setInfoMessage(null);
-  }, [requestedAudience]);
+  }, [isPlayerLoginRequest, requestedAudience]);
 
   const redirectPath = useMemo(() => {
     const fallback = getDefaultRedirectPath(audience);
@@ -560,7 +561,9 @@ function LoginPageContent() {
   };
 
   const hintText =
-    authMethod === "otp"
+    isPlayerLoginRequest && authMethod === "password"
+      ? "Use your player email and password to open the private dashboard. New players can create an account from this same form."
+      : authMethod === "otp"
       ? audience === "supplier"
         ? t.otpHintSupplier
         : t.otpHintVisitor
@@ -571,12 +574,14 @@ function LoginPageContent() {
         : null;
 
   const subtitle =
-    audience === "supplier" ? t.supplierSubtitle : t.visitorSubtitle;
+    isPlayerLoginRequest
+      ? "Sign in to open your player dashboard, rewards wallet, delivery queue, and game activity."
+      : audience === "supplier" ? t.supplierSubtitle : t.visitorSubtitle;
 
   const handleAudienceChange = (nextAudience: AppAudience) => {
     setAudience(nextAudience);
     setAuthMethod("password");
-    setIsSignUpMode(nextAudience === "user");
+    setIsSignUpMode(nextAudience === "user" && !isPlayerLoginRequest);
     setOtpRequested(false);
     setOtpCode("");
     resetMessages();
@@ -608,7 +613,7 @@ function LoginPageContent() {
                 : "text-gray-300 hover:bg-white/10"
             }`}
           >
-            {t.visitorTab}
+            {isPlayerLoginRequest ? "Player Access" : t.visitorTab}
           </button>
           <button
             type="button"
