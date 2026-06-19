@@ -36,6 +36,32 @@ type StreamPixelCompatibleWindow = Window & {
     ps?: StreamPixelStream;
 };
 
+const POINTER_LOCK_GRACE_MS = 240;
+const MAX_MOUSE_DELTA = 120;
+const NORMALIZED_CENTER = 32768;
+const COMMON_KEY_CODES_TO_RELEASE = [87, 65, 83, 68, 38, 37, 40, 39, 32, 16, 17, 18, 88, 70, 84];
+
+const releaseCommonStuckInputs = (stream: StreamPixelStream | null) => {
+    const handlers = stream?.toStreamerHandlers;
+    const keyUpHandler = handlers?.get('KeyUp');
+    const mouseUpHandler = handlers?.get('MouseUp');
+    const mouseLeaveHandler = handlers?.get('MouseLeave');
+
+    if (keyUpHandler) {
+        for (const keyCode of COMMON_KEY_CODES_TO_RELEASE) {
+            keyUpHandler([keyCode]);
+        }
+    }
+
+    if (mouseUpHandler) {
+        mouseUpHandler([0, NORMALIZED_CENTER, NORMALIZED_CENTER]);
+        mouseUpHandler([1, NORMALIZED_CENTER, NORMALIZED_CENTER]);
+        mouseUpHandler([2, NORMALIZED_CENTER, NORMALIZED_CENTER]);
+    }
+
+    mouseLeaveHandler?.();
+};
+
 type StreamPixelController = {
     addResponseEventListener?: (name: string, listener: (response: string) => void) => void;
     removeResponseEventListener?: (name: string) => void;
@@ -169,6 +195,7 @@ export default function StreamPixelPlayer({
     const onVideoInitializedRef = useRef(onVideoInitialized);
     const onConnectionErrorRef = useRef(onConnectionError);
     const mouseSensitivityRef = useRef(mouseSensitivity);
+    const pointerLockGraceUntilRef = useRef(0);
     const teardownRef = useRef<(() => void) | null>(null);
     const lastLogMessageRef = useRef('');
     const lastVideoElementRef = useRef<HTMLVideoElement | null>(null);
@@ -278,6 +305,31 @@ export default function StreamPixelPlayer({
         const inputLabel = !isMobileDevice
             ? `desktop-${desktopMouseMode}`
             : (useTouchScreenInput ? 'touch' : 'joystick');
+
+        const handleInputLoss = () => {
+            releaseCommonStuckInputs(streamRef.current);
+        };
+
+        const handlePointerLockChange = () => {
+            pointerLockGraceUntilRef.current = Date.now() + POINTER_LOCK_GRACE_MS;
+
+            const lockDocument = document as Document & { mozPointerLockElement?: Element | null };
+            const locked = lockDocument.pointerLockElement ?? lockDocument.mozPointerLockElement ?? null;
+            if (!locked) {
+                releaseCommonStuckInputs(streamRef.current);
+            }
+        };
+
+        const handleVisibilityHidden = () => {
+            if (document.hidden) {
+                handleInputLoss();
+            }
+        };
+
+        document.addEventListener('pointerlockchange', handlePointerLockChange);
+        document.addEventListener('mozpointerlockchange', handlePointerLockChange);
+        window.addEventListener('blur', handleInputLoss);
+        document.addEventListener('visibilitychange', handleVisibilityHidden);
 
         const logEvent = (message: string) => {
             if (!message || lastLogMessageRef.current === message) return;
@@ -393,26 +445,45 @@ export default function StreamPixelPlayer({
                     return;
                 }
 
+                if (Date.now() < pointerLockGraceUntilRef.current) {
+                    const zeroedMessageData = [...messageData];
+                    zeroedMessageData[2] = 0;
+                    zeroedMessageData[3] = 0;
+                    mouseDeltaCarryX = 0;
+                    mouseDeltaCarryY = 0;
+                    originalMouseMove(zeroedMessageData);
+                    return;
+                }
+
                 const sensitivity = mouseSensitivityRef.current;
+                const rawDeltaX = typeof messageData[2] === 'number'
+                    ? Math.max(-MAX_MOUSE_DELTA, Math.min(MAX_MOUSE_DELTA, messageData[2]))
+                    : messageData[2];
+                const rawDeltaY = typeof messageData[3] === 'number'
+                    ? Math.max(-MAX_MOUSE_DELTA, Math.min(MAX_MOUSE_DELTA, messageData[3]))
+                    : messageData[3];
 
                 // Fast path: at sensitivity = 1 the SDK's integer deltas are
                 // already correct, no scaling/rounding is needed.
                 if (sensitivity === 1) {
-                    originalMouseMove(messageData);
+                    const clampedMessageData = [...messageData];
+                    clampedMessageData[2] = rawDeltaX;
+                    clampedMessageData[3] = rawDeltaY;
+                    originalMouseMove(clampedMessageData);
                     return;
                 }
 
                 const scaledMessageData = [...messageData];
 
-                if (typeof scaledMessageData[2] === 'number') {
-                    const raw = scaledMessageData[2] * sensitivity + mouseDeltaCarryX;
+                if (typeof rawDeltaX === 'number') {
+                    const raw = rawDeltaX * sensitivity + mouseDeltaCarryX;
                     const intPart = Math.trunc(raw);
                     mouseDeltaCarryX = raw - intPart;
                     scaledMessageData[2] = intPart;
                 }
 
-                if (typeof scaledMessageData[3] === 'number') {
-                    const raw = scaledMessageData[3] * sensitivity + mouseDeltaCarryY;
+                if (typeof rawDeltaY === 'number') {
+                    const raw = rawDeltaY * sensitivity + mouseDeltaCarryY;
                     const intPart = Math.trunc(raw);
                     mouseDeltaCarryY = raw - intPart;
                     scaledMessageData[3] = intPart;
@@ -636,6 +707,10 @@ export default function StreamPixelPlayer({
 
         return () => {
             cancelled = true;
+            document.removeEventListener('pointerlockchange', handlePointerLockChange);
+            document.removeEventListener('mozpointerlockchange', handlePointerLockChange);
+            window.removeEventListener('blur', handleInputLoss);
+            document.removeEventListener('visibilitychange', handleVisibilityHidden);
             teardown();
         };
     }, [appId, isMobileDevice, mobileInputMode, preferredDesktopMouseMode]);

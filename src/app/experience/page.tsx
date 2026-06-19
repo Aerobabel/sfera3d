@@ -242,7 +242,7 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         shopperDashboard: 'Shopper Dashboard',
         businessDashboard: 'Business Dashboard',
         typeSupplier: 'Type message to supplier...',
-        quest: 'Quest',
+        quest: 'Active quest',
         nextObjective: 'Next objective',
         reward: 'Reward',
         locations: {
@@ -275,7 +275,7 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         shopperDashboard: 'Панель покупателя',
         businessDashboard: 'Панель бизнеса',
         typeSupplier: 'Напишите поставщику...',
-        quest: 'Квест',
+        quest: 'Активный квест',
         nextObjective: 'Следующая цель',
         reward: 'Награда',
         locations: {
@@ -308,7 +308,7 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         shopperDashboard: '买家仪表盘',
         businessDashboard: '商务仪表盘',
         typeSupplier: '给供应商发送消息...',
-        quest: '任务',
+        quest: '进行中的任务',
         nextObjective: '下一目标',
         reward: '奖励',
         locations: {
@@ -1391,6 +1391,19 @@ export default function ExperiencePage() {
         setIsDesktopChatOpen((previous) => !previous);
     };
 
+    const toggleSceneMenu = () => {
+        releaseAllInputs();
+        try { document.exitPointerLock?.(); } catch {}
+        setIsMenuOpen((previous) => !previous);
+    };
+
+    const openDashboardOverlay = (overlay: 'player' | 'shopper' | 'business') => {
+        releaseAllInputs();
+        try { document.exitPointerLock?.(); } catch {}
+        setDashboardOverlay(overlay);
+        setIsMenuOpen(false);
+    };
+
     const closeChatPanel = () => {
         if (isMobile) {
             setIsMobileChatOpen(false);
@@ -2280,40 +2293,6 @@ export default function ExperiencePage() {
                     />
 
                     <MarketplaceCrosshair />
-                    {showLiveActivityToasts && (
-                        <div
-                            className="absolute left-4 top-[12.5rem] z-30 flex w-[min(calc(100vw-2rem),22rem)] flex-col gap-2 pointer-events-none sm:left-6 sm:top-52 lg:left-8"
-                            aria-live="polite"
-                        >
-                            {liveActivityToasts.map((toast, index) => (
-                                <div
-                                    key={toast.id}
-                                    className={`overflow-hidden rounded-2xl border border-white/10 bg-[#03080e]/72 px-3.5 py-3 text-white shadow-[0_18px_55px_rgba(0,0,0,0.36)] backdrop-blur-md transition ${
-                                        index > 1 ? 'hidden md:block' : ''
-                                    }`}
-                                    style={{ opacity: Math.max(0.68, 1 - index * 0.14) }}
-                                >
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div className="flex min-w-0 items-center gap-2">
-                                            <Activity className="h-3.5 w-3.5 shrink-0 text-[#66d9cb]" />
-                                            <span className="truncate text-[10px] font-bold uppercase tracking-[0.18em] text-[#9fcfdf]">
-                                                {liveActivityLabel}
-                                            </span>
-                                        </div>
-                                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
-                                            {liveActivityNowLabel}
-                                        </span>
-                                    </div>
-                                    <div className="mt-2 flex items-start gap-2.5">
-                                        <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${LIVE_ACTIVITY_ACCENTS[toast.kind]}`} />
-                                        <p className="min-w-0 text-sm font-medium leading-5 text-slate-100">
-                                            {toast.message}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
                     {unrealBridge.accessDeniedMessage && !isPlayerModePromptDismissed && (
                         <div className="absolute left-1/2 top-1/2 z-[70] w-[min(calc(100vw-2rem),26rem)] -translate-x-1/2 -translate-y-1/2 pointer-events-auto" role="dialog" aria-live="assertive" aria-label={sceneHud.playerModeRequired}>
                             <div className="rounded-3xl border border-amber-300/35 bg-slate-950/90 p-5 text-white shadow-[0_30px_90px_rgba(0,0,0,0.55)] backdrop-blur-xl">
@@ -2385,31 +2364,90 @@ export default function ExperiencePage() {
                                 )}
                             </div>
                             {activeSceneQuest && activeSceneQuestText && (
-                                <div className="mt-3 w-[min(92vw,24rem)] rounded-2xl border border-[#66d9cb]/20 bg-black/42 p-3 text-slate-100 backdrop-blur-md">
-                                    <div className="flex items-start justify-between gap-3">
+                                <div className="mt-3 w-[min(92vw,25rem)] overflow-hidden rounded-2xl border border-amber-300/30 bg-[linear-gradient(145deg,rgba(9,13,20,0.86),rgba(20,16,10,0.68))] text-slate-100 shadow-[0_22px_70px_rgba(0,0,0,0.42)] backdrop-blur-md">
+                                    <div className="flex items-center justify-between gap-4 border-b border-amber-300/10 bg-amber-300/[0.045] px-4 py-3">
                                         <div className="min-w-0">
-                                            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#9fcfdf]">{sceneHud.quest}</p>
-                                            <h2 className="mt-1 truncate text-sm font-black text-white">{activeSceneQuestText.title}</h2>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-200">{sceneHud.quest}</p>
+                                            <h2 className="mt-1 truncate text-base font-black leading-tight text-white">{activeSceneQuestText.title}</h2>
+                                            {activeSceneQuestText.sponsor && (
+                                                <p className="mt-1 truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-white/42">
+                                                    {activeSceneQuestText.sponsor}
+                                                </p>
+                                            )}
                                         </div>
-                                        <span className="shrink-0 rounded-full border border-[#66d9cb]/25 bg-[#66d9cb]/12 px-2 py-1 font-mono text-[10px] text-[#9ff4ec]">
-                                            {activeSceneQuestPercent}%
-                                        </span>
+                                        <div className="relative grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-amber-300/25 bg-black/35">
+                                            <span className="absolute inset-1 rounded-xl border border-amber-200/10" />
+                                            <span className="font-mono text-sm font-black text-amber-100">{activeSceneQuestPercent}%</span>
+                                        </div>
                                     </div>
-                                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-                                        <div className="h-full rounded-full bg-[#66d9cb]" style={{ width: `${activeSceneQuestPercent}%` }} />
+                                    <div className="px-4 py-3">
+                                        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                                            <div className="h-full rounded-full bg-[linear-gradient(90deg,#f5c766,#66d9cb)] shadow-[0_0_18px_rgba(245,199,102,0.5)]" style={{ width: `${activeSceneQuestPercent}%` }} />
+                                        </div>
+                                        {activeSceneQuestNextObjective && (
+                                            <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.17em] text-amber-100/80">{sceneHud.nextObjective}</p>
+                                                <p className="mt-1 text-sm font-semibold leading-5 text-white">
+                                                    {getQuestObjectiveText(activeSceneQuest.quest, activeSceneQuestNextObjective[0], language)}
+                                                    <span className="ml-2 font-mono text-xs text-white/45">
+                                                        {activeSceneQuestNextObjective[1].current}/{activeSceneQuestNextObjective[1].target}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        )}
+                                        <div className="mt-3 grid gap-1.5">
+                                            {Object.entries(activeSceneQuest.progress.objectives).map(([objectiveId, objective], index) => (
+                                                <div key={objectiveId} className="grid grid-cols-[1.5rem_1fr_auto] items-center gap-2 text-xs">
+                                                    <span className={`grid h-5 w-5 place-items-center rounded-full border text-[10px] font-black ${
+                                                        objective.completed
+                                                            ? 'border-[#66d9cb]/70 bg-[#66d9cb]/20 text-[#9ff4ec]'
+                                                            : 'border-white/15 bg-white/[0.035] text-white/45'
+                                                    }`}>
+                                                        {objective.completed ? '✓' : index + 1}
+                                                    </span>
+                                                    <span className={`min-w-0 truncate ${objective.completed ? 'text-white/70 line-through decoration-white/30' : 'text-slate-200'}`}>
+                                                        {getQuestObjectiveText(activeSceneQuest.quest, objectiveId, language)}
+                                                    </span>
+                                                    <span className="font-mono text-[11px] text-white/38">{objective.current}/{objective.target}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="mt-3 rounded-xl border border-amber-300/18 bg-amber-300/[0.07] px-3 py-2 text-[11px] leading-5 text-amber-50">
+                                            <span className="font-black uppercase tracking-[0.16em] text-amber-200">{sceneHud.reward}: </span>
+                                            {getQuestRewardText(activeSceneQuest.quest.reward, activeSceneQuest.quest.id, language)}
+                                        </div>
                                     </div>
-                                    {activeSceneQuestNextObjective && (
-                                        <p className="mt-3 text-xs leading-5 text-slate-300">
-                                            <span className="font-bold text-slate-100">{sceneHud.nextObjective}: </span>
-                                            {getQuestObjectiveText(activeSceneQuest.quest, activeSceneQuestNextObjective[0], language)}
-                                            <span className="ml-2 font-mono text-slate-500">
-                                                {activeSceneQuestNextObjective[1].current}/{activeSceneQuestNextObjective[1].target}
-                                            </span>
-                                        </p>
-                                    )}
-                                    <p className="mt-2 text-[11px] text-slate-500">
-                                        {sceneHud.reward}: {getQuestRewardText(activeSceneQuest.quest.reward, activeSceneQuest.quest.id, language)}
-                                    </p>
+                                </div>
+                            )}
+                            {showLiveActivityToasts && (
+                                <div className="mt-3 flex w-[min(92vw,25rem)] flex-col gap-2" aria-live="polite">
+                                    {liveActivityToasts.map((toast, index) => (
+                                        <div
+                                            key={toast.id}
+                                            className={`overflow-hidden rounded-2xl border border-white/10 bg-[#03080e]/70 px-3.5 py-3 text-white shadow-[0_18px_55px_rgba(0,0,0,0.32)] backdrop-blur-md transition ${
+                                                index > 1 ? 'hidden md:block' : ''
+                                            }`}
+                                            style={{ opacity: Math.max(0.68, 1 - index * 0.14) }}
+                                        >
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex min-w-0 items-center gap-2">
+                                                    <Activity className="h-3.5 w-3.5 shrink-0 text-[#66d9cb]" />
+                                                    <span className="truncate text-[10px] font-bold uppercase tracking-[0.18em] text-[#9fcfdf]">
+                                                        {liveActivityLabel}
+                                                    </span>
+                                                </div>
+                                                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                                                    {liveActivityNowLabel}
+                                                </span>
+                                            </div>
+                                            <div className="mt-2 flex items-start gap-2.5">
+                                                <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${LIVE_ACTIVITY_ACCENTS[toast.kind]}`} />
+                                                <p className="min-w-0 text-sm font-medium leading-5 text-slate-100">
+                                                    {toast.message}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </div>
@@ -2433,7 +2471,7 @@ export default function ExperiencePage() {
 
                             {/* Menu Button */}
                             <button
-                                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                onClick={toggleSceneMenu}
                                 className="group relative p-3 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-md border border-white/5 rounded-full transition overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition duration-300" />
@@ -2479,13 +2517,13 @@ export default function ExperiencePage() {
                             <Link href="/roles?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 {sceneHud.roleSelection}
                             </Link>
-                            <button type="button" onClick={() => { setDashboardOverlay('player'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            <button type="button" onClick={() => openDashboardOverlay('player')} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 {sceneHud.playerDashboard}
                             </button>
-                            <button type="button" onClick={() => { setDashboardOverlay('shopper'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            <button type="button" onClick={() => openDashboardOverlay('shopper')} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 {sceneHud.shopperDashboard}
                             </button>
-                            <button type="button" onClick={() => { setDashboardOverlay('business'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                            <button type="button" onClick={() => openDashboardOverlay('business')} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                 {sceneHud.businessDashboard}
                             </button>
                             <button type="button" onClick={() => { setDashboardOverlay(null); setIsMenuOpen(false); router.replace('/fastview?resume=scene', { scroll: false }); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
