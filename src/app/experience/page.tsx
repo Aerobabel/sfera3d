@@ -25,6 +25,14 @@ import { useUnrealEventBridge } from "@/hooks/useUnrealEventBridge";
 import { GamerDashboard, ShopperDashboard, SupplierDashboard } from "@/components/dashboards/RoleDashboards";
 import { GAME_RULES } from "@/lib/unreal/gameRules";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+    getQuestCompletionPercent,
+    getQuestDefinition,
+    getQuestObjectiveText,
+    getQuestRewardText,
+    getQuestText,
+    type QuestEventInput,
+} from "@/lib/quests";
 
 type MobileInputMode = 'joystick' | 'touch';
 type ToStreamerHandler = (messageData?: Array<number | string>) => void;
@@ -180,6 +188,135 @@ const CUTSCENE_COPY: Record<AppLanguage, { skip: string; startWithSound: string;
         pressAnyKey: '按任意键开始',
         soundHint: '进入大厅前开启有声影片',
         closeMenu: '关闭菜单',
+    },
+};
+
+const SCENE_HUD_COPY: Record<AppLanguage, {
+    playerMode: string;
+    shopperMode: string;
+    location: string;
+    game: string;
+    score: string;
+    health: string;
+    coins: string;
+    combo: string;
+    rank: string;
+    threat: string;
+    backToCity: string;
+    returnPortalHint: string;
+    playerModeRequired: string;
+    playerModeRequiredBody: string;
+    overwhelmed: string;
+    cancel: string;
+    switchMode: string;
+    roleSelection: string;
+    playerDashboard: string;
+    shopperDashboard: string;
+    businessDashboard: string;
+    typeSupplier: string;
+    quest: string;
+    nextObjective: string;
+    reward: string;
+    locations: Record<string, string>;
+}> = {
+    en: {
+        playerMode: 'Player Mode',
+        shopperMode: 'Shopper Mode',
+        location: 'Location',
+        game: 'Game',
+        score: 'Score',
+        health: 'Health',
+        coins: 'Coins',
+        combo: 'Combo',
+        rank: 'Rank',
+        threat: 'Threat',
+        backToCity: 'Back to City',
+        returnPortalHint: 'Use the return portal in the game world.',
+        playerModeRequired: 'Player Mode required',
+        playerModeRequiredBody: 'Switch to Player Mode to enter game zones.',
+        overwhelmed: 'You were overwhelmed',
+        cancel: 'Cancel',
+        switchMode: 'Switch mode',
+        roleSelection: 'Role Selection',
+        playerDashboard: 'Player Dashboard',
+        shopperDashboard: 'Shopper Dashboard',
+        businessDashboard: 'Business Dashboard',
+        typeSupplier: 'Type message to supplier...',
+        quest: 'Quest',
+        nextObjective: 'Next objective',
+        reward: 'Reward',
+        locations: {
+            city: 'City',
+            sferaHall: 'Sfera Hall',
+            zombieArena: 'Zombie Arena',
+            racingZone: 'Racing Zone',
+        },
+    },
+    ru: {
+        playerMode: 'Режим игрока',
+        shopperMode: 'Режим покупателя',
+        location: 'Локация',
+        game: 'Игра',
+        score: 'Счет',
+        health: 'Здоровье',
+        coins: 'Монеты',
+        combo: 'Комбо',
+        rank: 'Ранг',
+        threat: 'Угроза',
+        backToCity: 'Назад в город',
+        returnPortalHint: 'Используйте портал возврата в игровом мире.',
+        playerModeRequired: 'Нужен режим игрока',
+        playerModeRequiredBody: 'Переключитесь в режим игрока, чтобы войти в игровые зоны.',
+        overwhelmed: 'Вас окружили',
+        cancel: 'Отмена',
+        switchMode: 'Сменить режим',
+        roleSelection: 'Выбор роли',
+        playerDashboard: 'Панель игрока',
+        shopperDashboard: 'Панель покупателя',
+        businessDashboard: 'Панель бизнеса',
+        typeSupplier: 'Напишите поставщику...',
+        quest: 'Квест',
+        nextObjective: 'Следующая цель',
+        reward: 'Награда',
+        locations: {
+            city: 'Город',
+            sferaHall: 'Sfera Hall',
+            zombieArena: 'Zombie Arena',
+            racingZone: 'Гоночная зона',
+        },
+    },
+    zh: {
+        playerMode: '玩家模式',
+        shopperMode: '买家模式',
+        location: '位置',
+        game: '游戏',
+        score: '分数',
+        health: '生命值',
+        coins: '金币',
+        combo: '连击',
+        rank: '段位',
+        threat: '威胁',
+        backToCity: '返回城市',
+        returnPortalHint: '请使用游戏世界中的返回传送门。',
+        playerModeRequired: '需要玩家模式',
+        playerModeRequiredBody: '请切换到玩家模式后进入游戏区域。',
+        overwhelmed: '你被击败了',
+        cancel: '取消',
+        switchMode: '切换模式',
+        roleSelection: '角色选择',
+        playerDashboard: '玩家仪表盘',
+        shopperDashboard: '买家仪表盘',
+        businessDashboard: '商务仪表盘',
+        typeSupplier: '给供应商发送消息...',
+        quest: '任务',
+        nextObjective: '下一目标',
+        reward: '奖励',
+        locations: {
+            city: '城市',
+            sferaHall: 'Sfera Hall',
+            zombieArena: 'Zombie Arena',
+            racingZone: '竞速区',
+        },
     },
 };
 
@@ -621,6 +758,7 @@ export default function ExperiencePage() {
     const isFastViewRoute = pathname === '/fastview';
     const { language } = useLanguage();
     const ui = EXPERIENCE_COPY[language];
+    const sceneHud = SCENE_HUD_COPY[language];
     const fastViewLaunch = FASTVIEW_LAUNCH_COPY[language];
     const cutsceneCopy = CUTSCENE_COPY[language];
     const sferaHallCutsceneSrc = SFERA_HALL_CUTSCENE_SRC[language];
@@ -652,6 +790,9 @@ export default function ExperiencePage() {
               ? '\u8FD4\u56DE\u573A\u666F'
               : 'Back to scene';
     const unrealBridge = useUnrealEventBridge();
+    const emitQuestEvent = useCallback((event: QuestEventInput) => {
+        unrealBridge.handleUnrealResponse(JSON.stringify(event));
+    }, [unrealBridge]);
     const [frontendCinematic, setFrontendCinematic] = useState<FrontendCinematic | null>(null);
     const [signalingServerUrl] = useState<string>(() => resolveDefaultSignalingUrl());
     const [fastViewAppId] = useState<string>(() => resolveDefaultFastViewAppId());
@@ -1168,7 +1309,7 @@ export default function ExperiencePage() {
         ? (activeSupplier ? `${activeSupplier.name}` : ui.assistantSubtitle)
         : ui.assistantSubtitle;
     const chatPlaceholder = isSupplierMode
-        ? 'Type message to supplier...'
+        ? sceneHud.typeSupplier
         : ui.inputPlaceholder;
     const isChatPanelOpen = isMobile ? isMobileChatOpen : isDesktopChatOpen;
     const showFastViewCutscene = isFastViewRoute && !hasCompletedFastViewCutscene && !fastViewError;
@@ -1490,11 +1631,17 @@ export default function ExperiencePage() {
             // Fetch supplier
             const supplier = getSupplierById(product.supplierId);
             setActiveSupplier(supplier);
+            emitQuestEvent({
+                event: 'product_viewed',
+                productId: product.id,
+                supplierId: product.supplierId,
+                productName: product.name,
+            });
             return;
         }
 
         console.warn('No product mapping found for Unreal ID:', id);
-    }, []);
+    }, [emitQuestEvent]);
 
     const handleChatWithSupplier = () => {
         if (!activeSupplier) return;
@@ -1514,6 +1661,10 @@ export default function ExperiencePage() {
                 localizedActiveProduct?.name ?? activeProduct?.name ?? fallbackProductName
             )
         );
+        emitQuestEvent({
+            event: 'supplier_chat_opened',
+            supplierId: activeSupplier.id,
+        });
         void syncSupplierMessages();
     };
 
@@ -1522,6 +1673,10 @@ export default function ExperiencePage() {
         const products = getProductsBySupplier(activeSupplier.id);
         setCatalogueProducts(products);
         setIsCatalogueOpen(true);
+        emitQuestEvent({
+            event: 'catalogue_opened',
+            supplierId: activeSupplier.id,
+        });
     };
 
     const sendUnrealExitFocus = useCallback(() => {
@@ -1670,6 +1825,10 @@ export default function ExperiencePage() {
                     releaseAllInputs();
                     try { document.exitPointerLock?.(); } catch {}
                     setActivePavilion(pavilion);
+                    emitQuestEvent({
+                        event: 'pavilion_entered',
+                        pavilionId,
+                    });
                 }
                 return;
             }
@@ -1692,6 +1851,31 @@ export default function ExperiencePage() {
         console.warn('Unrecognized Unreal payload shape:', payload);
     };
 
+    const activeSceneQuest = useMemo(() => {
+        const preferredRole = unrealBridge.currentMode === 'player' ? 'player' : 'shopper';
+
+        for (const progress of unrealBridge.questProgress) {
+            const quest = getQuestDefinition(progress.questId);
+            if (quest?.role === preferredRole && progress.status === 'active') {
+                return { progress, quest };
+            }
+        }
+
+        for (const progress of unrealBridge.questProgress) {
+            const quest = getQuestDefinition(progress.questId);
+            if (quest && progress.status === 'active') {
+                return { progress, quest };
+            }
+        }
+
+        return null;
+    }, [unrealBridge.currentMode, unrealBridge.questProgress]);
+    const activeSceneQuestText = activeSceneQuest ? getQuestText(activeSceneQuest.quest, language) : null;
+    const activeSceneQuestPercent = activeSceneQuest ? getQuestCompletionPercent(activeSceneQuest.progress) : 0;
+    const activeSceneQuestNextObjective = activeSceneQuest
+        ? Object.entries(activeSceneQuest.progress.objectives).find(([, objective]) => !objective.completed)
+        : null;
+    const sceneLocationLabel = sceneHud.locations[unrealBridge.currentLocation] ?? unrealBridge.currentLocation;
     const zombieCoinsPreview = unrealBridge.zombieCoins || Math.floor(unrealBridge.zombieScore / GAME_RULES.zombieArena.zombieKillPoints) * GAME_RULES.zombieArena.coinsPerKill;
 
     const handleClosePavilionExposition = useCallback(() => {
@@ -2131,24 +2315,24 @@ export default function ExperiencePage() {
                         </div>
                     )}
                     {unrealBridge.accessDeniedMessage && !isPlayerModePromptDismissed && (
-                        <div className="absolute left-1/2 top-1/2 z-[70] w-[min(calc(100vw-2rem),26rem)] -translate-x-1/2 -translate-y-1/2 pointer-events-auto" role="dialog" aria-live="assertive" aria-label="Player Mode required">
+                        <div className="absolute left-1/2 top-1/2 z-[70] w-[min(calc(100vw-2rem),26rem)] -translate-x-1/2 -translate-y-1/2 pointer-events-auto" role="dialog" aria-live="assertive" aria-label={sceneHud.playerModeRequired}>
                             <div className="rounded-3xl border border-amber-300/35 bg-slate-950/90 p-5 text-white shadow-[0_30px_90px_rgba(0,0,0,0.55)] backdrop-blur-xl">
-                                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-200">Player Mode required</p>
-                                <p className="mt-3 text-sm leading-6 text-slate-200">{unrealBridge.accessDeniedMessage}</p>
+                                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-200">{sceneHud.playerModeRequired}</p>
+                                <p className="mt-3 text-sm leading-6 text-slate-200">{sceneHud.playerModeRequiredBody}</p>
                                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                                     <button
                                         type="button"
                                         onClick={() => setIsPlayerModePromptDismissed(true)}
                                         className="rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/10"
                                     >
-                                        Cancel
+                                        {sceneHud.cancel}
                                     </button>
                                     <button
                                         type="button"
                                         onClick={handleSwitchToPlayerMode}
                                         className="rounded-2xl bg-[linear-gradient(135deg,#66d9cb,#d9fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:scale-[1.01]"
                                     >
-                                        Switch mode
+                                        {sceneHud.switchMode}
                                     </button>
                                 </div>
                             </div>
@@ -2176,30 +2360,58 @@ export default function ExperiencePage() {
                             <div className="mt-3 grid w-fit max-w-[min(92vw,24rem)] gap-2 rounded-2xl border border-[#66d9cb]/20 bg-black/35 p-2 text-[11px] text-slate-200 backdrop-blur-md">
                                 <div className="flex flex-wrap gap-2">
                                     <span className="rounded-full bg-[#66d9cb]/15 px-3 py-1 font-semibold text-[#66d9cb]">
-                                        {unrealBridge.currentMode === 'player' ? 'Player Mode' : 'Shopper Mode'}
+                                        {unrealBridge.currentMode === 'player' ? sceneHud.playerMode : sceneHud.shopperMode}
                                     </span>
-                                    <span className="rounded-full border border-white/10 px-3 py-1">Location: {unrealBridge.currentLocation}</span>
-                                    {unrealBridge.currentGame && <span className="rounded-full border border-white/10 px-3 py-1">Game: {unrealBridge.currentGame}</span>}
+                                    <span className="rounded-full border border-white/10 px-3 py-1">{sceneHud.location}: {sceneLocationLabel}</span>
+                                    {unrealBridge.currentGame && <span className="rounded-full border border-white/10 px-3 py-1">{sceneHud.game}: {unrealBridge.currentGame}</span>}
                                 </div>
                                 {unrealBridge.currentGame === 'ZombieArena' && (
                                     <div className="grid grid-cols-3 gap-2 text-center">
-                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">Score</span><strong>{unrealBridge.zombieScore}</strong></div>
-                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">Health</span><strong>{unrealBridge.zombieHealth}</strong></div>
-                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">Coins</span><strong>{zombieCoinsPreview}</strong></div>
-                                        <div className="rounded-xl bg-[#66d9cb]/15 p-2"><span className="block text-[10px] uppercase text-[#9ff4ec]">Combo</span><strong>{unrealBridge.zombieCombo}x</strong></div>
-                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">Rank</span><strong>{unrealBridge.zombieRank}</strong></div>
-                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">Threat</span><strong>{unrealBridge.zombieThreatLevel}</strong></div>
+                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">{sceneHud.score}</span><strong>{unrealBridge.zombieScore}</strong></div>
+                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">{sceneHud.health}</span><strong>{unrealBridge.zombieHealth}</strong></div>
+                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">{sceneHud.coins}</span><strong>{zombieCoinsPreview}</strong></div>
+                                        <div className="rounded-xl bg-[#66d9cb]/15 p-2"><span className="block text-[10px] uppercase text-[#9ff4ec]">{sceneHud.combo}</span><strong>{unrealBridge.zombieCombo}x</strong></div>
+                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">{sceneHud.rank}</span><strong>{unrealBridge.zombieRank}</strong></div>
+                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">{sceneHud.threat}</span><strong>{unrealBridge.zombieThreatLevel}</strong></div>
                                     </div>
                                 )}
-                                {unrealBridge.zombieGameOver && <p className="text-red-300">You were overwhelmed</p>}
+                                {unrealBridge.zombieGameOver && <p className="text-red-300">{sceneHud.overwhelmed}</p>}
 
                                 {unrealBridge.currentLocation !== 'city' && (
                                     <div>
-                                        <button type="button" className="rounded-full border border-white/15 px-3 py-1 font-semibold text-white/90">Back to City</button>
-                                        <p className="mt-1 text-[10px] text-slate-400">Use the return portal in the game world.</p>
+                                        <button type="button" className="rounded-full border border-white/15 px-3 py-1 font-semibold text-white/90">{sceneHud.backToCity}</button>
+                                        <p className="mt-1 text-[10px] text-slate-400">{sceneHud.returnPortalHint}</p>
                                     </div>
                                 )}
                             </div>
+                            {activeSceneQuest && activeSceneQuestText && (
+                                <div className="mt-3 w-[min(92vw,24rem)] rounded-2xl border border-[#66d9cb]/20 bg-black/42 p-3 text-slate-100 backdrop-blur-md">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#9fcfdf]">{sceneHud.quest}</p>
+                                            <h2 className="mt-1 truncate text-sm font-black text-white">{activeSceneQuestText.title}</h2>
+                                        </div>
+                                        <span className="shrink-0 rounded-full border border-[#66d9cb]/25 bg-[#66d9cb]/12 px-2 py-1 font-mono text-[10px] text-[#9ff4ec]">
+                                            {activeSceneQuestPercent}%
+                                        </span>
+                                    </div>
+                                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                                        <div className="h-full rounded-full bg-[#66d9cb]" style={{ width: `${activeSceneQuestPercent}%` }} />
+                                    </div>
+                                    {activeSceneQuestNextObjective && (
+                                        <p className="mt-3 text-xs leading-5 text-slate-300">
+                                            <span className="font-bold text-slate-100">{sceneHud.nextObjective}: </span>
+                                            {getQuestObjectiveText(activeSceneQuest.quest, activeSceneQuestNextObjective[0], language)}
+                                            <span className="ml-2 font-mono text-slate-500">
+                                                {activeSceneQuestNextObjective[1].current}/{activeSceneQuestNextObjective[1].target}
+                                            </span>
+                                        </p>
+                                    )}
+                                    <p className="mt-2 text-[11px] text-slate-500">
+                                        {sceneHud.reward}: {getQuestRewardText(activeSceneQuest.quest.reward, activeSceneQuest.quest.id, language)}
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex items-start gap-3 pointer-events-auto">
@@ -2265,16 +2477,16 @@ export default function ExperiencePage() {
                             </button>
                             <div className="h-px bg-white/10 my-2"></div>
                             <Link href="/roles?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
-                                Role Selection
+                                {sceneHud.roleSelection}
                             </Link>
                             <button type="button" onClick={() => { setDashboardOverlay('player'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
-                                Player Dashboard
+                                {sceneHud.playerDashboard}
                             </button>
                             <button type="button" onClick={() => { setDashboardOverlay('shopper'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
-                                Shopper Dashboard
+                                {sceneHud.shopperDashboard}
                             </button>
                             <button type="button" onClick={() => { setDashboardOverlay('business'); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
-                                Business Dashboard
+                                {sceneHud.businessDashboard}
                             </button>
                             <button type="button" onClick={() => { setDashboardOverlay(null); setIsMenuOpen(false); router.replace('/fastview?resume=scene', { scroll: false }); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 {backToSceneLabel}
@@ -2297,7 +2509,7 @@ export default function ExperiencePage() {
                             <div className="mx-auto max-w-7xl pb-8">
                                 {dashboardOverlay === 'player' && <GamerDashboard bridge={unrealBridge} />}
                                 {dashboardOverlay === 'shopper' && <ShopperDashboard bridge={unrealBridge} />}
-                                {dashboardOverlay === 'business' && <SupplierDashboard />}
+                                {dashboardOverlay === 'business' && <SupplierDashboard bridge={unrealBridge} />}
                             </div>
                         </div>
                     )}
@@ -2309,13 +2521,18 @@ export default function ExperiencePage() {
                                 product={localizedActiveProduct ?? activeProduct}
                                 supplier={activeSupplier}
                                 onClose={handleCloseProductCard}
-                                onAddToCart={() =>
+                                onAddToCart={() => {
+                                    emitQuestEvent({
+                                        event: 'product_saved',
+                                        productId: activeProduct.id,
+                                        supplierId: activeProduct.supplierId,
+                                    });
                                     alert(
                                         ui.addToCart(
                                             localizedActiveProduct?.name ?? activeProduct.name
                                         )
-                                    )
-                                }
+                                    );
+                                }}
                                 onChatWithSupplier={handleChatWithSupplier}
                                 onViewCatalogue={handleViewCatalogue}
                             />
@@ -2327,6 +2544,7 @@ export default function ExperiencePage() {
                         <PavilionExposition
                             pavilion={activePavilion}
                             onClose={handleClosePavilionExposition}
+                            onQuestEvent={emitQuestEvent}
                         />
                     )}
 
@@ -2338,6 +2556,13 @@ export default function ExperiencePage() {
                             onClose={() => setIsCatalogueOpen(false)}
                             onSelectProduct={(product) => {
                                 setActiveProduct(product);
+                                setActiveSupplier(getSupplierById(product.supplierId));
+                                emitQuestEvent({
+                                    event: 'product_viewed',
+                                    productId: product.id,
+                                    supplierId: product.supplierId,
+                                    productName: product.name,
+                                });
                                 setIsCatalogueOpen(false); // Close catalogue and show product card
                             }}
                         />

@@ -1,3 +1,5 @@
+import type { QuestProgress, QuestRewardState } from '@/lib/quests';
+
 export type SferaMode = 'shopper' | 'player';
 export type SferaLocation = 'city' | 'sferaHall' | 'zombieArena' | 'racingZone';
 export type SferaGame = null | 'ZombieArena' | 'RacingZone' | 'TreasureHunt';
@@ -10,6 +12,21 @@ export type UnrealPixelStreamingEvent =
     | { event: 'zombie_killed'; game?: unknown }
     | { event: 'player_hit'; game?: unknown }
     | { event: 'returned_to_city'; from?: unknown }
+    | { event: 'product_viewed'; productId?: unknown; supplierId?: unknown; productName?: unknown }
+    | { event: 'catalogue_opened'; supplierId?: unknown }
+    | { event: 'supplier_chat_opened'; supplierId?: unknown; pavilionId?: unknown }
+    | { event: 'pavilion_entered'; pavilionId?: unknown }
+    | { event: 'pavilion_product_viewed'; pavilionId?: unknown; productId?: unknown; productCode?: unknown }
+    | { event: 'pavilion_catalogue_opened'; pavilionId?: unknown }
+    | { event: 'pavilion_contact_opened'; pavilionId?: unknown }
+    | { event: 'pavilion_contact_submitted'; pavilionId?: unknown }
+    | { event: 'pavilion_meeting_opened'; pavilionId?: unknown }
+    | { event: 'meeting_booked'; pavilionId?: unknown }
+    | { event: 'quote_request_started'; pavilionId?: unknown; productId?: unknown; productCode?: unknown }
+    | { event: 'token_collected'; tokenId?: unknown }
+    | { event: 'supplier_portal_opened' }
+    | { event: 'product_upload_started' }
+    | { event: 'lead_inbox_opened' }
     | { event: string; [key: string]: unknown };
 
 export type ArenaMomentKind = 'kill' | 'hit' | 'combo' | 'rank' | 'game_over';
@@ -40,4 +57,7 @@ export type UnrealEventBridgeState = {
     lastUnrealEvent: UnrealPixelStreamingEvent | null;
     accessDeniedMessage: string | null;
     recentActivity: string[];
+    questProgress: QuestProgress[];
+    questRewards: QuestRewardState[];
+    lastCompletedQuestId: string | null;
 };

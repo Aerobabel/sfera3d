@@ -41,6 +41,18 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
+import {
+    createInitialQuestProgress,
+    getQuestCompletionPercent,
+    getQuestDefinition,
+    getQuestObjectiveText,
+    getQuestRewardText,
+    getQuestText,
+    getRoleQuestProgress,
+    type QuestProgress,
+    type QuestRewardState,
+    type QuestRole,
+} from '@/lib/quests';
 import { GAME_RULES } from '@/lib/unreal/gameRules';
 import type { AppLanguage } from '@/lib/i18n';
 import type { UnrealEventBridgeState } from '@/lib/unreal/types';
@@ -201,6 +213,9 @@ const fallback: UnrealEventBridgeState = {
     lastUnrealEvent: null,
     accessDeniedMessage: null,
     recentActivity: ['Entered Zombie Arena', 'Cleared a wave', 'Unlocked coin bonus', 'Returned to Sfera Hall'],
+    questProgress: createInitialQuestProgress(),
+    questRewards: [],
+    lastCompletedQuestId: null,
 };
 
 const dashboardCopy: Record<AppLanguage, DashboardText> = {
@@ -780,6 +795,61 @@ const threeCardGrid = 'grid gap-4 md:grid-cols-2 min-[1800px]:grid-cols-3';
 
 const clampPercent = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
 
+const questDashboardCopy: Record<AppLanguage, {
+    activeQuests: string;
+    rewardWallet: string;
+    noQuests: string;
+    noRewards: string;
+    complete: string;
+    active: string;
+    claimed: string;
+    reward: string;
+    objectives: string;
+}> = {
+    en: {
+        activeQuests: 'Active quests',
+        rewardWallet: 'Reward wallet',
+        noQuests: 'No active quests for this role yet.',
+        noRewards: 'Rewards will appear here after quest completion.',
+        complete: 'Complete',
+        active: 'Active',
+        claimed: 'Claimed',
+        reward: 'Reward',
+        objectives: 'Objectives',
+    },
+    ru: {
+        activeQuests: 'Активные квесты',
+        rewardWallet: 'Кошелек наград',
+        noQuests: 'Для этой роли пока нет активных квестов.',
+        noRewards: 'Награды появятся здесь после завершения квестов.',
+        complete: 'Готово',
+        active: 'Активно',
+        claimed: 'Получено',
+        reward: 'Награда',
+        objectives: 'Цели',
+    },
+    zh: {
+        activeQuests: '进行中的任务',
+        rewardWallet: '奖励钱包',
+        noQuests: '此角色暂无进行中的任务。',
+        noRewards: '完成任务后奖励会显示在这里。',
+        complete: '已完成',
+        active: '进行中',
+        claimed: '已领取',
+        reward: '奖励',
+        objectives: '目标',
+    },
+};
+
+const questStatusLabel = (
+    progress: QuestProgress,
+    copy: typeof questDashboardCopy[AppLanguage]
+) => {
+    if (progress.status === 'claimed') return copy.claimed;
+    if (progress.status === 'completed') return copy.complete;
+    return copy.active;
+};
+
 function DashboardBackNav() {
     const { language } = useLanguage();
     const copy = dashboardCopy[language];
@@ -943,6 +1013,125 @@ function ListPanel({
     );
 }
 
+function QuestPanel({
+    role,
+    progress,
+    language,
+}: {
+    role: QuestRole;
+    progress: QuestProgress[];
+    language: AppLanguage;
+}) {
+    const copy = questDashboardCopy[language];
+    const roleProgress = getRoleQuestProgress(progress, role).slice(0, 3);
+
+    return (
+        <section className={`${panel} p-5`}>
+            <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                    <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{copy.activeQuests}</h2>
+                    <p className="mt-1 text-sm text-slate-500">{copy.objectives}</p>
+                </div>
+                <span className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${toneStyles.emerald.icon}`}>
+                    <ClipboardCheck className="h-5 w-5" />
+                </span>
+            </div>
+
+            {roleProgress.length === 0 ? (
+                <p className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm text-slate-400">{copy.noQuests}</p>
+            ) : (
+                <div className="grid gap-4 xl:grid-cols-2">
+                    {roleProgress.map((item) => {
+                        const quest = getQuestDefinition(item.questId);
+                        if (!quest) return null;
+                        const questText = getQuestText(quest, language);
+                        const percent = getQuestCompletionPercent(item);
+                        const statusTone: Tone = item.status === 'active' ? 'cyan' : 'emerald';
+
+                        return (
+                            <article key={item.questId} className={`${compactPanel} min-w-0 p-4`}>
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                    <div className="min-w-0">
+                                        <p className={`text-[10px] font-black uppercase tracking-[0.18em] ${toneStyles[statusTone].accent}`}>
+                                            {questText.sponsor ?? '3DSFERA'}
+                                        </p>
+                                        <h3 className="mt-1 text-lg font-black leading-tight text-white">{questText.title}</h3>
+                                        <p className="mt-2 text-sm leading-6 text-slate-400">{questText.description}</p>
+                                    </div>
+                                    <StatusPill tone={statusTone}>{questStatusLabel(item, copy)}</StatusPill>
+                                </div>
+                                <div className="mt-4">
+                                    <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+                                        <span>{percent}%</span>
+                                        <span>{copy.reward}: {getQuestRewardText(quest.reward, quest.id, language)}</span>
+                                    </div>
+                                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+                                        <div className={`h-full rounded-full ${toneStyles[statusTone].bar}`} style={{ width: `${clampPercent(percent)}%` }} />
+                                    </div>
+                                </div>
+                                <div className="mt-4 grid gap-2">
+                                    {Object.entries(item.objectives).map(([objectiveId, objective]) => (
+                                        <div key={objectiveId} className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                                            <CheckCircle2 className={`h-4 w-4 shrink-0 ${objective.completed ? 'text-emerald-200' : 'text-slate-600'}`} />
+                                            <p className="min-w-0 flex-1 text-sm leading-5 text-slate-300">{getQuestObjectiveText(quest, objectiveId, language)}</p>
+                                            <span className="shrink-0 font-mono text-xs text-slate-500">{objective.current}/{objective.target}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </article>
+                        );
+                    })}
+                </div>
+            )}
+        </section>
+    );
+}
+
+function RewardPanel({
+    rewards,
+    language,
+}: {
+    rewards: QuestRewardState[];
+    language: AppLanguage;
+}) {
+    const copy = questDashboardCopy[language];
+    const visibleRewards = [...rewards].reverse().slice(0, 4);
+
+    return (
+        <section className={`${panel} p-5`}>
+            <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-300">{copy.rewardWallet}</h2>
+                <span className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${toneStyles.amber.icon}`}>
+                    <Gift className="h-5 w-5" />
+                </span>
+            </div>
+            {visibleRewards.length === 0 ? (
+                <p className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm text-slate-400">{copy.noRewards}</p>
+            ) : (
+                <div className="space-y-3">
+                    {visibleRewards.map((reward) => {
+                        const quest = getQuestDefinition(reward.questId);
+                        const questText = quest ? getQuestText(quest, language) : null;
+                        return (
+                            <div key={reward.id} className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.06] p-3">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p className="text-sm font-black text-white">{getQuestRewardText(reward, reward.questId, language)}</p>
+                                        <p className="mt-1 text-xs text-slate-400">{questText?.title ?? reward.questId}</p>
+                                    </div>
+                                    <span className="rounded-full border border-amber-300/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-100">
+                                        {reward.status === 'claimed' ? copy.claimed : copy.complete}
+                                    </span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </section>
+    );
+}
+
 function VisualPanel({
     src,
     alt,
@@ -1057,12 +1246,20 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
     const coinsPreview = bridge.zombieCoins || Math.floor(bridge.zombieScore / GAME_RULES.zombieArena.zombieKillPoints) * GAME_RULES.zombieArena.coinsPerKill;
     const healthPercent = clampPercent(bridge.zombieHealth);
     const levelProgress = clampPercent(Math.max(18, bridge.zombieScore / 100));
-    const questProgress = clampPercent(Math.max(34, (bridge.zombieKills % 10) * 10));
+    const playerQuestProgress = getRoleQuestProgress(bridge.questProgress, 'player');
+    const questProgress = clampPercent(
+        playerQuestProgress.length > 0
+            ? playerQuestProgress.reduce((sum, item) => sum + getQuestCompletionPercent(item), 0) / playerQuestProgress.length
+            : 0
+    );
+    const questDone = playerQuestProgress.reduce(
+        (sum, item) => sum + Object.values(item.objectives).filter((objective) => objective.completed).length,
+        0
+    );
     const rewardCount = Math.max(bridge.zombieKills + bridge.maxZombieCombo, 27);
     const activityItems = bridge.recentActivity.length > 0 ? bridge.recentActivity : copy.player.recentFallback;
     const currentGame = bridge.currentGame ?? 'Zombie Arena';
     const currentLocation = bridge.currentLocation === 'city' ? copy.player.city : bridge.currentLocation;
-    const questDone = Math.max(bridge.zombieKills, 15);
 
     return (
         <DashboardFrame mode="player" sidebar={<PlayerSidebar copy={copy} />}>
@@ -1116,6 +1313,8 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                         <MetricCard title={copy.player.threat} value={String(bridge.zombieThreatLevel)} helper={bridge.zombieRank} icon={Zap} tone="rose" />
                     </div>
 
+                    <QuestPanel role="player" progress={bridge.questProgress} language={language} />
+
                     <section className={`${panel} p-5`}>
                         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
@@ -1142,6 +1341,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
 
                 <aside className="space-y-5 min-[1800px]:sticky min-[1800px]:top-6 min-[1800px]:self-start">
                     <ListPanel title={copy.player.recentTitle} icon={Clock3} tone="sky" items={activityItems.slice(0, 5)} />
+                    <RewardPanel rewards={bridge.questRewards} language={language} />
                     <VisualPanel src="/visuals/shopper-market.svg" alt="3DSFERA city overview map" title={copy.player.cityOverview} markers={copy.player.markers} />
                     <section className={`${panel} p-5`}>
                         <div className="flex items-center gap-4">
@@ -1202,6 +1402,8 @@ export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
                     <MetricCard title={copy.shopper.protection} value={copy.shopper.protectionValue} helper={copy.shopper.protectionHelper} icon={ShieldCheck} tone="sky" />
                 </div>
 
+                <QuestPanel role="shopper" progress={bridge.questProgress} language={language} />
+
                 <div className="grid gap-5 min-[1800px]:grid-cols-[minmax(0,1fr)_23rem]">
                     <section className={`${panel} p-5`}>
                         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1229,12 +1431,14 @@ export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
                     <ListPanel title={copy.shopper.messagesTitle} icon={MessageSquare} tone="cyan" items={copy.shopper.messages} />
                     <ListPanel title={copy.shopper.dealsTitle} icon={Gift} tone="amber" items={copy.shopper.deals} />
                 </div>
+
+                <RewardPanel rewards={bridge.questRewards} language={language} />
             </div>
         </DashboardFrame>
     );
 }
 
-export function SupplierDashboard() {
+export function SupplierDashboard({ bridge = fallback }: DashboardProps) {
     const { language } = useLanguage();
     const copy = dashboardCopy[language];
 
@@ -1275,6 +1479,8 @@ export function SupplierDashboard() {
                     <MetricCard title={copy.business.pavilionRoi} value="3.8x" helper={copy.business.pavilionRoiHelper} icon={LineChart} tone="sky" />
                 </div>
 
+                <QuestPanel role="business" progress={bridge.questProgress} language={language} />
+
                 <div className="grid gap-5 min-[1800px]:grid-cols-[minmax(0,1fr)_24rem]">
                     <section className={`${panel} p-5`}>
                         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1302,6 +1508,8 @@ export function SupplierDashboard() {
                     <ListPanel title={copy.business.checklistTitle} icon={CalendarCheck} tone="cyan" items={copy.business.checklist} />
                     <ListPanel title={copy.business.revenueTitle} icon={CreditCard} tone="amber" items={copy.business.revenue} />
                 </div>
+
+                <RewardPanel rewards={bridge.questRewards} language={language} />
             </div>
         </DashboardFrame>
     );

@@ -136,3 +136,83 @@ create policy "pavilion_messages_insert_all"
 drop policy if exists "pavilion_messages_read_all" on public.pavilion_messages;
 create policy "pavilion_messages_read_all"
     on public.pavilion_messages for select using (true);
+
+-- Quest system MVP. Definitions are code-owned in src/lib/quests.ts for now;
+-- these tables persist user event streams, objective progress snapshots, and
+-- earned reward inventory once the app switches from local bridge state to
+-- Supabase-backed player profiles.
+create table if not exists public.quest_events (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid,
+    session_id text,
+    quest_id text,
+    role text check (role in ('player', 'shopper', 'business')),
+    event_name text not null,
+    payload jsonb not null default '{}'::jsonb,
+    created_at timestamptz not null default now()
+);
+
+create index if not exists quest_events_user_created_idx
+    on public.quest_events (user_id, created_at desc);
+
+create index if not exists quest_events_session_created_idx
+    on public.quest_events (session_id, created_at desc);
+
+create index if not exists quest_events_name_created_idx
+    on public.quest_events (event_name, created_at desc);
+
+create table if not exists public.quest_progress (
+    user_id uuid not null,
+    quest_id text not null,
+    role text not null check (role in ('player', 'shopper', 'business')),
+    status text not null default 'active' check (status in ('active', 'completed', 'claimed')),
+    objectives jsonb not null default '{}'::jsonb,
+    completed_at timestamptz,
+    updated_at timestamptz not null default now(),
+    primary key (user_id, quest_id)
+);
+
+create index if not exists quest_progress_role_status_idx
+    on public.quest_progress (role, status, updated_at desc);
+
+create table if not exists public.quest_rewards (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null,
+    quest_id text not null,
+    reward_kind text not null check (reward_kind in ('coins', 'coupon', 'badge', 'sample', 'lead_boost')),
+    reward_value text not null,
+    status text not null default 'earned' check (status in ('earned', 'claimed', 'expired')),
+    earned_at timestamptz not null default now(),
+    claimed_at timestamptz
+);
+
+create index if not exists quest_rewards_user_status_idx
+    on public.quest_rewards (user_id, status, earned_at desc);
+
+alter table public.quest_events enable row level security;
+alter table public.quest_progress enable row level security;
+alter table public.quest_rewards enable row level security;
+
+drop policy if exists "quest_events_insert_all" on public.quest_events;
+create policy "quest_events_insert_all"
+    on public.quest_events for insert with check (true);
+
+drop policy if exists "quest_events_read_all" on public.quest_events;
+create policy "quest_events_read_all"
+    on public.quest_events for select using (true);
+
+drop policy if exists "quest_progress_read_all" on public.quest_progress;
+create policy "quest_progress_read_all"
+    on public.quest_progress for select using (true);
+
+drop policy if exists "quest_progress_upsert_all" on public.quest_progress;
+create policy "quest_progress_upsert_all"
+    on public.quest_progress for all using (true) with check (true);
+
+drop policy if exists "quest_rewards_read_all" on public.quest_rewards;
+create policy "quest_rewards_read_all"
+    on public.quest_rewards for select using (true);
+
+drop policy if exists "quest_rewards_upsert_all" on public.quest_rewards;
+create policy "quest_rewards_upsert_all"
+    on public.quest_rewards for all using (true) with check (true);

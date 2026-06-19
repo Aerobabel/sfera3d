@@ -32,12 +32,14 @@ import { useLanguage } from '@/components/i18n/LanguageProvider';
 import type { PavilionMessage } from '@/lib/pavilionChat';
 import TranslatableText from '@/components/chat/TranslatableText';
 import type { AppLanguage } from '@/lib/i18n';
+import type { QuestEventInput } from '@/lib/quests';
 
 type Tab = 'products' | 'contact' | 'chat' | 'meeting';
 
 interface PavilionExpositionProps {
     pavilion: Pavilion;
     onClose: () => void;
+    onQuestEvent?: (event: QuestEventInput) => void;
 }
 
 type ChatEntry = {
@@ -394,7 +396,7 @@ const COPY: Record<AppLanguage, Copy> = {
     },
 };
 
-export default function PavilionExposition({ pavilion, onClose }: PavilionExpositionProps) {
+export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: PavilionExpositionProps) {
     const { language } = useLanguage();
     const copy = COPY[language];
     const [tab, setTab] = useState<Tab>('products');
@@ -446,6 +448,60 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
         { id: 'chat', icon: MessageSquare },
         { id: 'meeting', icon: Calendar },
     ];
+
+    const emitQuestEvent = useCallback(
+        (event: QuestEventInput) => {
+            onQuestEvent?.({
+                pavilionId: pavilion.id,
+                supplierId: `pav_${pavilion.id}`,
+                ...event,
+            });
+        },
+        [onQuestEvent, pavilion.id]
+    );
+
+    const handleTabChange = useCallback((nextTab: Tab) => {
+        setTab(nextTab);
+        setSelectedProduct(null);
+
+        const questEventByTab: Record<Tab, string> = {
+            products: 'pavilion_catalogue_opened',
+            contact: 'pavilion_contact_opened',
+            chat: 'supplier_chat_opened',
+            meeting: 'pavilion_meeting_opened',
+        };
+        emitQuestEvent({ event: questEventByTab[nextTab] });
+    }, [emitQuestEvent]);
+
+    const handleSelectProduct = useCallback((product: PavilionProduct) => {
+        setSelectedProduct(product);
+        emitQuestEvent({
+            event: 'pavilion_product_viewed',
+            productId: product.id,
+            productCode: product.code,
+        });
+    }, [emitQuestEvent]);
+
+    const handleRequestQuote = useCallback((product: PavilionProduct) => {
+        setSelectedProduct(null);
+        setTab('contact');
+        setContactMessage((prev) => prev || copy.quotePrefill(product.code));
+        emitQuestEvent({
+            event: 'quote_request_started',
+            productId: product.id,
+            productCode: product.code,
+        });
+    }, [copy, emitQuestEvent]);
+
+    const handleBookProductMeeting = useCallback((product: PavilionProduct) => {
+        setSelectedProduct(null);
+        setTab('meeting');
+        emitQuestEvent({
+            event: 'pavilion_meeting_opened',
+            productId: product.id,
+            productCode: product.code,
+        });
+    }, [emitQuestEvent]);
 
     const formatDay = useCallback(
         (d: Date) => d.toLocaleDateString(copy.dateLocale, { weekday: 'short', month: 'short', day: 'numeric' }),
@@ -503,6 +559,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
             const body = (await res.json()) as { success?: boolean; error?: string };
             if (!res.ok || !body.success) throw new Error(body.error || 'Failed to send.');
             setContactStatus('sent');
+            emitQuestEvent({ event: 'pavilion_contact_submitted' });
             setContactName(''); setContactCompany(''); setContactEmail('');
             setContactPhone(''); setContactMessage('');
         } catch (err) {
@@ -550,6 +607,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
             const body = (await res.json()) as { success?: boolean; error?: string };
             if (!res.ok || !body.success) throw new Error(body.error || 'Unable to send message.');
             setChatAuthError(null);
+            emitQuestEvent({ event: 'supplier_chat_opened' });
             await syncChat();
         } catch (err) {
             const msg = err instanceof Error ? err.message : 'Connection issue.';
@@ -557,7 +615,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
         } finally {
             setIsSendingChat(false);
         }
-    }, [chatInput, isSendingChat, pavilion.id, syncChat, copy.chatSigninHint]);
+    }, [chatInput, emitQuestEvent, isSendingChat, pavilion.id, syncChat, copy.chatSigninHint]);
 
     useEffect(() => {
         if (tab !== 'chat') return;
@@ -588,6 +646,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
             const body = (await res.json()) as { success?: boolean; error?: string };
             if (!res.ok || !body.success) throw new Error(body.error || 'Failed to book.');
             setMeetingStatus('sent');
+            emitQuestEvent({ event: 'meeting_booked' });
             setTakenSlots((prev) => new Set([...prev, selectedSlotIso]));
             setSelectedSlotIso(null);
             setMeetingName(''); setMeetingEmail(''); setMeetingCompany(''); setMeetingNotes('');
@@ -658,7 +717,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                             return (
                                 <button
                                     key={id}
-                                    onClick={() => { setTab(id); setSelectedProduct(null); }}
+                                    onClick={() => handleTabChange(id)}
                                     className={`relative flex items-center gap-2 px-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-[0.2em] transition ${
                                         isActive
                                             ? 'bg-white text-slate-900 shadow-[0_0_25px_rgba(255,255,255,0.25)]'
@@ -699,7 +758,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                     <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-8 items-center">
                                         <button
                                             type="button"
-                                            onClick={() => setSelectedProduct(signatureProduct)}
+                                            onClick={() => handleSelectProduct(signatureProduct)}
                                             className="group relative block overflow-hidden rounded-3xl border border-white/10 bg-[radial-gradient(ellipse_at_bottom,rgba(240,200,134,0.14),rgba(255,255,255,0.02)_50%,rgba(0,0,0,0.3))] aspect-[4/3] shadow-[0_20px_70px_rgba(0,0,0,0.6)] hover:border-[#f0c886]/60 transition-all duration-700"
                                         >
                                             <Image
@@ -729,7 +788,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                             <div className="flex gap-3 pt-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => { setSelectedProduct(null); setTab('contact'); setContactMessage((prev) => prev || copy.quotePrefill(signatureProduct.code)); }}
+                                                    onClick={() => handleRequestQuote(signatureProduct)}
                                                     className="group inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#f0c886] hover:bg-[#fcdba0] text-[#1a1408] text-sm font-bold uppercase tracking-[0.2em] transition shadow-[0_6px_24px_rgba(240,200,134,0.4)]"
                                                 >
                                                     {copy.requestQuote}
@@ -737,7 +796,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setSelectedProduct(signatureProduct)}
+                                                    onClick={() => handleSelectProduct(signatureProduct)}
                                                     className="px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-bold uppercase tracking-[0.2em] border border-white/20 transition"
                                                 >
                                                     {copy.viewPiece}
@@ -796,7 +855,7 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                             return (
                                                 <button
                                                     key={product.id}
-                                                    onClick={() => setSelectedProduct(product)}
+                                                    onClick={() => handleSelectProduct(product)}
                                                     style={{ animationDelay: `${Math.min(idx, 10) * 50}ms` }}
                                                     className="exhibit-reveal is-visible group relative text-left flex flex-col transition-transform duration-500 hover:-translate-y-1"
                                                 >
@@ -1170,10 +1229,10 @@ export default function PavilionExposition({ pavilion, onClose }: PavilionExposi
                                 })()}
 
                                 <div className="mt-auto flex gap-2 pt-2">
-                                    <button onClick={() => { setSelectedProduct(null); setTab('contact'); setContactMessage((prev) => prev || copy.quotePrefill(selectedProduct.code)); }} className="flex-1 px-4 py-2.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] uppercase tracking-[0.2em]">
+                                    <button onClick={() => handleRequestQuote(selectedProduct)} className="flex-1 px-4 py-2.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] uppercase tracking-[0.2em]">
                                         {copy.requestQuote}
                                     </button>
-                                    <button onClick={() => { setSelectedProduct(null); setTab('meeting'); }} className="flex-1 px-4 py-2.5 rounded-full bg-white/5 hover:bg-white/10 text-white font-bold text-[11px] uppercase tracking-[0.2em] border border-white/10">
+                                    <button onClick={() => handleBookProductMeeting(selectedProduct)} className="flex-1 px-4 py-2.5 rounded-full bg-white/5 hover:bg-white/10 text-white font-bold text-[11px] uppercase tracking-[0.2em] border border-white/10">
                                         {copy.bookMeeting}
                                     </button>
                                 </div>

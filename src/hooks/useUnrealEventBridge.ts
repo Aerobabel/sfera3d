@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
+import { applyQuestEvent, createInitialQuestProgress, getQuestDefinition } from '@/lib/quests';
 import { GAME_RULES } from '@/lib/unreal/gameRules';
 import type { ArenaMoment, UnrealEventBridgeState, UnrealPixelStreamingEvent } from '@/lib/unreal/types';
 
@@ -37,6 +38,9 @@ const INITIAL_STATE: UnrealEventBridgeState = {
     lastUnrealEvent: null,
     accessDeniedMessage: null,
     recentActivity: [],
+    questProgress: createInitialQuestProgress(),
+    questRewards: [],
+    lastCompletedQuestId: null,
 };
 
 const parseUnrealEvent = (message: string): UnrealPixelStreamingEvent | null => {
@@ -58,6 +62,38 @@ const withArenaMoment = (previous: ArenaMoment[], moment: Omit<ArenaMoment, 'id'
     ...previous,
 ].slice(0, MAX_ARENA_MOMENTS);
 
+const questCompletionActivity = (questId: string) => {
+    const quest = getQuestDefinition(questId);
+    return `Quest completed: ${quest?.title.en ?? questId}`;
+};
+
+const withQuestUpdate = (
+    nextState: UnrealEventBridgeState,
+    unrealEvent: UnrealPixelStreamingEvent
+): UnrealEventBridgeState => {
+    const questUpdate = applyQuestEvent(
+        nextState.questProgress,
+        nextState.questRewards,
+        unrealEvent
+    );
+    const lastCompletedQuestId =
+        questUpdate.completedQuestIds.length > 0
+            ? questUpdate.completedQuestIds[questUpdate.completedQuestIds.length - 1]
+            : null;
+    const recentActivity = questUpdate.completedQuestIds.reduce(
+        (activity, questId) => withActivity(activity, questCompletionActivity(questId)),
+        nextState.recentActivity
+    );
+
+    return {
+        ...nextState,
+        questProgress: questUpdate.questProgress,
+        questRewards: questUpdate.questRewards,
+        lastCompletedQuestId,
+        recentActivity,
+    };
+};
+
 export const useUnrealEventBridge = () => {
     const [state, setState] = useState<UnrealEventBridgeState>(INITIAL_STATE);
 
@@ -78,26 +114,32 @@ export const useUnrealEventBridge = () => {
 
             switch (unrealEvent.event) {
                 case 'mode_changed': {
-                    if (unrealEvent.mode !== 'player' && unrealEvent.mode !== 'shopper') return nextBase;
-                    return {
+                    if (unrealEvent.mode !== 'player' && unrealEvent.mode !== 'shopper') {
+                        return withQuestUpdate(nextBase, unrealEvent);
+                    }
+                    return withQuestUpdate({
                         ...nextBase,
                         currentMode: unrealEvent.mode,
                         recentActivity: withActivity(previous.recentActivity, `Mode changed to ${unrealEvent.mode === 'player' ? 'Player Mode' : 'Shopper Mode'}`),
-                    };
+                    }, unrealEvent);
                 }
                 case 'portal_entered': {
-                    if (unrealEvent.portal !== 'SferaHall') return nextBase;
-                    return {
+                    if (unrealEvent.portal !== 'SferaHall') {
+                        return withQuestUpdate(nextBase, unrealEvent);
+                    }
+                    return withQuestUpdate({
                         ...nextBase,
                         currentLocation: 'sferaHall',
                         currentGame: null,
                         isInGame: false,
                         recentActivity: withActivity(previous.recentActivity, 'Entered Sfera Hall'),
-                    };
+                    }, unrealEvent);
                 }
                 case 'game_entered': {
-                    if (unrealEvent.game !== 'ZombieArena') return nextBase;
-                    return {
+                    if (unrealEvent.game !== 'ZombieArena') {
+                        return withQuestUpdate(nextBase, unrealEvent);
+                    }
+                    return withQuestUpdate({
                         ...nextBase,
                         currentLocation: 'zombieArena',
                         currentGame: 'ZombieArena',
@@ -118,14 +160,14 @@ export const useUnrealEventBridge = () => {
                             description: 'Build a combo streak, protect your health, and climb the survivor rank.',
                         }),
                         recentActivity: withActivity(previous.recentActivity, 'Entered Zombie Arena'),
-                    };
+                    }, unrealEvent);
                 }
                 case 'game_access_denied':
-                    return {
+                    return withQuestUpdate({
                         ...nextBase,
                         accessDeniedMessage: ACCESS_DENIED_PLAYER_MODE_NEEDED,
                         recentActivity: withActivity(previous.recentActivity, 'Game access denied: Player Mode needed'),
-                    };
+                    }, unrealEvent);
                 case 'zombie_killed': {
                     const zombieKills = previous.zombieKills + 1;
                     const zombieCombo = previous.zombieCombo + 1;
@@ -152,7 +194,7 @@ export const useUnrealEventBridge = () => {
                               description: `+${pointsEarned} points and +${GAME_RULES.zombieArena.coinsPerKill} coins preview.`,
                           };
 
-                    return {
+                    return withQuestUpdate({
                         ...nextBase,
                         zombieKills,
                         zombieCombo,
@@ -163,12 +205,12 @@ export const useUnrealEventBridge = () => {
                         zombieRank,
                         arenaMoments: withArenaMoment(previous.arenaMoments, moment),
                         recentActivity: withActivity(previous.recentActivity, comboBonusUnlocked ? `Zombie killed — ${zombieCombo}x combo` : 'Zombie killed'),
-                    };
+                    }, unrealEvent);
                 }
                 case 'player_hit': {
                     const zombieHealth = Math.max(0, previous.zombieHealth - GAME_RULES.zombieArena.playerHitDamage);
                     const zombieGameOver = zombieHealth <= 0;
-                    return {
+                    return withQuestUpdate({
                         ...nextBase,
                         zombieHealth,
                         zombieGameOver,
@@ -183,19 +225,19 @@ export const useUnrealEventBridge = () => {
                                 : `-${GAME_RULES.zombieArena.playerHitDamage} health. Dodge the next attack to rebuild your streak.`,
                         }),
                         recentActivity: withActivity(previous.recentActivity, zombieGameOver ? 'You were overwhelmed' : 'Player hit — combo reset'),
-                    };
+                    }, unrealEvent);
                 }
                 case 'returned_to_city':
-                    return {
+                    return withQuestUpdate({
                         ...nextBase,
                         currentLocation: 'city',
                         currentGame: null,
                         isInGame: false,
                         zombieCombo: 0,
                         recentActivity: withActivity(previous.recentActivity, 'Returned to city'),
-                    };
+                    }, unrealEvent);
                 default:
-                    return nextBase;
+                    return withQuestUpdate(nextBase, unrealEvent);
             }
         });
 
