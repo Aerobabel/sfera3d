@@ -718,6 +718,13 @@ type FrontendCinematic = {
     destinationLabel: string;
 };
 type SceneDashboardOverlay = 'player' | 'shopper' | 'business';
+type AppSessionResponse = {
+    success?: boolean;
+    user?: {
+        email?: string | null;
+        role?: AppAuthRole | null;
+    };
+};
 
 const FRONTEND_CINEMATIC_DURATION_MS = 3200;
 const RETURN_TO_CITY_CINEMATIC_DURATION_MS = 5600;
@@ -836,6 +843,7 @@ export default function ExperiencePage() {
     const [isDesktopChatOpen, setIsDesktopChatOpen] = useState(() => !isFastViewRoute);
     const [viewerEmail, setViewerEmail] = useState<string | null>(null);
     const [viewerRole, setViewerRole] = useState<AppAuthRole | null>(null);
+    const [isViewerSessionLoading, setIsViewerSessionLoading] = useState(true);
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [needsPointerResume, setNeedsPointerResume] = useState(false);
     const [isStreamPixelOpen, setIsStreamPixelOpen] = useState(false);
@@ -931,6 +939,11 @@ export default function ExperiencePage() {
         let isMounted = true;
 
         const loadViewerSession = async () => {
+            const applySignedOutState = () => {
+                setViewerEmail(null);
+                setViewerRole(null);
+            };
+
             try {
                 const supabase = getSupabaseBrowserClient();
                 const {
@@ -938,12 +951,39 @@ export default function ExperiencePage() {
                 } = await supabase.auth.getSession();
 
                 if (!isMounted) return;
-                setViewerEmail(session?.user.email ?? null);
-                setViewerRole(session ? getUserRole(session.user) : null);
+                if (session) {
+                    setViewerEmail(session.user.email ?? null);
+                    setViewerRole(getUserRole(session.user));
+                    setIsViewerSessionLoading(false);
+                    return;
+                }
             } catch {
                 if (!isMounted) return;
-                setViewerEmail(null);
-                setViewerRole(null);
+            }
+
+            try {
+                const response = await fetch('/api/auth/session', {
+                    cache: 'no-store',
+                    credentials: 'same-origin',
+                });
+
+                if (!isMounted) return;
+
+                if (!response.ok) {
+                    applySignedOutState();
+                    setIsViewerSessionLoading(false);
+                    return;
+                }
+
+                const payload = (await response.json()) as AppSessionResponse;
+                const role = payload.user?.role === 'supplier' ? 'supplier' : 'buyer';
+                setViewerEmail(payload.user?.email ?? null);
+                setViewerRole(role);
+                setIsViewerSessionLoading(false);
+            } catch {
+                if (!isMounted) return;
+                applySignedOutState();
+                setIsViewerSessionLoading(false);
             }
         };
 
@@ -1371,6 +1411,10 @@ export default function ExperiencePage() {
               ? sceneHud.playerDashboard
               : sceneHud.shopperDashboard;
     const activeSceneDashboardLoginHref = '/login?role=player&next=%2Ffastview%3Fresume%3Dscene%26mode%3Dplayer';
+    const shouldPromptPlayerLogin =
+        activeSceneDashboard === 'player' &&
+        !viewerEmail &&
+        !isViewerSessionLoading;
 
     useEffect(() => {
         liveActivityRemovalTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
@@ -2542,12 +2586,12 @@ export default function ExperiencePage() {
                             <Link href="/roles?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 {sceneHud.roleSelection}
                             </Link>
-                            {activeSceneDashboard === 'player' && !viewerEmail ? (
+                            {shouldPromptPlayerLogin ? (
                                 <Link href={activeSceneDashboardLoginHref} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
                                     {activeSceneDashboardLabel}
                                 </Link>
                             ) : (
-                                <button type="button" onClick={() => { setDashboardOverlay(activeSceneDashboard); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition">
+                                <button type="button" onClick={() => { setDashboardOverlay(activeSceneDashboard); setIsMenuOpen(false); }} disabled={activeSceneDashboard === 'player' && isViewerSessionLoading} className="block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/10 transition disabled:cursor-wait disabled:opacity-50">
                                     {activeSceneDashboardLabel}
                                 </button>
                             )}
