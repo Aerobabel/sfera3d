@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
     Activity,
@@ -21,7 +21,6 @@ import {
     Gamepad2,
     Gift,
     Globe2,
-    HeartPulse,
     Home,
     LineChart,
     LockKeyhole,
@@ -33,11 +32,9 @@ import {
     ShoppingBag,
     Star,
     Store,
-    Trophy,
     Truck,
     Users,
     WalletCards,
-    Zap,
     type LucideIcon,
 } from 'lucide-react';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
@@ -63,6 +60,7 @@ type DashboardProps = {
 };
 
 type Tone = 'cyan' | 'sky' | 'emerald' | 'amber' | 'rose' | 'violet';
+type PlayerWorkspaceTab = 'quests' | 'rewards' | 'messages' | 'events';
 
 type MetricProps = {
     title: string;
@@ -1305,6 +1303,130 @@ function PlayerStartGuidePanel({ copy }: { copy: DashboardText['player'] }) {
     );
 }
 
+function PlayerValueStrip({
+    copy,
+    coins,
+    questProgress,
+    rewards,
+    currentLocation,
+    currentGame,
+}: {
+    copy: DashboardText['player'];
+    coins: number;
+    questProgress: number;
+    rewards: number;
+    currentLocation: string;
+    currentGame: string;
+}) {
+    const stats: { title: string; value: string; helper: string; icon: LucideIcon; tone: Tone; progress?: number }[] = [
+        {
+            title: copy.quests,
+            value: `${questProgress}%`,
+            helper: copy.startSteps[0],
+            icon: ClipboardCheck,
+            tone: 'emerald',
+            progress: questProgress,
+        },
+        {
+            title: copy.rewards,
+            value: String(rewards),
+            helper: copy.rewardsHelper,
+            icon: Gift,
+            tone: 'amber',
+        },
+        {
+            title: copy.currentLocation,
+            value: currentLocation,
+            helper: currentGame,
+            icon: Map,
+            tone: 'cyan',
+        },
+    ];
+
+    return (
+        <section className={`${panel} overflow-hidden`}>
+            <div className="grid gap-0 lg:grid-cols-[1.35fr_repeat(3,minmax(0,1fr))]">
+                <div className="border-b border-amber-300/15 bg-[linear-gradient(135deg,rgba(250,204,21,0.18),rgba(8,13,20,0.92)_58%)] p-4 lg:border-b-0 lg:border-r">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-100/85">{copy.coins}</p>
+                            <p className="mt-2 text-4xl font-black leading-none text-white sm:text-5xl">{coins.toLocaleString()}</p>
+                            <p className="mt-2 text-sm leading-5 text-amber-50/70">{copy.coinsHelper}</p>
+                        </div>
+                        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${toneStyles.amber.icon}`}>
+                            <Coins className="h-5 w-5" />
+                        </span>
+                    </div>
+                </div>
+
+                {stats.map((stat) => {
+                    const Icon = stat.icon;
+                    return (
+                        <div key={stat.title} className="border-b border-white/10 p-4 last:border-b-0 lg:border-b-0 lg:border-r lg:last:border-r-0">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <p className="truncate text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">{stat.title}</p>
+                                    <p className="mt-2 truncate text-2xl font-black leading-tight text-white">{stat.value}</p>
+                                </div>
+                                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${toneStyles[stat.tone].icon}`}>
+                                    <Icon className="h-4 w-4" />
+                                </span>
+                            </div>
+                            <p className="mt-2 truncate text-xs leading-5 text-slate-400">{stat.helper}</p>
+                            {typeof stat.progress === 'number' && (
+                                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                                    <div className={`h-full rounded-full ${toneStyles[stat.tone].bar}`} style={{ width: `${clampPercent(stat.progress)}%` }} />
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </section>
+    );
+}
+
+function PlayerWorkspaceTabs({
+    copy,
+    activeTab,
+    onChange,
+}: {
+    copy: DashboardText['player'];
+    activeTab: PlayerWorkspaceTab;
+    onChange: (tab: PlayerWorkspaceTab) => void;
+}) {
+    const tabs: { id: PlayerWorkspaceTab; label: string; icon: LucideIcon; tone: Tone }[] = [
+        { id: 'quests', label: copy.quests, icon: ClipboardCheck, tone: 'emerald' },
+        { id: 'rewards', label: copy.rewards, icon: Gift, tone: 'amber' },
+        { id: 'messages', label: copy.messagesTitle, icon: MessageSquare, tone: 'cyan' },
+        { id: 'events', label: copy.recentTitle, icon: Clock3, tone: 'sky' },
+    ];
+
+    return (
+        <nav className={`${panel} flex flex-wrap gap-2 p-2`} aria-label={copy.nav[0]}>
+            {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const active = activeTab === tab.id;
+                return (
+                    <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => onChange(tab.id)}
+                        className={`inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-black uppercase tracking-[0.13em] transition sm:flex-none ${
+                            active
+                                ? `${toneStyles[tab.tone].ring} bg-white/[0.08] text-white`
+                                : 'border-white/10 bg-black/15 text-slate-400 hover:border-white/20 hover:bg-white/[0.05] hover:text-slate-100'
+                        }`}
+                    >
+                        <Icon className={`h-4 w-4 ${active ? toneStyles[tab.tone].accent : 'text-slate-500'}`} />
+                        <span className="truncate">{tab.label}</span>
+                    </button>
+                );
+            })}
+        </nav>
+    );
+}
+
 function RewardPanel({
     rewards,
     language,
@@ -1593,24 +1715,31 @@ function DashboardHero({
 
 export function GamerDashboard({ bridge = fallback, embedded = false }: DashboardProps) {
     const { language } = useLanguage();
+    const [workspaceTab, setWorkspaceTab] = useState<PlayerWorkspaceTab>('quests');
     const copy = dashboardCopy[language];
     const coinsPreview = bridge.zombieCoins || Math.floor(bridge.zombieScore / GAME_RULES.zombieArena.zombieKillPoints) * GAME_RULES.zombieArena.coinsPerKill;
-    const healthPercent = clampPercent(bridge.zombieHealth);
-    const levelProgress = clampPercent(Math.max(18, bridge.zombieScore / 100));
     const playerQuestProgress = getRoleQuestProgress(bridge.questProgress, 'player');
     const questProgress = clampPercent(
         playerQuestProgress.length > 0
             ? playerQuestProgress.reduce((sum, item) => sum + getQuestCompletionPercent(item), 0) / playerQuestProgress.length
             : 0
     );
-    const questDone = playerQuestProgress.reduce(
-        (sum, item) => sum + Object.values(item.objectives).filter((objective) => objective.completed).length,
-        0
-    );
-    const rewardCount = Math.max(bridge.zombieKills + bridge.maxZombieCombo, 27);
-    const activityItems = bridge.recentActivity.length > 0 ? bridge.recentActivity : copy.player.recentFallback;
     const currentGame = bridge.currentGame ?? 'Zombie Arena';
-    const currentLocation = bridge.currentLocation === 'city' ? copy.player.city : bridge.currentLocation;
+    const currentLocation = bridge.currentLocation === 'city' ? copy.player.city : bridge.currentLocation ?? copy.player.city;
+    const earnedRewards = bridge.questRewards.length;
+    const activePlayerQuest = playerQuestProgress.find((item) => item.status === 'active') ?? playerQuestProgress[0];
+    const activeQuestDefinition = activePlayerQuest ? getQuestDefinition(activePlayerQuest.questId) : null;
+    const activeQuestTitle = activeQuestDefinition ? getQuestText(activeQuestDefinition, language).title : null;
+    const playerMessages = [
+        `${copy.player.quests}: ${questProgress}%${activeQuestTitle ? ` - ${activeQuestTitle}` : ''}`,
+        `${copy.player.rewards}: ${earnedRewards}`,
+        `${copy.player.currentLocation}: ${currentLocation}`,
+        ...copy.player.messages,
+    ];
+    const eventItems = bridge.recentActivity.length > 0
+        ? bridge.recentActivity
+        : [`${copy.player.currentLocation}: ${currentLocation}`, `${copy.player.currentGame}: ${currentGame}`, ...copy.player.recentFallback];
+    const rewardItems = [`${copy.player.coins}: ${coinsPreview.toLocaleString()}`, ...copy.player.rewardQueue];
 
     return (
         <DashboardFrame mode="player" sidebar={<PlayerSidebar copy={copy} />} embedded={embedded}>
@@ -1628,87 +1757,46 @@ export function GamerDashboard({ bridge = fallback, embedded = false }: Dashboar
 
             <div className="grid gap-4">
                 <main className="min-w-0 space-y-4">
-                    <DashboardHero
-                        kicker={copy.player.kicker}
-                        title={copy.player.title}
-                        subtitle={copy.player.subtitle}
-                        src="/visuals/player-arena.svg"
-                        alt="3DSFERA player arena dashboard"
-                        tone="sky"
-                    >
-                        <div className="mt-4 grid gap-3 border-t border-white/10 pt-3 sm:grid-cols-2">
-                            <div>
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="font-bold text-slate-200">{copy.player.level}</span>
-                                    <span className="text-slate-400">{bridge.zombieScore.toLocaleString()} / 10,000 {copy.player.xp}</span>
-                                </div>
-                                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
-                                    <div className="h-full rounded-full bg-sky-300 shadow-[0_0_16px_rgba(56,189,248,0.75)]" style={{ width: `${levelProgress}%` }} />
-                                </div>
+                    <PlayerValueStrip
+                        copy={copy.player}
+                        coins={coinsPreview}
+                        questProgress={questProgress}
+                        rewards={earnedRewards}
+                        currentLocation={currentLocation}
+                        currentGame={currentGame}
+                    />
+
+                    <PlayerWorkspaceTabs copy={copy.player} activeTab={workspaceTab} onChange={setWorkspaceTab} />
+
+                    <div>
+                        {workspaceTab === 'quests' && (
+                            <div className="grid max-h-[36rem] gap-4 overflow-y-auto pr-1">
+                                <PlayerStartGuidePanel copy={copy.player} />
+                                <QuestPanel role="player" progress={bridge.questProgress} language={language} />
                             </div>
-                            <div className="rounded-lg border border-white/10 bg-black/35 p-3">
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{copy.player.playerId}</p>
-                                <p className="mt-1 font-mono text-sm text-slate-200">3DSF-7A2B-9C4D</p>
+                        )}
+
+                        {workspaceTab === 'rewards' && (
+                            <div className="grid max-h-[36rem] gap-4 overflow-y-auto pr-1 xl:grid-cols-2">
+                                <RewardPanel rewards={bridge.questRewards} language={language} />
+                                <RewardTerminalPanel rewards={bridge.questRewards} language={language} />
+                                <ListPanel title={copy.player.rewardQueueTitle} icon={Truck} tone="amber" items={rewardItems} />
                             </div>
-                        </div>
-                    </DashboardHero>
+                        )}
 
-                    <div className={metricGrid}>
-                        <MetricCard title={copy.player.currentLocation} value={currentLocation} helper={copy.player.locationHelper} icon={Map} tone="cyan" />
-                        <MetricCard title={copy.player.currentGame} value={currentGame} helper={copy.player.gameHelper} icon={Gamepad2} tone="sky" />
-                        <MetricCard title={copy.player.health} value={`${bridge.zombieHealth} / 100`} helper={copy.player.healthHelper} icon={HeartPulse} tone="rose" progress={healthPercent} />
-                        <MetricCard title={copy.player.coins} value={coinsPreview.toLocaleString()} helper={copy.player.coinsHelper} icon={Coins} tone="amber" />
-                        <MetricCard title={copy.player.score} value={bridge.zombieScore.toLocaleString()} helper={copy.player.scoreHelper} icon={Trophy} tone="violet" />
-                        <MetricCard title={copy.player.quests} value={`${questProgress}%`} helper={copy.player.questsHelper(questDone)} icon={ClipboardCheck} tone="emerald" progress={questProgress} />
-                        <MetricCard title={copy.player.rewards} value={String(rewardCount)} helper={copy.player.rewardsHelper} icon={Gift} tone="amber" />
-                        <MetricCard title={copy.player.threat} value={String(bridge.zombieThreatLevel)} helper={bridge.zombieRank} icon={Zap} tone="rose" />
-                    </div>
-
-                    <PlayerStartGuidePanel copy={copy.player} />
-                    <QuestPanel role="player" progress={bridge.questProgress} language={language} />
-
-                    <section className={`${panel} p-3`}>
-                        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">{copy.player.zonesTitle}</h2>
-                                <p className="mt-1 text-sm text-slate-500">{copy.player.zonesSub}</p>
+                        {workspaceTab === 'messages' && (
+                            <div className="max-h-[36rem] overflow-y-auto pr-1">
+                                <ListPanel title={copy.player.messagesTitle} icon={MessageSquare} tone="cyan" items={playerMessages.slice(0, 6)} />
                             </div>
-                            <Link href="/fastview?resume=scene&mode=gamer" className="inline-flex items-center gap-2 rounded-lg border border-sky-300/30 bg-sky-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-sky-100">
-                                {copy.enterWorld}
-                                <ArrowRight className="h-4 w-4" />
-                            </Link>
-                        </div>
-                        <div className={threeCardGrid}>
-                            {copy.player.zones.map((zone) => (
-                                <WorkCard key={zone.title} title={zone.title} text={zone.text} icon={zone.icon} tone={zone.tone} href="/fastview?resume=scene&mode=gamer" action={zone.action} />
-                            ))}
-                        </div>
-                    </section>
+                        )}
 
-                    <div className="grid gap-4 lg:grid-cols-2">
-                        <ListPanel title={copy.player.rewardQueueTitle} icon={Truck} tone="amber" items={copy.player.rewardQueue} />
-                        <ListPanel title={copy.player.messagesTitle} icon={MessageSquare} tone="cyan" items={copy.player.messages} />
+                        {workspaceTab === 'events' && (
+                            <div className="max-h-[36rem] overflow-y-auto pr-1">
+                                <ListPanel title={copy.player.recentTitle} icon={Clock3} tone="sky" items={eventItems.slice(0, 8)} />
+                            </div>
+                        )}
                     </div>
                 </main>
-
-                <aside className={dashboardSideGrid}>
-                    <ListPanel title={copy.player.recentTitle} icon={Clock3} tone="sky" items={activityItems.slice(0, 5)} />
-                    <RewardPanel rewards={bridge.questRewards} language={language} />
-                    <RewardTerminalPanel rewards={bridge.questRewards} language={language} />
-                    <VisualPanel src="/visuals/shopper-market.svg" alt="3DSFERA city overview map" title={copy.player.cityOverview} markers={copy.player.markers} />
-                    <section className={`${panel} p-3`}>
-                        <div className="flex items-center gap-4">
-                            <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-300/25 bg-emerald-300/10 text-emerald-200">
-                                <ShieldCheck className="h-6 w-6" />
-                            </span>
-                            <div>
-                                <p className="font-black text-white">{copy.player.eventTitle}</p>
-                                <p className="text-sm text-slate-400">{copy.player.eventText}</p>
-                            </div>
-                            <div className="ml-auto text-right font-mono text-lg text-slate-200">02:18</div>
-                        </div>
-                    </section>
-                </aside>
             </div>
         </DashboardFrame>
     );
