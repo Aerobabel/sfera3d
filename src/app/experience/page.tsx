@@ -13,6 +13,7 @@ import CatalogueOverlay from "@/components/overlay/CatalogueOverlay";
 import PavilionExposition from "@/components/overlay/PavilionExposition";
 import WelcomeControls from "@/components/overlay/WelcomeControls";
 import TranslatableText from "@/components/chat/TranslatableText";
+import BrandLogo from "@/components/BrandLogo";
 import { getPavilionById, parseEnterPavilionMessage, type Pavilion as PavilionInfo } from "@/lib/pavilions";
 import MobileControls from "@/components/pixelstreaming/MobileControls";
 import MarketplaceCrosshair from "@/components/pixelstreaming/MarketplaceCrosshair";
@@ -2378,17 +2379,19 @@ export default function ExperiencePage() {
                         </div>
                     )}
 
-                    <div className="flex flex-col h-full justify-between p-4 md:p-6 lg:p-8">
+                    <div className="flex flex-col h-full justify-between p-3 md:p-4 lg:p-5">
 
                     {/* Header */}
                     <header className="flex justify-between items-start pointer-events-none w-full z-50">
                         <div className="group cursor-default">
                             <div className="flex items-center gap-3">
-                                <div className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/25 bg-slate-950/45 px-3 py-2 text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,0.16)] backdrop-blur-md"><span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-300/35 bg-cyan-400/10 text-sm font-black text-cyan-200">S</span><span className="text-sm font-black uppercase tracking-[0.18em]">3DSFERA</span></div>
+                                <div className="inline-flex rounded-xl border border-white/10 bg-slate-950/38 px-2.5 py-2 shadow-[0_18px_44px_rgba(0,0,0,0.24)] backdrop-blur-md">
+                                    <BrandLogo size="sm" imageClassName="h-6 w-[8.75rem]" />
+                                </div>
                             </div>
 
                             {/* System Status Indicator */}
-                            <div className="flex items-center gap-2 mt-2 px-3 py-1 bg-black/40 border border-white/5 rounded-full w-fit backdrop-blur-md">
+                            <div className="flex items-center gap-2 mt-2 px-3 py-1 bg-black/35 border border-white/5 rounded-full w-fit backdrop-blur-md">
                                 <div className="relative flex h-2 w-2">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -2396,7 +2399,7 @@ export default function ExperiencePage() {
                                 <span className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em]">{ui.statusOnline}</span>
                             </div>
 
-                            <div className="mt-3 grid w-fit max-w-[min(92vw,24rem)] gap-2 rounded-2xl border border-[#66d9cb]/20 bg-black/35 p-2 text-[11px] text-slate-200 backdrop-blur-md">
+                            <div className="mt-2 grid w-fit max-w-[min(92vw,22rem)] gap-2 rounded-xl border border-white/10 bg-black/30 p-2 text-[11px] text-slate-200 shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur-md">
                                 <div className="flex flex-wrap gap-2">
                                     <span className="rounded-full bg-[#66d9cb]/15 px-3 py-1 font-semibold text-[#66d9cb]">
                                         {effectiveSceneMode === 'player' ? sceneHud.playerMode : sceneHud.shopperMode}
@@ -2406,12 +2409,12 @@ export default function ExperiencePage() {
                                 </div>
                                 {unrealBridge.currentGame === 'ZombieArena' && (
                                     <div className="grid grid-cols-3 gap-2 text-center">
-                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">{sceneHud.score}</span><strong>{unrealBridge.zombieScore}</strong></div>
-                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">{sceneHud.health}</span><strong>{unrealBridge.zombieHealth}</strong></div>
-                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">{sceneHud.coins}</span><strong>{zombieCoinsPreview}</strong></div>
-                                        <div className="rounded-xl bg-[#66d9cb]/15 p-2"><span className="block text-[10px] uppercase text-[#9ff4ec]">{sceneHud.combo}</span><strong>{unrealBridge.zombieCombo}x</strong></div>
-                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">{sceneHud.rank}</span><strong>{unrealBridge.zombieRank}</strong></div>
-                                        <div className="rounded-xl bg-white/10 p-2"><span className="block text-[10px] uppercase text-slate-400">{sceneHud.threat}</span><strong>{unrealBridge.zombieThreatLevel}</strong></div>
+                                        <div className="rounded-lg bg-white/[0.07] p-2"><span className="block text-[9px] uppercase text-slate-400">{sceneHud.score}</span><strong>{unrealBridge.zombieScore}</strong></div>
+                                        <div className="rounded-lg bg-white/[0.07] p-2"><span className="block text-[9px] uppercase text-slate-400">{sceneHud.health}</span><strong>{unrealBridge.zombieHealth}</strong></div>
+                                        <div className="rounded-lg bg-white/[0.07] p-2"><span className="block text-[9px] uppercase text-slate-400">{sceneHud.coins}</span><strong>{zombieCoinsPreview}</strong></div>
+                                        <div className="rounded-lg bg-amber-300/12 p-2"><span className="block text-[9px] uppercase text-amber-100">{sceneHud.combo}</span><strong>{unrealBridge.zombieCombo}x</strong></div>
+                                        <div className="rounded-lg bg-white/[0.07] p-2"><span className="block text-[9px] uppercase text-slate-400">{sceneHud.rank}</span><strong>{unrealBridge.zombieRank}</strong></div>
+                                        <div className="rounded-lg bg-white/[0.07] p-2"><span className="block text-[9px] uppercase text-slate-400">{sceneHud.threat}</span><strong>{unrealBridge.zombieThreatLevel}</strong></div>
                                     </div>
                                 )}
                                 {unrealBridge.zombieGameOver && <p className="text-red-300">{sceneHud.overwhelmed}</p>}
@@ -2424,30 +2427,29 @@ export default function ExperiencePage() {
                                 )}
                             </div>
                             {activeSceneQuest && activeSceneQuestText && (
-                                <div className="mt-3 w-[min(92vw,25rem)] overflow-hidden rounded-2xl border border-amber-300/30 bg-[linear-gradient(145deg,rgba(9,13,20,0.86),rgba(20,16,10,0.68))] text-slate-100 shadow-[0_22px_70px_rgba(0,0,0,0.42)] backdrop-blur-md">
-                                    <div className="flex items-center justify-between gap-4 border-b border-amber-300/10 bg-amber-300/[0.045] px-4 py-3">
+                                <div className="mt-2 w-[min(92vw,22rem)] overflow-hidden rounded-xl border border-amber-300/24 bg-[linear-gradient(145deg,rgba(7,10,15,0.82),rgba(18,14,8,0.58))] text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.36)] backdrop-blur-md">
+                                    <div className="flex items-center justify-between gap-3 border-b border-amber-300/10 bg-amber-300/[0.04] px-3 py-2.5">
                                         <div className="min-w-0">
-                                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-200">{sceneHud.quest}</p>
-                                            <h2 className="mt-1 truncate text-base font-black leading-tight text-white">{activeSceneQuestText.title}</h2>
+                                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-200">{sceneHud.quest}</p>
+                                            <h2 className="mt-0.5 truncate text-sm font-black leading-tight text-white">{activeSceneQuestText.title}</h2>
                                             {activeSceneQuestText.sponsor && (
-                                                <p className="mt-1 truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-white/42">
+                                                <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-[0.13em] text-white/40">
                                                     {activeSceneQuestText.sponsor}
                                                 </p>
                                             )}
                                         </div>
-                                        <div className="relative grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-amber-300/25 bg-black/35">
-                                            <span className="absolute inset-1 rounded-xl border border-amber-200/10" />
-                                            <span className="font-mono text-sm font-black text-amber-100">{activeSceneQuestPercent}%</span>
+                                        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-amber-300/22 bg-black/32">
+                                            <span className="font-mono text-xs font-black text-amber-100">{activeSceneQuestPercent}%</span>
                                         </div>
                                     </div>
-                                    <div className="px-4 py-3">
-                                        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                                    <div className="px-3 py-2.5">
+                                        <div className="h-1 overflow-hidden rounded-full bg-white/10">
                                             <div className="h-full rounded-full bg-[linear-gradient(90deg,#f5c766,#66d9cb)] shadow-[0_0_18px_rgba(245,199,102,0.5)]" style={{ width: `${activeSceneQuestPercent}%` }} />
                                         </div>
                                         {activeSceneQuestNextObjective && (
-                                            <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2">
-                                                <p className="text-[10px] font-black uppercase tracking-[0.17em] text-amber-100/80">{sceneHud.nextObjective}</p>
-                                                <p className="mt-1 text-sm font-semibold leading-5 text-white">
+                                            <div className="mt-2 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-2">
+                                                <p className="text-[9px] font-black uppercase tracking-[0.15em] text-amber-100/78">{sceneHud.nextObjective}</p>
+                                                <p className="mt-1 truncate text-xs font-semibold leading-5 text-white">
                                                     {getQuestObjectiveText(activeSceneQuest.quest, activeSceneQuestNextObjective[0], language)}
                                                     <span className="ml-2 font-mono text-xs text-white/45">
                                                         {activeSceneQuestNextObjective[1].current}/{activeSceneQuestNextObjective[1].target}
@@ -2455,7 +2457,7 @@ export default function ExperiencePage() {
                                                 </p>
                                             </div>
                                         )}
-                                        <div className="mt-3 grid gap-1.5">
+                                        <div className="hidden">
                                             {Object.entries(activeSceneQuest.progress.objectives).map(([objectiveId, objective], index) => (
                                                 <div key={objectiveId} className="grid grid-cols-[1.5rem_1fr_auto] items-center gap-2 text-xs">
                                                     <span className={`grid h-5 w-5 place-items-center rounded-full border text-[10px] font-black ${
@@ -2472,19 +2474,19 @@ export default function ExperiencePage() {
                                                 </div>
                                             ))}
                                         </div>
-                                        <div className="mt-3 rounded-xl border border-amber-300/18 bg-amber-300/[0.07] px-3 py-2 text-[11px] leading-5 text-amber-50">
-                                            <span className="font-black uppercase tracking-[0.16em] text-amber-200">{sceneHud.reward}: </span>
+                                        <div className="mt-2 truncate rounded-lg border border-amber-300/16 bg-amber-300/[0.06] px-2.5 py-1.5 text-[10px] leading-5 text-amber-50">
+                                            <span className="font-black uppercase tracking-[0.14em] text-amber-200">{sceneHud.reward}: </span>
                                             {getQuestRewardText(activeSceneQuest.quest.reward, activeSceneQuest.quest.id, language)}
                                         </div>
                                     </div>
                                 </div>
                             )}
                             {showLiveActivityToasts && (
-                                <div className="mt-3 flex w-[min(92vw,25rem)] flex-col gap-2" aria-live="polite">
+                                <div className="mt-2 flex w-[min(92vw,22rem)] flex-col gap-1.5" aria-live="polite">
                                     {liveActivityToasts.map((toast, index) => (
                                         <div
                                             key={toast.id}
-                                            className={`overflow-hidden rounded-2xl border border-white/10 bg-[#03080e]/70 px-3.5 py-3 text-white shadow-[0_18px_55px_rgba(0,0,0,0.32)] backdrop-blur-md transition ${
+                                            className={`overflow-hidden rounded-xl border border-white/10 bg-[#03080e]/64 px-3 py-2.5 text-white shadow-[0_16px_46px_rgba(0,0,0,0.28)] backdrop-blur-md transition ${
                                                 index > 1 ? 'hidden md:block' : ''
                                             }`}
                                             style={{ opacity: Math.max(0.68, 1 - index * 0.14) }}
@@ -2500,9 +2502,9 @@ export default function ExperiencePage() {
                                                     {liveActivityNowLabel}
                                                 </span>
                                             </div>
-                                            <div className="mt-2 flex items-start gap-2.5">
-                                                <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${LIVE_ACTIVITY_ACCENTS[toast.kind]}`} />
-                                                <p className="min-w-0 text-sm font-medium leading-5 text-slate-100">
+                                            <div className="mt-1.5 flex items-start gap-2.5">
+                                                <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${LIVE_ACTIVITY_ACCENTS[toast.kind]}`} />
+                                                <p className="min-w-0 text-xs font-medium leading-5 text-slate-100">
                                                     {toast.message}
                                                 </p>
                                             </div>
@@ -2598,20 +2600,20 @@ export default function ExperiencePage() {
 
 
                     {dashboardOverlay && (
-                        <div className="absolute inset-0 z-[85] overflow-y-auto bg-slate-950/96 p-3 text-white pointer-events-auto md:p-6" role="dialog" aria-modal="true" aria-label="Dashboard overlay">
-                            <div className="sticky top-3 z-10 mx-auto mb-3 flex max-w-7xl justify-end">
+                        <div className="absolute inset-0 z-[85] overflow-y-auto bg-[#02060b]/76 p-2 text-white backdrop-blur-sm pointer-events-auto md:p-5" role="dialog" aria-modal="true" aria-label="Dashboard overlay">
+                            <div className="sticky top-3 z-10 mx-auto mb-3 flex max-w-6xl justify-end">
                                 <button
                                     type="button"
                                     onClick={() => setDashboardOverlay(null)}
-                                    className="rounded-full border border-white/15 bg-black/65 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white shadow-xl backdrop-blur-md transition hover:border-[#66d9cb]/45 hover:text-[#9ff4ec]"
+                                    className="rounded-full border border-white/15 bg-black/68 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white shadow-xl backdrop-blur-md transition hover:border-[#66d9cb]/45 hover:text-[#9ff4ec]"
                                 >
                                     {cutsceneCopy.closeMenu}
                                 </button>
                             </div>
-                            <div className="mx-auto max-w-7xl pb-8">
-                                {dashboardOverlay === 'player' && <GamerDashboard bridge={unrealBridge} />}
-                                {dashboardOverlay === 'shopper' && <ShopperDashboard bridge={unrealBridge} />}
-                                {dashboardOverlay === 'business' && <SupplierDashboard />}
+                            <div className="mx-auto max-w-6xl pb-6">
+                                {dashboardOverlay === 'player' && <GamerDashboard embedded bridge={unrealBridge} />}
+                                {dashboardOverlay === 'shopper' && <ShopperDashboard embedded bridge={unrealBridge} />}
+                                {dashboardOverlay === 'business' && <SupplierDashboard embedded />}
                             </div>
                         </div>
                     )}

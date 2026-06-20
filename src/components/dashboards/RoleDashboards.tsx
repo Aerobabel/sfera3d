@@ -59,6 +59,7 @@ import type { UnrealEventBridgeState } from '@/lib/unreal/types';
 
 type DashboardProps = {
     bridge?: UnrealEventBridgeState;
+    embedded?: boolean;
 };
 
 type Tone = 'cyan' | 'sky' | 'emerald' | 'amber' | 'rose' | 'violet';
@@ -1021,25 +1022,30 @@ function DashboardFrame({
     children,
     sidebar,
     mode,
+    embedded = false,
 }: {
     children: ReactNode;
     sidebar?: ReactNode;
     mode: 'player' | 'shopper' | 'business';
+    embedded?: boolean;
 }) {
     const modeGlow = {
         player: 'radial-gradient(circle_at_78%_8%,rgba(56,189,248,0.2),transparent_30%),radial-gradient(circle_at_18%_82%,rgba(34,211,238,0.12),transparent_34%)',
         shopper: 'radial-gradient(circle_at_82%_10%,rgba(251,191,36,0.18),transparent_28%),radial-gradient(circle_at_14%_82%,rgba(45,212,191,0.14),transparent_34%)',
         business: 'radial-gradient(circle_at_82%_10%,rgba(52,211,153,0.18),transparent_30%),radial-gradient(circle_at_14%_80%,rgba(56,189,248,0.13),transparent_34%)',
     }[mode];
+    const gridColumns = embedded
+        ? ''
+        : `lg:grid-cols-[3.75rem_minmax(0,1fr)] ${sidebar ? 'xl:grid-cols-[3.75rem_12.75rem_minmax(0,1fr)]' : ''}`;
 
     return (
-        <section className="relative overflow-hidden border border-white/10 bg-[#090d14] text-white shadow-[0_40px_140px_rgba(0,0,0,0.5)] md:rounded-xl">
+        <section className={`relative overflow-hidden border border-white/10 bg-[#090d14] text-white shadow-[0_40px_140px_rgba(0,0,0,0.5)] ${embedded ? 'rounded-2xl' : 'md:rounded-xl'}`}>
             <div className="pointer-events-none absolute inset-0" style={{ background: modeGlow }} />
             <div className="pointer-events-none absolute inset-0 opacity-[0.055] [background-image:linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:48px_48px]" />
-            <div className={`relative grid min-h-screen lg:grid-cols-[3.75rem_minmax(0,1fr)] ${sidebar ? 'xl:grid-cols-[3.75rem_12.75rem_minmax(0,1fr)]' : ''}`}>
-                <DashboardRail mode={mode} />
-                {sidebar}
-                <div className="min-w-0 p-3 sm:p-4 lg:p-5">{children}</div>
+            <div className={`relative grid ${embedded ? 'min-h-0' : 'min-h-screen'} ${gridColumns}`}>
+                {!embedded && <DashboardRail mode={mode} />}
+                {!embedded && sidebar}
+                <div className={`min-w-0 ${embedded ? 'p-3 sm:p-4' : 'p-3 sm:p-4 lg:p-5'}`}>{children}</div>
             </div>
         </section>
     );
@@ -1447,8 +1453,8 @@ function DashboardHero({
     children?: ReactNode;
 }) {
     return (
-        <section className="relative min-h-40 overflow-hidden rounded-xl border border-white/10 bg-slate-950/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-5">
-            <Image src={src} alt={alt} width={1200} height={760} className="absolute inset-y-0 right-0 hidden h-full w-1/2 object-cover opacity-60 sm:block" priority />
+        <section className="relative min-h-36 overflow-hidden rounded-xl border border-white/10 bg-slate-950/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <Image src={src} alt={alt} width={1200} height={760} className="absolute inset-y-0 right-0 hidden h-full w-1/2 object-cover opacity-50 sm:block" priority />
             <Image src={src} alt="" width={900} height={560} className="absolute inset-0 h-full w-full object-cover opacity-20 sm:hidden" aria-hidden="true" />
             <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.98),rgba(2,6,23,0.86)_54%,rgba(2,6,23,0.28))]" />
             <div className="relative max-w-2xl">
@@ -1461,7 +1467,7 @@ function DashboardHero({
     );
 }
 
-export function GamerDashboard({ bridge = fallback }: DashboardProps) {
+export function GamerDashboard({ bridge = fallback, embedded = false }: DashboardProps) {
     const { language } = useLanguage();
     const copy = dashboardCopy[language];
     const coinsPreview = bridge.zombieCoins || Math.floor(bridge.zombieScore / GAME_RULES.zombieArena.zombieKillPoints) * GAME_RULES.zombieArena.coinsPerKill;
@@ -1483,8 +1489,8 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
     const currentLocation = bridge.currentLocation === 'city' ? copy.player.city : bridge.currentLocation;
 
     return (
-        <DashboardFrame mode="player" sidebar={<PlayerSidebar copy={copy} />}>
-            <DashboardBackNav />
+        <DashboardFrame mode="player" sidebar={<PlayerSidebar copy={copy} />} embedded={embedded}>
+            {!embedded && <DashboardBackNav />}
             <header className="mb-4 flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
                 <HeaderSearch label={copy.search.player} shortcut={copy.search.shortcut} />
                 <div className="flex flex-wrap items-center gap-3">
@@ -1582,14 +1588,14 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
     );
 }
 
-export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
+export function ShopperDashboard({ bridge = fallback, embedded = false }: DashboardProps) {
     const { language } = useLanguage();
     const copy = dashboardCopy[language];
     const currentLocation = bridge.currentLocation === 'city' ? 'Sfera Hall' : bridge.currentLocation;
 
     return (
-        <DashboardFrame mode="shopper">
-            <DashboardBackNav />
+        <DashboardFrame mode="shopper" embedded={embedded}>
+            {!embedded && <DashboardBackNav />}
             <header className="mb-4 flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
                 <HeaderSearch label={copy.search.shopper} shortcut={copy.search.shortcut} />
                 <div className="flex flex-wrap items-center gap-3">
@@ -1660,13 +1666,13 @@ export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
     );
 }
 
-export function SupplierDashboard() {
+export function SupplierDashboard({ embedded = false }: DashboardProps = {}) {
     const { language } = useLanguage();
     const copy = dashboardCopy[language];
 
     return (
-        <DashboardFrame mode="business">
-            <DashboardBackNav />
+        <DashboardFrame mode="business" embedded={embedded}>
+            {!embedded && <DashboardBackNav />}
             <header className="mb-4 flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
                 <HeaderSearch label={copy.search.business} shortcut={copy.search.shortcut} />
                 <div className="flex flex-wrap items-center gap-3">
