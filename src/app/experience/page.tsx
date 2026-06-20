@@ -718,12 +718,19 @@ type FrontendCinematic = {
     destinationLabel: string;
 };
 type SceneDashboardOverlay = 'player' | 'shopper' | 'business';
+type SceneMode = 'player' | 'shopper';
 type AppSessionResponse = {
     success?: boolean;
     user?: {
         email?: string | null;
         role?: AppAuthRole | null;
     };
+};
+
+const resolveRequestedSceneMode = (mode: string | null): SceneMode | null => {
+    if (mode === 'player' || mode === 'gamer') return 'player';
+    if (mode === 'shopper') return 'shopper';
+    return null;
 };
 
 const FRONTEND_CINEMATIC_DURATION_MS = 3200;
@@ -1033,25 +1040,21 @@ export default function ExperiencePage() {
     useEffect(() => {
         if (!isFastViewRoute || !hasStartedExperience) return;
 
-        const requestedMode = searchParams.get('mode');
-        const targetMode = requestedMode === 'gamer' ? 'player' : requestedMode === 'shopper' ? 'shopper' : null;
+        const targetMode = resolveRequestedSceneMode(searchParams.get('mode'));
         if (!targetMode) {
             hasAppliedInitialModeRef.current = false;
             return;
         }
         if (hasAppliedInitialModeRef.current && unrealBridge.currentMode === targetMode) return;
 
+        const shouldSendToggleKey = unrealBridge.currentMode !== targetMode;
         hasAppliedInitialModeRef.current = true;
-        unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: targetMode }));
         sendUnrealUiInteraction({ type: 'set_mode', mode: targetMode });
         sendUnrealUiInteraction({ event: 'mode_changed', mode: targetMode });
-        const modeTimer = window.setTimeout(() => {
-            if (unrealBridge.currentMode !== targetMode) {
-                sendUnrealKeyPress(71);
-            }
-        }, 700);
-
-        return () => window.clearTimeout(modeTimer);
+        if (shouldSendToggleKey) {
+            sendUnrealKeyPress(71);
+        }
+        unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: targetMode }));
     }, [hasStartedExperience, isFastViewRoute, searchParams, unrealBridge]);
 
     useEffect(() => {
@@ -1391,11 +1394,10 @@ export default function ExperiencePage() {
         : canEnterFastView
           ? fastViewLaunch.readyBody
           : fastViewLaunch.loadingBody;
-    const requestedSceneMode = searchParams.get('mode');
-    const isPlayerSceneRequested = requestedSceneMode === 'player' || requestedSceneMode === 'gamer';
+    const requestedSceneMode = resolveRequestedSceneMode(searchParams.get('mode'));
+    const effectiveSceneMode = requestedSceneMode ?? unrealBridge.currentMode;
     const isGamerScene =
-        isPlayerSceneRequested ||
-        unrealBridge.currentMode === 'player' ||
+        effectiveSceneMode === 'player' ||
         unrealBridge.currentGame === 'ZombieArena';
     const shouldShowSupplierLogin = !viewerEmail && !isGamerScene;
     const activeSceneDashboard: SceneDashboardOverlay =
@@ -1930,10 +1932,7 @@ export default function ExperiencePage() {
     };
 
     const activeSceneQuest = useMemo(() => {
-        const isPlayerQuestContext =
-            unrealBridge.currentMode === 'player' ||
-            unrealBridge.currentGame === 'ZombieArena';
-        if (!isPlayerQuestContext) return null;
+        if (!isGamerScene) return null;
 
         for (const progress of unrealBridge.questProgress) {
             const quest = getQuestDefinition(progress.questId);
@@ -1943,7 +1942,7 @@ export default function ExperiencePage() {
         }
 
         return null;
-    }, [unrealBridge.currentGame, unrealBridge.currentMode, unrealBridge.questProgress]);
+    }, [isGamerScene, unrealBridge.questProgress]);
     const activeSceneQuestText = activeSceneQuest ? getQuestText(activeSceneQuest.quest, language) : null;
     const activeSceneQuestPercent = activeSceneQuest ? getQuestCompletionPercent(activeSceneQuest.progress) : 0;
     const activeSceneQuestNextObjective = activeSceneQuest
@@ -2400,7 +2399,7 @@ export default function ExperiencePage() {
                             <div className="mt-3 grid w-fit max-w-[min(92vw,24rem)] gap-2 rounded-2xl border border-[#66d9cb]/20 bg-black/35 p-2 text-[11px] text-slate-200 backdrop-blur-md">
                                 <div className="flex flex-wrap gap-2">
                                     <span className="rounded-full bg-[#66d9cb]/15 px-3 py-1 font-semibold text-[#66d9cb]">
-                                        {unrealBridge.currentMode === 'player' ? sceneHud.playerMode : sceneHud.shopperMode}
+                                        {effectiveSceneMode === 'player' ? sceneHud.playerMode : sceneHud.shopperMode}
                                     </span>
                                     <span className="rounded-full border border-white/10 px-3 py-1">{sceneHud.location}: {sceneLocationLabel}</span>
                                     {unrealBridge.currentGame && <span className="rounded-full border border-white/10 px-3 py-1">{sceneHud.game}: {unrealBridge.currentGame}</span>}
