@@ -77,9 +77,9 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
             zh: '首次奖励挑战',
         },
         description: {
-            en: 'Visit Sfera Hall, switch to Player Mode, enter Zombie Arena, and clear your first wave to unlock a reward.',
-            ru: 'Посетите Sfera Hall, переключитесь в режим игрока, войдите в Zombie Arena и очистите первую волну, чтобы открыть награду.',
-            zh: '先访问 Sfera Hall，切换到玩家模式，进入 Zombie Arena，并清理第一波敌人以解锁奖励。',
+            en: 'Learn the world first: visit Sfera Hall, enter a pavilion, inspect a product, then switch to Player Mode and finish Zombie Arena.',
+            ru: 'Сначала изучите мир: посетите Sfera Hall, войдите в павильон, изучите товар, затем переключитесь в режим игрока и завершите Zombie Arena.',
+            zh: '先熟悉世界：访问 Sfera Hall，进入展馆，查看商品，然后切换到玩家模式并完成 Zombie Arena。',
         },
         objectives: [
             {
@@ -91,6 +91,26 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
                     en: 'Visit Sfera Hall',
                     ru: 'Посетить Sfera Hall',
                     zh: '访问 Sfera Hall',
+                },
+            },
+            {
+                id: 'enter_first_pavilion',
+                event: 'pavilion_entered',
+                count: 1,
+                label: {
+                    en: 'Enter any pavilion',
+                    ru: 'Войти в любой павильон',
+                    zh: '进入任意展馆',
+                },
+            },
+            {
+                id: 'inspect_hall_product',
+                event: 'pavilion_product_viewed',
+                count: 1,
+                label: {
+                    en: 'Inspect one pavilion product',
+                    ru: 'Изучить один товар в павильоне',
+                    zh: '查看一个展馆商品',
                 },
             },
             {

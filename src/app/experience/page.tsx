@@ -270,8 +270,8 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         giftCodeMessage: 'Steam or other game-store codes can be issued after partner/code inventory is connected.',
         unavailable: 'Unavailable',
         guideTitle: 'What to do now',
-        guideBody: 'You are in a 3D city. Follow the quest: visit Sfera Hall, enter Zombie Arena, then claim the reward.',
-        guideSteps: ['Visit Sfera Hall', 'Enter Zombie Arena', 'Claim reward'],
+        guideBody: 'You are in a 3D city. Visit Sfera Hall, explore one pavilion, then enter Zombie Arena and claim the reward.',
+        guideSteps: ['Explore Sfera Hall', 'Enter Zombie Arena', 'Claim reward'],
         locations: {
             city: 'City',
             sferaHall: 'Sfera Hall',
@@ -315,8 +315,8 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         giftCodeMessage: 'Коды Steam или других игровых площадок можно будет выдавать после подключения партнерской программы или склада кодов.',
         unavailable: 'Недоступно',
         guideTitle: 'Что делать сейчас',
-        guideBody: 'Вы в 3D-городе. Следуйте квесту: посетите Sfera Hall, войдите в Zombie Arena, затем получите награду.',
-        guideSteps: ['Посетить Sfera Hall', 'Войти в Zombie Arena', 'Получить награду'],
+        guideBody: 'Вы в 3D-городе. Посетите Sfera Hall, изучите один павильон, затем войдите в Zombie Arena и получите награду.',
+        guideSteps: ['Изучить Sfera Hall', 'Войти в Zombie Arena', 'Получить награду'],
         locations: {
             city: 'Город',
             sferaHall: 'Sfera Hall',
@@ -360,8 +360,8 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         giftCodeMessage: '接入合作伙伴或礼品码库存后，可发放 Steam 或其他游戏平台代码。',
         unavailable: '不可用',
         guideTitle: '现在要做什么',
-        guideBody: '你在 3D 城市中。跟随任务：访问 Sfera Hall，进入 Zombie Arena，然后领取奖励。',
-        guideSteps: ['访问 Sfera Hall', '进入 Zombie Arena', '领取奖励'],
+        guideBody: '你在 3D 城市中。访问 Sfera Hall，探索一个展馆，然后进入 Zombie Arena 并领取奖励。',
+        guideSteps: ['探索 Sfera Hall', '进入 Zombie Arena', '领取奖励'],
         locations: {
             city: '城市',
             sferaHall: 'Sfera Hall',
