@@ -396,6 +396,7 @@ const EXPERIENCE_COPY: Record<
         focusedPrompt: string;
         statusOnline: string;
         instruction: string;
+        zombieInstruction: string;
         chatToggleShow: string;
         chatToggleHide: string;
         menuNavigation: string;
@@ -432,6 +433,7 @@ const EXPERIENCE_COPY: Record<
         focusedPrompt: 'Ask for specs or compatibility details.',
         statusOnline: 'System Online',
         instruction: 'Long press T to speak with avatars, press F to open doors, X to exit inspection mode.',
+        zombieInstruction: 'Zombie Arena: move with WASD, aim with mouse, press P to fire, use the return portal to leave.',
         chatToggleShow: 'Chat',
         chatToggleHide: 'Hide Chat',
         menuNavigation: 'Navigation',
@@ -467,6 +469,7 @@ const EXPERIENCE_COPY: Record<
         focusedPrompt: 'Спросите характеристики или совместимость.',
         statusOnline: 'Система онлайн',
         instruction: 'Удерживайте T для разговора с аватарами, F для открытия дверей, X для выхода из режима осмотра.',
+        zombieInstruction: 'Zombie Arena: WASD \u0434\u043B\u044F \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F, \u043C\u044B\u0448\u044C\u044E \u0446\u0435\u043B\u044C\u0442\u0435\u0441\u044C, P \u0434\u043B\u044F \u0441\u0442\u0440\u0435\u043B\u044C\u0431\u044B, \u0432\u044B\u0445\u043E\u0434 \u0447\u0435\u0440\u0435\u0437 \u043F\u043E\u0440\u0442\u0430\u043B.',
         chatToggleShow: 'Чат',
         chatToggleHide: 'Скрыть чат',
         menuNavigation: 'Навигация',
@@ -502,6 +505,7 @@ const EXPERIENCE_COPY: Record<
         focusedPrompt: '可继续询问规格参数或兼容性。',
         statusOnline: '系统在线',
         instruction: '长按 T 与角色对话，按 F 开门，按 X 退出检视模式。',
+        zombieInstruction: 'Zombie Arena: WASD \u79FB\u52A8, \u9F20\u6807\u7784\u51C6, \u6309 P \u5C04\u51FB, \u4F7F\u7528\u4F20\u9001\u95E8\u79BB\u5F00.',
         chatToggleShow: '聊天',
         chatToggleHide: '隐藏聊天',
         menuNavigation: '导航',
@@ -766,7 +770,6 @@ export default function ExperiencePage() {
     const sferaHallCutsceneSrc = SFERA_HALL_CUTSCENE_SRC[language];
     const liveActivityLabel = LIVE_ACTIVITY_LABEL[language];
     const liveActivityNowLabel = LIVE_ACTIVITY_NOW_LABEL[language];
-    const sceneInstruction = ui.instruction;
     const accountLabel =
         language === 'ru'
             ? '\u0412\u044B \u0432\u043E\u0448\u043B\u0438 \u043A\u0430\u043A'
@@ -792,6 +795,10 @@ export default function ExperiencePage() {
               ? '\u8FD4\u56DE\u573A\u666F'
               : 'Back to scene';
     const unrealBridge = useUnrealEventBridge();
+    const isZombieArenaActive =
+        unrealBridge.currentGame === 'ZombieArena' ||
+        unrealBridge.currentLocation === 'zombieArena';
+    const sceneInstruction = isZombieArenaActive ? ui.zombieInstruction : ui.instruction;
     const emitQuestEvent = useCallback((event: QuestEventInput) => {
         unrealBridge.handleUnrealResponse(JSON.stringify(event));
     }, [unrealBridge]);
@@ -1344,14 +1351,19 @@ export default function ExperiencePage() {
         : canEnterFastView
           ? fastViewLaunch.readyBody
           : fastViewLaunch.loadingBody;
+    const requestedSceneMode = searchParams.get('mode');
+    const isPlayerSceneRequested = requestedSceneMode === 'player' || requestedSceneMode === 'gamer';
+    const isPlayerScene =
+        isPlayerSceneRequested ||
+        unrealBridge.currentMode === 'player' ||
+        Boolean(viewerEmail && viewerRole !== 'supplier');
+    const shouldShowSupplierLogin = !viewerEmail && !isPlayerScene;
     const activeSceneDashboard: SceneDashboardOverlay =
         viewerRole === 'supplier'
             ? 'business'
-            : viewerEmail
+            : isPlayerScene
               ? 'player'
-              : unrealBridge.currentMode === 'player'
-                ? 'player'
-                : 'shopper';
+              : 'shopper';
     const activeSceneDashboardLabel =
         activeSceneDashboard === 'business'
             ? sceneHud.businessDashboard
@@ -2502,9 +2514,11 @@ export default function ExperiencePage() {
                                     <Monitor size={16} /> {ui.livePreview}
                                 </button>
                             )}
-                            <a href="/login?role=supplier" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
-                                {ui.menuLogin}
-                            </a>
+                            {shouldShowSupplierLogin && (
+                                <a href="/login?role=supplier" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
+                                    {ui.menuLogin}
+                                </a>
+                            )}
                             {viewerEmail && (
                                 <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300">
                                     <span className="block text-[10px] uppercase tracking-[0.18em] text-slate-500">
@@ -2515,13 +2529,15 @@ export default function ExperiencePage() {
                                     </span>
                                 </div>
                             )}
-                            <button
-                                onClick={() => void handleSignOut()}
-                                disabled={isSigningOut}
-                                className="w-full text-left px-3 py-2 rounded-lg text-sm text-amber-200 hover:bg-amber-500/10 transition disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                {accountSignOutLabel}
-                            </button>
+                            {viewerEmail && (
+                                <button
+                                    onClick={() => void handleSignOut()}
+                                    disabled={isSigningOut}
+                                    className="w-full text-left px-3 py-2 rounded-lg text-sm text-amber-200 hover:bg-amber-500/10 transition disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    {accountSignOutLabel}
+                                </button>
+                            )}
                             <div className="h-px bg-white/10 my-2"></div>
                             <Link href="/roles?returnTo=/fastview" className="block w-full text-left px-3 py-2 rounded-lg text-sm text-[#66d9cb] hover:bg-[#66d9cb]/10 transition">
                                 {sceneHud.roleSelection}

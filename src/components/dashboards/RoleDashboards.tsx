@@ -893,6 +893,7 @@ const panel = 'rounded-xl border border-white/10 bg-[#10161f]/95 shadow-[inset_0
 const compactPanel = 'rounded-lg border border-white/10 bg-[#0c121a] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]';
 const metricGrid = 'grid gap-3 sm:grid-cols-2 xl:grid-cols-4';
 const threeCardGrid = 'grid gap-3 md:grid-cols-3';
+const dashboardSideGrid = 'grid gap-4 md:grid-cols-2 xl:grid-cols-3';
 
 const clampPercent = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
 
@@ -1499,7 +1500,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                 </div>
             </header>
 
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+            <div className="grid gap-4">
                 <main className="min-w-0 space-y-4">
                     <DashboardHero
                         kicker={copy.player.kicker}
@@ -1563,7 +1564,7 @@ export function GamerDashboard({ bridge = fallback }: DashboardProps) {
                     </div>
                 </main>
 
-                <aside className="space-y-4 self-start">
+                <aside className={dashboardSideGrid}>
                     <ListPanel title={copy.player.recentTitle} icon={Clock3} tone="sky" items={activityItems.slice(0, 5)} />
                     <RewardPanel rewards={bridge.questRewards} language={language} />
                     <VisualPanel src="/visuals/shopper-market.svg" alt="3DSFERA city overview map" title={copy.player.cityOverview} markers={copy.player.markers} />
@@ -1604,7 +1605,7 @@ export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
                 </div>
             </header>
 
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+            <div className="grid gap-4">
                 <main className="min-w-0 space-y-4">
                     <DashboardHero
                         kicker={copy.shopper.kicker}
@@ -1648,7 +1649,7 @@ export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
                     </section>
                 </main>
 
-                <aside className="space-y-4 self-start">
+                <aside className={dashboardSideGrid}>
                     <OrderDetailsPanel
                         title={copy.shopper.orderDetailsTitle}
                         subtitle={copy.shopper.orderDetailsSub}
@@ -1684,7 +1685,7 @@ export function SupplierDashboard({ bridge = fallback }: DashboardProps) {
                 </div>
             </header>
 
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+            <div className="grid gap-4">
                 <main className="min-w-0 space-y-4">
                     <DashboardHero
                         kicker={copy.business.kicker}
@@ -1729,7 +1730,7 @@ export function SupplierDashboard({ bridge = fallback }: DashboardProps) {
                     </section>
                 </main>
 
-                <aside className="space-y-4 self-start">
+                <aside className={dashboardSideGrid}>
                     <VisualPanel src="/visuals/business-pavilion.svg" alt="Supplier pavilion preview" title={copy.business.previewTitle} markers={copy.business.markers} />
                     <ListPanel title={copy.business.pipelineTitle} icon={PackageCheck} tone="emerald" items={copy.business.pipeline} />
                     <ListPanel title={copy.business.checklistTitle} icon={CalendarCheck} tone="cyan" items={copy.business.checklist} />

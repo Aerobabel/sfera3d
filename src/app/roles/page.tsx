@@ -317,27 +317,45 @@ function RoleCard({ base, text, rolePath }: { base: RoleBase; text: RoleText; ro
     return (
         <Link
             href={base.href}
-            className={`group grid gap-4 rounded-lg border border-white/10 bg-[#11161d] p-4 transition duration-200 hover:border-white/20 hover:bg-[#151b23] sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:items-center ${tone.border}`}
+            className={`group relative flex min-h-[18rem] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0e141c] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-[#111923] ${tone.border}`}
         >
-            <span className={`flex h-12 w-12 items-center justify-center rounded-lg border ${tone.icon}`}>
-                <Icon className="h-5 w-5" strokeWidth={1.8} />
-            </span>
+            <span className={`pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b ${tone.glow} opacity-55`} />
 
-            <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                    <span>{rolePath}</span>
-                    <span className="text-slate-600">/</span>
-                    <span className={`inline-flex items-center gap-1.5 font-semibold ${tone.text}`}>
-                        {base.tone === 'player' && <LockKeyhole className="h-3.5 w-3.5" />}
-                        {text.label}
-                    </span>
-                </div>
-                <h2 className="mt-2 break-words text-xl font-semibold tracking-tight text-white">{text.title}</h2>
-                <p className="mt-1.5 max-w-2xl text-sm leading-6 text-slate-400">{text.description}</p>
+            <div className="relative flex items-start justify-between gap-4">
+                <span className={`flex h-12 w-12 items-center justify-center rounded-xl border ${tone.icon}`}>
+                    <Icon className="h-5 w-5" strokeWidth={1.8} />
+                </span>
+                <span className={`inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[11px] font-semibold ${tone.text}`}>
+                    {base.tone === 'player' && <LockKeyhole className="h-3.5 w-3.5" />}
+                    {rolePath}
+                </span>
             </div>
 
-            <div className="flex items-center">
-                <span className={`inline-flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2.5 text-sm font-semibold transition group-hover:bg-white/[0.08] sm:w-auto ${tone.button}`}>
+            <div className="relative mt-5 min-w-0">
+                <p className={`text-xs font-semibold ${tone.text}`}>{text.label}</p>
+                <h2 className="mt-2 break-words text-2xl font-semibold tracking-tight text-white">{text.title}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-400">{text.description}</p>
+            </div>
+
+            <div className="relative mt-5 grid grid-cols-2 gap-2">
+                {text.metrics.map((metric) => (
+                    <div key={metric.label} className="rounded-xl border border-white/10 bg-black/20 p-3">
+                        <p className="text-xl font-semibold text-white">{metric.value}</p>
+                        <p className="mt-1 text-[11px] leading-4 text-slate-500">{metric.label}</p>
+                    </div>
+                ))}
+            </div>
+
+            <div className="relative mt-4 flex flex-wrap gap-2">
+                {text.proof.map((item) => (
+                    <span key={item} className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[11px] text-slate-300">
+                        {item}
+                    </span>
+                ))}
+            </div>
+
+            <div className="relative mt-auto pt-5">
+                <span className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition group-hover:bg-white/[0.08] ${tone.button}`}>
                     {text.action}
                     <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                 </span>
@@ -370,7 +388,7 @@ export default function RoleSelectionPage() {
     };
 
     return (
-        <main className="min-h-screen overflow-hidden bg-[#090b0f] text-white">
+        <main className="min-h-screen overflow-hidden bg-[#080b10] text-white">
             {isIntroVisible && (
                 <div className="fixed inset-0 z-50 bg-black">
                     <video
@@ -407,9 +425,10 @@ export default function RoleSelectionPage() {
             )}
 
             <section className="relative px-4 py-5 sm:px-6 lg:px-8">
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(180deg,rgba(37,99,235,0.12),transparent)]" />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(180deg,rgba(14,165,233,0.1),transparent)]" />
+                <div className="pointer-events-none absolute inset-0 opacity-[0.055] [background-image:linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:56px_56px]" />
 
-                <div className="relative mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col">
+                <div className="relative mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-7xl flex-col">
                     <nav className="mb-6 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap gap-2">
                             <Link href={returnToScene ? '/fastview?resume=scene' : '/'} className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/[0.07]">
@@ -426,22 +445,38 @@ export default function RoleSelectionPage() {
                         </span>
                     </nav>
 
-                    <div className="grid flex-1 gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-                        <header>
-                            <div className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-300/10 text-sm font-bold text-cyan-100">
-                                3D
+                    <div className="flex flex-1 flex-col justify-center gap-5">
+                        <header className="grid gap-5 rounded-3xl border border-white/10 bg-[#0c1118]/88 p-5 shadow-[0_24px_90px_rgba(0,0,0,0.32)] backdrop-blur-xl lg:grid-cols-[minmax(0,1fr)_22rem] lg:p-6">
+                            <div className="min-w-0">
+                                <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-sm font-bold text-cyan-100">
+                                    3D
+                                </div>
+                                <p className="mt-5 text-sm font-semibold text-cyan-100">{copy.introTag}</p>
+                                <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">{copy.title}</h1>
+                                <p className="mt-3 max-w-2xl text-base leading-7 text-slate-400">{copy.subtitle}</p>
                             </div>
-                            <p className="mt-6 text-sm font-semibold text-cyan-100">{copy.introTag}</p>
-                            <h1 className="mt-3 max-w-xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">{copy.title}</h1>
-                            <p className="mt-4 max-w-lg text-base leading-7 text-slate-400">{copy.subtitle}</p>
+
+                            <div className="rounded-2xl border border-white/10 bg-black/18 p-4">
+                                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{copy.status.label}</p>
+                                <div className="mt-4 grid grid-cols-3 gap-2">
+                                    {[
+                                        ['3', copy.status.roles],
+                                        ['1', copy.status.world],
+                                        ['24/7', copy.status.trade],
+                                    ].map(([value, label]) => (
+                                        <div key={label} className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+                                            <p className="text-lg font-semibold text-white">{value}</p>
+                                            <p className="mt-1 text-[11px] text-slate-500">{label}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </header>
 
-                        <section className="rounded-xl border border-white/10 bg-[#0f141b]/95 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
-                            <div className="grid gap-3">
-                                {roleBases.map((base) => (
-                                    <RoleCard key={base.tone} base={base} text={copy.roles[base.tone]} rolePath={copy.rolePath} />
-                                ))}
-                            </div>
+                        <section className="grid gap-3 lg:grid-cols-3">
+                            {roleBases.map((base) => (
+                                <RoleCard key={base.tone} base={base} text={copy.roles[base.tone]} rolePath={copy.rolePath} />
+                            ))}
                         </section>
                     </div>
 
