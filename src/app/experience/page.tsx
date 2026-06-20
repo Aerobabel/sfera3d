@@ -1086,9 +1086,16 @@ export default function ExperiencePage() {
         }
         if (hasAppliedInitialModeRef.current && unrealBridge.currentMode === targetMode) return;
 
+        const shouldSendInitialGameModeToggle =
+            targetMode === 'player' &&
+            unrealBridge.currentMode !== 'player';
+
         hasAppliedInitialModeRef.current = true;
         sendUnrealUiInteraction({ type: 'set_mode', mode: targetMode });
         sendUnrealUiInteraction({ event: 'mode_changed', mode: targetMode });
+        if (shouldSendInitialGameModeToggle) {
+            sendUnrealKeyPress(71);
+        }
         unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: targetMode }));
     }, [hasStartedExperience, isFastViewRoute, searchParams, unrealBridge]);
 
@@ -1466,6 +1473,7 @@ export default function ExperiencePage() {
 
         sendUnrealUiInteraction({ type: 'set_mode', mode: 'player' });
         sendUnrealUiInteraction({ event: 'mode_changed', mode: 'player' });
+        sendUnrealKeyPress(71);
         unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: 'player' }));
         setIsPlayerModePromptDismissed(true);
     }, [effectiveSceneMode, isPlayerModeAccessDenied, unrealBridge]);
