@@ -117,7 +117,7 @@ const rolePageCopy: Record<AppLanguage, RolePageText> = {
         footerInsights: [
             { icon: Trophy, title: 'Game economy', text: 'Player rewards connect to coins, coupons, and real delivery actions.' },
             { icon: PackageCheck, title: 'Buyer operations', text: 'Shopping dashboards track saved products, supplier replies, and delivery state.' },
-            { icon: Store, title: 'Pavilion growth', text: 'Business workflows cover product readiness, leads, analytics, and sponsored quests.' },
+            { icon: Store, title: 'Pavilion growth', text: 'Business workflows cover product readiness, leads, analytics, and fulfilment.' },
             { icon: BadgeCheck, title: 'Premium polish', text: 'Screens use restrained controls, stronger hierarchy, and real illustrative assets.' },
         ],
         roles: {
@@ -146,9 +146,9 @@ const rolePageCopy: Record<AppLanguage, RolePageText> = {
             business: {
                 title: 'Business',
                 label: 'Pavilion control room',
-                description: 'Operate a branded pavilion, manage product readiness, buyer leads, fulfilment, analytics, and sponsored quests.',
+                description: 'Operate a branded pavilion, manage product readiness, buyer leads, fulfilment, analytics, and campaigns.',
                 action: 'Open business dashboard',
-                proof: ['Pavilion ops', 'Lead pipeline', 'Game sponsorships'],
+                proof: ['Pavilion ops', 'Lead pipeline', 'Campaigns'],
                 metrics: [
                     { value: '28', label: 'buyer leads' },
                     { value: '84%', label: 'product ready' },
@@ -181,7 +181,7 @@ const rolePageCopy: Record<AppLanguage, RolePageText> = {
         footerInsights: [
             { icon: Trophy, title: 'Игровая экономика', text: 'Награды игрока связаны с монетами, купонами и реальной доставкой.' },
             { icon: PackageCheck, title: 'Операции покупателя', text: 'Панель покупателя отслеживает избранное, ответы поставщиков и доставку.' },
-            { icon: Store, title: 'Рост павильона', text: 'Бизнес-сценарии покрывают товары, лиды, аналитику и игровые спонсорства.' },
+            { icon: Store, title: 'Рост павильона', text: 'Бизнес-сценарии покрывают товары, лиды, аналитику и доставку.' },
             { icon: BadgeCheck, title: 'Премиальный вид', text: 'Экраны используют строгие контролы, сильную иерархию и иллюстрации.' },
         ],
         roles: {
@@ -210,9 +210,9 @@ const rolePageCopy: Record<AppLanguage, RolePageText> = {
             business: {
                 title: 'Бизнес',
                 label: 'Центр управления павильоном',
-                description: 'Управляйте брендовым павильоном, готовностью товаров, лидами, доставкой, аналитикой и квестами.',
+                description: 'Управляйте брендовым павильоном, готовностью товаров, лидами, доставкой, аналитикой и кампаниями.',
                 action: 'Открыть бизнес-панель',
-                proof: ['Операции павильона', 'Воронка лидов', 'Игровые спонсорства'],
+                proof: ['Операции павильона', 'Воронка лидов', 'Кампании'],
                 metrics: [
                     { value: '28', label: 'лидов' },
                     { value: '84%', label: 'готово' },
@@ -245,7 +245,7 @@ const rolePageCopy: Record<AppLanguage, RolePageText> = {
         footerInsights: [
             { icon: Trophy, title: '游戏经济', text: '玩家奖励连接金币、优惠券和真实配送动作。' },
             { icon: PackageCheck, title: '买家运营', text: '购物仪表盘追踪收藏商品、供应商回复和配送状态。' },
-            { icon: Store, title: '展馆增长', text: '商务流程覆盖商品准备度、线索、分析和赞助任务。' },
+            { icon: Store, title: '展馆增长', text: '商务流程覆盖商品准备度、线索、分析和履约。' },
             { icon: BadgeCheck, title: '高级质感', text: '界面使用克制控件、清晰层级和真实插图资产。' },
         ],
         roles: {
@@ -274,9 +274,9 @@ const rolePageCopy: Record<AppLanguage, RolePageText> = {
             business: {
                 title: '商务',
                 label: '展馆控制室',
-                description: '运营品牌展馆，管理商品准备度、买家线索、履约、分析和赞助任务。',
+                description: '运营品牌展馆，管理商品准备度、买家线索、履约、分析和营销活动。',
                 action: '打开商务仪表盘',
-                proof: ['展馆运营', '线索管线', '游戏赞助'],
+                proof: ['展馆运营', '线索管线', '营销活动'],
                 metrics: [
                     { value: '28', label: '买家线索' },
                     { value: '84%', label: '准备度' },

@@ -187,7 +187,6 @@ type DashboardText = {
         subtitle: string;
         pavilionHealth: string;
         buyersOnline: string;
-        questsLive: string;
         buyerLeads: string;
         buyerLeadsHelper: string;
         productReadiness: string;
@@ -391,10 +390,9 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             portal: 'Supplier portal',
             kicker: 'Pavilion and supplier operations',
             title: 'Business control room',
-            subtitle: 'Operate a branded pavilion, manage product readiness, follow buyer leads, and sponsor in-world rewards.',
+            subtitle: 'Operate a branded pavilion, manage product readiness, follow buyer leads, and coordinate fulfilment.',
             pavilionHealth: 'Pavilion health: 92%',
             buyersOnline: 'Buyers online: 18',
-            questsLive: '2 sponsored quests live',
             buyerLeads: 'Buyer leads',
             buyerLeadsHelper: '7 need reply today',
             productReadiness: 'Product readiness',
@@ -409,7 +407,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             operations: [
                 { title: 'Pavilion management', text: 'Configure showroom identity, 3D scenes, banners, floor placement, and store details.', action: 'Configure', tone: 'emerald', icon: Store, href: '/supplier/upload' },
                 { title: 'Rent a pavilion', text: 'Choose mall zone, lease duration, promotion level, and launch date.', action: 'Open portal', tone: 'sky', icon: Building2, href: '/login?role=supplier&next=/supplier/dashboard' },
-                { title: 'Host a game', text: 'Sponsor arena rewards, racing events, treasure hunts, or coupon quests.', action: 'Plan event', tone: 'amber', icon: Gamepad2, href: '/login?role=supplier&next=/supplier/dashboard' },
+                { title: 'Run a campaign', text: 'Coordinate product drops, showroom demos, coupon offers, and launch events.', action: 'Plan', tone: 'amber', icon: Gamepad2, href: '/login?role=supplier&next=/supplier/dashboard' },
                 { title: 'Lead inbox', text: 'Review buyer conversations, quotes, sample requests, and follow-ups.', action: 'Reply', tone: 'cyan', icon: MessageSquare, href: '/login?role=supplier&next=/supplier/dashboard' },
                 { title: 'Fulfilment', text: 'Set warehouses, delivery regions, sample rules, return windows, and support contacts.', action: 'Manage', tone: 'emerald', icon: Truck, href: '/login?role=supplier&next=/supplier/dashboard' },
                 { title: 'Analytics', text: 'Monitor visits, dwell time, product focus, chat conversion, and reward redemptions.', action: 'Review', tone: 'violet', icon: BarChart3, href: '/login?role=supplier&next=/supplier/dashboard' },
@@ -430,13 +428,13 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             checklist: [
                 'Upload localized product descriptions and certifications.',
                 'Approve pavilion hero media and product hotspots.',
-                'Confirm sponsored reward budget for player quests.',
+                'Confirm campaign budget, sample stock, and approval owners.',
             ],
             revenueTitle: 'Revenue controls',
             revenue: [
                 'Set sample pricing, bulk terms, and payment milestones.',
                 'Review escrow, refund, and dispute support settings.',
-                'Track coupon redemptions from game sponsorship.',
+                'Track coupon redemptions from marketplace campaigns.',
             ],
         },
     },
@@ -595,10 +593,9 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             portal: 'Портал поставщика',
             kicker: 'Операции павильона и поставщика',
             title: 'Центр управления бизнесом',
-            subtitle: 'Управляйте фирменным павильоном, готовностью товаров, лидами покупателей и игровыми спонсорствами.',
+            subtitle: 'Управляйте фирменным павильоном, готовностью товаров, лидами покупателей и доставкой.',
             pavilionHealth: 'Состояние павильона: 92%',
             buyersOnline: 'Покупателей онлайн: 18',
-            questsLive: '2 спонсорских квеста активны',
             buyerLeads: 'Лиды покупателей',
             buyerLeadsHelper: '7 требуют ответа сегодня',
             productReadiness: 'Готовность товаров',
@@ -613,7 +610,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             operations: [
                 { title: 'Управление павильоном', text: 'Бренд, 3D-сцены, баннеры, место в холле и данные магазина.', action: 'Настроить', tone: 'emerald', icon: Store, href: '/supplier/upload' },
                 { title: 'Аренда павильона', text: 'Зона молла, срок аренды, уровень промо и дата запуска.', action: 'В портал', tone: 'sky', icon: Building2, href: '/login?role=supplier&next=/supplier/dashboard' },
-                { title: 'Провести игру', text: 'Спонсируйте награды арены, гонки, охоту за сокровищами или купоны.', action: 'Запланировать', tone: 'amber', icon: Gamepad2, href: '/login?role=supplier&next=/supplier/dashboard' },
+                { title: 'Кампания', text: 'Планируйте запуски товаров, демо в шоуруме, купоны и промо-события.', action: 'Запланировать', tone: 'amber', icon: Gamepad2, href: '/login?role=supplier&next=/supplier/dashboard' },
                 { title: 'Входящие лиды', text: 'Диалоги, КП, запросы образцов и follow-up.', action: 'Ответить', tone: 'cyan', icon: MessageSquare, href: '/login?role=supplier&next=/supplier/dashboard' },
                 { title: 'Доставка', text: 'Склады, регионы, правила образцов, возвраты и поддержка.', action: 'Управлять', tone: 'emerald', icon: Truck, href: '/login?role=supplier&next=/supplier/dashboard' },
                 { title: 'Аналитика', text: 'Визиты, фокус на товарах, конверсия чата и погашение наград.', action: 'Смотреть', tone: 'violet', icon: BarChart3, href: '/login?role=supplier&next=/supplier/dashboard' },
@@ -634,13 +631,13 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             checklist: [
                 'Загрузить локализованные описания и сертификаты.',
                 'Утвердить медиа павильона и товарные хотспоты.',
-                'Подтвердить бюджет наград для квестов игроков.',
+                'Подтвердить бюджет кампании, образцы и ответственных.',
             ],
             revenueTitle: 'Контроль выручки',
             revenue: [
                 'Настроить цены образцов, оптовые условия и этапы оплаты.',
                 'Проверить эскроу, возвраты и поддержку споров.',
-                'Отследить погашение купонов из игровых спонсорств.',
+                'Отследить погашение купонов из маркетплейс-кампаний.',
             ],
         },
     },
@@ -799,10 +796,9 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             portal: '供应商门户',
             kicker: '展馆与供应商运营',
             title: '商务控制室',
-            subtitle: '运营品牌展馆，管理商品准备度、买家线索，并赞助世界内奖励。',
+            subtitle: '运营品牌展馆，管理商品准备度、买家线索和履约。',
             pavilionHealth: '展馆健康度：92%',
             buyersOnline: '在线买家：18',
-            questsLive: '2 个赞助任务进行中',
             buyerLeads: '买家线索',
             buyerLeadsHelper: '7 个今天需回复',
             productReadiness: '商品准备度',
@@ -817,7 +813,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             operations: [
                 { title: '展馆管理', text: '配置展厅身份、3D 场景、横幅、楼层位置和店铺信息。', action: '配置', tone: 'emerald', icon: Store, href: '/supplier/upload' },
                 { title: '租赁展馆', text: '选择商场区域、租期、推广级别和上线日期。', action: '打开门户', tone: 'sky', icon: Building2, href: '/login?role=supplier&next=/supplier/dashboard' },
-                { title: '举办游戏', text: '赞助竞技场奖励、赛车活动、寻宝或优惠券任务。', action: '计划', tone: 'amber', icon: Gamepad2, href: '/login?role=supplier&next=/supplier/dashboard' },
+                { title: '营销活动', text: '安排商品发布、展厅演示、优惠券和上线活动。', action: '计划', tone: 'amber', icon: Gamepad2, href: '/login?role=supplier&next=/supplier/dashboard' },
                 { title: '线索收件箱', text: '查看买家对话、报价、样品请求和跟进。', action: '回复', tone: 'cyan', icon: MessageSquare, href: '/login?role=supplier&next=/supplier/dashboard' },
                 { title: '履约', text: '设置仓库、配送区域、样品规则、退货窗口和支持联系人。', action: '管理', tone: 'emerald', icon: Truck, href: '/login?role=supplier&next=/supplier/dashboard' },
                 { title: '分析', text: '监控访问、停留、商品关注、聊天转化和奖励兑换。', action: '查看', tone: 'violet', icon: BarChart3, href: '/login?role=supplier&next=/supplier/dashboard' },
@@ -838,13 +834,13 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             checklist: [
                 '上传本地化商品描述和认证。',
                 '批准展馆主视觉和商品热点。',
-                '确认玩家任务赞助奖励预算。',
+                '确认活动预算、样品库存和审批负责人。',
             ],
             revenueTitle: '收入控制',
             revenue: [
                 '设置样品价格、批量条款和付款节点。',
                 '审核托管支付、退款和争议支持设置。',
-                '跟踪游戏赞助优惠券兑换。',
+                '跟踪市场活动中的优惠券兑换。',
             ],
         },
     },
@@ -1628,8 +1624,6 @@ export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
                         <MetricCard title={copy.shopper.protection} value={copy.shopper.protectionValue} helper={copy.shopper.protectionHelper} icon={ShieldCheck} tone="sky" />
                     </div>
 
-                    <QuestPanel role="shopper" progress={bridge.questProgress} language={language} />
-
                     <section className={`${panel} p-3`}>
                         <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
@@ -1660,14 +1654,13 @@ export function ShopperDashboard({ bridge = fallback }: DashboardProps) {
                     <VisualPanel src="/visuals/shopper-market.svg" alt="Sfera Hall shopper map" title={copy.shopper.mapTitle} markers={copy.shopper.markers} />
                     <ListPanel title={copy.shopper.messagesTitle} icon={MessageSquare} tone="cyan" items={copy.shopper.messages} />
                     <ListPanel title={copy.shopper.dealsTitle} icon={Gift} tone="amber" items={copy.shopper.deals} />
-                    <RewardPanel rewards={bridge.questRewards} language={language} />
                 </aside>
             </div>
         </DashboardFrame>
     );
 }
 
-export function SupplierDashboard({ bridge = fallback }: DashboardProps) {
+export function SupplierDashboard() {
     const { language } = useLanguage();
     const copy = dashboardCopy[language];
 
@@ -1698,7 +1691,6 @@ export function SupplierDashboard({ bridge = fallback }: DashboardProps) {
                         <div className="mt-4 flex flex-wrap gap-3">
                             <StatusPill tone="emerald">{copy.business.pavilionHealth}</StatusPill>
                             <StatusPill tone="cyan">{copy.business.buyersOnline}</StatusPill>
-                            <StatusPill tone="amber">{copy.business.questsLive}</StatusPill>
                         </div>
                     </DashboardHero>
 
@@ -1708,8 +1700,6 @@ export function SupplierDashboard({ bridge = fallback }: DashboardProps) {
                         <MetricCard title={copy.business.quotePipeline} value="$42K" helper={copy.business.quotePipelineHelper} icon={CircleDollarSign} tone="amber" />
                         <MetricCard title={copy.business.pavilionRoi} value="3.8x" helper={copy.business.pavilionRoiHelper} icon={LineChart} tone="sky" />
                     </div>
-
-                    <QuestPanel role="business" progress={bridge.questProgress} language={language} />
 
                     <section className={`${panel} p-3`}>
                         <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1735,7 +1725,6 @@ export function SupplierDashboard({ bridge = fallback }: DashboardProps) {
                     <ListPanel title={copy.business.pipelineTitle} icon={PackageCheck} tone="emerald" items={copy.business.pipeline} />
                     <ListPanel title={copy.business.checklistTitle} icon={CalendarCheck} tone="cyan" items={copy.business.checklist} />
                     <ListPanel title={copy.business.revenueTitle} icon={CreditCard} tone="amber" items={copy.business.revenue} />
-                    <RewardPanel rewards={bridge.questRewards} language={language} />
                 </aside>
             </div>
         </DashboardFrame>

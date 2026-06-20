@@ -1393,16 +1393,16 @@ export default function ExperiencePage() {
           : fastViewLaunch.loadingBody;
     const requestedSceneMode = searchParams.get('mode');
     const isPlayerSceneRequested = requestedSceneMode === 'player' || requestedSceneMode === 'gamer';
-    const isPlayerScene =
+    const isGamerScene =
         isPlayerSceneRequested ||
         unrealBridge.currentMode === 'player' ||
-        Boolean(viewerEmail && viewerRole !== 'supplier');
-    const shouldShowSupplierLogin = !viewerEmail && !isPlayerScene;
+        unrealBridge.currentGame === 'ZombieArena';
+    const shouldShowSupplierLogin = !viewerEmail && !isGamerScene;
     const activeSceneDashboard: SceneDashboardOverlay =
-        viewerRole === 'supplier'
-            ? 'business'
-            : isPlayerScene
-              ? 'player'
+        isGamerScene
+            ? 'player'
+            : viewerRole === 'supplier'
+              ? 'business'
               : 'shopper';
     const activeSceneDashboardLabel =
         activeSceneDashboard === 'business'
@@ -1930,24 +1930,20 @@ export default function ExperiencePage() {
     };
 
     const activeSceneQuest = useMemo(() => {
-        const preferredRole = unrealBridge.currentMode === 'player' ? 'player' : 'shopper';
+        const isPlayerQuestContext =
+            unrealBridge.currentMode === 'player' ||
+            unrealBridge.currentGame === 'ZombieArena';
+        if (!isPlayerQuestContext) return null;
 
         for (const progress of unrealBridge.questProgress) {
             const quest = getQuestDefinition(progress.questId);
-            if (quest?.role === preferredRole && progress.status === 'active') {
-                return { progress, quest };
-            }
-        }
-
-        for (const progress of unrealBridge.questProgress) {
-            const quest = getQuestDefinition(progress.questId);
-            if (quest && progress.status === 'active') {
+            if (quest?.role === 'player' && progress.status === 'active') {
                 return { progress, quest };
             }
         }
 
         return null;
-    }, [unrealBridge.currentMode, unrealBridge.questProgress]);
+    }, [unrealBridge.currentGame, unrealBridge.currentMode, unrealBridge.questProgress]);
     const activeSceneQuestText = activeSceneQuest ? getQuestText(activeSceneQuest.quest, language) : null;
     const activeSceneQuestPercent = activeSceneQuest ? getQuestCompletionPercent(activeSceneQuest.progress) : 0;
     const activeSceneQuestNextObjective = activeSceneQuest
@@ -2616,7 +2612,7 @@ export default function ExperiencePage() {
                             <div className="mx-auto max-w-7xl pb-8">
                                 {dashboardOverlay === 'player' && <GamerDashboard bridge={unrealBridge} />}
                                 {dashboardOverlay === 'shopper' && <ShopperDashboard bridge={unrealBridge} />}
-                                {dashboardOverlay === 'business' && <SupplierDashboard bridge={unrealBridge} />}
+                                {dashboardOverlay === 'business' && <SupplierDashboard />}
                             </div>
                         </div>
                     )}
