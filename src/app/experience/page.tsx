@@ -1048,13 +1048,9 @@ export default function ExperiencePage() {
         }
         if (hasAppliedInitialModeRef.current && unrealBridge.currentMode === targetMode) return;
 
-        const shouldSendToggleKey = unrealBridge.currentMode !== targetMode;
         hasAppliedInitialModeRef.current = true;
         sendUnrealUiInteraction({ type: 'set_mode', mode: targetMode });
         sendUnrealUiInteraction({ event: 'mode_changed', mode: targetMode });
-        if (shouldSendToggleKey) {
-            sendUnrealKeyPress(71);
-        }
         unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: targetMode }));
     }, [hasStartedExperience, isFastViewRoute, searchParams, unrealBridge]);
 
@@ -1418,6 +1414,22 @@ export default function ExperiencePage() {
         activeSceneDashboard === 'player' &&
         !viewerEmail &&
         !isViewerSessionLoading;
+    const isPlayerModeAccessDenied =
+        Boolean(unrealBridge.accessDeniedMessage) &&
+        unrealBridge.lastUnrealEvent?.event === 'game_access_denied';
+    const shouldShowPlayerModePrompt =
+        isPlayerModeAccessDenied &&
+        !isPlayerModePromptDismissed &&
+        effectiveSceneMode !== 'player';
+
+    useEffect(() => {
+        if (!isPlayerModeAccessDenied || effectiveSceneMode !== 'player') return;
+
+        sendUnrealUiInteraction({ type: 'set_mode', mode: 'player' });
+        sendUnrealUiInteraction({ event: 'mode_changed', mode: 'player' });
+        unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: 'player' }));
+        setIsPlayerModePromptDismissed(true);
+    }, [effectiveSceneMode, isPlayerModeAccessDenied, unrealBridge]);
 
     useEffect(() => {
         liveActivityRemovalTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
@@ -2354,7 +2366,7 @@ export default function ExperiencePage() {
                     />
 
                     <MarketplaceCrosshair />
-                    {unrealBridge.accessDeniedMessage && !isPlayerModePromptDismissed && (
+                    {shouldShowPlayerModePrompt && (
                         <div className="absolute left-1/2 top-1/2 z-[70] w-[min(calc(100vw-2rem),26rem)] -translate-x-1/2 -translate-y-1/2 pointer-events-auto" role="dialog" aria-live="assertive" aria-label={sceneHud.playerModeRequired}>
                             <div className="rounded-3xl border border-amber-300/35 bg-slate-950/90 p-5 text-white shadow-[0_30px_90px_rgba(0,0,0,0.55)] backdrop-blur-xl">
                                 <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-200">{sceneHud.playerModeRequired}</p>
