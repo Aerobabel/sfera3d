@@ -897,6 +897,14 @@ const clampPercent = (value: number) => Math.max(0, Math.min(100, Math.round(val
 const questDashboardCopy: Record<AppLanguage, {
     activeQuests: string;
     rewardWallet: string;
+    rewardTerminal: string;
+    terminalSubtitle: string;
+    withdrawalTitle: string;
+    withdrawalMessage: string;
+    giftCodeTitle: string;
+    giftCodeMessage: string;
+    unavailable: string;
+    pending: string;
     noQuests: string;
     noRewards: string;
     complete: string;
@@ -908,6 +916,14 @@ const questDashboardCopy: Record<AppLanguage, {
     en: {
         activeQuests: 'Active quests',
         rewardWallet: 'Reward wallet',
+        rewardTerminal: 'Reward ATM',
+        terminalSubtitle: 'Cash-out is visible as a roadmap feature, not an active promise.',
+        withdrawalTitle: 'Withdrawal unavailable',
+        withdrawalMessage: 'We are working on the conditions and rules for safe reward withdrawals. Withdrawals are not available yet.',
+        giftCodeTitle: 'Game gift codes',
+        giftCodeMessage: 'Gift codes for Steam or other game stores can be issued after partner/code inventory is connected.',
+        unavailable: 'Unavailable',
+        pending: 'Pending',
         noQuests: 'No active quests for this role yet.',
         noRewards: 'Rewards will appear here after quest completion.',
         complete: 'Complete',
@@ -919,6 +935,14 @@ const questDashboardCopy: Record<AppLanguage, {
     ru: {
         activeQuests: 'Активные квесты',
         rewardWallet: 'Кошелек наград',
+        rewardTerminal: 'Банкомат наград',
+        terminalSubtitle: 'Вывод показан как будущая функция, а не как активное обещание.',
+        withdrawalTitle: 'Вывод средств недоступен',
+        withdrawalMessage: 'Мы работаем над тем, чтобы создать условия для безопасного вывода наград. Сейчас вывод средств недоступен.',
+        giftCodeTitle: 'Подарочные коды на игры',
+        giftCodeMessage: 'Коды Steam или других игровых площадок можно будет выдавать после подключения партнерской программы или склада кодов.',
+        unavailable: 'Недоступно',
+        pending: 'В работе',
         noQuests: 'Для этой роли пока нет активных квестов.',
         noRewards: 'Награды появятся здесь после завершения квестов.',
         complete: 'Готово',
@@ -930,6 +954,14 @@ const questDashboardCopy: Record<AppLanguage, {
     zh: {
         activeQuests: '进行中的任务',
         rewardWallet: '奖励钱包',
+        rewardTerminal: '奖励 ATM',
+        terminalSubtitle: '提现作为路线图功能展示，并非当前承诺。',
+        withdrawalTitle: '提现暂不可用',
+        withdrawalMessage: '我们正在制定安全提现奖励的条件和规则。当前暂不支持提现。',
+        giftCodeTitle: '游戏礼品码',
+        giftCodeMessage: '接入合作伙伴或礼品码库存后，可发放 Steam 或其他游戏平台代码。',
+        unavailable: '不可用',
+        pending: '待接入',
         noQuests: '此角色暂无进行中的任务。',
         noRewards: '完成任务后奖励会显示在这里。',
         complete: '已完成',
@@ -1266,9 +1298,12 @@ function RewardPanel({
                                     <div>
                                         <p className="text-sm font-black text-white">{getQuestRewardText(reward, reward.questId, language)}</p>
                                         <p className="mt-1 text-xs text-slate-400">{questText?.title ?? reward.questId}</p>
+                                        {reward.kind === 'gift_code' && (
+                                            <p className="mt-2 text-xs leading-5 text-amber-100/80">{copy.giftCodeMessage}</p>
+                                        )}
                                     </div>
                                     <span className="rounded-full border border-amber-300/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-100">
-                                        {reward.status === 'claimed' ? copy.claimed : copy.complete}
+                                        {reward.kind === 'gift_code' ? copy.pending : reward.status === 'claimed' ? copy.claimed : copy.complete}
                                     </span>
                                 </div>
                             </div>
@@ -1276,6 +1311,57 @@ function RewardPanel({
                     })}
                 </div>
             )}
+        </section>
+    );
+}
+
+function RewardTerminalPanel({
+    rewards,
+    language,
+}: {
+    rewards: QuestRewardState[];
+    language: AppLanguage;
+}) {
+    const copy = questDashboardCopy[language];
+
+    return (
+        <section className={`${panel} p-3`}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                    <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">{copy.rewardTerminal}</h2>
+                    <p className="mt-1 text-sm leading-5 text-slate-500">{copy.terminalSubtitle}</p>
+                </div>
+                <span className={`flex h-8 w-8 items-center justify-center rounded-lg border ${toneStyles.cyan.icon}`}>
+                    <WalletCards className="h-4 w-4" />
+                </span>
+            </div>
+
+            <div className="grid gap-2">
+                <article className="rounded-lg border border-rose-300/15 bg-rose-300/[0.055] p-3">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <p className="font-black text-white">{copy.withdrawalTitle}</p>
+                            <p className="mt-1 text-xs leading-5 text-slate-400">{copy.withdrawalMessage}</p>
+                        </div>
+                        <span className="shrink-0 rounded-full border border-rose-300/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-rose-100">
+                            {copy.unavailable}
+                        </span>
+                    </div>
+                </article>
+
+                <article className="rounded-lg border border-amber-300/15 bg-amber-300/[0.055] p-3">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <p className="font-black text-white">{copy.giftCodeTitle}</p>
+                            <p className="mt-1 text-xs leading-5 text-slate-400">{copy.giftCodeMessage}</p>
+                            <p className="mt-2 text-[11px] font-bold text-amber-100/80">{rewards.length} {copy.reward.toLowerCase()}</p>
+                        </div>
+                        <span className="shrink-0 rounded-full border border-amber-300/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-100">
+                            {copy.pending}
+                        </span>
+                    </div>
+                </article>
+            </div>
         </section>
     );
 }
@@ -1569,6 +1655,7 @@ export function GamerDashboard({ bridge = fallback, embedded = false }: Dashboar
                 <aside className={dashboardSideGrid}>
                     <ListPanel title={copy.player.recentTitle} icon={Clock3} tone="sky" items={activityItems.slice(0, 5)} />
                     <RewardPanel rewards={bridge.questRewards} language={language} />
+                    <RewardTerminalPanel rewards={bridge.questRewards} language={language} />
                     <VisualPanel src="/visuals/shopper-market.svg" alt="3DSFERA city overview map" title={copy.player.cityOverview} markers={copy.player.markers} />
                     <section className={`${panel} p-3`}>
                         <div className="flex items-center gap-4">

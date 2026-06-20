@@ -3,7 +3,7 @@
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, Send, Menu, X, Monitor, Play, Volume2 } from "lucide-react";
+import { Activity, Gift, Send, Menu, X, Monitor, Play, Volume2, WalletCards } from "lucide-react";
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
@@ -219,6 +219,15 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
     quest: string;
     nextObjective: string;
     reward: string;
+    questComplete: string;
+    earnedReward: string;
+    rewardTerminal: string;
+    openTerminal: string;
+    withdrawalUnavailable: string;
+    withdrawalMessage: string;
+    giftCodePending: string;
+    giftCodeMessage: string;
+    unavailable: string;
     locations: Record<string, string>;
 }> = {
     en: {
@@ -247,6 +256,15 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         quest: 'Active quest',
         nextObjective: 'Next objective',
         reward: 'Reward',
+        questComplete: 'Quest complete',
+        earnedReward: 'Earned reward',
+        rewardTerminal: 'Reward ATM',
+        openTerminal: 'Open terminal',
+        withdrawalUnavailable: 'Withdrawal unavailable',
+        withdrawalMessage: 'We are working on the conditions and rules for safe reward withdrawals. Withdrawals are not available yet.',
+        giftCodePending: 'Game gift codes pending',
+        giftCodeMessage: 'Steam or other game-store codes can be issued after partner/code inventory is connected.',
+        unavailable: 'Unavailable',
         locations: {
             city: 'City',
             sferaHall: 'Sfera Hall',
@@ -280,6 +298,15 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         quest: 'Активный квест',
         nextObjective: 'Следующая цель',
         reward: 'Награда',
+        questComplete: 'Квест завершен',
+        earnedReward: 'Получена награда',
+        rewardTerminal: 'Банкомат наград',
+        openTerminal: 'Открыть терминал',
+        withdrawalUnavailable: 'Вывод средств недоступен',
+        withdrawalMessage: 'Мы работаем над тем, чтобы создать условия для безопасного вывода наград. Сейчас вывод средств недоступен.',
+        giftCodePending: 'Подарочные коды в работе',
+        giftCodeMessage: 'Коды Steam или других игровых площадок можно будет выдавать после подключения партнерской программы или склада кодов.',
+        unavailable: 'Недоступно',
         locations: {
             city: 'Город',
             sferaHall: 'Sfera Hall',
@@ -313,6 +340,15 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         quest: '进行中的任务',
         nextObjective: '下一目标',
         reward: '奖励',
+        questComplete: '任务完成',
+        earnedReward: '已获得奖励',
+        rewardTerminal: '奖励 ATM',
+        openTerminal: '打开终端',
+        withdrawalUnavailable: '提现暂不可用',
+        withdrawalMessage: '我们正在制定安全提现奖励的条件和规则。当前暂不支持提现。',
+        giftCodePending: '游戏礼品码待接入',
+        giftCodeMessage: '接入合作伙伴或礼品码库存后，可发放 Steam 或其他游戏平台代码。',
+        unavailable: '不可用',
         locations: {
             city: '城市',
             sferaHall: 'Sfera Hall',
@@ -1012,6 +1048,8 @@ export default function ExperiencePage() {
 
     // Pavilion Exposition State — opened when Unreal sends `entered_pavilion:<id>`.
     const [activePavilion, setActivePavilion] = useState<PavilionInfo | null>(null);
+    const [isRewardTerminalOpen, setIsRewardTerminalOpen] = useState(false);
+    const [seenRewardTerminalRewardId, setSeenRewardTerminalRewardId] = useState<string | null>(null);
     const localizedActiveProduct = useMemo(
         () => (activeProduct ? getLocalizedProduct(activeProduct, language) : null),
         [activeProduct, language]
@@ -1379,6 +1417,7 @@ export default function ExperiencePage() {
         !isCatalogueOpen &&
         !isChatPanelOpen &&
         !isMenuOpen &&
+        !isRewardTerminalOpen &&
         !isStreamPixelOpen;
     const canEnterFastView = Boolean(videoElement) && !fastViewError;
     const fastViewLaunchTitle = fastViewError
@@ -1963,6 +2002,22 @@ export default function ExperiencePage() {
         : null;
     const sceneLocationLabel = sceneHud.locations[unrealBridge.currentLocation] ?? unrealBridge.currentLocation;
     const zombieCoinsPreview = unrealBridge.zombieCoins || Math.floor(unrealBridge.zombieScore / GAME_RULES.zombieArena.zombieKillPoints) * GAME_RULES.zombieArena.coinsPerKill;
+    const latestPlayerReward = useMemo(
+        () => [...unrealBridge.questRewards]
+            .reverse()
+            .find((reward) => getQuestDefinition(reward.questId)?.role === 'player') ?? null,
+        [unrealBridge.questRewards]
+    );
+    const latestPlayerRewardQuest = latestPlayerReward ? getQuestDefinition(latestPlayerReward.questId) : null;
+    const latestPlayerRewardQuestText = latestPlayerRewardQuest ? getQuestText(latestPlayerRewardQuest, language) : null;
+
+    useEffect(() => {
+        if (!hasStartedExperience || !isGamerScene || !latestPlayerReward) return;
+        if (seenRewardTerminalRewardId === latestPlayerReward.id) return;
+
+        setSeenRewardTerminalRewardId(latestPlayerReward.id);
+        setIsRewardTerminalOpen(true);
+    }, [hasStartedExperience, isGamerScene, latestPlayerReward, seenRewardTerminalRewardId]);
 
     const handleClosePavilionExposition = useCallback(() => {
         _suppressProductSelectionUntil = Date.now() + 3000;
@@ -2493,6 +2548,25 @@ export default function ExperiencePage() {
                                     </div>
                                 </div>
                             )}
+                            {latestPlayerReward && latestPlayerRewardQuestText && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsRewardTerminalOpen(true)}
+                                    className="mt-2 flex w-[min(92vw,22rem)] items-center gap-3 rounded-xl border border-emerald-300/24 bg-[#03100d]/72 px-3 py-2.5 text-left text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.32)] backdrop-blur-md transition hover:border-emerald-200/45 hover:bg-emerald-300/[0.08]"
+                                >
+                                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-emerald-300/24 bg-emerald-300/10 text-emerald-100">
+                                        <Gift className="h-4 w-4" />
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100">{sceneHud.questComplete}</span>
+                                        <span className="mt-0.5 block truncate text-sm font-black text-white">{getQuestRewardText(latestPlayerReward, latestPlayerReward.questId, language)}</span>
+                                        <span className="mt-0.5 block truncate text-[11px] text-slate-400">{latestPlayerRewardQuestText.title}</span>
+                                    </span>
+                                    <span className="shrink-0 rounded-full border border-emerald-300/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-100">
+                                        {sceneHud.openTerminal}
+                                    </span>
+                                </button>
+                            )}
                             {showLiveActivityToasts && (
                                 <div className="mt-2 flex w-[min(92vw,22rem)] flex-col gap-1.5" aria-live="polite">
                                     {liveActivityToasts.map((toast, index) => (
@@ -2627,6 +2701,63 @@ export default function ExperiencePage() {
                                 {dashboardOverlay === 'shopper' && <ShopperDashboard embedded bridge={unrealBridge} />}
                                 {dashboardOverlay === 'business' && <SupplierDashboard embedded />}
                             </div>
+                        </div>
+                    )}
+
+                    {isRewardTerminalOpen && latestPlayerReward && (
+                        <div className="absolute inset-0 z-[90] grid place-items-center bg-[#02060b]/72 p-4 text-white backdrop-blur-sm pointer-events-auto" role="dialog" aria-modal="true" aria-label={sceneHud.rewardTerminal}>
+                            <section className="relative w-[min(100%,32rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#0a1018]/96 shadow-[0_34px_120px_rgba(0,0,0,0.55)]">
+                                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,rgba(102,217,203,0.18),transparent_34%),radial-gradient(circle_at_12%_100%,rgba(245,199,102,0.16),transparent_30%)]" />
+                                <div className="relative border-b border-white/10 p-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsRewardTerminalOpen(false)}
+                                        className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/25 text-slate-300 transition hover:border-white/25 hover:text-white"
+                                        aria-label={cutsceneCopy.closeMenu}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                    <div className="flex items-center gap-3 pr-10">
+                                        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-100">
+                                            <WalletCards className="h-5 w-5" />
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100">{sceneHud.rewardTerminal}</p>
+                                            <h2 className="mt-1 text-xl font-black leading-tight text-white">{sceneHud.earnedReward}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="relative grid gap-3 p-4">
+                                    <div className="rounded-xl border border-emerald-300/16 bg-emerald-300/[0.06] p-3">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100">{sceneHud.questComplete}</p>
+                                        <p className="mt-1 text-base font-black text-white">{getQuestRewardText(latestPlayerReward, latestPlayerReward.questId, language)}</p>
+                                        <p className="mt-1 text-sm text-slate-400">{latestPlayerRewardQuestText?.title ?? latestPlayerReward.questId}</p>
+                                    </div>
+
+                                    <div className="rounded-xl border border-rose-300/16 bg-rose-300/[0.055] p-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="font-black text-white">{sceneHud.withdrawalUnavailable}</p>
+                                                <p className="mt-1 text-sm leading-6 text-slate-300">{sceneHud.withdrawalMessage}</p>
+                                            </div>
+                                            <span className="shrink-0 rounded-full border border-rose-300/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-rose-100">
+                                                {sceneHud.unavailable}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-xl border border-amber-300/16 bg-amber-300/[0.055] p-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="font-black text-white">{sceneHud.giftCodePending}</p>
+                                                <p className="mt-1 text-sm leading-6 text-slate-300">{sceneHud.giftCodeMessage}</p>
+                                            </div>
+                                            <Gift className="h-5 w-5 shrink-0 text-amber-100" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
                         </div>
                     )}
 

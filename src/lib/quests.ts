@@ -4,7 +4,7 @@ export type QuestRole = 'player' | 'shopper' | 'business';
 
 export type QuestStatus = 'active' | 'completed' | 'claimed';
 
-export type QuestRewardKind = 'coins' | 'coupon' | 'badge' | 'sample' | 'lead_boost';
+export type QuestRewardKind = 'coins' | 'coupon' | 'badge' | 'sample' | 'lead_boost' | 'gift_code';
 
 export type QuestEventInput = {
     event: string;
@@ -222,12 +222,12 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
             },
         ],
         reward: {
-            kind: 'badge',
-            value: 'city_hunter',
+            kind: 'gift_code',
+            value: 'GAME_GIFT_PENDING',
             label: {
-                en: 'City Hunter badge',
-                ru: 'Бейдж City Hunter',
-                zh: '城市猎人徽章',
+                en: 'Game gift code reservation',
+                ru: 'Резерв подарочного кода на игру',
+                zh: '游戏礼品码预留',
             },
         },
     },
