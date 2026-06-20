@@ -8,6 +8,7 @@
 // Localised via useLanguage().
 
 import { ArrowDown, Mouse, MousePointer2, Space } from 'lucide-react';
+import BrandLogo from '@/components/BrandLogo';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import type { AppLanguage } from '@/lib/i18n';
 
@@ -139,15 +140,8 @@ export default function WelcomeControls({ progress = null, title, subtitle }: We
     return (
         <div className="relative flex flex-col gap-5">
             {/* Animated hero */}
-            <div className="relative flex items-center gap-4">
-                <div className="relative h-14 w-14 shrink-0">
-                    {/* Orbit rings */}
-                    <span className="absolute inset-0 rounded-2xl border border-[#66d9cb]/40 animate-[ping_2.4s_cubic-bezier(0,0,0.2,1)_infinite]" />
-                    <span className="absolute inset-1 rounded-xl border border-[#66d9cb]/60" />
-                    <span className="absolute inset-0 rounded-2xl bg-[#66d9cb]/10 shadow-[0_0_40px_rgba(102,217,203,0.35)]" />
-                    {/* Core */}
-                    <span className="absolute inset-[30%] rounded-full bg-[#66d9cb] shadow-[0_0_20px_rgba(102,217,203,0.8)] animate-pulse" />
-                </div>
+            <div className="relative flex flex-col gap-4">
+                <BrandLogo size="sm" imageClassName="h-10 w-[9.5rem]" />
                 <div className="min-w-0">
                     <h3 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">
                         {title ?? copy.heading}
