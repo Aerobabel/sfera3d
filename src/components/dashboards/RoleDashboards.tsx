@@ -112,6 +112,9 @@ type DashboardText = {
         kicker: string;
         title: string;
         subtitle: string;
+        startTitle: string;
+        startSub: string;
+        startSteps: string[];
         level: string;
         playerId: string;
         xp: string;
@@ -255,9 +258,12 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             playNow: 'Play now',
             mode: 'Player role',
             signed: 'Signed player dashboard',
-            kicker: 'Live player operations',
-            title: 'Player command center',
-            subtitle: 'Track quests, rewards, delivery, messages, and game access from one polished player workspace.',
+            kicker: 'Your player path',
+            title: 'Play, finish quests, unlock rewards',
+            subtitle: 'Start in the city, visit Sfera Hall, enter Zombie Arena, then open the Reward ATM after the quest is complete.',
+            startTitle: 'Start here',
+            startSub: 'This is the simplest path for a new player.',
+            startSteps: ['Visit Sfera Hall', 'Enter Zombie Arena', 'Complete the quest', 'Open Reward ATM'],
             level: 'Level 24',
             playerId: 'Player ID',
             xp: 'XP',
@@ -277,8 +283,8 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             rewards: 'Rewards earned',
             rewardsHelper: 'Coupons, gifts, and drops',
             threat: 'Threat level',
-            zonesTitle: 'Playable zones',
-            zonesSub: 'Game access, reward rules, and risk level for this player.',
+            zonesTitle: 'Where to go next',
+            zonesSub: 'Use these areas when you are ready to continue playing.',
             zones: [
                 { title: 'Zombie Arena', text: 'Survive waves, build combo streaks, and convert points into coin rewards.', action: 'Start run', tone: 'rose', icon: Gamepad2 },
                 { title: 'Racing Zone', text: 'Compete in timed city circuits with sponsored weekly prize pools.', action: 'Queue race', tone: 'cyan', icon: Activity },
@@ -458,9 +464,12 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             playNow: 'Играть',
             mode: 'Роль игрока',
             signed: 'Личный кабинет игрока',
-            kicker: 'Операции игрока в реальном времени',
-            title: 'Центр игрока',
-            subtitle: 'Квесты, награды, доставка, сообщения и доступ к играм в одной аккуратной панели.',
+            kicker: 'Путь игрока',
+            title: 'Играйте, выполняйте квесты, открывайте награды',
+            subtitle: 'Начните в городе, посетите Sfera Hall, войдите в Zombie Arena, затем откройте банкомат наград после завершения квеста.',
+            startTitle: 'Начните здесь',
+            startSub: 'Самый простой путь для нового игрока.',
+            startSteps: ['Посетить Sfera Hall', 'Войти в Zombie Arena', 'Завершить квест', 'Открыть банкомат наград'],
             level: 'Уровень 24',
             playerId: 'ID игрока',
             xp: 'XP',
@@ -480,8 +489,8 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             rewards: 'Получено наград',
             rewardsHelper: 'Купоны, подарки и дропы',
             threat: 'Уровень угрозы',
-            zonesTitle: 'Игровые зоны',
-            zonesSub: 'Доступ к играм, правила наград и уровень риска для игрока.',
+            zonesTitle: 'Куда идти дальше',
+            zonesSub: 'Используйте эти зоны, когда будете готовы продолжить игру.',
             zones: [
                 { title: 'Zombie Arena', text: 'Выживайте в волнах, набирайте комбо и переводите очки в монеты.', action: 'Начать', tone: 'rose', icon: Gamepad2 },
                 { title: 'Racing Zone', text: 'Соревнуйтесь в городских заездах с призами от спонсоров.', action: 'В гонку', tone: 'cyan', icon: Activity },
@@ -661,9 +670,12 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             playNow: '开始游戏',
             mode: '玩家角色',
             signed: '玩家登录仪表盘',
-            kicker: '实时玩家运营',
-            title: '玩家控制中心',
-            subtitle: '在一个清晰的玩家工作区中管理任务、奖励、配送、消息和游戏入口。',
+            kicker: '玩家路径',
+            title: '游玩、完成任务、解锁奖励',
+            subtitle: '从城市开始，访问 Sfera Hall，进入 Zombie Arena，任务完成后打开奖励 ATM。',
+            startTitle: '从这里开始',
+            startSub: '这是新玩家最简单的路径。',
+            startSteps: ['访问 Sfera Hall', '进入 Zombie Arena', '完成任务', '打开奖励 ATM'],
             level: '等级 24',
             playerId: '玩家 ID',
             xp: '经验',
@@ -683,8 +695,8 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             rewards: '已获得奖励',
             rewardsHelper: '优惠券、礼物和掉落',
             threat: '威胁等级',
-            zonesTitle: '可玩区域',
-            zonesSub: '此玩家的游戏入口、奖励规则和风险等级。',
+            zonesTitle: '下一步去哪',
+            zonesSub: '准备继续游玩时使用这些区域。',
             zones: [
                 { title: 'Zombie Arena', text: '抵御尸潮，累积连击，并把积分兑换为金币奖励。', action: '开始', tone: 'rose', icon: Gamepad2 },
                 { title: 'Racing Zone', text: '参加城市计时赛，赢取每周赞助奖池。', action: '排队', tone: 'cyan', icon: Activity },
@@ -1267,6 +1279,32 @@ function QuestPanel({
     );
 }
 
+function PlayerStartGuidePanel({ copy }: { copy: DashboardText['player'] }) {
+    return (
+        <section className={`${panel} sfera-guide-enter p-3`}>
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">{copy.startTitle}</h2>
+                    <p className="mt-1 text-sm text-slate-500">{copy.startSub}</p>
+                </div>
+                <span className={`flex h-8 w-8 items-center justify-center rounded-lg border ${toneStyles.cyan.icon}`}>
+                    <Map className="h-4 w-4" />
+                </span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                {copy.startSteps.map((step, index) => (
+                    <div key={step} className={`${compactPanel} flex min-w-0 items-center gap-3 p-3`}>
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-cyan-300/20 bg-cyan-300/10 text-xs font-black text-cyan-100">
+                            {index + 1}
+                        </span>
+                        <p className="min-w-0 text-sm font-bold leading-5 text-slate-200">{step}</p>
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+}
+
 function RewardPanel({
     rewards,
     language,
@@ -1626,6 +1664,7 @@ export function GamerDashboard({ bridge = fallback, embedded = false }: Dashboar
                         <MetricCard title={copy.player.threat} value={String(bridge.zombieThreatLevel)} helper={bridge.zombieRank} icon={Zap} tone="rose" />
                     </div>
 
+                    <PlayerStartGuidePanel copy={copy.player} />
                     <QuestPanel role="player" progress={bridge.questProgress} language={language} />
 
                     <section className={`${panel} p-3`}>

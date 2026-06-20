@@ -72,16 +72,27 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
         role: 'player',
         sponsor: '3DSFERA Arena',
         title: {
-            en: 'Arena Trial',
-            ru: 'Испытание арены',
-            zh: '竞技场试炼',
+            en: 'First Reward Run',
+            ru: 'Первый забег за наградой',
+            zh: '首次奖励挑战',
         },
         description: {
-            en: 'Switch to Player Mode, enter Zombie Arena, and clear your first wave.',
-            ru: 'Переключитесь в режим игрока, войдите в Zombie Arena и очистите первую волну.',
-            zh: '切换到玩家模式，进入 Zombie Arena，并清理第一波敌人。',
+            en: 'Visit Sfera Hall, switch to Player Mode, enter Zombie Arena, and clear your first wave to unlock a reward.',
+            ru: 'Посетите Sfera Hall, переключитесь в режим игрока, войдите в Zombie Arena и очистите первую волну, чтобы открыть награду.',
+            zh: '先访问 Sfera Hall，切换到玩家模式，进入 Zombie Arena，并清理第一波敌人以解锁奖励。',
         },
         objectives: [
+            {
+                id: 'visit_sfera_hall',
+                event: 'portal_entered',
+                count: 1,
+                match: { portal: 'SferaHall' },
+                label: {
+                    en: 'Visit Sfera Hall',
+                    ru: 'Посетить Sfera Hall',
+                    zh: '访问 Sfera Hall',
+                },
+            },
             {
                 id: 'switch_player',
                 event: 'mode_changed',

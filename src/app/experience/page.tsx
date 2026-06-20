@@ -35,6 +35,7 @@ import {
     getQuestText,
     type QuestEventInput,
 } from "@/lib/quests";
+import { playSferaUiSound } from "@/lib/ui/sound";
 
 type MobileInputMode = 'joystick' | 'touch';
 type ToStreamerHandler = (messageData?: Array<number | string>) => void;
@@ -228,6 +229,9 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
     giftCodePending: string;
     giftCodeMessage: string;
     unavailable: string;
+    guideTitle: string;
+    guideBody: string;
+    guideSteps: readonly [string, string, string];
     locations: Record<string, string>;
 }> = {
     en: {
@@ -265,6 +269,9 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         giftCodePending: 'Game gift codes pending',
         giftCodeMessage: 'Steam or other game-store codes can be issued after partner/code inventory is connected.',
         unavailable: 'Unavailable',
+        guideTitle: 'What to do now',
+        guideBody: 'You are in a 3D city. Follow the quest: visit Sfera Hall, enter Zombie Arena, then claim the reward.',
+        guideSteps: ['Visit Sfera Hall', 'Enter Zombie Arena', 'Claim reward'],
         locations: {
             city: 'City',
             sferaHall: 'Sfera Hall',
@@ -307,6 +314,9 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         giftCodePending: 'Подарочные коды в работе',
         giftCodeMessage: 'Коды Steam или других игровых площадок можно будет выдавать после подключения партнерской программы или склада кодов.',
         unavailable: 'Недоступно',
+        guideTitle: 'Что делать сейчас',
+        guideBody: 'Вы в 3D-городе. Следуйте квесту: посетите Sfera Hall, войдите в Zombie Arena, затем получите награду.',
+        guideSteps: ['Посетить Sfera Hall', 'Войти в Zombie Arena', 'Получить награду'],
         locations: {
             city: 'Город',
             sferaHall: 'Sfera Hall',
@@ -349,6 +359,9 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         giftCodePending: '游戏礼品码待接入',
         giftCodeMessage: '接入合作伙伴或礼品码库存后，可发放 Steam 或其他游戏平台代码。',
         unavailable: '不可用',
+        guideTitle: '现在要做什么',
+        guideBody: '你在 3D 城市中。跟随任务：访问 Sfera Hall，进入 Zombie Arena，然后领取奖励。',
+        guideSteps: ['访问 Sfera Hall', '进入 Zombie Arena', '领取奖励'],
         locations: {
             city: '城市',
             sferaHall: 'Sfera Hall',
@@ -1075,6 +1088,36 @@ export default function ExperiencePage() {
     const sferaHallCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const fastViewCutsceneExitTimerRef = useRef<number | null>(null);
 
+    useEffect(() => {
+        if (!hasStartedExperience || !unrealBridge.lastUnrealEvent) return;
+
+        switch (unrealBridge.lastUnrealEvent.event) {
+            case 'mode_changed':
+            case 'portal_entered':
+            case 'game_entered':
+                playSferaUiSound('progress');
+                break;
+            case 'returned_to_city':
+                playSferaUiSound('open');
+                break;
+            case 'game_access_denied':
+                playSferaUiSound('warning');
+                break;
+            default:
+                break;
+        }
+    }, [hasStartedExperience, unrealBridge.lastUnrealEvent]);
+
+    useEffect(() => {
+        if (!hasStartedExperience || !unrealBridge.lastCompletedQuestId) return;
+        playSferaUiSound('reward');
+    }, [hasStartedExperience, unrealBridge.lastCompletedQuestId]);
+
+    useEffect(() => {
+        if (!isRewardTerminalOpen) return;
+        playSferaUiSound('open');
+    }, [isRewardTerminalOpen]);
+
 
     useEffect(() => {
         if (!isFastViewRoute || !hasStartedExperience) return;
@@ -1118,6 +1161,8 @@ export default function ExperiencePage() {
     const handleStartExperience = useCallback(() => {
         if (hasStartedExperience) return;
         if (isFastViewRoute && !videoElement) return;
+
+        playSferaUiSound('start');
 
         // Flip the library's StartVideoMuted flag so that any subsequent
         // playStream() / play() calls inside the library no longer re-mute.
@@ -2501,8 +2546,24 @@ export default function ExperiencePage() {
                                     </div>
                                 )}
                             </div>
+                            {isGamerScene && activeSceneQuest && (
+                                <div className="sfera-guide-enter mt-2 w-[min(92vw,22rem)] rounded-xl border border-cyan-300/18 bg-[#041018]/70 px-3 py-2.5 text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.28)] backdrop-blur-md">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-100">{sceneHud.guideTitle}</p>
+                                    <p className="mt-1 text-xs leading-5 text-slate-300">{sceneHud.guideBody}</p>
+                                    <div className="mt-2 grid gap-1.5">
+                                        {sceneHud.guideSteps.map((step, index) => (
+                                            <div key={step} className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.035] px-2 py-1.5">
+                                                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-cyan-300/20 bg-cyan-300/10 text-[10px] font-black text-cyan-100">
+                                                    {index + 1}
+                                                </span>
+                                                <span className="min-w-0 truncate text-[11px] font-semibold text-slate-200">{step}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             {activeSceneQuest && activeSceneQuestText && (
-                                <div className="mt-2 w-[min(92vw,22rem)] overflow-hidden rounded-xl border border-amber-300/24 bg-[linear-gradient(145deg,rgba(7,10,15,0.82),rgba(18,14,8,0.58))] text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.36)] backdrop-blur-md">
+                                <div className="sfera-quest-glow mt-2 w-[min(92vw,22rem)] overflow-hidden rounded-xl border border-amber-300/24 bg-[linear-gradient(145deg,rgba(7,10,15,0.82),rgba(18,14,8,0.58))] text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.36)] backdrop-blur-md">
                                     <div className="flex items-center justify-between gap-3 border-b border-amber-300/10 bg-amber-300/[0.04] px-3 py-2.5">
                                         <div className="min-w-0">
                                             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-200">{sceneHud.quest}</p>
@@ -2560,7 +2621,7 @@ export default function ExperiencePage() {
                                 <button
                                     type="button"
                                     onClick={() => setIsRewardTerminalOpen(true)}
-                                    className="mt-2 flex w-[min(92vw,22rem)] items-center gap-3 rounded-xl border border-emerald-300/24 bg-[#03100d]/72 px-3 py-2.5 text-left text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.32)] backdrop-blur-md transition hover:border-emerald-200/45 hover:bg-emerald-300/[0.08]"
+                                    className="sfera-reward-pop mt-2 flex w-[min(92vw,22rem)] items-center gap-3 rounded-xl border border-emerald-300/24 bg-[#03100d]/72 px-3 py-2.5 text-left text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.32)] backdrop-blur-md transition hover:border-emerald-200/45 hover:bg-emerald-300/[0.08]"
                                 >
                                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-emerald-300/24 bg-emerald-300/10 text-emerald-100">
                                         <Gift className="h-4 w-4" />
@@ -2714,7 +2775,7 @@ export default function ExperiencePage() {
 
                     {isRewardTerminalOpen && latestPlayerReward && (
                         <div className="absolute inset-0 z-[90] grid place-items-center bg-[#02060b]/72 p-4 text-white backdrop-blur-sm pointer-events-auto" role="dialog" aria-modal="true" aria-label={sceneHud.rewardTerminal}>
-                            <section className="relative w-[min(100%,32rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#0a1018]/96 shadow-[0_34px_120px_rgba(0,0,0,0.55)]">
+                            <section className="sfera-reward-pop relative w-[min(100%,32rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#0a1018]/96 shadow-[0_34px_120px_rgba(0,0,0,0.55)]">
                                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,rgba(102,217,203,0.18),transparent_34%),radial-gradient(circle_at_12%_100%,rgba(245,199,102,0.16),transparent_30%)]" />
                                 <div className="relative border-b border-white/10 p-4">
                                     <button
