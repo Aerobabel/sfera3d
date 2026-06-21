@@ -821,6 +821,68 @@ const resolveFrontendCinematic = (event: unknown): Omit<FrontendCinematic, 'id'>
     return null;
 };
 
+function CutsceneSiteHeader({
+    statusOnline,
+    instruction,
+    skipLabel,
+    onSkip,
+    startLabel,
+    onStart,
+}: {
+    statusOnline: string;
+    instruction: string;
+    skipLabel: string;
+    onSkip: () => void;
+    startLabel?: string;
+    onStart?: () => void;
+}) {
+    return (
+        <header className="absolute inset-x-0 top-0 z-[80] border-b border-white/15 bg-[#090b10]/95 shadow-[0_16px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+            <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+                <div className="flex min-w-0 items-center gap-3">
+                    <BrandLogo size="md" priority />
+                    <div className="hidden w-fit items-center gap-2 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-300 sm:flex">
+                        <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+                        {statusOnline}
+                    </div>
+                </div>
+
+                <p className="hidden max-w-[34rem] text-center text-[10px] font-semibold uppercase leading-relaxed tracking-[0.14em] text-[#9fcfdf] md:block">
+                    {instruction}
+                </p>
+
+                <div className="flex items-center gap-2">
+                    {startLabel && onStart && (
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onStart();
+                            }}
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#66d9cb]/30 bg-[#66d9cb]/10 px-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/90 transition hover:border-[#66d9cb]/60 hover:bg-[#66d9cb]/[0.18] sm:px-4"
+                        >
+                            <Volume2 className="h-4 w-4" />
+                            <span className="hidden sm:inline">{startLabel}</span>
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onSkip();
+                        }}
+                        className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.08] px-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/90 transition hover:border-white/30 hover:bg-white/[0.14] sm:px-4"
+                        aria-label={skipLabel}
+                    >
+                        <X className="h-4 w-4" />
+                        <span className="hidden sm:inline">{skipLabel}</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+    );
+}
+
 export default function ExperiencePage() {
     const pathname = usePathname();
     const router = useRouter();
@@ -933,6 +995,7 @@ export default function ExperiencePage() {
             unrealBridge.lastUnrealEvent.event === 'portal_entered' &&
             'portal' in unrealBridge.lastUnrealEvent &&
             unrealBridge.lastUnrealEvent.portal === 'SferaHall') {
+            setHasStartedSferaHallCutsceneSound(false);
             setIsSferaHallCutsceneVisible(true);
         }
 
@@ -2121,7 +2184,7 @@ export default function ExperiencePage() {
                     }`}
                     onClick={hasStartedFastViewCutscene ? undefined : handleStartFastViewCutscene}
                 >
-                    <div className="absolute inset-x-0 bottom-0 top-16 overflow-hidden sm:top-20">
+                    <div className="absolute inset-x-0 bottom-0 top-20 overflow-hidden">
                         <video
                             ref={fastViewCutsceneVideoRef}
                             className={`h-full w-full object-cover transition-[filter,transform] duration-700 ${
@@ -2139,39 +2202,15 @@ export default function ExperiencePage() {
                         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.2),transparent_26%,rgba(0,0,0,0.16))]" />
                     </div>
 
-                    <header className="absolute inset-x-0 top-0 z-20 border-b border-[#66d9cb]/20 bg-[#02070b]/[0.82] shadow-[0_10px_40px_rgba(0,0,0,0.32)] backdrop-blur-md">
-                        <div className="flex h-16 items-center justify-between gap-3 px-4 sm:h-20 sm:px-6 lg:px-8">
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-2 sm:gap-3">
-                                    <div className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/25 bg-slate-950/45 px-3 py-2 text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,0.16)] backdrop-blur-md"><span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-300/35 bg-cyan-400/10 text-sm font-black text-cyan-200">S</span><span className="text-sm font-black uppercase tracking-[0.18em]">3DSFERA</span></div>
-                                </div>
-                                <div className="mt-1 hidden w-fit items-center gap-2 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-300 sm:flex">
-                                    <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
-                                    {ui.statusOnline}
-                                </div>
-                            </div>
-
-                            <p className="hidden max-w-[34rem] text-center text-[10px] font-semibold uppercase leading-relaxed tracking-[0.14em] text-[#9fcfdf] md:block">
-                                {sceneInstruction}
-                            </p>
-
-                            <button
-                                type="button"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleSkipFastViewCutscene();
-                                }}
-                                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.08] px-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/90 transition hover:border-white/30 hover:bg-white/[0.14] sm:h-11 sm:px-4"
-                                aria-label={cutsceneCopy.skip}
-                            >
-                                <X className="h-4 w-4" />
-                                <span className="hidden sm:inline">{cutsceneCopy.skip}</span>
-                            </button>
-                        </div>
-                    </header>
+                    <CutsceneSiteHeader
+                        statusOnline={ui.statusOnline}
+                        instruction={sceneInstruction}
+                        skipLabel={cutsceneCopy.skip}
+                        onSkip={handleSkipFastViewCutscene}
+                    />
 
                     {!hasStartedFastViewCutscene && (
-                        <div className="absolute inset-x-4 bottom-0 top-16 z-10 flex items-center justify-center sm:top-20">
+                        <div className="absolute inset-x-4 bottom-0 top-20 z-10 flex items-center justify-center">
                             <button
                                 type="button"
                                 onClick={(event) => {
@@ -2201,50 +2240,41 @@ export default function ExperiencePage() {
 
             {isSferaHallCutsceneVisible && showExperienceHud && (
                 <div className="absolute inset-0 z-[125] bg-[#05070b]">
-                    <video
-                        ref={sferaHallCutsceneVideoRef}
-                        className="h-full w-full object-cover"
-                        key={sferaHallCutsceneSrc}
-                        src={sferaHallCutsceneSrc}
-                        data-cutscene-video="true"
-                        autoPlay
-                        muted={!hasStartedSferaHallCutsceneSound}
-                        playsInline
-                        preload="auto"
-                        onEnded={() => setIsSferaHallCutsceneVisible(false)}
-                        onError={() => setIsSferaHallCutsceneVisible(false)}
-                    />
-                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.25),transparent_34%,rgba(0,0,0,0.62))]" />
+                    <div className="absolute inset-x-0 bottom-0 top-20 overflow-hidden">
+                        <video
+                            ref={sferaHallCutsceneVideoRef}
+                            className="h-full w-full object-cover"
+                            key={sferaHallCutsceneSrc}
+                            src={sferaHallCutsceneSrc}
+                            data-cutscene-video="true"
+                            muted={!hasStartedSferaHallCutsceneSound}
+                            playsInline
+                            preload="auto"
+                            onEnded={() => setIsSferaHallCutsceneVisible(false)}
+                            onError={() => setIsSferaHallCutsceneVisible(false)}
+                        />
+                        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.25),transparent_34%,rgba(0,0,0,0.62))]" />
+                    </div>
                     {!hasStartedSferaHallCutsceneSound && (
-                        <div className="absolute inset-0 z-10 flex items-center justify-center px-4" onClick={handleStartSferaHallCutsceneWithSound}>
-                            <button type="button" className="rounded-3xl border border-[#66d9cb]/35 bg-black/60 px-6 py-4 text-center text-sm font-black uppercase tracking-[0.16em] text-white shadow-[0_22px_80px_rgba(0,0,0,0.5)] backdrop-blur-md transition hover:border-[#66d9cb]/65 hover:bg-[#66d9cb]/15">
-                                <span className="block text-[#9ff4ec]">{cutsceneCopy.pressAnyKey}</span>
+                        <div className="absolute inset-x-4 bottom-0 top-20 z-10 flex items-center justify-center">
+                            <button
+                                type="button"
+                                onClick={handleStartSferaHallCutsceneWithSound}
+                                className="rounded-3xl border border-[#66d9cb]/35 bg-black/60 px-6 py-4 text-center text-sm font-black uppercase tracking-[0.16em] text-white shadow-[0_22px_80px_rgba(0,0,0,0.5)] backdrop-blur-md transition hover:border-[#66d9cb]/65 hover:bg-[#66d9cb]/15"
+                            >
+                                <span className="block text-[#9ff4ec]">{cutsceneCopy.startWithSound}</span>
                                 <span className="mt-2 block text-[11px] font-semibold text-slate-300">{cutsceneCopy.soundHint}</span>
                             </button>
                         </div>
                     )}
-                    <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 border-b border-[#66d9cb]/20 bg-[#02070b]/[0.82] px-4 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.32)] backdrop-blur-md sm:px-6 lg:px-8">
-                        <div className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/25 bg-slate-950/45 px-3 py-2 text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,0.16)] backdrop-blur-md"><span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-300/35 bg-cyan-400/10 text-sm font-black text-cyan-200">S</span><span className="text-sm font-black uppercase tracking-[0.18em]">3DSFERA Hall</span></div>
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={handleStartSferaHallCutsceneWithSound}
-                                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#66d9cb]/30 bg-[#66d9cb]/10 px-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/90 transition hover:border-[#66d9cb]/60 hover:bg-[#66d9cb]/[0.18] sm:px-4"
-                            >
-                                <Volume2 className="h-4 w-4" />
-                                <span className="hidden sm:inline">{cutsceneCopy.startWithSound}</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setIsSferaHallCutsceneVisible(false)}
-                                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.08] px-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/90 transition hover:border-white/30 hover:bg-white/[0.14] sm:px-4"
-                                aria-label={cutsceneCopy.skip}
-                            >
-                                <X className="h-4 w-4" />
-                                <span className="hidden sm:inline">{cutsceneCopy.skip}</span>
-                            </button>
-                        </div>
-                    </div>
+                    <CutsceneSiteHeader
+                        statusOnline={ui.statusOnline}
+                        instruction={sceneInstruction}
+                        skipLabel={cutsceneCopy.skip}
+                        onSkip={() => setIsSferaHallCutsceneVisible(false)}
+                        startLabel={!hasStartedSferaHallCutsceneSound ? cutsceneCopy.startWithSound : undefined}
+                        onStart={!hasStartedSferaHallCutsceneSound ? handleStartSferaHallCutsceneWithSound : undefined}
+                    />
                 </div>
             )}
 

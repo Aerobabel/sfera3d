@@ -421,6 +421,28 @@ export default function RoleSelectionPage() {
         <main className="min-h-screen overflow-hidden bg-[#080b10] text-white">
             {isIntroVisible && (
                 <div className="fixed inset-0 z-50 bg-black">
+                    <header className="absolute inset-x-0 top-0 z-[80] border-b border-white/15 bg-[#090b10]/95 shadow-[0_16px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+                        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+                            <Link href="/" className="flex min-w-0 items-center">
+                                <BrandLogo size="md" priority />
+                            </Link>
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    href="/"
+                                    className="hidden rounded-full border border-white/15 px-4 py-2 text-xs font-semibold tracking-wide text-[#f5f1e9] transition hover:border-white/35 hover:bg-white/10 sm:inline-flex sm:text-sm"
+                                >
+                                    {copy.home}
+                                </Link>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsIntroVisible(false)}
+                                    className="rounded-full bg-[#f6ba4f] px-4 py-2 text-xs font-bold tracking-wide text-[#130f07] transition hover:bg-[#ffd084] sm:text-sm"
+                                >
+                                    {copy.skipIntro}
+                                </button>
+                            </div>
+                        </div>
+                    </header>
                     <video
                         ref={introVideoRef}
                         className="h-full w-full object-cover"
