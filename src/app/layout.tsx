@@ -8,7 +8,7 @@ import { getDefaultLanguageForHostname, toHtmlLanguageTag } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "3DSFERA",
-  description: "Иммерсивная выставочная платформа для покупателей и поставщиков",
+  description: "Иммерсивное цифровое пространство для покупателей и поставщиков",
 };
 
 const normalizeHostname = (host: string | null) => {
