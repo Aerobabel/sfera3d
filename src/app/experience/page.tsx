@@ -81,6 +81,7 @@ const releaseAllInputs = () => {
     }
 
     mouseLeaveHandler?.();
+    try { window.dispatchEvent(new Event('sfera:stream-input-reset')); } catch {}
 };
 
 

@@ -55,6 +55,9 @@ type StreamPixelController = {
 // keeps failing, add `ExecuteConsoleCommand("DisableAllScreenMessages")`
 // to the level blueprint BeginPlay — that's the reliable fix.
 const INITIAL_CONSOLE_COMMANDS = ['DisableAllScreenMessages', 'r.UnbuiltLightingWarnings 0'];
+const POINTER_TRANSITION_GRACE_MS = 220;
+const MAX_MOUSE_DELTA = 120;
+const STREAM_INPUT_RESET_EVENT = 'sfera:stream-input-reset';
 
 const diagnoseStream = (controller: StreamPixelController | null, stream: StreamPixelStream | null) => {
     const handlerKeys = stream?.toStreamerHandlers
@@ -169,6 +172,7 @@ export default function StreamPixelPlayer({
     const onVideoInitializedRef = useRef(onVideoInitialized);
     const onConnectionErrorRef = useRef(onConnectionError);
     const mouseSensitivityRef = useRef(mouseSensitivity);
+    const pointerTransitionGraceUntilRef = useRef(0);
     const teardownRef = useRef<(() => void) | null>(null);
     const lastLogMessageRef = useRef('');
     const lastVideoElementRef = useRef<HTMLVideoElement | null>(null);
@@ -380,6 +384,14 @@ export default function StreamPixelPlayer({
         // moment it crosses an integer boundary.
         let mouseDeltaCarryX = 0;
         let mouseDeltaCarryY = 0;
+        const resetMouseDeltaCarry = () => {
+            mouseDeltaCarryX = 0;
+            mouseDeltaCarryY = 0;
+        };
+        const armPointerTransitionGrace = () => {
+            pointerTransitionGraceUntilRef.current = Date.now() + POINTER_TRANSITION_GRACE_MS;
+            resetMouseDeltaCarry();
+        };
         const wrapMouseMoveForSensitivity = (stream: StreamPixelStream) => {
             if (hasWrappedMouseMove) return;
             const handlers = stream.toStreamerHandlers;
@@ -394,24 +406,27 @@ export default function StreamPixelPlayer({
                 }
 
                 const sensitivity = mouseSensitivityRef.current;
-                // Fast path: at sensitivity = 1 the SDK's integer deltas are
-                // already correct, no scaling/rounding is needed.
-                if (sensitivity === 1) {
-                    originalMouseMove(messageData);
+                const scaledMessageData = [...messageData];
+
+                if (Date.now() < pointerTransitionGraceUntilRef.current) {
+                    resetMouseDeltaCarry();
+                    scaledMessageData[2] = 0;
+                    scaledMessageData[3] = 0;
+                    originalMouseMove(scaledMessageData);
                     return;
                 }
 
-                const scaledMessageData = [...messageData];
-
                 if (typeof scaledMessageData[2] === 'number') {
-                    const raw = scaledMessageData[2] * sensitivity + mouseDeltaCarryX;
+                    const dx = Math.max(-MAX_MOUSE_DELTA, Math.min(MAX_MOUSE_DELTA, scaledMessageData[2]));
+                    const raw = dx * sensitivity + mouseDeltaCarryX;
                     const intPart = Math.trunc(raw);
                     mouseDeltaCarryX = raw - intPart;
                     scaledMessageData[2] = intPart;
                 }
 
                 if (typeof scaledMessageData[3] === 'number') {
-                    const raw = scaledMessageData[3] * sensitivity + mouseDeltaCarryY;
+                    const dy = Math.max(-MAX_MOUSE_DELTA, Math.min(MAX_MOUSE_DELTA, scaledMessageData[3]));
+                    const raw = dy * sensitivity + mouseDeltaCarryY;
                     const intPart = Math.trunc(raw);
                     mouseDeltaCarryY = raw - intPart;
                     scaledMessageData[3] = intPart;
@@ -633,8 +648,26 @@ export default function StreamPixelPlayer({
 
         void initialize();
 
+        const handlePointerTransition = () => {
+            armPointerTransitionGrace();
+        };
+        const handleVisibilityChange = () => {
+            if (document.hidden) armPointerTransitionGrace();
+        };
+
+        document.addEventListener('pointerlockchange', handlePointerTransition);
+        document.addEventListener('mozpointerlockchange', handlePointerTransition);
+        window.addEventListener('blur', handlePointerTransition);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener(STREAM_INPUT_RESET_EVENT, handlePointerTransition);
+
         return () => {
             cancelled = true;
+            document.removeEventListener('pointerlockchange', handlePointerTransition);
+            document.removeEventListener('mozpointerlockchange', handlePointerTransition);
+            window.removeEventListener('blur', handlePointerTransition);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener(STREAM_INPUT_RESET_EVENT, handlePointerTransition);
             teardown();
         };
     }, [appId, isMobileDevice, mobileInputMode, preferredDesktopMouseMode]);
