@@ -1302,6 +1302,9 @@ export default function ExperiencePage() {
         }
 
         setHasStartedExperience(true);
+        if (isFastViewRoute && videoElement) {
+            setIsVideoStreamingFrames(true);
+        }
     }, [hasStartedExperience, videoElement, isFastViewRoute]);
 
     const handleStartFastViewCutscene = useCallback(() => {
@@ -1987,11 +1990,23 @@ export default function ExperiencePage() {
             markPlaying();
         };
 
+        if (
+            videoElement.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA ||
+            !videoElement.paused ||
+            videoElement.currentTime > 0
+        ) {
+            markPlaying();
+        }
+
         videoElement.addEventListener('timeupdate', onTimeUpdate);
         videoElement.addEventListener('playing', onPlaying);
+        videoElement.addEventListener('loadeddata', onPlaying);
+        videoElement.addEventListener('canplay', onPlaying);
         return () => {
             videoElement.removeEventListener('timeupdate', onTimeUpdate);
             videoElement.removeEventListener('playing', onPlaying);
+            videoElement.removeEventListener('loadeddata', onPlaying);
+            videoElement.removeEventListener('canplay', onPlaying);
         };
     }, [videoElement]);
 
