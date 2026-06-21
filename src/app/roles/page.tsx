@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
     ArrowRight,
@@ -66,7 +66,10 @@ type RolePageText = {
     roles: Record<RoleTone, RoleText>;
 };
 
-const CITY_INTRO_CUTSCENE_SRC = '/cutscenes/cityvideo.mp4';
+const ROLE_INTRO_CUTSCENE_SRCS = [
+    '/cutscenes/cityvideo.mp4',
+    '/cutscenes/copy_3AC9E4E2-6340-48CC-940F-A9B7FBB58777.mov',
+];
 
 const roleBases: RoleBase[] = [
     {
@@ -374,10 +377,11 @@ export default function RoleSelectionPage() {
     const shouldPlayIntro = !returnToScene && searchParams.get('skipIntro') !== 'true';
     const [isIntroVisible, setIsIntroVisible] = useState(shouldPlayIntro);
     const [hasStartedIntro, setHasStartedIntro] = useState(!shouldPlayIntro);
+    const [introCutsceneIndex, setIntroCutsceneIndex] = useState(0);
     const introVideoRef = useRef<HTMLVideoElement | null>(null);
+    const currentIntroCutsceneSrc = ROLE_INTRO_CUTSCENE_SRCS[introCutsceneIndex];
 
-    const startIntroWithSound = () => {
-        setHasStartedIntro(true);
+    const playIntroVideo = () => {
         const video = introVideoRef.current;
         if (!video) return;
 
@@ -389,6 +393,30 @@ export default function RoleSelectionPage() {
         });
     };
 
+    const startIntroWithSound = () => {
+        setHasStartedIntro(true);
+        playIntroVideo();
+    };
+
+    const advanceIntroCutscene = () => {
+        setIntroCutsceneIndex((currentIndex) => {
+            const nextIndex = currentIndex + 1;
+
+            if (nextIndex >= ROLE_INTRO_CUTSCENE_SRCS.length) {
+                setIsIntroVisible(false);
+                return currentIndex;
+            }
+
+            return nextIndex;
+        });
+    };
+
+    useEffect(() => {
+        if (!isIntroVisible || !hasStartedIntro || introCutsceneIndex === 0) return;
+
+        playIntroVideo();
+    }, [hasStartedIntro, introCutsceneIndex, isIntroVisible]);
+
     return (
         <main className="min-h-screen overflow-hidden bg-[#080b10] text-white">
             {isIntroVisible && (
@@ -396,11 +424,12 @@ export default function RoleSelectionPage() {
                     <video
                         ref={introVideoRef}
                         className="h-full w-full object-cover"
-                        src={CITY_INTRO_CUTSCENE_SRC}
+                        key={currentIntroCutsceneSrc}
+                        src={currentIntroCutsceneSrc}
                         muted={!hasStartedIntro}
                         playsInline
                         preload="auto"
-                        onEnded={() => setIsIntroVisible(false)}
+                        onEnded={advanceIntroCutscene}
                         onError={() => setIsIntroVisible(false)}
                     />
                     <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12),transparent_45%,rgba(0,0,0,0.78))]" />
