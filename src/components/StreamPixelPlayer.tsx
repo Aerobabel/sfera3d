@@ -55,8 +55,8 @@ type StreamPixelController = {
 // keeps failing, add `ExecuteConsoleCommand("DisableAllScreenMessages")`
 // to the level blueprint BeginPlay — that's the reliable fix.
 const INITIAL_CONSOLE_COMMANDS = ['DisableAllScreenMessages', 'r.UnbuiltLightingWarnings 0'];
-const POINTER_TRANSITION_GRACE_MS = 220;
-const MAX_MOUSE_DELTA = 120;
+const POINTER_TRANSITION_GRACE_MS = 140;
+const STALE_MOUSE_DELTA_THRESHOLD = 1200;
 const STREAM_INPUT_RESET_EVENT = 'sfera:stream-input-reset';
 
 const diagnoseStream = (controller: StreamPixelController | null, stream: StreamPixelStream | null) => {
@@ -416,8 +416,21 @@ export default function StreamPixelPlayer({
                     return;
                 }
 
+                const rawDx = Number(scaledMessageData[2] ?? 0);
+                const rawDy = Number(scaledMessageData[3] ?? 0);
+                if (
+                    Math.abs(rawDx) > STALE_MOUSE_DELTA_THRESHOLD ||
+                    Math.abs(rawDy) > STALE_MOUSE_DELTA_THRESHOLD
+                ) {
+                    resetMouseDeltaCarry();
+                    scaledMessageData[2] = 0;
+                    scaledMessageData[3] = 0;
+                    originalMouseMove(scaledMessageData);
+                    return;
+                }
+
                 if (typeof scaledMessageData[2] === 'number') {
-                    const dx = Math.max(-MAX_MOUSE_DELTA, Math.min(MAX_MOUSE_DELTA, scaledMessageData[2]));
+                    const dx = scaledMessageData[2];
                     const raw = dx * sensitivity + mouseDeltaCarryX;
                     const intPart = Math.trunc(raw);
                     mouseDeltaCarryX = raw - intPart;
@@ -425,7 +438,7 @@ export default function StreamPixelPlayer({
                 }
 
                 if (typeof scaledMessageData[3] === 'number') {
-                    const dy = Math.max(-MAX_MOUSE_DELTA, Math.min(MAX_MOUSE_DELTA, scaledMessageData[3]));
+                    const dy = scaledMessageData[3];
                     const raw = dy * sensitivity + mouseDeltaCarryY;
                     const intPart = Math.trunc(raw);
                     mouseDeltaCarryY = raw - intPart;
