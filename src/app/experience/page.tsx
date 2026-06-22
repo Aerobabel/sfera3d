@@ -127,6 +127,34 @@ const sendUnrealKeyPress = (keyCode: number) => {
     document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
 };
 
+const setNonCutsceneMediaMuted = (muted: boolean) => {
+    if (typeof window === 'undefined') return;
+
+    document.querySelectorAll('video, audio').forEach((el) => {
+        if (el instanceof HTMLElement && el.dataset.cutsceneVideo === 'true') return;
+        const media = el as HTMLMediaElement;
+        media.muted = muted;
+        if (!muted) {
+            media.volume = 1.0;
+            media.play().catch(() => {});
+        }
+    });
+
+    try {
+        const psWindow = window as PixelStreamingWindow;
+        const audioEl = psWindow.ps?._webRtcController?.streamController?.audioElement;
+        if (audioEl instanceof HTMLMediaElement) {
+            audioEl.muted = muted;
+            if (!muted) {
+                audioEl.volume = 1.0;
+                if (audioEl.srcObject) {
+                    audioEl.play().catch(() => {});
+                }
+            }
+        }
+    } catch { /* best-effort */ }
+};
+
 type ChatMessage = {
     id: string;
     role: 'assistant' | 'user' | 'supplier';
@@ -975,6 +1003,7 @@ export default function ExperiencePage() {
     const liveActivityIndexRef = useRef(0);
     const liveActivityRemovalTimersRef = useRef<number[]>([]);
     const hasAppliedInitialModeRef = useRef(false);
+    const isStreamAudioSuppressedRef = useRef(false);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
 
     const handleSensitivityChange = useCallback((value: number) => {
@@ -1237,6 +1266,11 @@ export default function ExperiencePage() {
 
         // Unmute all media elements currently in the DOM.
         const unmuteAllDOM = () => {
+            if (isStreamAudioSuppressedRef.current) {
+                setNonCutsceneMediaMuted(true);
+                return;
+            }
+
             document.querySelectorAll('video, audio').forEach((el) => {
                 if (el instanceof HTMLElement && el.dataset.cutsceneVideo === 'true') return;
                 const m = el as HTMLMediaElement;
@@ -1253,6 +1287,11 @@ export default function ExperiencePage() {
         // via ontrack, which may happen BEFORE or AFTER this user click.
         // We poll briefly to catch both cases.
         const ensureAudioPlaying = () => {
+            if (isStreamAudioSuppressedRef.current) {
+                setNonCutsceneMediaMuted(true);
+                return;
+            }
+
             try {
                 const psWindow = window as PixelStreamingWindow;
                 const audioEl =
@@ -1384,6 +1423,36 @@ export default function ExperiencePage() {
             video.play().catch(() => {});
         });
     }, []);
+
+    const handleCloseSferaHallCutscene = useCallback(() => {
+        const video = sferaHallCutsceneVideoRef.current;
+        if (video) {
+            video.pause();
+            try {
+                video.currentTime = 0;
+            } catch { /* best-effort */ }
+        }
+
+        setIsSferaHallCutsceneVisible(false);
+        setHasStartedSferaHallCutsceneSound(false);
+    }, []);
+
+    useEffect(() => {
+        if (!isSferaHallCutsceneVisible) {
+            isStreamAudioSuppressedRef.current = false;
+            return;
+        }
+
+        isStreamAudioSuppressedRef.current = true;
+        setNonCutsceneMediaMuted(true);
+
+        return () => {
+            isStreamAudioSuppressedRef.current = false;
+            if (hasStartedExperience) {
+                setNonCutsceneMediaMuted(false);
+            }
+        };
+    }, [hasStartedExperience, isSferaHallCutsceneVisible]);
 
     useEffect(() => {
         if (!isFastViewRoute || hasCompletedFastViewCutscene || fastViewError || hasStartedFastViewCutscene) return;
@@ -2266,8 +2335,8 @@ export default function ExperiencePage() {
                             muted={!hasStartedSferaHallCutsceneSound}
                             playsInline
                             preload="auto"
-                            onEnded={() => setIsSferaHallCutsceneVisible(false)}
-                            onError={() => setIsSferaHallCutsceneVisible(false)}
+                            onEnded={handleCloseSferaHallCutscene}
+                            onError={handleCloseSferaHallCutscene}
                         />
                         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.25),transparent_34%,rgba(0,0,0,0.62))]" />
                     </div>
@@ -2287,7 +2356,7 @@ export default function ExperiencePage() {
                         statusOnline={ui.statusOnline}
                         instruction={sceneInstruction}
                         skipLabel={cutsceneCopy.skip}
-                        onSkip={() => setIsSferaHallCutsceneVisible(false)}
+                        onSkip={handleCloseSferaHallCutscene}
                         startLabel={!hasStartedSferaHallCutsceneSound ? cutsceneCopy.startWithSound : undefined}
                         onStart={!hasStartedSferaHallCutsceneSound ? handleStartSferaHallCutsceneWithSound : undefined}
                     />

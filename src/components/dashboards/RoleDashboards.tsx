@@ -904,6 +904,63 @@ const dashboardSideGrid = 'grid gap-4 md:grid-cols-2 xl:grid-cols-3';
 
 const clampPercent = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
 
+const dashboardLocationLabels: Record<AppLanguage, Record<string, string>> = {
+    en: {
+        city: '3DSFERA City',
+        sferaHall: 'Sfera Hall',
+        zombieArena: 'Zombie Arena',
+        racingZone: 'Racing Zone',
+        ZombieArena: 'Zombie Arena',
+    },
+    ru: {
+        city: 'Город 3DSFERA',
+        sferaHall: 'Sfera Hall',
+        zombieArena: 'Zombie Arena',
+        racingZone: 'Гоночная зона',
+        ZombieArena: 'Zombie Arena',
+    },
+    zh: {
+        city: '3DSFERA 城市',
+        sferaHall: 'Sfera Hall',
+        zombieArena: 'Zombie Arena',
+        racingZone: '竞速区',
+        ZombieArena: 'Zombie Arena',
+    },
+};
+
+const dashboardActivityLabels: Record<AppLanguage, Record<string, string>> = {
+    en: {
+        'Entered Sfera Hall': 'Entered Sfera Hall',
+        'Entered Zombie Arena': 'Entered Zombie Arena',
+        'Returned to city': 'Returned to city',
+        'Game access denied: Player Mode needed': 'Game access denied: Player Mode needed',
+    },
+    ru: {
+        'Entered Sfera Hall': 'Вход в Sfera Hall',
+        'Entered Zombie Arena': 'Вход в Zombie Arena',
+        'Returned to city': 'Возврат в город',
+        'Game access denied: Player Mode needed': 'Доступ к игре отклонен: нужен режим игрока',
+    },
+    zh: {
+        'Entered Sfera Hall': '进入 Sfera Hall',
+        'Entered Zombie Arena': '进入 Zombie Arena',
+        'Returned to city': '返回城市',
+        'Game access denied: Player Mode needed': '游戏访问被拒绝：需要玩家模式',
+    },
+};
+
+const localizeDashboardLocation = (
+    value: string | null | undefined,
+    language: AppLanguage,
+    fallbackLabel: string
+) => {
+    if (!value) return fallbackLabel;
+    return dashboardLocationLabels[language][value] ?? value;
+};
+
+const localizeDashboardActivity = (value: string, language: AppLanguage) =>
+    dashboardActivityLabels[language][value] ?? value;
+
 const questDashboardCopy: Record<AppLanguage, {
     activeQuests: string;
     rewardWallet: string;
@@ -1724,8 +1781,9 @@ export function GamerDashboard({ bridge = fallback, embedded = false }: Dashboar
             ? playerQuestProgress.reduce((sum, item) => sum + getQuestCompletionPercent(item), 0) / playerQuestProgress.length
             : 0
     );
-    const currentGame = bridge.currentGame ?? 'Zombie Arena';
-    const currentLocation = bridge.currentLocation === 'city' ? copy.player.city : bridge.currentLocation ?? copy.player.city;
+    const currentGame = localizeDashboardLocation(bridge.currentGame ?? 'ZombieArena', language, 'Zombie Arena');
+    const currentLocation = localizeDashboardLocation(bridge.currentLocation, language, copy.player.city);
+    const recentActivity = bridge.recentActivity.map((activity) => localizeDashboardActivity(activity, language));
     const earnedRewards = bridge.questRewards.length;
     const activePlayerQuest = playerQuestProgress.find((item) => item.status === 'active') ?? playerQuestProgress[0];
     const activeQuestDefinition = activePlayerQuest ? getQuestDefinition(activePlayerQuest.questId) : null;
@@ -1736,8 +1794,8 @@ export function GamerDashboard({ bridge = fallback, embedded = false }: Dashboar
         `${copy.player.currentLocation}: ${currentLocation}`,
         ...copy.player.messages,
     ];
-    const eventItems = bridge.recentActivity.length > 0
-        ? bridge.recentActivity
+    const eventItems = recentActivity.length > 0
+        ? recentActivity
         : [`${copy.player.currentLocation}: ${currentLocation}`, `${copy.player.currentGame}: ${currentGame}`, ...copy.player.recentFallback];
     const rewardItems = [`${copy.player.coins}: ${coinsPreview.toLocaleString()}`, ...copy.player.rewardQueue];
 
@@ -1805,7 +1863,11 @@ export function GamerDashboard({ bridge = fallback, embedded = false }: Dashboar
 export function ShopperDashboard({ bridge = fallback, embedded = false }: DashboardProps) {
     const { language } = useLanguage();
     const copy = dashboardCopy[language];
-    const currentLocation = bridge.currentLocation === 'city' ? 'Sfera Hall' : bridge.currentLocation;
+    const currentLocation = localizeDashboardLocation(
+        bridge.currentLocation === 'city' ? 'sferaHall' : bridge.currentLocation,
+        language,
+        'Sfera Hall'
+    );
 
     return (
         <DashboardFrame mode="shopper" embedded={embedded}>
