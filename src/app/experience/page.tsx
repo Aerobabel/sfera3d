@@ -794,6 +794,7 @@ type FrontendCinematic = {
     eyebrow: string;
     title: string;
     description: string;
+    destinationKicker: string;
     destinationLabel: string;
 };
 type SceneDashboardOverlay = 'player' | 'shopper' | 'business';
@@ -815,36 +816,93 @@ const resolveRequestedSceneMode = (mode: string | null): SceneMode | null => {
 const FRONTEND_CINEMATIC_DURATION_MS = 3200;
 const RETURN_TO_CITY_CINEMATIC_DURATION_MS = 5600;
 
-const resolveFrontendCinematic = (event: unknown): Omit<FrontendCinematic, 'id'> | null => {
-    if (!event || typeof event !== 'object') return null;
-
-    const payload = event as Record<string, unknown>;
-
-    if (payload.event === 'portal_entered' && payload.portal === 'SferaHall') {
-        return {
+const FRONTEND_CINEMATIC_COPY: Record<AppLanguage, {
+    destinationKicker: string;
+    sferaHall: Omit<FrontendCinematic, 'id' | 'destinationKicker'>;
+    zombieArena: Omit<FrontendCinematic, 'id' | 'destinationKicker'>;
+    city: Omit<FrontendCinematic, 'id' | 'destinationKicker'>;
+}> = {
+    en: {
+        destinationKicker: 'Destination',
+        sferaHall: {
             eyebrow: 'Entering marketplace',
             title: 'Opening Sfera Hall',
             description: 'Crossing from the city streets into the shared mall and pavilion floor.',
             destinationLabel: 'Sfera Hall',
-        };
-    }
-
-    if (payload.event === 'game_entered' && payload.game === 'ZombieArena') {
-        return {
+        },
+        zombieArena: {
             eyebrow: 'Player Mode gateway',
             title: 'Loading Zombie Arena',
             description: 'Preparing the arena HUD, score rules, health state, and reward preview.',
             destinationLabel: 'Zombie Arena',
-        };
-    }
-
-    if (payload.event === 'returned_to_city') {
-        return {
+        },
+        city: {
             eyebrow: 'Returning to city',
             title: 'Rebuilding city view',
             description: 'Syncing the website state back to the main marketplace world.',
             destinationLabel: 'Main City',
-        };
+        },
+    },
+    ru: {
+        destinationKicker: '\u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435',
+        sferaHall: {
+            eyebrow: '\u0412\u0445\u043e\u0434 \u0432 \u043c\u0430\u0440\u043a\u0435\u0442\u043f\u043b\u0435\u0439\u0441',
+            title: '\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u043c Sfera Hall',
+            description: '\u041f\u0435\u0440\u0435\u0445\u043e\u0434 \u0438\u0437 \u0433\u043e\u0440\u043e\u0434\u0441\u043a\u0438\u0445 \u0443\u043b\u0438\u0446 \u0432 \u043e\u0431\u0449\u0438\u0439 \u0442\u043e\u0440\u0433\u043e\u0432\u044b\u0439 \u0445\u043e\u043b\u043b \u0438 \u0437\u043e\u043d\u0443 \u043f\u0430\u0432\u0438\u043b\u044c\u043e\u043d\u043e\u0432.',
+            destinationLabel: 'Sfera Hall',
+        },
+        zombieArena: {
+            eyebrow: '\u0412\u0445\u043e\u0434 \u0440\u0435\u0436\u0438\u043c\u0430 \u0438\u0433\u0440\u043e\u043a\u0430',
+            title: '\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u043c Zombie Arena',
+            description: '\u0413\u043e\u0442\u043e\u0432\u0438\u043c HUD \u0430\u0440\u0435\u043d\u044b, \u043f\u0440\u0430\u0432\u0438\u043b\u0430 \u0441\u0447\u0435\u0442\u0430, \u0437\u0434\u043e\u0440\u043e\u0432\u044c\u0435 \u0438 \u043f\u0440\u0435\u0432\u044c\u044e \u043d\u0430\u0433\u0440\u0430\u0434.',
+            destinationLabel: 'Zombie Arena',
+        },
+        city: {
+            eyebrow: '\u0412\u043e\u0437\u0432\u0440\u0430\u0442 \u0432 \u0433\u043e\u0440\u043e\u0434',
+            title: '\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u043c \u0432\u0438\u0434 \u0433\u043e\u0440\u043e\u0434\u0430',
+            description: '\u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0438\u0440\u0443\u0435\u043c \u0441\u0430\u0439\u0442 \u0441 \u043e\u0441\u043d\u043e\u0432\u043d\u044b\u043c \u043c\u0438\u0440\u043e\u043c \u043c\u0430\u0440\u043a\u0435\u0442\u043f\u043b\u0435\u0439\u0441\u0430.',
+            destinationLabel: '\u0413\u043b\u0430\u0432\u043d\u044b\u0439 \u0433\u043e\u0440\u043e\u0434',
+        },
+    },
+    zh: {
+        destinationKicker: '\u76ee\u7684\u5730',
+        sferaHall: {
+            eyebrow: '\u8fdb\u5165\u5e02\u573a',
+            title: '\u6b63\u5728\u6253\u5f00 Sfera Hall',
+            description: '\u4ece\u57ce\u5e02\u8857\u9053\u8fdb\u5165\u5171\u4eab\u5546\u573a\u548c\u5c55\u9986\u533a\u57df\u3002',
+            destinationLabel: 'Sfera Hall',
+        },
+        zombieArena: {
+            eyebrow: '\u73a9\u5bb6\u6a21\u5f0f\u5165\u53e3',
+            title: '\u6b63\u5728\u52a0\u8f7d Zombie Arena',
+            description: '\u6b63\u5728\u51c6\u5907\u7ade\u6280\u573a HUD\u3001\u8ba1\u5206\u89c4\u5219\u3001\u751f\u547d\u503c\u548c\u5956\u52b1\u9884\u89c8\u3002',
+            destinationLabel: 'Zombie Arena',
+        },
+        city: {
+            eyebrow: '\u8fd4\u56de\u57ce\u5e02',
+            title: '\u6b63\u5728\u91cd\u5efa\u57ce\u5e02\u89c6\u56fe',
+            description: '\u6b63\u5728\u5c06\u7f51\u7ad9\u72b6\u6001\u540c\u6b65\u56de\u4e3b\u5e02\u573a\u4e16\u754c\u3002',
+            destinationLabel: '\u4e3b\u57ce\u5e02',
+        },
+    },
+};
+
+const resolveFrontendCinematic = (event: unknown, language: AppLanguage): Omit<FrontendCinematic, 'id'> | null => {
+    if (!event || typeof event !== 'object') return null;
+
+    const payload = event as Record<string, unknown>;
+    const copy = FRONTEND_CINEMATIC_COPY[language];
+
+    if (payload.event === 'portal_entered' && payload.portal === 'SferaHall') {
+        return { ...copy.sferaHall, destinationKicker: copy.destinationKicker };
+    }
+
+    if (payload.event === 'game_entered' && payload.game === 'ZombieArena') {
+        return { ...copy.zombieArena, destinationKicker: copy.destinationKicker };
+    }
+
+    if (payload.event === 'returned_to_city') {
+        return { ...copy.city, destinationKicker: copy.destinationKicker };
     }
 
     return null;
@@ -1016,7 +1074,7 @@ export default function ExperiencePage() {
     }, []);
 
     useEffect(() => {
-        const cinematic = resolveFrontendCinematic(unrealBridge.lastUnrealEvent);
+        const cinematic = resolveFrontendCinematic(unrealBridge.lastUnrealEvent, language);
         if (!cinematic) return;
 
         if (unrealBridge.lastUnrealEvent &&
@@ -1044,7 +1102,7 @@ export default function ExperiencePage() {
         }, duration);
 
         return () => window.clearTimeout(timer);
-    }, [unrealBridge.lastUnrealEvent]);
+    }, [language, unrealBridge.lastUnrealEvent]);
 
 
     useEffect(() => {
@@ -1595,7 +1653,9 @@ export default function ExperiencePage() {
         isFastViewRoute &&
         !showFastViewCutscene &&
         (!hasStartedExperience || Boolean(fastViewError));
-    const showExperienceHud = !isFastViewRoute || (!showFastViewCutscene && !showFastViewLaunchOverlay);
+    const showExperienceHud =
+        !isFastViewRoute ||
+        (!showFastViewCutscene && !showFastViewLaunchOverlay && isVideoStreamingFrames);
     const shouldRunLiveActivity = showExperienceHud && hasStartedExperience && !fastViewError;
     const showLiveActivityToasts =
         shouldRunLiveActivity &&
@@ -2041,6 +2101,7 @@ export default function ExperiencePage() {
         }
 
         let confirmed = false;
+        let visibleFrameStreak = 0;
         const canvas = document.createElement('canvas');
         canvas.width = 32;
         canvas.height = 18;
@@ -2072,23 +2133,29 @@ export default function ExperiencePage() {
                     const luma = red * 0.2126 + green * 0.7152 + blue * 0.0722;
 
                     totalLuma += luma;
-                    if (luma > 14 || max > 34) litPixels++;
-                    if (max - min > 8) variedPixels++;
+                    if (luma > 18 || max > 42) litPixels++;
+                    if (max - min > 10) variedPixels++;
                 }
 
                 const litRatio = litPixels / pixelCount;
                 const variedRatio = variedPixels / pixelCount;
                 const averageLuma = totalLuma / pixelCount;
 
-                return averageLuma > 12 || litRatio > 0.035 || variedRatio > 0.035;
+                return averageLuma > 18 || litRatio > 0.18 || variedRatio > 0.14;
             } catch {
                 return videoElement.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
             }
         };
         const onTimeUpdate = () => {
             if (hasVisibleFrame()) {
-                markPlaying();
+                visibleFrameStreak++;
+                if (visibleFrameStreak >= 3) {
+                    markPlaying();
+                }
+                return;
             }
+
+            visibleFrameStreak = 0;
         };
         const onPlaying = () => {
             // Events are just prompts to sample; the pixel check decides.
@@ -2406,7 +2473,7 @@ export default function ExperiencePage() {
                             <span className="h-12 w-12 animate-pulse rounded-full bg-[#66d9cb]/30 shadow-[0_0_35px_rgba(102,217,203,0.7)]" />
                         </div>
                         <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">Destination</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">{frontendCinematic.destinationKicker}</p>
                             <p className="mt-1 text-lg font-semibold text-white">{frontendCinematic.destinationLabel}</p>
                         </div>
                     </div>
