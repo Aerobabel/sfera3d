@@ -2030,48 +2030,80 @@ export default function ExperiencePage() {
         setNeedsPointerResume(true);
     }, [sendUnrealExitFocus]);
 
-    // Flip isVideoStreamingFrames true once UE actually starts painting the
-    // video element. We watch for `playing` + `timeupdate` with currentTime
-    // advancing; this bridges the gap between the SDK reporting "video
-    // initialized" and real frames arriving after the user click.
+    // Flip isVideoStreamingFrames true once UE is painting visible pixels.
+    // Media events like `playing` can fire while the SDK/decoder is alive but
+    // the frame is still black, so sample a tiny canvas until the image has
+    // enough luminance or channel variation to be a real rendered frame.
     useEffect(() => {
         if (!videoElement) {
             setIsVideoStreamingFrames(false);
             return;
         }
 
-        let lastTime = videoElement.currentTime;
         let confirmed = false;
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 18;
+        const context = canvas.getContext('2d', { willReadFrequently: true });
         const markPlaying = () => {
             if (confirmed) return;
             confirmed = true;
             setIsVideoStreamingFrames(true);
         };
+        const hasVisibleFrame = () => {
+            if (!context || videoElement.videoWidth <= 0 || videoElement.videoHeight <= 0) {
+                return false;
+            }
+
+            try {
+                context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+                let litPixels = 0;
+                let variedPixels = 0;
+                let totalLuma = 0;
+                const pixelCount = data.length / 4;
+
+                for (let index = 0; index < data.length; index += 4) {
+                    const red = data[index];
+                    const green = data[index + 1];
+                    const blue = data[index + 2];
+                    const max = Math.max(red, green, blue);
+                    const min = Math.min(red, green, blue);
+                    const luma = red * 0.2126 + green * 0.7152 + blue * 0.0722;
+
+                    totalLuma += luma;
+                    if (luma > 14 || max > 34) litPixels++;
+                    if (max - min > 8) variedPixels++;
+                }
+
+                const litRatio = litPixels / pixelCount;
+                const variedRatio = variedPixels / pixelCount;
+                const averageLuma = totalLuma / pixelCount;
+
+                return averageLuma > 12 || litRatio > 0.035 || variedRatio > 0.035;
+            } catch {
+                return videoElement.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+            }
+        };
         const onTimeUpdate = () => {
-            if (videoElement.currentTime > lastTime + 0.01) {
+            if (hasVisibleFrame()) {
                 markPlaying();
             }
-            lastTime = videoElement.currentTime;
         };
         const onPlaying = () => {
-            // Fallback: `playing` fires even before timeupdate on some
-            // browsers — accept it as a readiness signal.
-            markPlaying();
+            // Events are just prompts to sample; the pixel check decides.
+            onTimeUpdate();
         };
 
-        if (
-            videoElement.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA ||
-            !videoElement.paused ||
-            videoElement.currentTime > 0
-        ) {
-            markPlaying();
-        }
+        onTimeUpdate();
+        const sampleTimer = window.setInterval(onTimeUpdate, 120);
 
         videoElement.addEventListener('timeupdate', onTimeUpdate);
         videoElement.addEventListener('playing', onPlaying);
         videoElement.addEventListener('loadeddata', onPlaying);
         videoElement.addEventListener('canplay', onPlaying);
         return () => {
+            window.clearInterval(sampleTimer);
             videoElement.removeEventListener('timeupdate', onTimeUpdate);
             videoElement.removeEventListener('playing', onPlaying);
             videoElement.removeEventListener('loadeddata', onPlaying);
