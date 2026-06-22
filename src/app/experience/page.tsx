@@ -2100,16 +2100,17 @@ export default function ExperiencePage() {
             return;
         }
 
-        let confirmed = false;
         let visibleFrameStreak = 0;
+        let blackFrameStreak = 0;
         const canvas = document.createElement('canvas');
-        canvas.width = 32;
-        canvas.height = 18;
+        canvas.width = 96;
+        canvas.height = 54;
         const context = canvas.getContext('2d', { willReadFrequently: true });
         const markPlaying = () => {
-            if (confirmed) return;
-            confirmed = true;
             setIsVideoStreamingFrames(true);
+        };
+        const markBlack = () => {
+            setIsVideoStreamingFrames(false);
         };
         const hasVisibleFrame = () => {
             if (!context || videoElement.videoWidth <= 0 || videoElement.videoHeight <= 0) {
@@ -2123,39 +2124,80 @@ export default function ExperiencePage() {
                 let variedPixels = 0;
                 let totalLuma = 0;
                 const pixelCount = data.length / 4;
+                const tileColumns = 6;
+                const tileRows = 3;
+                const tileStats = Array.from({ length: tileColumns * tileRows }, () => ({
+                    lit: 0,
+                    varied: 0,
+                    luma: 0,
+                    total: 0,
+                }));
 
                 for (let index = 0; index < data.length; index += 4) {
+                    const pixelIndex = index / 4;
+                    const x = pixelIndex % canvas.width;
+                    const y = Math.floor(pixelIndex / canvas.width);
                     const red = data[index];
                     const green = data[index + 1];
                     const blue = data[index + 2];
                     const max = Math.max(red, green, blue);
                     const min = Math.min(red, green, blue);
                     const luma = red * 0.2126 + green * 0.7152 + blue * 0.0722;
+                    const isLit = luma > 18 || max > 42;
+                    const isVaried = max - min > 10;
+                    const tileColumn = Math.min(tileColumns - 1, Math.floor((x / canvas.width) * tileColumns));
+                    const tileRow = Math.min(tileRows - 1, Math.floor((y / canvas.height) * tileRows));
+                    const tile = tileStats[tileRow * tileColumns + tileColumn];
 
                     totalLuma += luma;
-                    if (luma > 18 || max > 42) litPixels++;
-                    if (max - min > 10) variedPixels++;
+                    if (isLit) litPixels++;
+                    if (isVaried) variedPixels++;
+                    tile.luma += luma;
+                    tile.total++;
+                    if (isLit) tile.lit++;
+                    if (isVaried) tile.varied++;
                 }
 
                 const litRatio = litPixels / pixelCount;
                 const variedRatio = variedPixels / pixelCount;
                 const averageLuma = totalLuma / pixelCount;
+                const activeOuterTiles = tileStats.filter((tile, index) => {
+                    const column = index % tileColumns;
+                    const row = Math.floor(index / tileColumns);
+                    const isCenterReticleTile = row === 1 && (column === 2 || column === 3);
+                    if (isCenterReticleTile || tile.total === 0) return false;
 
-                return averageLuma > 18 || litRatio > 0.18 || variedRatio > 0.14;
+                    const tileAverageLuma = tile.luma / tile.total;
+                    const tileLitRatio = tile.lit / tile.total;
+                    const tileVariedRatio = tile.varied / tile.total;
+                    return tileAverageLuma > 16 || tileLitRatio > 0.08 || tileVariedRatio > 0.08;
+                }).length;
+
+                return (
+                    averageLuma > 26 ||
+                    litRatio > 0.34 ||
+                    variedRatio > 0.24 ||
+                    activeOuterTiles >= 4
+                );
             } catch {
-                return videoElement.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+                return false;
             }
         };
         const onTimeUpdate = () => {
             if (hasVisibleFrame()) {
                 visibleFrameStreak++;
-                if (visibleFrameStreak >= 3) {
+                blackFrameStreak = 0;
+                if (visibleFrameStreak >= 4) {
                     markPlaying();
                 }
                 return;
             }
 
             visibleFrameStreak = 0;
+            blackFrameStreak++;
+            if (blackFrameStreak >= 6) {
+                markBlack();
+            }
         };
         const onPlaying = () => {
             // Events are just prompts to sample; the pixel check decides.
