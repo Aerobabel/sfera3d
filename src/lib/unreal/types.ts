@@ -3,6 +3,15 @@ import type { QuestProgress, QuestRewardState } from '@/lib/quests';
 export type SferaMode = 'shopper' | 'player';
 export type SferaLocation = 'city' | 'sferaHall' | 'zombieArena' | 'racingZone';
 export type SferaGame = null | 'ZombieArena' | 'RacingZone' | 'TreasureHunt';
+export type WalletTransactionKind = 'arcade_win' | 'quest_reward';
+
+export type WalletTransaction = {
+    id: string;
+    kind: WalletTransactionKind;
+    label: string;
+    amountCents: number;
+    createdAt: number;
+};
 
 export type UnrealPixelStreamingEvent =
     | { event: 'mode_changed'; mode?: unknown }
@@ -27,6 +36,11 @@ export type UnrealPixelStreamingEvent =
     | { event: 'supplier_portal_opened' }
     | { event: 'product_upload_started' }
     | { event: 'lead_inbox_opened' }
+    | { event: 'terminal_nearby' }
+    | { event: 'terminal_left' }
+    | { event: 'arcade_nearby' }
+    | { event: 'arcade_left' }
+    | { event: 'arcade_prize_won'; amountCents?: unknown; gameTitle?: unknown }
     | { event: string; [key: string]: unknown };
 
 export type ArenaMomentKind = 'kill' | 'hit' | 'combo' | 'rank' | 'game_over';
@@ -60,4 +74,6 @@ export type UnrealEventBridgeState = {
     questProgress: QuestProgress[];
     questRewards: QuestRewardState[];
     lastCompletedQuestId: string | null;
+    walletBalanceCents: number;
+    walletTransactions: WalletTransaction[];
 };
