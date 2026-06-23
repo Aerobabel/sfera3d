@@ -55,7 +55,7 @@ const COPY: Record<AppLanguage, Copy> = {
         pavilionTriggerBadge: 'How to open the catalogue',
     },
     ru: {
-        heading: 'Готовим ваш онлайн-шоурум',
+        heading: 'Готовим ваше виртуальное пространство',
         subheading: 'Уделите пару секунд, чтобы изучить управление.',
         controls: 'Управление',
         move: 'Движение',

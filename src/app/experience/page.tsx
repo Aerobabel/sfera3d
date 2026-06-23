@@ -3,7 +3,7 @@
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, Gift, Send, Menu, X, Monitor, Play, Volume2, WalletCards } from "lucide-react";
+import { Activity, Coins, Gamepad2, Gift, Monitor, Play, Send, Sparkles, Trophy, Volume2, WalletCards, X, Zap, Menu } from "lucide-react";
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
@@ -36,6 +36,7 @@ import {
     type QuestEventInput,
 } from "@/lib/quests";
 import { playSferaUiSound } from "@/lib/ui/sound";
+import type { WalletTransaction } from "@/lib/unreal/types";
 
 type MobileInputMode = 'joystick' | 'touch';
 type ToStreamerHandler = (messageData?: Array<number | string>) => void;
@@ -258,6 +259,9 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
     giftCodePending: string;
     giftCodeMessage: string;
     unavailable: string;
+    walletBalance: string;
+    recentWinnings: string;
+    noWinnings: string;
     guideTitle: string;
     guideBody: string;
     guideSteps: readonly [string, string, string];
@@ -298,6 +302,9 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         giftCodePending: 'Game gift codes pending',
         giftCodeMessage: 'Steam or other game-store codes can be issued after partner/code inventory is connected.',
         unavailable: 'Unavailable',
+        walletBalance: 'Wallet balance',
+        recentWinnings: 'Recent winnings',
+        noWinnings: 'Arcade prizes and quest money will appear here.',
         guideTitle: 'What to do now',
         guideBody: 'You are in a 3D city. Visit Sfera Hall, explore one pavilion, then enter Zombie Arena and claim the reward.',
         guideSteps: ['Explore Sfera Hall', 'Enter Zombie Arena', 'Claim reward'],
@@ -343,6 +350,9 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         giftCodePending: 'Подарочные коды в работе',
         giftCodeMessage: 'Коды Steam или других игровых площадок можно будет выдавать после подключения партнерской программы или склада кодов.',
         unavailable: 'Недоступно',
+        walletBalance: 'Баланс кошелька',
+        recentWinnings: 'Последние выигрыши',
+        noWinnings: 'Выигрыши из аркады и денежные награды появятся здесь.',
         guideTitle: 'Что делать сейчас',
         guideBody: 'Вы в 3D-городе. Посетите Sfera Hall, изучите один павильон, затем войдите в Zombie Arena и получите награду.',
         guideSteps: ['Изучить Sfera Hall', 'Войти в Zombie Arena', 'Получить награду'],
@@ -388,6 +398,9 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         giftCodePending: '游戏礼品码待接入',
         giftCodeMessage: '接入合作伙伴或礼品码库存后，可发放 Steam 或其他游戏平台代码。',
         unavailable: '不可用',
+        walletBalance: '钱包余额',
+        recentWinnings: '最近奖金',
+        noWinnings: '街机奖金和任务现金会显示在这里。',
         guideTitle: '现在要做什么',
         guideBody: '你在 3D 城市中。访问 Sfera Hall，探索一个展馆，然后进入 Zombie Arena 并领取奖励。',
         guideSteps: ['探索 Sfera Hall', '进入 Zombie Arena', '领取奖励'],
@@ -648,7 +661,7 @@ const FASTVIEW_LAUNCH_COPY: Record<
     },
     ru: {
         eyebrow: '\u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0432\u0445\u043E\u0434',
-        loadingTitle: '\u0413\u043E\u0442\u043E\u0432\u0438\u043C \u0432\u0430\u0448 \u043E\u043D\u043B\u0430\u0439\u043D-\u0448\u043E\u0443\u0440\u0443\u043C',
+        loadingTitle: '\u0413\u043E\u0442\u043E\u0432\u0438\u043C \u0432\u0430\u0448\u0435 \u0432\u0438\u0440\u0442\u0443\u0430\u043B\u044C\u043D\u043E\u0435 \u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0441\u0442\u0432\u043E',
         loadingBody: '\u0417\u0430\u043F\u0443\u0441\u043A\u0430\u0435\u043C \u0441\u0442\u0440\u0438\u043C \u0438 \u0437\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u043C \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435. \u041E\u0431\u044B\u0447\u043D\u043E \u044D\u0442\u043E \u0437\u0430\u043D\u0438\u043C\u0430\u0435\u0442 \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0441\u0435\u043A\u0443\u043D\u0434.',
         readyTitle: '\u0421\u0435\u0430\u043D\u0441 \u0433\u043E\u0442\u043E\u0432',
         readyBody: '\u041D\u0430\u0436\u043C\u0438\u0442\u0435, \u0447\u0442\u043E\u0431\u044B \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0437\u0432\u0443\u043A, \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u044E \u044F\u0437\u044B\u043A\u0430 \u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435.',
@@ -907,6 +920,420 @@ const resolveFrontendCinematic = (event: unknown, language: AppLanguage): Omit<F
 
     return null;
 };
+
+const formatMoney = (amountCents: number) =>
+    `$${(amountCents / 100).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })}`;
+
+type ArcadeGameId = 'pulse-runner' | 'signal-match' | 'vault-drop';
+
+type ArcadeCopy = {
+    title: string;
+    eyebrow: string;
+    subtitle: string;
+    wallet: string;
+    cashAdded: string;
+    chooseGame: string;
+    close: string;
+    play: string;
+    stop: string;
+    lock: string;
+    claim: string;
+    jackpot: string;
+    nearPerfect: string;
+    tryAgain: string;
+    recent: string;
+    emptyRecent: string;
+    games: Record<ArcadeGameId, { title: string; tag: string; body: string; mechanic: string }>;
+};
+
+const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
+    en: {
+        title: 'Sfera Arcade',
+        eyebrow: 'Prize cabinets',
+        subtitle: 'Quick skill games. Win session money and watch it land in your wallet instantly.',
+        wallet: 'Wallet',
+        cashAdded: 'Cash added',
+        chooseGame: 'Choose a cabinet',
+        close: 'Close arcade',
+        play: 'Play',
+        stop: 'Stop',
+        lock: 'Lock timing',
+        claim: 'Claim win',
+        jackpot: 'Jackpot hit',
+        nearPerfect: 'Clean win',
+        tryAgain: 'No prize this round',
+        recent: 'Recent wallet activity',
+        emptyRecent: 'Wins from arcade games will appear here.',
+        games: {
+            'pulse-runner': {
+                title: 'Pulse Runner',
+                tag: 'Timing',
+                body: 'Catch the cyan pulse inside the prize window.',
+                mechanic: 'The closer to center, the higher the payout.',
+            },
+            'signal-match': {
+                title: 'Signal Match',
+                tag: 'Memory',
+                body: 'Repeat the neon sequence before the circuit cools.',
+                mechanic: 'Complete the chain to collect the cash prize.',
+            },
+            'vault-drop': {
+                title: 'Vault Drop',
+                tag: 'Luck',
+                body: 'Spin the three vault columns and line up symbols.',
+                mechanic: 'Pairs win, triples trigger a jackpot.',
+            },
+        },
+    },
+    ru: {
+        title: 'Sfera Arcade',
+        eyebrow: 'Игровые автоматы',
+        subtitle: 'Короткие игры на реакцию и память. Выигрывайте деньги сессии, и они сразу появляются в кошельке.',
+        wallet: 'Кошелек',
+        cashAdded: 'Начислено',
+        chooseGame: 'Выберите автомат',
+        close: 'Закрыть аркаду',
+        play: 'Играть',
+        stop: 'Стоп',
+        lock: 'Поймать момент',
+        claim: 'Забрать выигрыш',
+        jackpot: 'Джекпот',
+        nearPerfect: 'Чистая победа',
+        tryAgain: 'В этом раунде без приза',
+        recent: 'Последние операции',
+        emptyRecent: 'Выигрыши из аркадных игр появятся здесь.',
+        games: {
+            'pulse-runner': {
+                title: 'Pulse Runner',
+                tag: 'Тайминг',
+                body: 'Поймайте голубой импульс внутри призового окна.',
+                mechanic: 'Чем ближе к центру, тем выше выплата.',
+            },
+            'signal-match': {
+                title: 'Signal Match',
+                tag: 'Память',
+                body: 'Повторите неоновую последовательность до остывания цепи.',
+                mechanic: 'Соберите цепочку полностью, чтобы получить денежный приз.',
+            },
+            'vault-drop': {
+                title: 'Vault Drop',
+                tag: 'Удача',
+                body: 'Запустите три колонны сейфа и совместите символы.',
+                mechanic: 'Пары дают выигрыш, три одинаковых символа дают джекпот.',
+            },
+        },
+    },
+    zh: {
+        title: 'Sfera Arcade',
+        eyebrow: '奖金机台',
+        subtitle: '快速技巧小游戏。赢取会话奖金，并立即进入钱包。',
+        wallet: '钱包',
+        cashAdded: '已入账',
+        chooseGame: '选择机台',
+        close: '关闭街机',
+        play: '开始',
+        stop: '停止',
+        lock: '锁定时机',
+        claim: '领取奖金',
+        jackpot: '命中大奖',
+        nearPerfect: '漂亮获胜',
+        tryAgain: '本轮无奖励',
+        recent: '最近钱包动态',
+        emptyRecent: '街机获胜记录会显示在这里。',
+        games: {
+            'pulse-runner': {
+                title: 'Pulse Runner',
+                tag: '时机',
+                body: '把青色脉冲停在奖励窗口内。',
+                mechanic: '越靠近中心，奖金越高。',
+            },
+            'signal-match': {
+                title: 'Signal Match',
+                tag: '记忆',
+                body: '在电路冷却前重复霓虹序列。',
+                mechanic: '完成整条序列即可领取现金奖励。',
+            },
+            'vault-drop': {
+                title: 'Vault Drop',
+                tag: '运气',
+                body: '转动三列金库符号并尝试连线。',
+                mechanic: '一对符号获奖，三连触发大奖。',
+            },
+        },
+    },
+};
+
+function ArcadeOverlay({
+    copy,
+    walletBalanceCents,
+    transactions,
+    onClose,
+    onPrize,
+}: {
+    copy: ArcadeCopy;
+    walletBalanceCents: number;
+    transactions: WalletTransaction[];
+    onClose: () => void;
+    onPrize: (amountCents: number, gameTitle: string) => void;
+}) {
+    const [activeGame, setActiveGame] = useState<ArcadeGameId>('pulse-runner');
+    const [pulse, setPulse] = useState(18);
+    const [pulseDirection, setPulseDirection] = useState(1);
+    const [signalSequence, setSignalSequence] = useState<number[]>([0, 2, 1, 3]);
+    const [signalInput, setSignalInput] = useState<number[]>([]);
+    const [vaultSymbols, setVaultSymbols] = useState(['7', '◇', '7']);
+    const [result, setResult] = useState<{ label: string; amountCents: number } | null>(null);
+
+    useEffect(() => {
+        if (activeGame !== 'pulse-runner') return;
+
+        const timer = window.setInterval(() => {
+            setPulse((current) => {
+                const next = current + pulseDirection * 7;
+                if (next >= 94) {
+                    setPulseDirection(-1);
+                    return 94;
+                }
+                if (next <= 6) {
+                    setPulseDirection(1);
+                    return 6;
+                }
+                return next;
+            });
+        }, 84);
+
+        return () => window.clearInterval(timer);
+    }, [activeGame, pulseDirection]);
+
+    const award = useCallback((amountCents: number, label: string) => {
+        setResult({ amountCents, label });
+        if (amountCents > 0) {
+            onPrize(amountCents, copy.games[activeGame].title);
+        }
+    }, [activeGame, copy.games, onPrize]);
+
+    const handlePulseLock = () => {
+        const distance = Math.abs(pulse - 50);
+        if (distance <= 5) {
+            award(GAME_RULES.arcade.games[0].jackpotCents, copy.jackpot);
+            return;
+        }
+        if (distance <= 16) {
+            award(GAME_RULES.arcade.games[0].prizeCents, copy.nearPerfect);
+            return;
+        }
+        award(0, copy.tryAgain);
+    };
+
+    const resetSignal = () => {
+        const next = Array.from({ length: 4 }, () => Math.floor(Math.random() * 4));
+        setSignalSequence(next);
+        setSignalInput([]);
+        setResult(null);
+    };
+
+    const handleSignalPress = (value: number) => {
+        const next = [...signalInput, value];
+        setSignalInput(next);
+
+        if (signalSequence[next.length - 1] !== value) {
+            setSignalInput([]);
+            award(0, copy.tryAgain);
+            return;
+        }
+
+        if (next.length === signalSequence.length) {
+            const isJackpot = new Set(signalSequence).size >= 4;
+            award(
+                isJackpot ? GAME_RULES.arcade.games[1].jackpotCents : GAME_RULES.arcade.games[1].prizeCents,
+                isJackpot ? copy.jackpot : copy.nearPerfect
+            );
+            window.setTimeout(resetSignal, 720);
+        }
+    };
+
+    const handleVaultSpin = () => {
+        const symbols = ['7', '◇', '★', '$', 'S'];
+        const next = Array.from({ length: 3 }, () => symbols[Math.floor(Math.random() * symbols.length)]);
+        setVaultSymbols(next);
+        const unique = new Set(next);
+        if (unique.size === 1) {
+            award(GAME_RULES.arcade.games[2].jackpotCents, copy.jackpot);
+        } else if (unique.size === 2) {
+            award(GAME_RULES.arcade.games[2].prizeCents, copy.nearPerfect);
+        } else {
+            award(0, copy.tryAgain);
+        }
+    };
+
+    const activeCopy = copy.games[activeGame];
+    const visibleTransactions = transactions.slice(0, 4);
+
+    return (
+        <div className="absolute inset-0 z-[92] flex items-center justify-center bg-[#02060b]/78 p-3 text-white backdrop-blur-md pointer-events-auto" role="dialog" aria-modal="true" aria-label={copy.title}>
+            <section className="sfera-reward-pop relative grid max-h-[calc(100vh-1.5rem)] w-[min(100%,68rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#060b12]/96 shadow-[0_34px_140px_rgba(0,0,0,0.62)] lg:grid-cols-[0.92fr_1.4fr]">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(102,217,203,0.18),transparent_28%),radial-gradient(circle_at_86%_26%,rgba(245,199,102,0.12),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.04),transparent_42%)]" />
+                <aside className="relative border-b border-white/10 p-4 lg:border-b-0 lg:border-r">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/30 text-slate-300 transition hover:border-white/25 hover:text-white"
+                        aria-label={copy.close}
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#66d9cb]">{copy.eyebrow}</p>
+                    <h2 className="mt-2 pr-10 text-3xl font-black tracking-tight text-white">{copy.title}</h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">{copy.subtitle}</p>
+
+                    <div className="mt-4 rounded-xl border border-emerald-300/20 bg-emerald-300/[0.07] p-3">
+                        <div className="flex items-center justify-between gap-3">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100">{copy.wallet}</p>
+                                <p className="mt-1 text-3xl font-black text-white">{formatMoney(walletBalanceCents)}</p>
+                            </div>
+                            <WalletCards className="h-7 w-7 text-emerald-100" />
+                        </div>
+                    </div>
+
+                    <div className="mt-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{copy.chooseGame}</p>
+                        <div className="mt-2 grid gap-2">
+                            {(Object.keys(copy.games) as ArcadeGameId[]).map((gameId) => {
+                                const game = copy.games[gameId];
+                                const isActive = activeGame === gameId;
+                                return (
+                                    <button
+                                        key={gameId}
+                                        type="button"
+                                        onClick={() => {
+                                            setActiveGame(gameId);
+                                            setResult(null);
+                                        }}
+                                        className={`rounded-xl border px-3 py-3 text-left transition ${
+                                            isActive
+                                                ? 'border-[#66d9cb]/45 bg-[#66d9cb]/12 text-white'
+                                                : 'border-white/10 bg-white/[0.035] text-slate-300 hover:border-white/20 hover:bg-white/[0.07]'
+                                        }`}
+                                    >
+                                        <span className="block text-xs font-black uppercase tracking-[0.14em] text-[#9ff4ec]">{game.tag}</span>
+                                        <span className="mt-1 block text-base font-black">{game.title}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </aside>
+
+                <main className="relative min-h-0 overflow-y-auto p-4">
+                    <div className="rounded-2xl border border-white/10 bg-black/24 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-100">{activeCopy.tag}</p>
+                                <h3 className="mt-1 text-2xl font-black text-white">{activeCopy.title}</h3>
+                                <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">{activeCopy.body}</p>
+                            </div>
+                            <Gamepad2 className="h-8 w-8 shrink-0 text-[#66d9cb]" />
+                        </div>
+
+                        <div className="mt-5 min-h-[16rem] rounded-2xl border border-white/10 bg-[linear-gradient(145deg,rgba(102,217,203,0.06),rgba(245,199,102,0.05),rgba(255,255,255,0.03))] p-4">
+                            {activeGame === 'pulse-runner' && (
+                                <div className="flex h-full flex-col justify-between gap-5">
+                                    <div className="relative h-20 rounded-xl border border-white/10 bg-black/28 p-3">
+                                        <div className="absolute inset-y-3 left-[42%] right-[42%] rounded-lg border border-emerald-300/35 bg-emerald-300/12" />
+                                        <div
+                                            className="absolute top-1/2 h-12 w-3 -translate-y-1/2 rounded-full bg-[#66d9cb] shadow-[0_0_24px_rgba(102,217,203,0.9)] transition-all duration-75"
+                                            style={{ left: `${pulse}%` }}
+                                        />
+                                    </div>
+                                    <p className="text-sm leading-6 text-slate-300">{activeCopy.mechanic}</p>
+                                    <button type="button" onClick={handlePulseLock} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#66d9cb] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#03110f] transition hover:bg-[#8df0e6]">
+                                        <Zap className="h-4 w-4" />
+                                        {copy.lock}
+                                    </button>
+                                </div>
+                            )}
+
+                            {activeGame === 'signal-match' && (
+                                <div className="grid gap-5">
+                                    <div className="flex flex-wrap gap-2">
+                                        {signalSequence.map((value, index) => (
+                                            <span key={`${value}-${index}`} className="grid h-10 w-10 place-items-center rounded-lg border border-[#66d9cb]/25 bg-[#66d9cb]/10 font-mono text-sm font-black text-[#9ff4ec]">
+                                                {['A', 'B', 'C', 'D'][value]}
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                        {[0, 1, 2, 3].map((value) => (
+                                            <button key={value} type="button" onClick={() => handleSignalPress(value)} className="h-20 rounded-xl border border-white/10 bg-white/[0.055] text-xl font-black text-white transition hover:border-[#66d9cb]/35 hover:bg-[#66d9cb]/12">
+                                                {['A', 'B', 'C', 'D'][value]}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-sm leading-6 text-slate-300">{activeCopy.mechanic} {signalInput.length}/{signalSequence.length}</p>
+                                    <button type="button" onClick={resetSignal} className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.055] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.09]">
+                                        <Sparkles className="h-4 w-4" />
+                                        {copy.play}
+                                    </button>
+                                </div>
+                            )}
+
+                            {activeGame === 'vault-drop' && (
+                                <div className="grid gap-5">
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {vaultSymbols.map((symbol, index) => (
+                                            <div key={`${symbol}-${index}`} className="grid aspect-square place-items-center rounded-2xl border border-amber-300/20 bg-black/32 text-5xl font-black text-amber-100 shadow-[inset_0_0_28px_rgba(245,199,102,0.08)]">
+                                                {symbol}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="text-sm leading-6 text-slate-300">{activeCopy.mechanic}</p>
+                                    <button type="button" onClick={handleVaultSpin} className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:bg-amber-200">
+                                        <Trophy className="h-4 w-4" />
+                                        {copy.play}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {result && (
+                            <div className={`mt-4 rounded-xl border p-3 ${result.amountCents > 0 ? 'border-emerald-300/24 bg-emerald-300/[0.07]' : 'border-white/10 bg-white/[0.04]'}`}>
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="font-black text-white">{result.label}</p>
+                                        <p className="mt-1 text-sm text-slate-300">
+                                            {result.amountCents > 0 ? `${copy.cashAdded}: ${formatMoney(result.amountCents)}` : activeCopy.mechanic}
+                                        </p>
+                                    </div>
+                                    <Coins className={result.amountCents > 0 ? 'h-6 w-6 text-emerald-100' : 'h-6 w-6 text-slate-500'} />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{copy.recent}</p>
+                        {visibleTransactions.length === 0 ? (
+                            <p className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-400">{copy.emptyRecent}</p>
+                        ) : (
+                            <div className="mt-3 grid gap-2">
+                                {visibleTransactions.map((transaction) => (
+                                    <div key={transaction.id} className="flex items-center justify-between gap-3 rounded-xl border border-emerald-300/14 bg-emerald-300/[0.055] px-3 py-2">
+                                        <span className="min-w-0 truncate text-sm font-bold text-white">{transaction.label}</span>
+                                        <span className="font-mono text-sm font-black text-emerald-100">+{formatMoney(transaction.amountCents)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                </main>
+            </section>
+        </div>
+    );
+}
 
 function CutsceneSiteHeader({
     statusOnline,
@@ -1213,6 +1640,7 @@ export default function ExperiencePage() {
     // Pavilion Exposition State — opened when Unreal sends `entered_pavilion:<id>`.
     const [activePavilion, setActivePavilion] = useState<PavilionInfo | null>(null);
     const [isRewardTerminalOpen, setIsRewardTerminalOpen] = useState(false);
+    const [isArcadeOpen, setIsArcadeOpen] = useState(false);
     const [seenRewardTerminalRewardId, setSeenRewardTerminalRewardId] = useState<string | null>(null);
     const localizedActiveProduct = useMemo(
         () => (activeProduct ? getLocalizedProduct(activeProduct, language) : null),
@@ -1268,6 +1696,43 @@ export default function ExperiencePage() {
         if (!isRewardTerminalOpen) return;
         playSferaUiSound('open');
     }, [isRewardTerminalOpen]);
+
+    useEffect(() => {
+        if (!isArcadeOpen) return;
+        playSferaUiSound('open');
+    }, [isArcadeOpen]);
+
+    useEffect(() => {
+        if (!hasStartedExperience || !unrealBridge.lastUnrealEvent) return;
+
+        switch (unrealBridge.lastUnrealEvent.event) {
+            case 'terminal_nearby':
+                setIsArcadeOpen(false);
+                setIsRewardTerminalOpen(true);
+                break;
+            case 'terminal_left':
+                setIsRewardTerminalOpen(false);
+                break;
+            case 'arcade_nearby':
+                setIsRewardTerminalOpen(false);
+                setIsArcadeOpen(true);
+                break;
+            case 'arcade_left':
+                setIsArcadeOpen(false);
+                break;
+            default:
+                break;
+        }
+    }, [hasStartedExperience, unrealBridge.lastUnrealEvent]);
+
+    const handleArcadePrize = useCallback((amountCents: number, gameTitle: string) => {
+        unrealBridge.handleUnrealResponse(JSON.stringify({
+            event: 'arcade_prize_won',
+            amountCents,
+            gameTitle,
+        }));
+        playSferaUiSound('reward');
+    }, [unrealBridge]);
 
 
     useEffect(() => {
@@ -1618,7 +2083,7 @@ export default function ExperiencePage() {
     }, [handleStartExperience, hasStartedExperience, switchUnrealMode]);
 
     useEffect(() => {
-        if (!hasStartedExperience || isChatFocused || activeProduct || isCatalogueOpen || activePavilion || isMenuOpen) return;
+        if (!hasStartedExperience || isChatFocused || activeProduct || isCatalogueOpen || activePavilion || isMenuOpen || isRewardTerminalOpen || isArcadeOpen) return;
 
         const handleModeHotkey = (event: KeyboardEvent) => {
             const target = event.target as HTMLElement | null;
@@ -1630,7 +2095,7 @@ export default function ExperiencePage() {
 
         document.addEventListener('keydown', handleModeHotkey, true);
         return () => document.removeEventListener('keydown', handleModeHotkey, true);
-    }, [activePavilion, activeProduct, isCatalogueOpen, isChatFocused, isMenuOpen, hasStartedExperience, toggleUnrealMode]);
+    }, [activePavilion, activeProduct, isArcadeOpen, isCatalogueOpen, isChatFocused, isMenuOpen, isRewardTerminalOpen, hasStartedExperience, toggleUnrealMode]);
 
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
     const streamPixelPreviewUrl = useMemo(
@@ -1666,6 +2131,7 @@ export default function ExperiencePage() {
         !isChatPanelOpen &&
         !isMenuOpen &&
         !isRewardTerminalOpen &&
+        !isArcadeOpen &&
         !isStreamPixelOpen;
     const canEnterFastView = Boolean(videoElement) && !fastViewError;
     const fastViewLaunchTitle = fastViewError
@@ -2257,10 +2723,10 @@ export default function ExperiencePage() {
     // This prevents the "running forward forever" bug caused by keyup events
     // being swallowed when a product card, menu, or chat input opens.
     useEffect(() => {
-        if (activeProduct || isMenuOpen || isCatalogueOpen || isChatFocused || activePavilion) {
+        if (activeProduct || isMenuOpen || isCatalogueOpen || isChatFocused || activePavilion || isRewardTerminalOpen || isArcadeOpen) {
             releaseAllInputs();
         }
-    }, [activeProduct, isMenuOpen, isCatalogueOpen, isChatFocused, activePavilion]);
+    }, [activeProduct, isArcadeOpen, isMenuOpen, isCatalogueOpen, isChatFocused, activePavilion, isRewardTerminalOpen]);
 
     // Ensure Unreal Engine state matches React state on video connection/reconnection
     // If the user's connection dropped while inspecting, Unreal remains stuck in inspection
@@ -2352,6 +2818,9 @@ export default function ExperiencePage() {
     );
     const latestPlayerRewardQuest = latestPlayerReward ? getQuestDefinition(latestPlayerReward.questId) : null;
     const latestPlayerRewardQuestText = latestPlayerRewardQuest ? getQuestText(latestPlayerRewardQuest, language) : null;
+    const walletBalanceCents = unrealBridge.walletBalanceCents;
+    const recentWalletTransactions = unrealBridge.walletTransactions.slice(0, 5);
+    const hasWalletActivity = walletBalanceCents > 0 || recentWalletTransactions.length > 0;
 
     useEffect(() => {
         if (!hasStartedExperience || !isGamerScene || !latestPlayerReward) return;
@@ -2892,6 +3361,24 @@ export default function ExperiencePage() {
                                     </span>
                                 </button>
                             )}
+                            {hasWalletActivity && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsRewardTerminalOpen(true)}
+                                    className="sfera-reward-pop mt-2 flex w-[min(92vw,22rem)] items-center gap-3 rounded-xl border border-cyan-300/20 bg-[#031018]/72 px-3 py-2.5 text-left text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.28)] backdrop-blur-md transition hover:border-cyan-200/45 hover:bg-cyan-300/[0.08]"
+                                >
+                                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-cyan-300/24 bg-cyan-300/10 text-cyan-100">
+                                        <WalletCards className="h-4 w-4" />
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-cyan-100">{sceneHud.walletBalance}</span>
+                                        <span className="mt-0.5 block truncate text-lg font-black text-white">{formatMoney(walletBalanceCents)}</span>
+                                    </span>
+                                    <span className="shrink-0 rounded-full border border-cyan-300/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100">
+                                        {sceneHud.openTerminal}
+                                    </span>
+                                </button>
+                            )}
                             {showLiveActivityToasts && (
                                 <div className="mt-2 flex w-[min(92vw,22rem)] flex-col gap-1.5" aria-live="polite">
                                     {liveActivityToasts.map((toast, index) => (
@@ -3029,9 +3516,9 @@ export default function ExperiencePage() {
                         </div>
                     )}
 
-                    {isRewardTerminalOpen && latestPlayerReward && (
+                    {isRewardTerminalOpen && (
                         <div className="absolute inset-0 z-[90] grid place-items-center bg-[#02060b]/72 p-4 text-white backdrop-blur-sm pointer-events-auto" role="dialog" aria-modal="true" aria-label={sceneHud.rewardTerminal}>
-                            <section className="sfera-reward-pop relative w-[min(100%,32rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#0a1018]/96 shadow-[0_34px_120px_rgba(0,0,0,0.55)]">
+                            <section className="sfera-reward-pop relative max-h-[calc(100vh-2rem)] w-[min(100%,36rem)] overflow-y-auto rounded-2xl border border-white/10 bg-[#0a1018]/96 shadow-[0_34px_120px_rgba(0,0,0,0.55)]">
                                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,rgba(102,217,203,0.18),transparent_34%),radial-gradient(circle_at_12%_100%,rgba(245,199,102,0.16),transparent_30%)]" />
                                 <div className="relative border-b border-white/10 p-4">
                                     <button
@@ -3048,16 +3535,44 @@ export default function ExperiencePage() {
                                         </span>
                                         <div className="min-w-0">
                                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100">{sceneHud.rewardTerminal}</p>
-                                            <h2 className="mt-1 text-xl font-black leading-tight text-white">{sceneHud.earnedReward}</h2>
+                                            <h2 className="mt-1 text-xl font-black leading-tight text-white">{sceneHud.walletBalance}</h2>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="relative grid gap-3 p-4">
                                     <div className="rounded-xl border border-emerald-300/16 bg-emerald-300/[0.06] p-3">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100">{sceneHud.questComplete}</p>
-                                        <p className="mt-1 text-base font-black text-white">{getQuestRewardText(latestPlayerReward, latestPlayerReward.questId, language)}</p>
-                                        <p className="mt-1 text-sm text-slate-400">{latestPlayerRewardQuestText?.title ?? latestPlayerReward.questId}</p>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100">{sceneHud.walletBalance}</p>
+                                                <p className="mt-1 text-4xl font-black text-white">{formatMoney(walletBalanceCents)}</p>
+                                            </div>
+                                            <Coins className="h-7 w-7 text-emerald-100" />
+                                        </div>
+                                    </div>
+
+                                    {latestPlayerReward && (
+                                        <div className="rounded-xl border border-cyan-300/16 bg-cyan-300/[0.055] p-3">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100">{sceneHud.questComplete}</p>
+                                            <p className="mt-1 text-base font-black text-white">{getQuestRewardText(latestPlayerReward, latestPlayerReward.questId, language)}</p>
+                                            <p className="mt-1 text-sm text-slate-400">{latestPlayerRewardQuestText?.title ?? latestPlayerReward.questId}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{sceneHud.recentWinnings}</p>
+                                        {recentWalletTransactions.length === 0 ? (
+                                            <p className="mt-2 text-sm leading-6 text-slate-400">{sceneHud.noWinnings}</p>
+                                        ) : (
+                                            <div className="mt-2 grid gap-2">
+                                                {recentWalletTransactions.map((transaction) => (
+                                                    <div key={transaction.id} className="flex items-center justify-between gap-3 rounded-lg border border-emerald-300/12 bg-emerald-300/[0.05] px-2.5 py-2">
+                                                        <span className="min-w-0 truncate text-sm font-bold text-white">{transaction.label}</span>
+                                                        <span className="font-mono text-sm font-black text-emerald-100">+{formatMoney(transaction.amountCents)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="rounded-xl border border-rose-300/16 bg-rose-300/[0.055] p-3">
@@ -3084,6 +3599,16 @@ export default function ExperiencePage() {
                                 </div>
                             </section>
                         </div>
+                    )}
+
+                    {isArcadeOpen && (
+                        <ArcadeOverlay
+                            copy={ARCADE_COPY[language]}
+                            walletBalanceCents={walletBalanceCents}
+                            transactions={recentWalletTransactions}
+                            onClose={() => setIsArcadeOpen(false)}
+                            onPrize={handleArcadePrize}
+                        />
                     )}
 
                     {/* Product Card Overlay */}

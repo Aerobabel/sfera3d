@@ -234,6 +234,8 @@ const fallback: UnrealEventBridgeState = {
     questProgress: createInitialQuestProgress(),
     questRewards: [],
     lastCompletedQuestId: null,
+    walletBalanceCents: 0,
+    walletTransactions: [],
 };
 
 const dashboardCopy: Record<AppLanguage, DashboardText> = {
@@ -618,7 +620,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             operations: [
                 { title: 'Управление павильоном', text: 'Бренд, 3D-сцены, баннеры, место в холле и данные магазина.', action: 'Настроить', tone: 'emerald', icon: Store, href: '/supplier/upload' },
                 { title: 'Аренда павильона', text: 'Зона молла, срок аренды, уровень промо и дата запуска.', action: 'В портал', tone: 'sky', icon: Building2, href: '/login?role=supplier&next=/supplier/dashboard' },
-                { title: 'Кампания', text: 'Планируйте запуски товаров, демо в шоуруме, купоны и промо-события.', action: 'Запланировать', tone: 'amber', icon: Gamepad2, href: '/login?role=supplier&next=/supplier/dashboard' },
+                { title: 'Кампания', text: 'Планируйте запуски товаров, демо в виртуальном пространстве, купоны и промо-события.', action: 'Запланировать', tone: 'amber', icon: Gamepad2, href: '/login?role=supplier&next=/supplier/dashboard' },
                 { title: 'Входящие лиды', text: 'Диалоги, КП, запросы образцов и follow-up.', action: 'Ответить', tone: 'cyan', icon: MessageSquare, href: '/login?role=supplier&next=/supplier/dashboard' },
                 { title: 'Доставка', text: 'Склады, регионы, правила образцов, возвраты и поддержка.', action: 'Управлять', tone: 'emerald', icon: Truck, href: '/login?role=supplier&next=/supplier/dashboard' },
                 { title: 'Аналитика', text: 'Визиты, фокус на товарах, конверсия чата и погашение наград.', action: 'Смотреть', tone: 'violet', icon: BarChart3, href: '/login?role=supplier&next=/supplier/dashboard' },
@@ -964,6 +966,9 @@ const localizeDashboardActivity = (value: string, language: AppLanguage) =>
 const questDashboardCopy: Record<AppLanguage, {
     activeQuests: string;
     rewardWallet: string;
+    walletBalance: string;
+    recentWinnings: string;
+    noWalletTransactions: string;
     rewardTerminal: string;
     terminalSubtitle: string;
     withdrawalTitle: string;
@@ -983,6 +988,9 @@ const questDashboardCopy: Record<AppLanguage, {
     en: {
         activeQuests: 'Active quests',
         rewardWallet: 'Reward wallet',
+        walletBalance: 'Wallet balance',
+        recentWinnings: 'Recent winnings',
+        noWalletTransactions: 'Arcade prizes will appear here after you play.',
         rewardTerminal: 'Reward ATM',
         terminalSubtitle: 'Cash-out is visible as a roadmap feature, not an active promise.',
         withdrawalTitle: 'Withdrawal unavailable',
@@ -1002,6 +1010,9 @@ const questDashboardCopy: Record<AppLanguage, {
     ru: {
         activeQuests: 'Активные квесты',
         rewardWallet: 'Кошелек наград',
+        walletBalance: 'Баланс кошелька',
+        recentWinnings: 'Последние выигрыши',
+        noWalletTransactions: 'Аркадные призы появятся здесь после игры.',
         rewardTerminal: 'Банкомат наград',
         terminalSubtitle: 'Вывод показан как будущая функция, а не как активное обещание.',
         withdrawalTitle: 'Вывод средств недоступен',
@@ -1021,6 +1032,9 @@ const questDashboardCopy: Record<AppLanguage, {
     zh: {
         activeQuests: '进行中的任务',
         rewardWallet: '奖励钱包',
+        walletBalance: '钱包余额',
+        recentWinnings: '最近奖金',
+        noWalletTransactions: '游玩街机后，奖金会显示在这里。',
         rewardTerminal: '奖励 ATM',
         terminalSubtitle: '提现作为路线图功能展示，并非当前承诺。',
         withdrawalTitle: '提现暂不可用',
@@ -1047,6 +1061,12 @@ const questStatusLabel = (
     if (progress.status === 'completed') return copy.complete;
     return copy.active;
 };
+
+const formatMoney = (amountCents: number) =>
+    `$${(amountCents / 100).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })}`;
 
 function DashboardBackNav() {
     const { language } = useLanguage();
@@ -1487,12 +1507,17 @@ function PlayerWorkspaceTabs({
 function RewardPanel({
     rewards,
     language,
+    walletBalanceCents,
+    walletTransactions,
 }: {
     rewards: QuestRewardState[];
     language: AppLanguage;
+    walletBalanceCents: number;
+    walletTransactions: UnrealEventBridgeState['walletTransactions'];
 }) {
     const copy = questDashboardCopy[language];
     const visibleRewards = [...rewards].reverse().slice(0, 4);
+    const visibleTransactions = walletTransactions.slice(0, 4);
 
     return (
         <section className={`${panel} p-3`}>
@@ -1501,6 +1526,30 @@ function RewardPanel({
                 <span className={`flex h-8 w-8 items-center justify-center rounded-lg border ${toneStyles.amber.icon}`}>
                     <Gift className="h-4 w-4" />
                 </span>
+            </div>
+            <div className="mb-3 rounded-lg border border-emerald-300/15 bg-emerald-300/[0.06] p-3">
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100">{copy.walletBalance}</p>
+                        <p className="mt-1 text-3xl font-black text-white">{formatMoney(walletBalanceCents)}</p>
+                    </div>
+                    <WalletCards className="h-6 w-6 text-emerald-100" />
+                </div>
+            </div>
+            <div className="mb-3 rounded-lg border border-cyan-300/12 bg-cyan-300/[0.045] p-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100">{copy.recentWinnings}</p>
+                {visibleTransactions.length === 0 ? (
+                    <p className="mt-2 text-xs leading-5 text-slate-400">{copy.noWalletTransactions}</p>
+                ) : (
+                    <div className="mt-2 grid gap-2">
+                        {visibleTransactions.map((transaction) => (
+                            <div key={transaction.id} className="flex items-center justify-between gap-3 rounded-lg border border-emerald-300/12 bg-emerald-300/[0.05] px-2.5 py-2">
+                                <span className="min-w-0 truncate text-sm font-bold text-white">{transaction.label}</span>
+                                <span className="font-mono text-sm font-black text-emerald-100">+{formatMoney(transaction.amountCents)}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
             {visibleRewards.length === 0 ? (
                 <p className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-400">{copy.noRewards}</p>
@@ -1535,9 +1584,11 @@ function RewardPanel({
 function RewardTerminalPanel({
     rewards,
     language,
+    walletBalanceCents,
 }: {
     rewards: QuestRewardState[];
     language: AppLanguage;
+    walletBalanceCents: number;
 }) {
     const copy = questDashboardCopy[language];
 
@@ -1554,6 +1605,16 @@ function RewardTerminalPanel({
             </div>
 
             <div className="grid gap-2">
+                <article className="rounded-lg border border-emerald-300/15 bg-emerald-300/[0.055] p-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100">{copy.walletBalance}</p>
+                            <p className="mt-1 text-2xl font-black text-white">{formatMoney(walletBalanceCents)}</p>
+                        </div>
+                        <Coins className="h-5 w-5 text-emerald-100" />
+                    </div>
+                </article>
+
                 <article className="rounded-lg border border-rose-300/15 bg-rose-300/[0.055] p-3">
                     <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -1836,8 +1897,13 @@ export function GamerDashboard({ bridge = fallback, embedded = false }: Dashboar
 
                         {workspaceTab === 'rewards' && (
                             <div className="grid max-h-[36rem] gap-4 overflow-y-auto pr-1 xl:grid-cols-2">
-                                <RewardPanel rewards={bridge.questRewards} language={language} />
-                                <RewardTerminalPanel rewards={bridge.questRewards} language={language} />
+                                <RewardPanel
+                                    rewards={bridge.questRewards}
+                                    language={language}
+                                    walletBalanceCents={bridge.walletBalanceCents}
+                                    walletTransactions={bridge.walletTransactions}
+                                />
+                                <RewardTerminalPanel rewards={bridge.questRewards} language={language} walletBalanceCents={bridge.walletBalanceCents} />
                                 <ListPanel title={copy.player.rewardQueueTitle} icon={Truck} tone="amber" items={rewardItems} />
                             </div>
                         )}

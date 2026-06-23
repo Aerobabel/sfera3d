@@ -15,4 +15,12 @@ export const GAME_RULES = {
             { minScore: 250, label: 'Sfera Champion' },
         ],
     },
+    arcade: {
+        maxTransactionCents: 2500,
+        games: [
+            { id: 'pulse-runner', prizeCents: 175, jackpotCents: 650 },
+            { id: 'signal-match', prizeCents: 225, jackpotCents: 900 },
+            { id: 'vault-drop', prizeCents: 150, jackpotCents: 1200 },
+        ],
+    },
 } as const;

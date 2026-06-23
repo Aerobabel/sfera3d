@@ -19,6 +19,21 @@ const resolveZombieRank = (score: number) => {
 const resolveThreatLevel = (kills: number) =>
     Math.min(GAME_RULES.zombieArena.maxThreatLevel, Math.floor(kills / 5) + 1);
 
+const resolvePrizeAmountCents = (value: unknown) => {
+    const amount = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(amount) || amount <= 0) return 0;
+    return Math.min(Math.round(amount), GAME_RULES.arcade.maxTransactionCents);
+};
+
+const resolveGameTitle = (value: unknown) =>
+    typeof value === 'string' && value.trim().length > 0 ? value.trim().slice(0, 80) : 'Sfera Arcade';
+
+const formatWalletAmount = (amountCents: number) =>
+    `$${(amountCents / 100).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })}`;
+
 const INITIAL_STATE: UnrealEventBridgeState = {
     currentMode: 'shopper',
     currentLocation: 'city',
@@ -41,6 +56,8 @@ const INITIAL_STATE: UnrealEventBridgeState = {
     questProgress: createInitialQuestProgress(),
     questRewards: [],
     lastCompletedQuestId: null,
+    walletBalanceCents: 0,
+    walletTransactions: [],
 };
 
 const parseUnrealEvent = (message: string): UnrealPixelStreamingEvent | null => {
@@ -236,6 +253,48 @@ export const useUnrealEventBridge = () => {
                         zombieCombo: 0,
                         recentActivity: withActivity(previous.recentActivity, 'Returned to city'),
                     }, unrealEvent);
+                case 'terminal_nearby':
+                    return withQuestUpdate({
+                        ...nextBase,
+                        recentActivity: withActivity(previous.recentActivity, 'Reward ATM opened'),
+                    }, unrealEvent);
+                case 'terminal_left':
+                    return withQuestUpdate({
+                        ...nextBase,
+                        recentActivity: withActivity(previous.recentActivity, 'Left Reward ATM'),
+                    }, unrealEvent);
+                case 'arcade_nearby':
+                    return withQuestUpdate({
+                        ...nextBase,
+                        recentActivity: withActivity(previous.recentActivity, 'Sfera Arcade opened'),
+                    }, unrealEvent);
+                case 'arcade_left':
+                    return withQuestUpdate({
+                        ...nextBase,
+                        recentActivity: withActivity(previous.recentActivity, 'Left Sfera Arcade'),
+                    }, unrealEvent);
+                case 'arcade_prize_won': {
+                    const amountCents = resolvePrizeAmountCents(unrealEvent.amountCents);
+                    if (amountCents <= 0) {
+                        return withQuestUpdate(nextBase, unrealEvent);
+                    }
+
+                    const gameTitle = resolveGameTitle(unrealEvent.gameTitle);
+                    const transaction = {
+                        id: `arcade-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                        kind: 'arcade_win' as const,
+                        label: gameTitle,
+                        amountCents,
+                        createdAt: Date.now(),
+                    };
+
+                    return withQuestUpdate({
+                        ...nextBase,
+                        walletBalanceCents: previous.walletBalanceCents + amountCents,
+                        walletTransactions: [transaction, ...previous.walletTransactions].slice(0, 12),
+                        recentActivity: withActivity(previous.recentActivity, `${formatWalletAmount(amountCents)} won at ${gameTitle}`),
+                    }, unrealEvent);
+                }
                 default:
                     return withQuestUpdate(nextBase, unrealEvent);
             }
