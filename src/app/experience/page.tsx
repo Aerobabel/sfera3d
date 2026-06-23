@@ -1654,6 +1654,7 @@ export default function ExperiencePage() {
     // Video Element Reference for Mobile Controls
     const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
     const [hasStartedExperience, setHasStartedExperience] = useState(false);
+    const [needsFastViewAudioUnlock, setNeedsFastViewAudioUnlock] = useState(false);
     // True once UE is actually producing video frames — used to keep a
     // transition overlay visible between the user's "enter" click and the
     // first frame so they don't see a black screen while UE unpauses.
@@ -1774,35 +1775,36 @@ export default function ExperiencePage() {
         };
     }, []);
 
-    const handleStartExperience = useCallback(() => {
+    const handleStartExperience = useCallback((options?: { withAudio?: boolean }) => {
         if (hasStartedExperience) return;
         if (isFastViewRoute && !videoElement) return;
+        const shouldStartWithAudio = options?.withAudio ?? true;
 
-        playSferaUiSound('start');
+        if (shouldStartWithAudio) {
+            playSferaUiSound('start');
+        }
 
         // Flip the library's StartVideoMuted flag so that any subsequent
         // playStream() / play() calls inside the library no longer re-mute.
         try {
             const psWindow = window as PixelStreamingWindow;
-            psWindow.ps?.config?.setFlagEnabled?.('StartVideoMuted', false);
+            psWindow.ps?.config?.setFlagEnabled?.('StartVideoMuted', !shouldStartWithAudio);
         } catch { /* best-effort */ }
 
         // Unmute all media elements currently in the DOM.
-        const unmuteAllDOM = () => {
-            if (isStreamAudioSuppressedRef.current) {
-                setNonCutsceneMediaMuted(true);
-                return;
-            }
-
+        const syncDomMediaPlayback = () => {
+            const muted = isStreamAudioSuppressedRef.current || !shouldStartWithAudio;
             document.querySelectorAll('video, audio').forEach((el) => {
                 if (el instanceof HTMLElement && el.dataset.cutsceneVideo === 'true') return;
                 const m = el as HTMLMediaElement;
-                m.muted = false;
-                m.volume = 1.0;
+                m.muted = muted;
+                if (!muted) {
+                    m.volume = 1.0;
+                }
                 m.play().catch(() => {});
             });
         };
-        unmuteAllDOM();
+        syncDomMediaPlayback();
 
         // The Epic Games UE 5.4 Pixel Streaming library creates an <audio> element
         // (StreamController.audioElement) that is never appended to the DOM.
@@ -1810,10 +1812,7 @@ export default function ExperiencePage() {
         // via ontrack, which may happen BEFORE or AFTER this user click.
         // We poll briefly to catch both cases.
         const ensureAudioPlaying = () => {
-            if (isStreamAudioSuppressedRef.current) {
-                setNonCutsceneMediaMuted(true);
-                return;
-            }
+            const muted = isStreamAudioSuppressedRef.current || !shouldStartWithAudio;
 
             try {
                 const psWindow = window as PixelStreamingWindow;
@@ -1824,15 +1823,17 @@ export default function ExperiencePage() {
                         audioEl.style.display = 'none';
                         document.body.appendChild(audioEl);
                     }
-                    audioEl.muted = false;
-                    audioEl.volume = 1.0;
+                    audioEl.muted = muted;
+                    if (!muted) {
+                        audioEl.volume = 1.0;
+                    }
                     if (audioEl.srcObject) {
                         audioEl.play().catch(() => {});
                     }
                 }
             } catch { /* best-effort */ }
             // Also catch any new DOM media elements the library may have added.
-            unmuteAllDOM();
+            syncDomMediaPlayback();
         };
 
         // Run immediately, then poll every 500ms for 5 seconds to catch
@@ -1864,10 +1865,33 @@ export default function ExperiencePage() {
         }
 
         setHasStartedExperience(true);
+        setNeedsFastViewAudioUnlock(isFastViewRoute && !shouldStartWithAudio);
         if (isFastViewRoute && videoElement) {
             setIsVideoStreamingFrames(true);
         }
     }, [hasStartedExperience, videoElement, isFastViewRoute]);
+
+    useEffect(() => {
+        if (!isFastViewRoute || !hasStartedExperience || !needsFastViewAudioUnlock) return;
+
+        const unlockAudio = () => {
+            try {
+                const psWindow = window as PixelStreamingWindow;
+                psWindow.ps?.config?.setFlagEnabled?.('StartVideoMuted', false);
+            } catch { /* best-effort */ }
+
+            setNonCutsceneMediaMuted(false);
+            setNeedsFastViewAudioUnlock(false);
+        };
+
+        window.addEventListener('pointerdown', unlockAudio, { once: true, capture: true });
+        window.addEventListener('keydown', unlockAudio, { once: true, capture: true });
+
+        return () => {
+            window.removeEventListener('pointerdown', unlockAudio, true);
+            window.removeEventListener('keydown', unlockAudio, true);
+        };
+    }, [hasStartedExperience, isFastViewRoute, needsFastViewAudioUnlock]);
 
     const handleStartFastViewCutscene = useCallback(() => {
         if (
@@ -2025,7 +2049,7 @@ export default function ExperiencePage() {
             return;
         }
 
-        handleStartExperience();
+        handleStartExperience({ withAudio: false });
     }, [
         fastViewError,
         handleStartExperience,
@@ -3064,7 +3088,7 @@ export default function ExperiencePage() {
                                     <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                                         <button
                                             type="button"
-                                            onClick={handleStartExperience}
+                                            onClick={() => handleStartExperience()}
                                             disabled={!canEnterFastView}
                                             className="inline-flex flex-1 items-center justify-center rounded-2xl bg-[#66d9cb] px-5 py-3 text-sm font-semibold text-[#04110f] transition hover:bg-[#84e7dd] disabled:cursor-wait disabled:bg-[#66d9cb]/40 disabled:text-[#04110f]/70"
                                         >
@@ -3081,7 +3105,7 @@ export default function ExperiencePage() {
             {!isFastViewRoute && videoElement && !hasStartedExperience && (
                 <div
                     className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-[2px] cursor-pointer pointer-events-auto transition-opacity duration-1000"
-                    onClick={handleStartExperience}
+                    onClick={() => handleStartExperience()}
                 >
                     <div className="text-center animate-pulse">
                         <div className="text-white text-xl md:text-2xl font-light tracking-[0.2em] uppercase">{ui.tapToStart}</div>

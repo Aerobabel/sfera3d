@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface StreamPixelPlayerProps {
     appId: string;
@@ -58,6 +58,8 @@ const INITIAL_CONSOLE_COMMANDS = ['DisableAllScreenMessages', 'r.UnbuiltLighting
 const POINTER_TRANSITION_GRACE_MS = 140;
 const STALE_MOUSE_DELTA_THRESHOLD = 1200;
 const STREAM_INPUT_RESET_EVENT = 'sfera:stream-input-reset';
+const STARTUP_WATCHDOG_MS = 12000;
+const MAX_STARTUP_RETRIES = 2;
 
 const diagnoseStream = (controller: StreamPixelController | null, stream: StreamPixelStream | null) => {
     const handlerKeys = stream?.toStreamerHandlers
@@ -176,6 +178,8 @@ export default function StreamPixelPlayer({
     const teardownRef = useRef<(() => void) | null>(null);
     const lastLogMessageRef = useRef('');
     const lastVideoElementRef = useRef<HTMLVideoElement | null>(null);
+    const startupRetryCountRef = useRef(0);
+    const [startupNonce, setStartupNonce] = useState(0);
 
     useEffect(() => {
         keyboardInputEnabledRef.current = keyboardInputEnabled;
@@ -273,6 +277,7 @@ export default function StreamPixelPlayer({
         let exposedStream: StreamPixelStream | null = null;
         let domObserver: MutationObserver | null = null;
         let resizeObserver: ResizeObserver | null = null;
+        let startupWatchdog: number | null = null;
         let hasTornDown = false;
 
         const desktopMouseMode = resolveDesktopMouseMode(preferredDesktopMouseMode);
@@ -291,6 +296,17 @@ export default function StreamPixelPlayer({
 
         const reportConnectionError = (message: string | null) => {
             onConnectionErrorRef.current?.(message);
+        };
+
+        const clearStartupWatchdog = () => {
+            if (startupWatchdog === null) return;
+            window.clearTimeout(startupWatchdog);
+            startupWatchdog = null;
+        };
+
+        const markStreamHealthy = () => {
+            startupRetryCountRef.current = 0;
+            clearStartupWatchdog();
         };
 
         streamRef.current?.disconnect?.();
@@ -312,6 +328,7 @@ export default function StreamPixelPlayer({
                 if (lastVideoElementRef.current !== videoElement) {
                     lastVideoElementRef.current = videoElement;
                     onVideoInitializedRef.current?.(videoElement);
+                    markStreamHealthy();
                     logEvent('video element detected');
                 }
                 return true;
@@ -344,6 +361,8 @@ export default function StreamPixelPlayer({
                 resizeObserver.disconnect();
                 resizeObserver = null;
             }
+
+            clearStartupWatchdog();
 
             if (responseListener) {
                 controllerRef.current?.removeResponseEventListener?.('handle_responses');
@@ -453,6 +472,21 @@ export default function StreamPixelPlayer({
 
         const initialize = async () => {
             try {
+                startupWatchdog = window.setTimeout(() => {
+                    if (cancelled || hasTornDown) return;
+
+                    if (startupRetryCountRef.current >= MAX_STARTUP_RETRIES) {
+                        reportConnectionError('FastView stream did not start. Refresh the session and try again.');
+                        logEvent('startup watchdog reached retry limit');
+                        return;
+                    }
+
+                    startupRetryCountRef.current += 1;
+                    logEvent(`startup stalled; requesting fresh StreamPixel session (${startupRetryCountRef.current}/${MAX_STARTUP_RETRIES})`);
+                    teardown();
+                    setStartupNonce((value) => value + 1);
+                }, STARTUP_WATCHDOG_MS);
+
                 const sdkModule = await importRuntimeModule('/streampixel-sdk') as StreamPixelSdkModule;
                 if (cancelled) return;
 
@@ -617,6 +651,7 @@ export default function StreamPixelPlayer({
                     if (cancelled) return;
                     reportConnectionError(null);
                     logEvent('video initialized');
+                    markStreamHealthy();
                     wrapMouseMoveForSensitivity(stream);
                     syncVideoElement();
                     // Suppress UE in-viewport debug banners once the stream is
@@ -683,7 +718,7 @@ export default function StreamPixelPlayer({
             window.removeEventListener(STREAM_INPUT_RESET_EVENT, handlePointerTransition);
             teardown();
         };
-    }, [appId, isMobileDevice, mobileInputMode, preferredDesktopMouseMode]);
+    }, [appId, isMobileDevice, mobileInputMode, preferredDesktopMouseMode, startupNonce]);
 
     return (
         <div className="relative h-full w-full overflow-hidden bg-[radial-gradient(circle_at_top,rgba(102,217,203,0.16),transparent_42%),linear-gradient(160deg,#04070d,#09111c)]">
