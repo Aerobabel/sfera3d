@@ -26,8 +26,11 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 
 const buildLoginRedirect = (request: NextRequest) => {
   const audience = getAudienceForPath(request.nextUrl.pathname);
+  const requestsPlayerEntry =
+    request.nextUrl.pathname === "/roles" ||
+    (request.nextUrl.pathname === "/fastview" && request.nextUrl.searchParams.get("mode") === "player");
   const loginUrl = new URL("/login", request.url);
-  loginUrl.searchParams.set("role", audience);
+  loginUrl.searchParams.set("role", requestsPlayerEntry ? "player" : audience);
   loginUrl.searchParams.set(
     "next",
     normalizeNextPath(
@@ -142,5 +145,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/experience", "/player/dashboard/:path*", "/supplier/dashboard/:path*"],
+  matcher: ["/experience", "/fastview", "/roles", "/player/dashboard/:path*", "/supplier/dashboard/:path*"],
 };

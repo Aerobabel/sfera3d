@@ -30,6 +30,8 @@ const trustIcons: Record<TrustKey, LucideIcon> = {
   security: ShieldCheck,
 };
 
+const playerIntroLoginHref = "/login?role=player&next=%2Froles%3Fintro%3Dcity";
+
 const copy = {
   en: {
     nav: {
@@ -442,7 +444,7 @@ export default function LandingPage() {
             <a href="#exhibition" className="fade-up delay-1 transition hover:text-white">
               {t.nav.exhibition}
             </a>
-            <Link href="/roles?intro=city" className="fade-up delay-2 transition hover:text-white">
+            <Link href={playerIntroLoginHref} className="fade-up delay-2 transition hover:text-white">
               {t.nav.fastview}
             </Link>
             <a href="#marketplace" className="fade-up delay-2 transition hover:text-white">
@@ -467,7 +469,7 @@ export default function LandingPage() {
               {t.cta.supplier}
             </a>
             <Link
-              href="/roles?intro=city"
+              href={playerIntroLoginHref}
               className="rounded-full bg-[#f6ba4f] px-4 py-2 text-xs font-bold tracking-wide text-[#130f07] transition hover:bg-[#ffd084] sm:text-sm"
             >
               {t.cta.visit}
@@ -492,7 +494,7 @@ export default function LandingPage() {
 
           <div className="fade-up delay-3 mt-10 flex flex-wrap items-center gap-3">
             <Link
-              href="/roles?intro=city"
+              href={playerIntroLoginHref}
               className="sfera-btn-primary inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold transition"
             >
               {t.cta.startTour} <ArrowRight className="h-4 w-4" />
@@ -649,7 +651,7 @@ export default function LandingPage() {
                 </h2>
               </div>
               <Link
-                href="/roles?intro=city"
+                href={playerIntroLoginHref}
                 className="inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-2 text-sm font-semibold transition hover:border-white/40 hover:bg-white/10"
               >
                 {t.cta.visitSection} <ArrowRight className="h-4 w-4" />
@@ -682,7 +684,7 @@ export default function LandingPage() {
               </div>
               <div className="flex shrink-0 flex-wrap gap-3">
                 <Link
-                  href="/roles?intro=city"
+                  href={playerIntroLoginHref}
                   className="inline-flex items-center gap-2 rounded-full bg-[#f6ba4f] px-6 py-3 text-sm font-bold text-[#120d04] transition hover:bg-[#ffd083]"
                 >
                   {t.cta.explore} <ArrowRight className="h-4 w-4" />
