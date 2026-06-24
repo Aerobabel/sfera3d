@@ -274,7 +274,12 @@ export const useUnrealEventBridge = () => {
                         recentActivity: withActivity(previous.recentActivity, 'Left Sfera Arcade'),
                     }, unrealEvent);
                 case 'arcade_prize_won': {
-                    const amountCents = resolvePrizeAmountCents(unrealEvent.amountCents);
+                    const requestedAmountCents = resolvePrizeAmountCents(unrealEvent.amountCents);
+                    const remainingSessionCents = Math.max(
+                        0,
+                        GAME_RULES.arcade.maxSessionWalletCents - previous.walletBalanceCents
+                    );
+                    const amountCents = Math.min(requestedAmountCents, remainingSessionCents);
                     if (amountCents <= 0) {
                         return withQuestUpdate(nextBase, unrealEvent);
                     }

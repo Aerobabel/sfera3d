@@ -16,11 +16,12 @@ export const GAME_RULES = {
         ],
     },
     arcade: {
-        maxTransactionCents: 2500,
+        maxTransactionCents: 75,
+        maxSessionWalletCents: 300,
         games: [
-            { id: 'pulse-runner', prizeCents: 175, jackpotCents: 650 },
-            { id: 'signal-match', prizeCents: 225, jackpotCents: 900 },
-            { id: 'vault-drop', prizeCents: 150, jackpotCents: 1200 },
+            { id: 'pulse-runner', prizeCents: 8, jackpotCents: 35 },
+            { id: 'signal-match', prizeCents: 12, jackpotCents: 50 },
+            { id: 'vault-drop', prizeCents: 6, jackpotCents: 45 },
         ],
     },
 } as const;

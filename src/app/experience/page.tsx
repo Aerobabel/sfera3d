@@ -949,15 +949,42 @@ type ArcadeCopy = {
     games: Record<ArcadeGameId, { title: string; tag: string; body: string; mechanic: string }>;
 };
 
-const ARCADE_GAME_ORDER: ArcadeGameId[] = ['vault-drop', 'pulse-runner', 'signal-match'];
+const ARCADE_GAME_ORDER: ArcadeGameId[] = ['pulse-runner', 'vault-drop', 'signal-match'];
+
+type RunnerGate = {
+    lane: number;
+    kind: 'coin' | 'barrier' | 'boost';
+};
+
+const RUNNER_GATE_COUNT = 6;
+const INITIAL_RUNNER_GATES: RunnerGate[] = [
+    { lane: 0, kind: 'coin' },
+    { lane: 2, kind: 'barrier' },
+    { lane: 1, kind: 'coin' },
+    { lane: 0, kind: 'boost' },
+    { lane: 2, kind: 'coin' },
+    { lane: 1, kind: 'barrier' },
+];
+
+const createRunnerGates = (): RunnerGate[] =>
+    Array.from({ length: RUNNER_GATE_COUNT }, (_, index) => ({
+        lane: Math.floor(Math.random() * 3),
+        kind: index === RUNNER_GATE_COUNT - 1
+            ? 'boost'
+            : Math.random() < 0.42
+              ? 'barrier'
+              : Math.random() < 0.68
+                ? 'coin'
+                : 'boost',
+    }));
 
 const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
     en: {
         title: 'Sfera Arcade',
         eyebrow: 'Prize cabinets',
-        subtitle: 'Quick skill games. Win session money and watch it land in your wallet instantly.',
+        subtitle: 'Quick skill games with small wallet credits. Frontend arcade wins are capped for the session.',
         wallet: 'Wallet',
-        cashAdded: 'Cash added',
+        cashAdded: 'Credit added',
         chooseGame: 'Choose a cabinet',
         close: 'Close arcade',
         play: 'Play',
@@ -971,10 +998,10 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
         emptyRecent: 'Wins from arcade games will appear here.',
         games: {
             'pulse-runner': {
-                title: 'Pulse Runner',
-                tag: 'Timing',
-                body: 'Catch the cyan pulse inside the prize window.',
-                mechanic: 'The closer to center, the higher the payout.',
+                title: 'Neon Runner',
+                tag: 'Lane runner',
+                body: 'Dodge barriers, switch lanes, and collect Sfera coins before the gate closes.',
+                mechanic: 'Choose a lane, dash through the next gate, and survive six gates for a clean payout.',
             },
             'signal-match': {
                 title: 'Signal Match',
@@ -986,7 +1013,7 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
                 title: 'Sfera Prize Drop',
                 tag: 'Prize drop',
                 body: 'Drop a glowing token through the Sfera board and land it in a reward slot.',
-                mechanic: 'Aim for the center lanes. Green slots pay, gold slots can jackpot.',
+                mechanic: 'Release while the gold marker is over a lane. The token can drift one slot.',
             },
         },
     },
@@ -1009,10 +1036,10 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
         emptyRecent: 'Выигрыши из аркадных игр появятся здесь.',
         games: {
             'pulse-runner': {
-                title: 'Pulse Runner',
-                tag: 'Тайминг',
-                body: 'Поймайте голубой импульс внутри призового окна.',
-                mechanic: 'Чем ближе к центру, тем выше выплата.',
+                title: 'Neon Runner',
+                tag: 'Раннер',
+                body: 'Уклоняйтесь от барьеров, меняйте дорожки и собирайте монеты Sfera.',
+                mechanic: 'Выберите дорожку и пройдите шесть ворот, чтобы получить небольшой приз.',
             },
             'signal-match': {
                 title: 'Signal Match',
@@ -1024,7 +1051,7 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
                 title: 'Sfera Prize Drop',
                 tag: 'Приз-дроп',
                 body: 'Бросьте светящийся жетон через поле Sfera и поймайте призовой слот.',
-                mechanic: 'Центральные дорожки выгоднее. Зеленые слоты платят, золотые могут дать джекпот.',
+                mechanic: 'Отпустите жетон, когда золотой маркер над нужной дорожкой. Жетон может сместиться на один слот.',
             },
         },
     },
@@ -1047,10 +1074,10 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
         emptyRecent: '街机获胜记录会显示在这里。',
         games: {
             'pulse-runner': {
-                title: 'Pulse Runner',
-                tag: '时机',
-                body: '把青色脉冲停在奖励窗口内。',
-                mechanic: '越靠近中心，奖金越高。',
+                title: 'Neon Runner',
+                tag: '跑酷',
+                body: '躲避障碍、切换路线并收集 Sfera 硬币。',
+                mechanic: '选择路线并通过六道门即可获得小额奖励。',
             },
             'signal-match': {
                 title: 'Signal Match',
@@ -1062,7 +1089,7 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
                 title: 'Sfera Prize Drop',
                 tag: '奖励掉落',
                 body: '让发光代币穿过 Sfera 奖励板并落入奖励槽。',
-                mechanic: '中间路线更有价值。绿色槽位有奖励，金色槽位可能触发大奖。',
+                mechanic: '金色标记移动到目标槽位时释放，代币可能左右漂移一格。',
             },
         },
     },
@@ -1081,36 +1108,42 @@ function ArcadeOverlay({
     onClose: () => void;
     onPrize: (amountCents: number, gameTitle: string) => void;
 }) {
-    const [activeGame, setActiveGame] = useState<ArcadeGameId>('vault-drop');
-    const [pulse, setPulse] = useState(18);
-    const [pulseDirection, setPulseDirection] = useState(1);
+    const [activeGame, setActiveGame] = useState<ArcadeGameId>('pulse-runner');
+    const [runnerLane, setRunnerLane] = useState(1);
+    const [runnerStep, setRunnerStep] = useState(0);
+    const [runnerCoins, setRunnerCoins] = useState(0);
+    const [runnerCombo, setRunnerCombo] = useState(0);
+    const [runnerCrashed, setRunnerCrashed] = useState(false);
+    const [runnerGates, setRunnerGates] = useState<RunnerGate[]>(INITIAL_RUNNER_GATES);
     const [signalSequence, setSignalSequence] = useState<number[]>([0, 2, 1, 3]);
     const [signalInput, setSignalInput] = useState<number[]>([]);
     const [prizeDropSlot, setPrizeDropSlot] = useState<number | null>(null);
     const [isPrizeDropRunning, setIsPrizeDropRunning] = useState(false);
     const [prizeDropTokenLane, setPrizeDropTokenLane] = useState(50);
+    const [prizeDropAim, setPrizeDropAim] = useState(50);
+    const [prizeDropAimDirection, setPrizeDropAimDirection] = useState(1);
     const [result, setResult] = useState<{ label: string; amountCents: number } | null>(null);
 
     useEffect(() => {
-        if (activeGame !== 'pulse-runner') return;
+        if (activeGame !== 'vault-drop' || isPrizeDropRunning) return;
 
         const timer = window.setInterval(() => {
-            setPulse((current) => {
-                const next = current + pulseDirection * 7;
-                if (next >= 94) {
-                    setPulseDirection(-1);
-                    return 94;
+            setPrizeDropAim((current) => {
+                const next = current + prizeDropAimDirection * 5.5;
+                if (next >= 91) {
+                    setPrizeDropAimDirection(-1);
+                    return 91;
                 }
-                if (next <= 6) {
-                    setPulseDirection(1);
-                    return 6;
+                if (next <= 9) {
+                    setPrizeDropAimDirection(1);
+                    return 9;
                 }
                 return next;
             });
-        }, 84);
+        }, 70);
 
         return () => window.clearInterval(timer);
-    }, [activeGame, pulseDirection]);
+    }, [activeGame, isPrizeDropRunning, prizeDropAimDirection]);
 
     const award = useCallback((amountCents: number, label: string) => {
         setResult({ amountCents, label });
@@ -1119,17 +1152,46 @@ function ArcadeOverlay({
         }
     }, [activeGame, copy.games, onPrize]);
 
-    const handlePulseLock = () => {
-        const distance = Math.abs(pulse - 50);
-        if (distance <= 5) {
-            award(GAME_RULES.arcade.games[0].jackpotCents, copy.jackpot);
+    const resetRunner = () => {
+        setRunnerLane(1);
+        setRunnerStep(0);
+        setRunnerCoins(0);
+        setRunnerCombo(0);
+        setRunnerCrashed(false);
+        setRunnerGates(createRunnerGates());
+        setResult(null);
+    };
+
+    const handleRunnerDash = () => {
+        if (runnerCrashed || runnerStep >= runnerGates.length) {
+            resetRunner();
             return;
         }
-        if (distance <= 16) {
-            award(GAME_RULES.arcade.games[0].prizeCents, copy.nearPerfect);
+
+        const gate = runnerGates[runnerStep];
+        if (gate.lane === runnerLane && gate.kind === 'barrier') {
+            setRunnerCrashed(true);
+            award(0, copy.tryAgain);
             return;
         }
-        award(0, copy.tryAgain);
+
+        const collectedCoin = gate.lane === runnerLane && gate.kind === 'coin';
+        const collectedBoost = gate.lane === runnerLane && gate.kind === 'boost';
+        const nextCoins = runnerCoins + (collectedCoin ? 1 : 0) + (collectedBoost ? 2 : 0);
+        const nextCombo = runnerCombo + 1;
+        const nextStep = runnerStep + 1;
+
+        setRunnerCoins(nextCoins);
+        setRunnerCombo(nextCombo);
+        setRunnerStep(nextStep);
+
+        if (nextStep >= runnerGates.length) {
+            const amountCents = Math.min(
+                GAME_RULES.arcade.games[0].jackpotCents,
+                nextCoins * GAME_RULES.arcade.games[0].prizeCents + Math.floor(nextCombo / 3) * 2
+            );
+            award(amountCents > 0 ? amountCents : GAME_RULES.arcade.games[0].prizeCents, nextCoins >= 5 ? copy.jackpot : copy.nearPerfect);
+        }
     };
 
     const resetSignal = () => {
@@ -1161,11 +1223,11 @@ function ArcadeOverlay({
 
     const prizeDropSlots = [
         { label: 'TRY', amountCents: 0, tone: 'border-slate-400/20 bg-slate-400/10 text-slate-300' },
-        { label: '+$1', amountCents: GAME_RULES.arcade.games[2].prizeCents, tone: 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100' },
-        { label: '+$3', amountCents: GAME_RULES.arcade.games[2].prizeCents * 2, tone: 'border-cyan-300/35 bg-cyan-300/12 text-cyan-100' },
+        { label: formatMoney(GAME_RULES.arcade.games[2].prizeCents), amountCents: GAME_RULES.arcade.games[2].prizeCents, tone: 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100' },
+        { label: formatMoney(GAME_RULES.arcade.games[2].prizeCents * 2), amountCents: GAME_RULES.arcade.games[2].prizeCents * 2, tone: 'border-cyan-300/35 bg-cyan-300/12 text-cyan-100' },
         { label: 'JACKPOT', amountCents: GAME_RULES.arcade.games[2].jackpotCents, tone: 'border-amber-300/45 bg-amber-300/16 text-amber-100' },
-        { label: '+$3', amountCents: GAME_RULES.arcade.games[2].prizeCents * 2, tone: 'border-cyan-300/35 bg-cyan-300/12 text-cyan-100' },
-        { label: '+$1', amountCents: GAME_RULES.arcade.games[2].prizeCents, tone: 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100' },
+        { label: formatMoney(GAME_RULES.arcade.games[2].prizeCents * 2), amountCents: GAME_RULES.arcade.games[2].prizeCents * 2, tone: 'border-cyan-300/35 bg-cyan-300/12 text-cyan-100' },
+        { label: formatMoney(GAME_RULES.arcade.games[2].prizeCents), amountCents: GAME_RULES.arcade.games[2].prizeCents, tone: 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100' },
         { label: 'TRY', amountCents: 0, tone: 'border-slate-400/20 bg-slate-400/10 text-slate-300' },
     ];
 
@@ -1178,16 +1240,18 @@ function ArcadeOverlay({
     const handleVaultSpin = () => {
         if (isPrizeDropRunning) return;
 
-        const weightedSlots = [0, 1, 1, 2, 2, 2, 3, 4, 4, 4, 5, 5, 6];
-        const nextSlot = weightedSlots[Math.floor(Math.random() * weightedSlots.length)];
+        const drift = Math.floor(Math.random() * 3) - 1;
+        const aimedSlot = Math.round((prizeDropAim - 9) / 13.5);
+        const nextSlot = Math.max(0, Math.min(prizeDropSlots.length - 1, aimedSlot + drift));
         const slot = prizeDropSlots[nextSlot];
         setPrizeDropSlot(null);
         setResult(null);
-        setPrizeDropTokenLane(9 + nextSlot * 13.5);
+        setPrizeDropTokenLane(prizeDropAim);
         setIsPrizeDropRunning(true);
 
         window.setTimeout(() => {
             setPrizeDropSlot(nextSlot);
+            setPrizeDropTokenLane(9 + nextSlot * 13.5);
             setIsPrizeDropRunning(false);
             award(slot.amountCents, slot.amountCents >= GAME_RULES.arcade.games[2].jackpotCents ? copy.jackpot : slot.amountCents > 0 ? copy.nearPerfect : copy.tryAgain);
         }, 980);
@@ -1265,19 +1329,62 @@ function ArcadeOverlay({
 
                         <div className="mt-5 min-h-[16rem] rounded-2xl border border-white/10 bg-[linear-gradient(145deg,rgba(102,217,203,0.06),rgba(245,199,102,0.05),rgba(255,255,255,0.03))] p-4">
                             {activeGame === 'pulse-runner' && (
-                                <div className="flex h-full flex-col justify-between gap-5">
-                                    <div className="relative h-20 rounded-xl border border-white/10 bg-black/28 p-3">
-                                        <div className="absolute inset-y-3 left-[42%] right-[42%] rounded-lg border border-emerald-300/35 bg-emerald-300/12" />
-                                        <div
-                                            className="absolute top-1/2 h-12 w-3 -translate-y-1/2 rounded-full bg-[#66d9cb] shadow-[0_0_24px_rgba(102,217,203,0.9)] transition-all duration-75"
-                                            style={{ left: `${pulse}%` }}
-                                        />
+                                <div className="grid gap-5">
+                                    <div className="overflow-hidden rounded-2xl border border-cyan-300/15 bg-[#031018] p-3 shadow-[inset_0_0_70px_rgba(34,211,238,0.08)]">
+                                        <div className="mb-3 flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                                            <span>Gate {Math.min(runnerStep + 1, RUNNER_GATE_COUNT)} / {RUNNER_GATE_COUNT}</span>
+                                            <span>{runnerCoins} coins · {runnerCombo}x flow</span>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            {[0, 1, 2].map((lane) => (
+                                                <button
+                                                    key={lane}
+                                                    type="button"
+                                                    onClick={() => setRunnerLane(lane)}
+                                                    className={`relative h-16 overflow-hidden rounded-xl border transition ${
+                                                        runnerLane === lane
+                                                            ? 'border-cyan-200/55 bg-cyan-300/[0.13] shadow-[0_0_30px_rgba(34,211,238,0.18)]'
+                                                            : 'border-white/10 bg-black/24 hover:border-white/20'
+                                                    }`}
+                                                >
+                                                    <span className="absolute inset-y-0 left-3 grid place-items-center text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Lane {lane + 1}</span>
+                                                    <span className={`absolute right-4 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg border text-lg ${
+                                                        runnerGates[runnerStep]?.lane === lane && runnerGates[runnerStep]?.kind === 'barrier'
+                                                            ? 'border-rose-300/35 bg-rose-300/14 text-rose-100'
+                                                            : runnerGates[runnerStep]?.lane === lane && runnerGates[runnerStep]?.kind === 'boost'
+                                                              ? 'border-amber-300/40 bg-amber-300/16 text-amber-100'
+                                                              : runnerGates[runnerStep]?.lane === lane
+                                                                ? 'border-emerald-300/35 bg-emerald-300/14 text-emerald-100'
+                                                                : 'border-white/10 bg-white/[0.035] text-slate-600'
+                                                    }`}>
+                                                        {runnerGates[runnerStep]?.lane === lane
+                                                            ? runnerGates[runnerStep]?.kind === 'barrier'
+                                                                ? '!'
+                                                                : runnerGates[runnerStep]?.kind === 'boost'
+                                                                  ? 'x2'
+                                                                  : '$'
+                                                            : ''}
+                                                    </span>
+                                                    {runnerLane === lane && (
+                                                        <span className="absolute left-1/2 top-1/2 grid h-10 w-10 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-white/45 bg-[radial-gradient(circle_at_35%_28%,#fff,#9ff4ec_35%,#0ea5e9_74%)] text-[10px] font-black text-[#03110f] shadow-[0_0_28px_rgba(34,211,238,0.72)]">
+                                                            RUN
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <p className="text-sm leading-6 text-slate-300">{activeCopy.mechanic}</p>
-                                    <button type="button" onClick={handlePulseLock} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#66d9cb] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#03110f] transition hover:bg-[#8df0e6]">
-                                        <Zap className="h-4 w-4" />
-                                        {copy.lock}
-                                    </button>
+                                    <p className="text-sm leading-6 text-slate-300">{runnerCrashed ? copy.tryAgain : activeCopy.mechanic}</p>
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                        <button type="button" onClick={handleRunnerDash} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#66d9cb] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#03110f] transition hover:bg-[#8df0e6]">
+                                            <Zap className="h-4 w-4" />
+                                            {runnerCrashed || runnerStep >= runnerGates.length ? copy.play : 'Dash'}
+                                        </button>
+                                        <button type="button" onClick={resetRunner} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.055] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.09]">
+                                            <Sparkles className="h-4 w-4" />
+                                            New route
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
@@ -1313,6 +1420,14 @@ function ArcadeOverlay({
                                             <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100">Token rail</span>
                                             <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100">Prize lanes</span>
                                         </div>
+
+                                        <div
+                                            className="absolute top-12 z-10 h-7 w-1.5 rounded-full bg-amber-200 shadow-[0_0_20px_rgba(251,191,36,0.8)] transition-all duration-75"
+                                            style={{
+                                                left: `${prizeDropAim}%`,
+                                                transform: 'translateX(-50%)',
+                                            }}
+                                        />
 
                                         <div
                                             className="absolute z-20 grid h-8 w-8 place-items-center rounded-full border border-white/50 bg-[radial-gradient(circle_at_35%_28%,#ffffff,#9ff4ec_32%,#08a7a5_68%,#075b65)] text-[10px] font-black text-[#03110f] shadow-[0_0_28px_rgba(102,217,203,0.95)] transition-all duration-1000 ease-in-out"
