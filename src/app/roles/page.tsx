@@ -67,14 +67,13 @@ type RolePageText = {
 };
 
 const ROLE_INTRO_CUTSCENE_SRCS = [
-    '/cutscenes/cityvideo.mp4',
-    '/cutscenes/copy_3AC9E4E2-6340-48CC-940F-A9B7FBB58777.mov',
+    '/cutscenes/maincutscene.MOV',
 ];
 
 const roleBases: RoleBase[] = [
     {
         tone: 'player',
-        href: '/login?role=player&next=%2Ffastview%3Fresume%3Dscene%26mode%3Dplayer',
+        href: '/fastview?resume=scene&mode=player',
         image: '/visuals/player-arena.svg',
         imageAlt: '3DSFERA player arena dashboard preview',
         Icon: Gamepad2,
