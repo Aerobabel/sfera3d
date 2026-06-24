@@ -949,6 +949,8 @@ type ArcadeCopy = {
     games: Record<ArcadeGameId, { title: string; tag: string; body: string; mechanic: string }>;
 };
 
+const ARCADE_GAME_ORDER: ArcadeGameId[] = ['vault-drop', 'pulse-runner', 'signal-match'];
+
 const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
     en: {
         title: 'Sfera Arcade',
@@ -981,10 +983,10 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
                 mechanic: 'Complete the chain to collect the cash prize.',
             },
             'vault-drop': {
-                title: 'Vault Drop',
-                tag: 'Luck',
-                body: 'Spin the three vault columns and line up symbols.',
-                mechanic: 'Pairs win, triples trigger a jackpot.',
+                title: 'Sfera Prize Drop',
+                tag: 'Prize drop',
+                body: 'Drop a glowing token through the Sfera board and land it in a reward slot.',
+                mechanic: 'Aim for the center lanes. Green slots pay, gold slots can jackpot.',
             },
         },
     },
@@ -1019,10 +1021,10 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
                 mechanic: 'Соберите цепочку полностью, чтобы получить денежный приз.',
             },
             'vault-drop': {
-                title: 'Vault Drop',
-                tag: 'Удача',
-                body: 'Запустите три колонны сейфа и совместите символы.',
-                mechanic: 'Пары дают выигрыш, три одинаковых символа дают джекпот.',
+                title: 'Sfera Prize Drop',
+                tag: 'Приз-дроп',
+                body: 'Бросьте светящийся жетон через поле Sfera и поймайте призовой слот.',
+                mechanic: 'Центральные дорожки выгоднее. Зеленые слоты платят, золотые могут дать джекпот.',
             },
         },
     },
@@ -1057,10 +1059,10 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
                 mechanic: '完成整条序列即可领取现金奖励。',
             },
             'vault-drop': {
-                title: 'Vault Drop',
-                tag: '运气',
-                body: '转动三列金库符号并尝试连线。',
-                mechanic: '一对符号获奖，三连触发大奖。',
+                title: 'Sfera Prize Drop',
+                tag: '奖励掉落',
+                body: '让发光代币穿过 Sfera 奖励板并落入奖励槽。',
+                mechanic: '中间路线更有价值。绿色槽位有奖励，金色槽位可能触发大奖。',
             },
         },
     },
@@ -1079,12 +1081,14 @@ function ArcadeOverlay({
     onClose: () => void;
     onPrize: (amountCents: number, gameTitle: string) => void;
 }) {
-    const [activeGame, setActiveGame] = useState<ArcadeGameId>('pulse-runner');
+    const [activeGame, setActiveGame] = useState<ArcadeGameId>('vault-drop');
     const [pulse, setPulse] = useState(18);
     const [pulseDirection, setPulseDirection] = useState(1);
     const [signalSequence, setSignalSequence] = useState<number[]>([0, 2, 1, 3]);
     const [signalInput, setSignalInput] = useState<number[]>([]);
-    const [vaultSymbols, setVaultSymbols] = useState(['7', '◇', '7']);
+    const [prizeDropSlot, setPrizeDropSlot] = useState<number | null>(null);
+    const [isPrizeDropRunning, setIsPrizeDropRunning] = useState(false);
+    const [prizeDropTokenLane, setPrizeDropTokenLane] = useState(50);
     const [result, setResult] = useState<{ label: string; amountCents: number } | null>(null);
 
     useEffect(() => {
@@ -1155,18 +1159,38 @@ function ArcadeOverlay({
         }
     };
 
+    const prizeDropSlots = [
+        { label: 'TRY', amountCents: 0, tone: 'border-slate-400/20 bg-slate-400/10 text-slate-300' },
+        { label: '+$1', amountCents: GAME_RULES.arcade.games[2].prizeCents, tone: 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100' },
+        { label: '+$3', amountCents: GAME_RULES.arcade.games[2].prizeCents * 2, tone: 'border-cyan-300/35 bg-cyan-300/12 text-cyan-100' },
+        { label: 'JACKPOT', amountCents: GAME_RULES.arcade.games[2].jackpotCents, tone: 'border-amber-300/45 bg-amber-300/16 text-amber-100' },
+        { label: '+$3', amountCents: GAME_RULES.arcade.games[2].prizeCents * 2, tone: 'border-cyan-300/35 bg-cyan-300/12 text-cyan-100' },
+        { label: '+$1', amountCents: GAME_RULES.arcade.games[2].prizeCents, tone: 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100' },
+        { label: 'TRY', amountCents: 0, tone: 'border-slate-400/20 bg-slate-400/10 text-slate-300' },
+    ];
+
+    const prizeDropPegs = Array.from({ length: 42 }, (_, index) => ({
+        id: index,
+        left: 10 + (index % 7) * 13 + (Math.floor(index / 7) % 2 === 0 ? 0 : 6),
+        top: 15 + Math.floor(index / 7) * 10,
+    }));
+
     const handleVaultSpin = () => {
-        const symbols = ['7', '◇', '★', '$', 'S'];
-        const next = Array.from({ length: 3 }, () => symbols[Math.floor(Math.random() * symbols.length)]);
-        setVaultSymbols(next);
-        const unique = new Set(next);
-        if (unique.size === 1) {
-            award(GAME_RULES.arcade.games[2].jackpotCents, copy.jackpot);
-        } else if (unique.size === 2) {
-            award(GAME_RULES.arcade.games[2].prizeCents, copy.nearPerfect);
-        } else {
-            award(0, copy.tryAgain);
-        }
+        if (isPrizeDropRunning) return;
+
+        const weightedSlots = [0, 1, 1, 2, 2, 2, 3, 4, 4, 4, 5, 5, 6];
+        const nextSlot = weightedSlots[Math.floor(Math.random() * weightedSlots.length)];
+        const slot = prizeDropSlots[nextSlot];
+        setPrizeDropSlot(null);
+        setResult(null);
+        setPrizeDropTokenLane(9 + nextSlot * 13.5);
+        setIsPrizeDropRunning(true);
+
+        window.setTimeout(() => {
+            setPrizeDropSlot(nextSlot);
+            setIsPrizeDropRunning(false);
+            award(slot.amountCents, slot.amountCents >= GAME_RULES.arcade.games[2].jackpotCents ? copy.jackpot : slot.amountCents > 0 ? copy.nearPerfect : copy.tryAgain);
+        }, 980);
     };
 
     const activeCopy = copy.games[activeGame];
@@ -1202,7 +1226,7 @@ function ArcadeOverlay({
                     <div className="mt-4">
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{copy.chooseGame}</p>
                         <div className="mt-2 grid gap-2">
-                            {(Object.keys(copy.games) as ArcadeGameId[]).map((gameId) => {
+                            {ARCADE_GAME_ORDER.map((gameId) => {
                                 const game = copy.games[gameId];
                                 const isActive = activeGame === gameId;
                                 return (
@@ -1283,17 +1307,49 @@ function ArcadeOverlay({
 
                             {activeGame === 'vault-drop' && (
                                 <div className="grid gap-5">
-                                    <div className="grid grid-cols-3 gap-3">
-                                        {vaultSymbols.map((symbol, index) => (
-                                            <div key={`${symbol}-${index}`} className="grid aspect-square place-items-center rounded-2xl border border-amber-300/20 bg-black/32 text-5xl font-black text-amber-100 shadow-[inset_0_0_28px_rgba(245,199,102,0.08)]">
-                                                {symbol}
-                                            </div>
+                                    <div className="relative min-h-[22rem] overflow-hidden rounded-2xl border border-white/10 bg-[#050914] shadow-[inset_0_0_80px_rgba(102,217,203,0.08)]">
+                                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.18),transparent_26%),radial-gradient(circle_at_20%_32%,rgba(102,217,203,0.2),transparent_22%),radial-gradient(circle_at_82%_45%,rgba(236,72,153,0.13),transparent_24%)]" />
+                                        <div className="absolute inset-x-6 top-4 flex items-center justify-between">
+                                            <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100">Token rail</span>
+                                            <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100">Prize lanes</span>
+                                        </div>
+
+                                        <div
+                                            className="absolute z-20 grid h-8 w-8 place-items-center rounded-full border border-white/50 bg-[radial-gradient(circle_at_35%_28%,#ffffff,#9ff4ec_32%,#08a7a5_68%,#075b65)] text-[10px] font-black text-[#03110f] shadow-[0_0_28px_rgba(102,217,203,0.95)] transition-all duration-1000 ease-in-out"
+                                            style={{
+                                                left: `${prizeDropTokenLane}%`,
+                                                top: isPrizeDropRunning || prizeDropSlot !== null ? '67%' : '11%',
+                                                transform: 'translate(-50%, -50%)',
+                                            }}
+                                        >
+                                            3D
+                                        </div>
+
+                                        {prizeDropPegs.map((peg) => (
+                                            <span
+                                                key={peg.id}
+                                                className="absolute h-3 w-3 rounded-full border border-white/25 bg-white/80 shadow-[0_0_16px_rgba(255,255,255,0.42)]"
+                                                style={{ left: `${peg.left}%`, top: `${peg.top}%` }}
+                                            />
                                         ))}
+
+                                        <div className="absolute inset-x-4 bottom-4 grid grid-cols-7 gap-1.5">
+                                            {prizeDropSlots.map((slot, index) => (
+                                                <div
+                                                    key={`${slot.label}-${index}`}
+                                                    className={`grid min-h-16 place-items-center rounded-xl border px-1 text-center text-[10px] font-black uppercase tracking-[0.08em] transition ${slot.tone} ${
+                                                        prizeDropSlot === index ? 'scale-[1.04] shadow-[0_0_28px_rgba(251,191,36,0.35)]' : ''
+                                                    }`}
+                                                >
+                                                    {slot.label}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                     <p className="text-sm leading-6 text-slate-300">{activeCopy.mechanic}</p>
-                                    <button type="button" onClick={handleVaultSpin} className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:bg-amber-200">
+                                    <button type="button" onClick={handleVaultSpin} disabled={isPrizeDropRunning} className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-slate-500 disabled:text-slate-900">
                                         <Trophy className="h-4 w-4" />
-                                        {copy.play}
+                                        {isPrizeDropRunning ? copy.stop : copy.play}
                                     </button>
                                 </div>
                             )}
