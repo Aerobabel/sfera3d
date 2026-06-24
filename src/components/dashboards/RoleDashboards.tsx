@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
     Activity,
@@ -137,6 +137,17 @@ type DashboardText = {
         zones: { title: string; text: string; action: string; tone: Tone; icon: LucideIcon }[];
         rewardQueueTitle: string;
         rewardQueue: string[];
+        deliveryFormTitle: string;
+        deliveryFormSub: string;
+        deliveryName: string;
+        deliveryPhone: string;
+        deliveryAddress: string;
+        deliveryNamePlaceholder: string;
+        deliveryPhonePlaceholder: string;
+        deliveryAddressPlaceholder: string;
+        acceptDelivery: string;
+        deliveryReady: string;
+        deliveryAccepted: string;
         messagesTitle: string;
         messages: string[];
         recentTitle: string;
@@ -296,6 +307,17 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
                 'Zombie Arena coin payout - pending match settlement',
                 'Sfera Hall merch drop - ready to claim in marketplace',
             ],
+            deliveryFormTitle: 'Accept delivery',
+            deliveryFormSub: 'Confirm where the physical reward should be sent.',
+            deliveryName: 'Recipient name',
+            deliveryPhone: 'Phone number',
+            deliveryAddress: 'Delivery address',
+            deliveryNamePlaceholder: 'Full name',
+            deliveryPhonePlaceholder: '+1 555 010 2048',
+            deliveryAddressPlaceholder: 'Street, city, region, postal code',
+            acceptDelivery: 'Accept delivery',
+            deliveryReady: 'Delivery details ready',
+            deliveryAccepted: 'Delivery accepted. The reward team can prepare shipment.',
             messagesTitle: 'Player messages',
             messages: [
                 'Arena host opened the weekly survival tournament.',
@@ -502,6 +524,17 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
                 'Монеты Zombie Arena - ожидают расчета матча',
                 'Мерч Sfera Hall - готов к получению в маркетплейсе',
             ],
+            deliveryFormTitle: 'Принять доставку',
+            deliveryFormSub: 'Подтвердите, куда отправить физическую награду.',
+            deliveryName: 'Имя получателя',
+            deliveryPhone: 'Телефон',
+            deliveryAddress: 'Адрес доставки',
+            deliveryNamePlaceholder: 'Имя и фамилия',
+            deliveryPhonePlaceholder: '+7 900 000 00 00',
+            deliveryAddressPlaceholder: 'Улица, город, регион, индекс',
+            acceptDelivery: 'Принять доставку',
+            deliveryReady: 'Данные доставки готовы',
+            deliveryAccepted: 'Доставка принята. Команда наград может подготовить отправку.',
             messagesTitle: 'Сообщения игрока',
             messages: [
                 'Организатор арены открыл еженедельный турнир.',
@@ -708,6 +741,17 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
                 'Zombie Arena 金币结算 - 等待比赛结算',
                 'Sfera Hall 周边 - 可在市场领取',
             ],
+            deliveryFormTitle: '接受配送',
+            deliveryFormSub: '确认实体奖励的收件信息。',
+            deliveryName: '收件人姓名',
+            deliveryPhone: '联系电话',
+            deliveryAddress: '配送地址',
+            deliveryNamePlaceholder: '姓名',
+            deliveryPhonePlaceholder: '+86 138 0000 0000',
+            deliveryAddressPlaceholder: '街道、城市、省份、邮编',
+            acceptDelivery: '接受配送',
+            deliveryReady: '配送信息已准备',
+            deliveryAccepted: '配送已确认。奖励团队可以准备发货。',
             messagesTitle: '玩家消息',
             messages: [
                 '竞技场主办方开启了每周生存赛。',
@@ -1644,6 +1688,105 @@ function RewardTerminalPanel({
     );
 }
 
+function DeliveryAcceptancePanel({ copy }: { copy: DashboardText['player'] }) {
+    const [recipientName, setRecipientName] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [deliveryAddress, setDeliveryAddress] = useState('');
+    const [isAccepted, setIsAccepted] = useState(false);
+    const hasDeliveryDetails =
+        recipientName.trim().length > 0 &&
+        phoneNumber.trim().length > 0 &&
+        deliveryAddress.trim().length > 0;
+
+    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!hasDeliveryDetails) return;
+        setIsAccepted(true);
+    };
+
+    return (
+        <section className={`${panel} p-3`}>
+            <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                    <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">{copy.deliveryFormTitle}</h2>
+                    <p className="mt-1 text-sm leading-5 text-slate-500">{copy.deliveryFormSub}</p>
+                </div>
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${toneStyles.emerald.icon}`}>
+                    <Truck className="h-4 w-4" />
+                </span>
+            </div>
+
+            <form className="grid gap-3" onSubmit={handleSubmit}>
+                <label className="grid gap-1.5 text-xs font-bold text-slate-300">
+                    <span>{copy.deliveryName}</span>
+                    <input
+                        value={recipientName}
+                        onChange={(event) => {
+                            setRecipientName(event.target.value);
+                            setIsAccepted(false);
+                        }}
+                        required
+                        autoComplete="name"
+                        placeholder={copy.deliveryNamePlaceholder}
+                        className="h-10 rounded-lg border border-white/10 bg-black/24 px-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-300/40 focus:bg-emerald-300/[0.06]"
+                    />
+                </label>
+
+                <label className="grid gap-1.5 text-xs font-bold text-slate-300">
+                    <span>{copy.deliveryPhone}</span>
+                    <input
+                        value={phoneNumber}
+                        onChange={(event) => {
+                            setPhoneNumber(event.target.value);
+                            setIsAccepted(false);
+                        }}
+                        required
+                        type="tel"
+                        autoComplete="tel"
+                        placeholder={copy.deliveryPhonePlaceholder}
+                        className="h-10 rounded-lg border border-white/10 bg-black/24 px-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-300/40 focus:bg-emerald-300/[0.06]"
+                    />
+                </label>
+
+                <label className="grid gap-1.5 text-xs font-bold text-slate-300">
+                    <span>{copy.deliveryAddress}</span>
+                    <textarea
+                        value={deliveryAddress}
+                        onChange={(event) => {
+                            setDeliveryAddress(event.target.value);
+                            setIsAccepted(false);
+                        }}
+                        required
+                        autoComplete="street-address"
+                        placeholder={copy.deliveryAddressPlaceholder}
+                        rows={3}
+                        className="min-h-24 resize-none rounded-lg border border-white/10 bg-black/24 px-3 py-2.5 text-sm font-semibold leading-5 text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-300/40 focus:bg-emerald-300/[0.06]"
+                    />
+                </label>
+
+                <button
+                    type="submit"
+                    disabled={!hasDeliveryDetails}
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-emerald-300/25 bg-emerald-300/12 px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-emerald-100 transition hover:bg-emerald-300/18 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.04] disabled:text-slate-500"
+                >
+                    <PackageCheck className="h-4 w-4" />
+                    {copy.acceptDelivery}
+                </button>
+
+                {isAccepted && (
+                    <div className="flex gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/[0.07] p-2.5">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" />
+                        <div className="min-w-0">
+                            <p className="text-xs font-black uppercase tracking-[0.12em] text-emerald-100">{copy.deliveryReady}</p>
+                            <p className="mt-1 text-xs leading-5 text-slate-300">{copy.deliveryAccepted}</p>
+                        </div>
+                    </div>
+                )}
+            </form>
+        </section>
+    );
+}
+
 function OrderDetailsPanel({
     title,
     subtitle,
@@ -1904,6 +2047,7 @@ export function GamerDashboard({ bridge = fallback, embedded = false }: Dashboar
                                     walletTransactions={bridge.walletTransactions}
                                 />
                                 <RewardTerminalPanel rewards={bridge.questRewards} language={language} walletBalanceCents={bridge.walletBalanceCents} />
+                                <DeliveryAcceptancePanel copy={copy.player} />
                                 <ListPanel title={copy.player.rewardQueueTitle} icon={Truck} tone="amber" items={rewardItems} />
                             </div>
                         )}
