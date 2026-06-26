@@ -3,7 +3,7 @@
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, Coins, Gamepad2, Gift, Monitor, Play, Send, Sparkles, Trophy, Volume2, WalletCards, X, Zap, Menu } from "lucide-react";
+import { Activity, ChevronDown, Coins, Gamepad2, Gift, ListChecks, Monitor, Play, Send, Sparkles, Trophy, Volume2, WalletCards, X, Zap, Menu } from "lucide-react";
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
@@ -265,6 +265,11 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
     guideTitle: string;
     guideBody: string;
     guideSteps: readonly [string, string, string];
+    arenaTrainingTitle: string;
+    arenaTrainingSteps: readonly [string, string, string, string];
+    questDetailsOpen: string;
+    questDetailsClose: string;
+    questHint: string;
     locations: Record<string, string>;
 }> = {
     en: {
@@ -308,6 +313,11 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         guideTitle: 'What to do now',
         guideBody: 'You are in a 3D city. Visit Sfera Hall, explore one pavilion, then enter Zombie Arena and claim the reward.',
         guideSteps: ['Explore Sfera Hall', 'Enter Zombie Arena', 'Claim reward'],
+        arenaTrainingTitle: 'Zombie Arena controls',
+        arenaTrainingSteps: ['WASD to move', 'Mouse to aim', 'P to fire', 'Leave through the return portal'],
+        questDetailsOpen: 'Show full checklist',
+        questDetailsClose: 'Hide checklist',
+        questHint: 'Follow the next objective. Open the full checklist if you lose the thread.',
         locations: {
             city: 'City',
             sferaHall: 'Sfera Hall',
@@ -356,6 +366,11 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         guideTitle: 'Что делать сейчас',
         guideBody: 'Вы в 3D-городе. Посетите Sfera Hall, изучите один павильон, затем войдите в Zombie Arena и получите награду.',
         guideSteps: ['Изучить Sfera Hall', 'Войти в Zombie Arena', 'Получить награду'],
+        arenaTrainingTitle: 'Управление на арене',
+        arenaTrainingSteps: ['WASD: движение', 'Мышь: прицел', 'P: стрельба', 'Выход: портал возврата'],
+        questDetailsOpen: 'Весь список',
+        questDetailsClose: 'Скрыть список',
+        questHint: 'Идите по следующей цели. Если сбились, откройте весь список.',
         locations: {
             city: 'Город',
             sferaHall: 'Sfera Hall',
@@ -404,6 +419,11 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         guideTitle: '现在要做什么',
         guideBody: '你在 3D 城市中。访问 Sfera Hall，探索一个展馆，然后进入 Zombie Arena 并领取奖励。',
         guideSteps: ['探索 Sfera Hall', '进入 Zombie Arena', '领取奖励'],
+        arenaTrainingTitle: '僵尸竞技场操作',
+        arenaTrainingSteps: ['WASD 移动', '鼠标瞄准', 'P 射击', '传送门返回'],
+        questDetailsOpen: '显示完整清单',
+        questDetailsClose: '收起清单',
+        questHint: '按下一个目标推进。迷路时打开完整清单。',
         locations: {
             city: '城市',
             sferaHall: 'Sfera Hall',
@@ -941,11 +961,15 @@ type ArcadeCopy = {
     stop: string;
     lock: string;
     claim: string;
-    jackpot: string;
+    bonusReward: string;
     nearPerfect: string;
     tryAgain: string;
     recent: string;
     emptyRecent: string;
+    playsLeft: string;
+    limitReached: string;
+    signalTimeLeft: string;
+    runnerHint: string;
     games: Record<ArcadeGameId, { title: string; tag: string; body: string; mechanic: string }>;
 };
 
@@ -991,11 +1015,15 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
         stop: 'Stop',
         lock: 'Lock timing',
         claim: 'Claim win',
-        jackpot: 'Jackpot hit',
+        bonusReward: 'Bonus reward',
         nearPerfect: 'Clean win',
         tryAgain: 'No prize this round',
         recent: 'Recent wallet activity',
         emptyRecent: 'Wins from arcade games will appear here.',
+        playsLeft: 'Plays left',
+        limitReached: 'Play limit reached for this arcade visit',
+        signalTimeLeft: 'Circuit cools in',
+        runnerHint: 'Green $ and amber x2 are safe prizes. Avoid the red ! lane, then press Dash.',
         games: {
             'pulse-runner': {
                 title: 'Neon Runner',
@@ -1007,7 +1035,7 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
                 title: 'Signal Match',
                 tag: 'Memory',
                 body: 'Repeat the neon sequence before the circuit cools.',
-                mechanic: 'Complete the chain to collect the cash prize.',
+                mechanic: 'Complete the chain before the circuit cools to collect the small prize.',
             },
             'vault-drop': {
                 title: 'Sfera Prize Drop',
@@ -1029,11 +1057,15 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
         stop: 'Стоп',
         lock: 'Поймать момент',
         claim: 'Забрать выигрыш',
-        jackpot: 'Джекпот',
+        bonusReward: 'Бонусная награда',
         nearPerfect: 'Чистая победа',
         tryAgain: 'В этом раунде без приза',
         recent: 'Последние операции',
         emptyRecent: 'Выигрыши из аркадных игр появятся здесь.',
+        playsLeft: 'Попыток осталось',
+        limitReached: 'Лимит попыток на этот заход исчерпан',
+        signalTimeLeft: 'Цепь остынет через',
+        runnerHint: 'Зеленый $ и янтарный x2 дают приз. Избегайте красной ! дорожки, затем жмите Dash.',
         games: {
             'pulse-runner': {
                 title: 'Neon Runner',
@@ -1045,7 +1077,7 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
                 title: 'Signal Match',
                 tag: 'Память',
                 body: 'Повторите неоновую последовательность до остывания цепи.',
-                mechanic: 'Соберите цепочку полностью, чтобы получить денежный приз.',
+                mechanic: 'Соберите цепочку до остывания, чтобы получить небольшой приз.',
             },
             'vault-drop': {
                 title: 'Sfera Prize Drop',
@@ -1067,11 +1099,15 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
         stop: '停止',
         lock: '锁定时机',
         claim: '领取奖金',
-        jackpot: '命中大奖',
+        bonusReward: '额外奖励',
         nearPerfect: '漂亮获胜',
         tryAgain: '本轮无奖励',
         recent: '最近钱包动态',
         emptyRecent: '街机获胜记录会显示在这里。',
+        playsLeft: '剩余次数',
+        limitReached: '本次进入的游玩次数已用完',
+        signalTimeLeft: '电路冷却倒计时',
+        runnerHint: '绿色 $ 和琥珀 x2 是奖励。避开红色 ! 路线，然后点击 Dash。',
         games: {
             'pulse-runner': {
                 title: 'Neon Runner',
@@ -1083,7 +1119,7 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
                 title: 'Signal Match',
                 tag: '记忆',
                 body: '在电路冷却前重复霓虹序列。',
-                mechanic: '完成整条序列即可领取现金奖励。',
+                mechanic: '在电路冷却前完成整条序列即可领取小额奖励。',
             },
             'vault-drop': {
                 title: 'Sfera Prize Drop',
@@ -1123,6 +1159,8 @@ function ArcadeOverlay({
     const [prizeDropAim, setPrizeDropAim] = useState(50);
     const [prizeDropAimDirection, setPrizeDropAimDirection] = useState(1);
     const [result, setResult] = useState<{ label: string; amountCents: number } | null>(null);
+    const [playsRemaining, setPlaysRemaining] = useState<number>(GAME_RULES.arcade.maxPlaysPerOpen);
+    const [signalSecondsLeft, setSignalSecondsLeft] = useState<number>(GAME_RULES.arcade.signalMatchSeconds);
 
     useEffect(() => {
         if (activeGame !== 'vault-drop' || isPrizeDropRunning) return;
@@ -1145,12 +1183,39 @@ function ArcadeOverlay({
         return () => window.clearInterval(timer);
     }, [activeGame, isPrizeDropRunning, prizeDropAimDirection]);
 
+    useEffect(() => {
+        if (activeGame !== 'signal-match') return;
+
+        const timer = window.setInterval(() => {
+            setSignalSecondsLeft((current) => Math.max(0, current - 1));
+        }, 1000);
+
+        return () => window.clearInterval(timer);
+    }, [activeGame]);
+
     const award = useCallback((amountCents: number, label: string) => {
+        if (playsRemaining <= 0) {
+            setResult({ amountCents: 0, label: copy.limitReached });
+            return;
+        }
+
+        setPlaysRemaining((current) => Math.max(0, current - 1));
         setResult({ amountCents, label });
         if (amountCents > 0) {
             onPrize(amountCents, copy.games[activeGame].title);
         }
-    }, [activeGame, copy.games, onPrize]);
+    }, [activeGame, copy.games, copy.limitReached, onPrize, playsRemaining]);
+
+    useEffect(() => {
+        if (activeGame !== 'signal-match' || signalSecondsLeft > 0 || signalInput.length === 0) return;
+
+        const timer = window.setTimeout(() => {
+            setSignalInput([]);
+            award(0, copy.tryAgain);
+        }, 0);
+
+        return () => window.clearTimeout(timer);
+    }, [activeGame, award, copy.tryAgain, signalInput.length, signalSecondsLeft]);
 
     const resetRunner = () => {
         setRunnerLane(1);
@@ -1187,10 +1252,10 @@ function ArcadeOverlay({
 
         if (nextStep >= runnerGates.length) {
             const amountCents = Math.min(
-                GAME_RULES.arcade.games[0].jackpotCents,
+                GAME_RULES.arcade.games[0].bonusCents,
                 nextCoins * GAME_RULES.arcade.games[0].prizeCents + Math.floor(nextCombo / 3) * 2
             );
-            award(amountCents > 0 ? amountCents : GAME_RULES.arcade.games[0].prizeCents, nextCoins >= 5 ? copy.jackpot : copy.nearPerfect);
+            award(amountCents > 0 ? amountCents : GAME_RULES.arcade.games[0].prizeCents, nextCoins >= 5 ? copy.bonusReward : copy.nearPerfect);
         }
     };
 
@@ -1198,10 +1263,13 @@ function ArcadeOverlay({
         const next = Array.from({ length: 4 }, () => Math.floor(Math.random() * 4));
         setSignalSequence(next);
         setSignalInput([]);
+        setSignalSecondsLeft(GAME_RULES.arcade.signalMatchSeconds);
         setResult(null);
     };
 
     const handleSignalPress = (value: number) => {
+        if (playsRemaining <= 0 || signalSecondsLeft <= 0) return;
+
         const next = [...signalInput, value];
         setSignalInput(next);
 
@@ -1212,10 +1280,10 @@ function ArcadeOverlay({
         }
 
         if (next.length === signalSequence.length) {
-            const isJackpot = new Set(signalSequence).size >= 4;
+            const isBonus = new Set(signalSequence).size >= 4;
             award(
-                isJackpot ? GAME_RULES.arcade.games[1].jackpotCents : GAME_RULES.arcade.games[1].prizeCents,
-                isJackpot ? copy.jackpot : copy.nearPerfect
+                isBonus ? GAME_RULES.arcade.games[1].bonusCents : GAME_RULES.arcade.games[1].prizeCents,
+                isBonus ? copy.bonusReward : copy.nearPerfect
             );
             window.setTimeout(resetSignal, 720);
         }
@@ -1225,7 +1293,7 @@ function ArcadeOverlay({
         { label: 'TRY', amountCents: 0, tone: 'border-slate-400/20 bg-slate-400/10 text-slate-300' },
         { label: formatMoney(GAME_RULES.arcade.games[2].prizeCents), amountCents: GAME_RULES.arcade.games[2].prizeCents, tone: 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100' },
         { label: formatMoney(GAME_RULES.arcade.games[2].prizeCents * 2), amountCents: GAME_RULES.arcade.games[2].prizeCents * 2, tone: 'border-cyan-300/35 bg-cyan-300/12 text-cyan-100' },
-        { label: 'JACKPOT', amountCents: GAME_RULES.arcade.games[2].jackpotCents, tone: 'border-amber-300/45 bg-amber-300/16 text-amber-100' },
+        { label: 'BONUS', amountCents: GAME_RULES.arcade.games[2].bonusCents, tone: 'border-amber-300/45 bg-amber-300/16 text-amber-100' },
         { label: formatMoney(GAME_RULES.arcade.games[2].prizeCents * 2), amountCents: GAME_RULES.arcade.games[2].prizeCents * 2, tone: 'border-cyan-300/35 bg-cyan-300/12 text-cyan-100' },
         { label: formatMoney(GAME_RULES.arcade.games[2].prizeCents), amountCents: GAME_RULES.arcade.games[2].prizeCents, tone: 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100' },
         { label: 'TRY', amountCents: 0, tone: 'border-slate-400/20 bg-slate-400/10 text-slate-300' },
@@ -1238,7 +1306,7 @@ function ArcadeOverlay({
     }));
 
     const handleVaultSpin = () => {
-        if (isPrizeDropRunning) return;
+        if (isPrizeDropRunning || playsRemaining <= 0) return;
 
         const drift = Math.floor(Math.random() * 3) - 1;
         const aimedSlot = Math.round((prizeDropAim - 9) / 13.5);
@@ -1253,7 +1321,7 @@ function ArcadeOverlay({
             setPrizeDropSlot(nextSlot);
             setPrizeDropTokenLane(9 + nextSlot * 13.5);
             setIsPrizeDropRunning(false);
-            award(slot.amountCents, slot.amountCents >= GAME_RULES.arcade.games[2].jackpotCents ? copy.jackpot : slot.amountCents > 0 ? copy.nearPerfect : copy.tryAgain);
+            award(slot.amountCents, slot.amountCents >= GAME_RULES.arcade.games[2].bonusCents ? copy.bonusReward : slot.amountCents > 0 ? copy.nearPerfect : copy.tryAgain);
         }, 980);
     };
 
@@ -1287,6 +1355,18 @@ function ArcadeOverlay({
                         </div>
                     </div>
 
+                    <div className={`mt-3 rounded-xl border p-3 ${playsRemaining > 0 ? 'border-cyan-300/18 bg-cyan-300/[0.06]' : 'border-rose-300/20 bg-rose-300/[0.07]'}`}>
+                        <div className="flex items-center justify-between gap-3">
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">{copy.playsLeft}</p>
+                            <p className={`font-mono text-xl font-black ${playsRemaining > 0 ? 'text-cyan-100' : 'text-rose-100'}`}>
+                                {playsRemaining}/{GAME_RULES.arcade.maxPlaysPerOpen}
+                            </p>
+                        </div>
+                        {playsRemaining <= 0 && (
+                            <p className="mt-2 text-xs leading-5 text-rose-100/85">{copy.limitReached}</p>
+                        )}
+                    </div>
+
                     <div className="mt-4">
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{copy.chooseGame}</p>
                         <div className="mt-2 grid gap-2">
@@ -1299,6 +1379,9 @@ function ArcadeOverlay({
                                         type="button"
                                         onClick={() => {
                                             setActiveGame(gameId);
+                                            if (gameId === 'signal-match') {
+                                                setSignalSecondsLeft(GAME_RULES.arcade.signalMatchSeconds);
+                                            }
                                             setResult(null);
                                         }}
                                         className={`rounded-xl border px-3 py-3 text-left transition ${
@@ -1374,9 +1457,11 @@ function ArcadeOverlay({
                                             ))}
                                         </div>
                                     </div>
-                                    <p className="text-sm leading-6 text-slate-300">{runnerCrashed ? copy.tryAgain : activeCopy.mechanic}</p>
+                                    <p className="text-sm leading-6 text-slate-300">
+                                        {runnerCrashed ? copy.tryAgain : `${activeCopy.mechanic} ${copy.runnerHint}`}
+                                    </p>
                                     <div className="grid gap-2 sm:grid-cols-2">
-                                        <button type="button" onClick={handleRunnerDash} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#66d9cb] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#03110f] transition hover:bg-[#8df0e6]">
+                                        <button type="button" onClick={handleRunnerDash} disabled={playsRemaining <= 0} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#66d9cb] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#03110f] transition hover:bg-[#8df0e6] disabled:cursor-not-allowed disabled:bg-slate-500 disabled:text-slate-900">
                                             <Zap className="h-4 w-4" />
                                             {runnerCrashed || runnerStep >= runnerGates.length ? copy.play : 'Dash'}
                                         </button>
@@ -1390,16 +1475,22 @@ function ArcadeOverlay({
 
                             {activeGame === 'signal-match' && (
                                 <div className="grid gap-5">
-                                    <div className="flex flex-wrap gap-2">
-                                        {signalSequence.map((value, index) => (
-                                            <span key={`${value}-${index}`} className="grid h-10 w-10 place-items-center rounded-lg border border-[#66d9cb]/25 bg-[#66d9cb]/10 font-mono text-sm font-black text-[#9ff4ec]">
-                                                {['A', 'B', 'C', 'D'][value]}
-                                            </span>
-                                        ))}
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="flex flex-wrap gap-2">
+                                            {signalSequence.map((value, index) => (
+                                                <span key={`${value}-${index}`} className="grid h-10 w-10 place-items-center rounded-lg border border-[#66d9cb]/25 bg-[#66d9cb]/10 font-mono text-sm font-black text-[#9ff4ec]">
+                                                    {['A', 'B', 'C', 'D'][value]}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <div className={`rounded-xl border px-3 py-2 text-right ${signalSecondsLeft > 2 ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100' : 'border-rose-300/24 bg-rose-300/10 text-rose-100'}`}>
+                                            <p className="text-[9px] font-black uppercase tracking-[0.16em]">{copy.signalTimeLeft}</p>
+                                            <p className="mt-0.5 font-mono text-lg font-black">{signalSecondsLeft}s</p>
+                                        </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                                         {[0, 1, 2, 3].map((value) => (
-                                            <button key={value} type="button" onClick={() => handleSignalPress(value)} className="h-20 rounded-xl border border-white/10 bg-white/[0.055] text-xl font-black text-white transition hover:border-[#66d9cb]/35 hover:bg-[#66d9cb]/12">
+                                            <button key={value} type="button" onClick={() => handleSignalPress(value)} disabled={playsRemaining <= 0 || signalSecondsLeft <= 0} className="h-20 rounded-xl border border-white/10 bg-white/[0.055] text-xl font-black text-white transition hover:border-[#66d9cb]/35 hover:bg-[#66d9cb]/12 disabled:cursor-not-allowed disabled:bg-slate-900/70 disabled:text-slate-600">
                                                 {['A', 'B', 'C', 'D'][value]}
                                             </button>
                                         ))}
@@ -1462,7 +1553,7 @@ function ArcadeOverlay({
                                         </div>
                                     </div>
                                     <p className="text-sm leading-6 text-slate-300">{activeCopy.mechanic}</p>
-                                    <button type="button" onClick={handleVaultSpin} disabled={isPrizeDropRunning} className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-slate-500 disabled:text-slate-900">
+                                    <button type="button" onClick={handleVaultSpin} disabled={isPrizeDropRunning || playsRemaining <= 0} className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-slate-500 disabled:text-slate-900">
                                         <Trophy className="h-4 w-4" />
                                         {isPrizeDropRunning ? copy.stop : copy.play}
                                     </button>
@@ -1812,6 +1903,7 @@ export default function ExperiencePage() {
     const [activePavilion, setActivePavilion] = useState<PavilionInfo | null>(null);
     const [isRewardTerminalOpen, setIsRewardTerminalOpen] = useState(false);
     const [isArcadeOpen, setIsArcadeOpen] = useState(false);
+    const [isQuestChecklistOpen, setIsQuestChecklistOpen] = useState(false);
     const [seenRewardTerminalRewardId, setSeenRewardTerminalRewardId] = useState<string | null>(null);
     const localizedActiveProduct = useMemo(
         () => (activeProduct ? getLocalizedProduct(activeProduct, language) : null),
@@ -3466,6 +3558,21 @@ export default function ExperiencePage() {
                                     </div>
                                 )}
                             </div>
+                            {isZombieArenaActive && (
+                                <div className="mt-2 w-[min(92vw,22rem)] rounded-xl border border-rose-300/28 bg-[linear-gradient(145deg,rgba(69,10,10,0.86),rgba(8,13,22,0.78))] p-3 text-white shadow-[0_20px_60px_rgba(127,29,29,0.28)] backdrop-blur-md">
+                                    <div className="flex items-center gap-2">
+                                        <Gamepad2 className="h-4 w-4 shrink-0 text-rose-100" />
+                                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-100">{sceneHud.arenaTrainingTitle}</p>
+                                    </div>
+                                    <div className="mt-2 grid grid-cols-2 gap-1.5">
+                                        {sceneHud.arenaTrainingSteps.map((step) => (
+                                            <div key={step} className="rounded-lg border border-white/10 bg-white/[0.055] px-2 py-1.5 text-[11px] font-bold text-slate-100">
+                                                {step}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             {isGamerScene && activeSceneQuest && (
                                 <div className="sfera-guide-enter mt-2 w-[min(92vw,22rem)] rounded-xl border border-cyan-300/18 bg-[#041018]/70 px-3 py-2.5 text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.28)] backdrop-blur-md">
                                     <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-100">{sceneHud.guideTitle}</p>
@@ -3494,8 +3601,19 @@ export default function ExperiencePage() {
                                                 </p>
                                             )}
                                         </div>
-                                        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-amber-300/22 bg-black/32">
-                                            <span className="font-mono text-xs font-black text-amber-100">{activeSceneQuestPercent}%</span>
+                                        <div className="flex shrink-0 items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsQuestChecklistOpen((current) => !current)}
+                                                className="pointer-events-auto grid h-11 w-11 place-items-center rounded-lg border border-amber-300/22 bg-black/32 text-amber-100 transition hover:border-amber-200/45 hover:bg-amber-300/10"
+                                                aria-label={isQuestChecklistOpen ? sceneHud.questDetailsClose : sceneHud.questDetailsOpen}
+                                                title={isQuestChecklistOpen ? sceneHud.questDetailsClose : sceneHud.questDetailsOpen}
+                                            >
+                                                <ChevronDown className={`h-4 w-4 transition ${isQuestChecklistOpen ? 'rotate-180' : ''}`} />
+                                            </button>
+                                            <div className="grid h-11 w-11 place-items-center rounded-lg border border-amber-300/22 bg-black/32">
+                                                <span className="font-mono text-xs font-black text-amber-100">{activeSceneQuestPercent}%</span>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="px-3 py-2.5">
@@ -3513,7 +3631,13 @@ export default function ExperiencePage() {
                                                 </p>
                                             </div>
                                         )}
-                                        <div className="hidden">
+                                        <p className="mt-2 text-[11px] leading-5 text-slate-300">{sceneHud.questHint}</p>
+                                        {isQuestChecklistOpen && (
+                                        <div className="mt-2 grid gap-1.5 rounded-lg border border-white/10 bg-black/22 p-2">
+                                            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-amber-100/78">
+                                                <ListChecks className="h-3.5 w-3.5" />
+                                                {sceneHud.questDetailsOpen}
+                                            </div>
                                             {Object.entries(activeSceneQuest.progress.objectives).map(([objectiveId, objective], index) => (
                                                 <div key={objectiveId} className="grid grid-cols-[1.5rem_1fr_auto] items-center gap-2 text-xs">
                                                     <span className={`grid h-5 w-5 place-items-center rounded-full border text-[10px] font-black ${
@@ -3530,6 +3654,7 @@ export default function ExperiencePage() {
                                                 </div>
                                             ))}
                                         </div>
+                                        )}
                                         <div className="mt-2 truncate rounded-lg border border-amber-300/16 bg-amber-300/[0.06] px-2.5 py-1.5 text-[10px] leading-5 text-amber-50">
                                             <span className="font-black uppercase tracking-[0.14em] text-amber-200">{sceneHud.reward}: </span>
                                             {getQuestRewardText(activeSceneQuest.quest.reward, activeSceneQuest.quest.id, language)}
