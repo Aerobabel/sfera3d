@@ -776,7 +776,7 @@ const DEFAULT_FASTVIEW_APP_ID = '69d615b641d102927ca911f3';
 const SFERA_HALL_CUTSCENE_SRC: Record<AppLanguage, string> = {
     en: '/cutscenes/englishsphere.MP4',
     ru: '/cutscenes/russiansphere.MP4',
-    zh: '/cutscenes/chinesesphere.MP4',
+    zh: '/cutscenes/chinesesphere.MOV',
 };
 const FASTVIEW_CUTSCENE_FADE_MS = 700;
 

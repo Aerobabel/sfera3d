@@ -66,9 +66,11 @@ type RolePageText = {
     roles: Record<RoleTone, RoleText>;
 };
 
-const ROLE_INTRO_CUTSCENE_SRCS = [
-    '/cutscenes/maincutscene.MOV',
-];
+const ROLE_INTRO_CUTSCENE_SRCS: Record<AppLanguage, string[]> = {
+    en: ['/cutscenes/maincutscene.MOV'],
+    ru: ['/cutscenes/maincutscene-ru.MP4'],
+    zh: ['/cutscenes/maincutscene-zh.MP4'],
+};
 
 const GAME_SELECTION_CUTSCENE_SRCS: Record<AppLanguage, string> = {
     en: '/cutscenes/gamecutscene.MOV',
@@ -407,7 +409,8 @@ export default function RoleSelectionPage() {
     const [gameCutsceneHref, setGameCutsceneHref] = useState<string | null>(null);
     const introVideoRef = useRef<HTMLVideoElement | null>(null);
     const gameCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
-    const currentIntroCutsceneSrc = ROLE_INTRO_CUTSCENE_SRCS[introCutsceneIndex];
+    const currentIntroCutsceneSrcs = ROLE_INTRO_CUTSCENE_SRCS[language];
+    const currentIntroCutsceneSrc = currentIntroCutsceneSrcs[introCutsceneIndex];
     const currentGameCutsceneSrc = GAME_SELECTION_CUTSCENE_SRCS[language];
 
     const playIntroVideo = () => {
@@ -467,7 +470,7 @@ export default function RoleSelectionPage() {
         setIntroCutsceneIndex((currentIndex) => {
             const nextIndex = currentIndex + 1;
 
-            if (nextIndex >= ROLE_INTRO_CUTSCENE_SRCS.length) {
+            if (nextIndex >= currentIntroCutsceneSrcs.length) {
                 setIsIntroVisible(false);
                 return currentIndex;
             }
