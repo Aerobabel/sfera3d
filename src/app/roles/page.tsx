@@ -70,7 +70,11 @@ const ROLE_INTRO_CUTSCENE_SRCS = [
     '/cutscenes/maincutscene.MOV',
 ];
 
-const GAME_SELECTION_CUTSCENE_SRC = '/cutscenes/gamecutscene.MOV';
+const GAME_SELECTION_CUTSCENE_SRCS: Record<AppLanguage, string> = {
+    en: '/cutscenes/gamecutscene.MOV',
+    ru: '/cutscenes/gamecutscene-ru.MOV',
+    zh: '/cutscenes/gamecutscene-zh.MOV',
+};
 
 const roleBases: RoleBase[] = [
     {
@@ -404,6 +408,7 @@ export default function RoleSelectionPage() {
     const introVideoRef = useRef<HTMLVideoElement | null>(null);
     const gameCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const currentIntroCutsceneSrc = ROLE_INTRO_CUTSCENE_SRCS[introCutsceneIndex];
+    const currentGameCutsceneSrc = GAME_SELECTION_CUTSCENE_SRCS[language];
 
     const playIntroVideo = () => {
         const video = introVideoRef.current;
@@ -550,7 +555,7 @@ export default function RoleSelectionPage() {
                     <video
                         ref={gameCutsceneVideoRef}
                         className="h-full w-full object-cover"
-                        src={GAME_SELECTION_CUTSCENE_SRC}
+                        src={currentGameCutsceneSrc}
                         playsInline
                         preload="auto"
                         data-cutscene-video="true"
