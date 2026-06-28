@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     ArrowRight,
     BadgeCheck,
@@ -69,6 +69,8 @@ type RolePageText = {
 const ROLE_INTRO_CUTSCENE_SRCS = [
     '/cutscenes/maincutscene.MOV',
 ];
+
+const GAME_SELECTION_CUTSCENE_SRC = '/cutscenes/gamecutscene.MOV';
 
 const roleBases: RoleBase[] = [
     {
@@ -313,13 +315,31 @@ const toneClasses: Record<RoleTone, { border: string; icon: string; glow: string
     },
 };
 
-function RoleCard({ base, text, rolePath, primary = false }: { base: RoleBase; text: RoleText; rolePath: string; primary?: boolean }) {
+function RoleCard({
+    base,
+    text,
+    rolePath,
+    primary = false,
+    onSelect,
+}: {
+    base: RoleBase;
+    text: RoleText;
+    rolePath: string;
+    primary?: boolean;
+    onSelect?: (href: string) => void;
+}) {
     const tone = toneClasses[base.tone];
     const Icon = base.Icon;
 
     return (
         <Link
             href={base.href}
+            onClick={(event) => {
+                if (!onSelect) return;
+
+                event.preventDefault();
+                onSelect(base.href);
+            }}
             className={`group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0e141c] transition duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-[#111923] ${primary ? 'min-h-[19rem] p-6 shadow-[0_28px_90px_rgba(56,189,248,0.12)]' : 'min-h-[16rem] p-5'} ${tone.border}`}
         >
             <span className={`pointer-events-none absolute inset-x-0 top-0 ${primary ? 'h-36' : 'h-24'} bg-gradient-to-b ${tone.glow} opacity-55`} />
@@ -371,13 +391,18 @@ function RoleCard({ base, text, rolePath, primary = false }: { base: RoleBase; t
 export default function RoleSelectionPage() {
     const { language } = useLanguage();
     const copy = rolePageCopy[language];
+    const router = useRouter();
     const searchParams = useSearchParams();
     const returnToScene = searchParams.get('returnTo') === '/fastview' || searchParams.get('from') === 'scene';
     const shouldPlayIntro = !returnToScene && searchParams.get('skipIntro') !== 'true';
     const [isIntroVisible, setIsIntroVisible] = useState(shouldPlayIntro);
     const [hasStartedIntro, setHasStartedIntro] = useState(!shouldPlayIntro);
     const [introCutsceneIndex, setIntroCutsceneIndex] = useState(0);
+    const [isGameCutsceneVisible, setIsGameCutsceneVisible] = useState(false);
+    const [hasStartedGameCutscene, setHasStartedGameCutscene] = useState(false);
+    const [gameCutsceneHref, setGameCutsceneHref] = useState<string | null>(null);
     const introVideoRef = useRef<HTMLVideoElement | null>(null);
+    const gameCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const currentIntroCutsceneSrc = ROLE_INTRO_CUTSCENE_SRCS[introCutsceneIndex];
 
     const playIntroVideo = () => {
@@ -395,6 +420,42 @@ export default function RoleSelectionPage() {
     const startIntroWithSound = () => {
         setHasStartedIntro(true);
         playIntroVideo();
+    };
+
+    const playGameCutsceneVideo = () => {
+        const video = gameCutsceneVideoRef.current;
+        if (!video) return;
+
+        video.muted = false;
+        video.volume = 1;
+        video.currentTime = 0;
+        video.play().catch(() => {
+            video.muted = true;
+            video.play().catch(() => {});
+        });
+    };
+
+    const startGameCutscene = (href: string) => {
+        setGameCutsceneHref(href);
+        setHasStartedGameCutscene(true);
+        setIsGameCutsceneVisible(true);
+    };
+
+    const enterSelectedGame = () => {
+        const href = gameCutsceneHref ?? roleBases.find((base) => base.tone === 'player')?.href ?? '/fastview?resume=scene&mode=player';
+        const video = gameCutsceneVideoRef.current;
+
+        if (video) {
+            video.pause();
+            try {
+                video.currentTime = 0;
+            } catch {}
+        }
+
+        setIsGameCutsceneVisible(false);
+        setHasStartedGameCutscene(false);
+        setGameCutsceneHref(null);
+        router.push(href);
     };
 
     const advanceIntroCutscene = () => {
@@ -415,6 +476,14 @@ export default function RoleSelectionPage() {
 
         playIntroVideo();
     }, [hasStartedIntro, introCutsceneIndex, isIntroVisible]);
+
+    useEffect(() => {
+        if (!isGameCutsceneVisible || !hasStartedGameCutscene) return;
+
+        const animationFrame = window.requestAnimationFrame(playGameCutsceneVideo);
+
+        return () => window.cancelAnimationFrame(animationFrame);
+    }, [hasStartedGameCutscene, isGameCutsceneVisible]);
 
     return (
         <main className="min-h-screen overflow-hidden bg-[#080b10] text-white">
@@ -476,6 +545,31 @@ export default function RoleSelectionPage() {
                 </div>
             )}
 
+            {isGameCutsceneVisible && (
+                <div className="fixed inset-0 z-50 bg-black">
+                    <video
+                        ref={gameCutsceneVideoRef}
+                        className="h-full w-full object-cover"
+                        src={GAME_SELECTION_CUTSCENE_SRC}
+                        playsInline
+                        preload="auto"
+                        data-cutscene-video="true"
+                        onEnded={enterSelectedGame}
+                        onError={enterSelectedGame}
+                    />
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08),transparent_58%,rgba(0,0,0,0.72))]" />
+                    <div className="absolute inset-x-0 bottom-8 flex justify-center px-6">
+                        <button
+                            type="button"
+                            onClick={enterSelectedGame}
+                            className="rounded-full border border-white/15 bg-white/[0.08] px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-white shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:bg-white/[0.14]"
+                        >
+                            {copy.skipIntro}
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <section className="relative px-4 py-5 sm:px-6 lg:px-8">
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(180deg,rgba(14,165,233,0.1),transparent)]" />
                 <div className="pointer-events-none absolute inset-0 opacity-[0.055] [background-image:linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:56px_56px]" />
@@ -525,7 +619,14 @@ export default function RoleSelectionPage() {
 
                         <section className="grid gap-3 lg:grid-cols-[1.18fr_0.91fr_0.91fr]">
                             {roleBases.map((base) => (
-                                <RoleCard key={base.tone} base={base} text={copy.roles[base.tone]} rolePath={copy.rolePath} primary={base.tone === 'player'} />
+                                <RoleCard
+                                    key={base.tone}
+                                    base={base}
+                                    text={copy.roles[base.tone]}
+                                    rolePath={copy.rolePath}
+                                    primary={base.tone === 'player'}
+                                    onSelect={base.tone === 'player' ? startGameCutscene : undefined}
+                                />
                             ))}
                         </section>
                     </div>
