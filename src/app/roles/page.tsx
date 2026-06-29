@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     ArrowRight,
@@ -299,47 +299,35 @@ const rolePageCopy: Record<AppLanguage, RolePageText> = {
     },
 };
 
-const toneClasses: Record<RoleTone, { border: string; icon: string; glow: string; text: string; button: string; panel: string; rail: string }> = {
+const toneClasses: Record<RoleTone, { border: string; icon: string; text: string; button: string; panel: string; accent: string; image: string }> = {
     player: {
         border: 'border-sky-300/20 hover:border-sky-200/55',
         icon: 'border-sky-300/25 bg-sky-300/10 text-sky-100',
-        glow: 'from-sky-300/24 via-cyan-300/10 to-transparent',
         text: 'text-sky-100',
         button: 'border-sky-300/45 bg-sky-300/14 text-sky-50',
-        panel: 'from-sky-300/16 via-[#111b24] to-[#071015]',
-        rail: 'bg-sky-300',
+        panel: 'bg-[#0d1720]',
+        accent: 'bg-sky-300',
+        image: 'opacity-[0.16]',
     },
     shopper: {
         border: 'border-amber-300/20 hover:border-amber-200/55',
         icon: 'border-amber-300/25 bg-amber-300/10 text-amber-100',
-        glow: 'from-amber-300/24 via-cyan-300/10 to-transparent',
         text: 'text-amber-100',
         button: 'border-amber-300/45 bg-amber-300/14 text-amber-50',
-        panel: 'from-amber-300/14 via-[#191814] to-[#090e13]',
-        rail: 'bg-amber-300',
+        panel: 'bg-[#161711]',
+        accent: 'bg-amber-300',
+        image: 'opacity-[0.14]',
     },
     business: {
         border: 'border-emerald-300/20 hover:border-emerald-200/55',
         icon: 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100',
-        glow: 'from-emerald-300/24 via-sky-300/10 to-transparent',
         text: 'text-emerald-100',
         button: 'border-emerald-300/45 bg-emerald-300/14 text-emerald-50',
-        panel: 'from-emerald-300/14 via-[#101d19] to-[#080d12]',
-        rail: 'bg-emerald-300',
+        panel: 'bg-[#0d1916]',
+        accent: 'bg-emerald-300',
+        image: 'opacity-[0.14]',
     },
 };
-
-const typewriterStyle = (text: string) => ({
-    '--role-typewriter-steps': Math.max(text.length, 1),
-}) as CSSProperties;
-
-function TypewriterQuestion({ text }: { text: string }) {
-    return (
-        <span className="role-typewriter align-bottom" style={typewriterStyle(text)}>
-            {text}
-        </span>
-    );
-}
 
 function RoleCard({
     base,
@@ -369,11 +357,19 @@ function RoleCard({
                 onSelect(base.href);
             }}
             style={{ animationDelay: `${index * 95}ms` }}
-            className={`fade-up group relative isolate flex min-h-[28rem] flex-col overflow-hidden rounded-lg border bg-gradient-to-br ${tone.panel} p-4 shadow-[0_24px_80px_rgba(0,0,0,0.28)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_34px_110px_rgba(0,0,0,0.42)] sm:p-5 ${primary ? 'lg:min-h-[31rem]' : 'lg:mt-8'} ${tone.border}`}
+            className={`fade-up group relative isolate flex min-h-[24rem] flex-col overflow-hidden rounded-lg border ${tone.panel} p-5 shadow-[0_22px_70px_rgba(0,0,0,0.26)] transition duration-300 hover:-translate-y-1 hover:bg-[#111922] hover:shadow-[0_34px_110px_rgba(0,0,0,0.38)] sm:p-6 ${tone.border}`}
         >
-            <span className={`pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b ${tone.glow} opacity-80`} />
-            <span className={`absolute left-0 top-0 h-full w-1 ${tone.rail}`} />
-            <span className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(to_right,rgba(255,255,255,0.16)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:34px_34px]" />
+            <span className={`absolute inset-x-0 top-0 h-1 ${tone.accent}`} />
+            <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),transparent_38%)]" />
+            <span className="pointer-events-none absolute -right-12 top-14 h-56 w-56 transition duration-500 group-hover:scale-105 group-hover:opacity-25 sm:h-64 sm:w-64">
+                <Image
+                    src={base.image}
+                    alt=""
+                    fill
+                    sizes="16rem"
+                    className={`object-contain ${tone.image}`}
+                />
+            </span>
 
             <div className="relative flex items-center justify-between gap-4">
                 <span className={`flex h-12 w-12 items-center justify-center rounded-lg border ${tone.icon}`}>
@@ -385,21 +381,10 @@ function RoleCard({
                 </span>
             </div>
 
-            <div className="relative mt-5 h-28 overflow-hidden rounded-md border border-white/10 bg-black/20 sm:h-32">
-                <Image
-                    src={base.image}
-                    alt={base.imageAlt}
-                    fill
-                    sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                    className="object-contain p-4 opacity-90 transition duration-500 group-hover:scale-[1.04] group-hover:opacity-100"
-                />
-                <span className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
-            </div>
-
-            <div className="relative mt-5 min-w-0">
+            <div className="relative mt-9 min-w-0">
                 <p className={`text-xs font-semibold ${tone.text}`}>{text.label}</p>
-                <h2 className={`mt-2 break-words font-semibold text-white ${primary ? 'text-3xl sm:text-4xl' : 'text-2xl sm:text-3xl'}`}>{text.title}</h2>
-                <p className="mt-3 text-sm leading-6 text-slate-300/86">{text.description}</p>
+                <h2 className="mt-2 break-words text-3xl font-semibold text-white sm:text-4xl">{text.title}</h2>
+                <p className="mt-3 max-w-md text-sm leading-6 text-slate-300/86">{text.description}</p>
             </div>
 
             <div className="relative mt-5 grid grid-cols-2 divide-x divide-white/10 border-y border-white/10 py-3">
@@ -411,7 +396,7 @@ function RoleCard({
                 ))}
             </div>
 
-            <div className="relative mt-4 flex flex-wrap gap-2">
+            <div className="relative mt-4 flex min-h-16 flex-wrap content-start gap-2">
                 {text.proof.map((item) => (
                     <span key={item} className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[11px] text-slate-300">
                         {item}
@@ -441,6 +426,7 @@ export default function RoleSelectionPage() {
     const [introCutsceneIndex, setIntroCutsceneIndex] = useState(0);
     const [isGameCutsceneVisible, setIsGameCutsceneVisible] = useState(false);
     const [hasStartedGameCutscene, setHasStartedGameCutscene] = useState(false);
+    const [isEnteringScene, setIsEnteringScene] = useState(false);
     const [gameCutsceneHref, setGameCutsceneHref] = useState<string | null>(null);
     const introVideoRef = useRef<HTMLVideoElement | null>(null);
     const gameCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -479,6 +465,7 @@ export default function RoleSelectionPage() {
     };
 
     const startGameCutscene = (href: string) => {
+        setIsEnteringScene(false);
         setGameCutsceneHref(href);
         setHasStartedGameCutscene(true);
         setIsGameCutsceneVisible(true);
@@ -493,17 +480,7 @@ export default function RoleSelectionPage() {
             return;
         }
 
-        if (video) {
-            video.pause();
-            try {
-                video.currentTime = 0;
-            } catch {}
-            resetCutsceneAudio(video);
-        }
-
-        setIsGameCutsceneVisible(false);
-        setHasStartedGameCutscene(false);
-        setGameCutsceneHref(null);
+        setIsEnteringScene(true);
         router.push(href);
     };
 
@@ -618,7 +595,7 @@ export default function RoleSelectionPage() {
                 <div className="fixed inset-0 z-50 bg-black">
                     <video
                         ref={gameCutsceneVideoRef}
-                        className="h-full w-full object-cover"
+                        className={`h-full w-full object-cover transition duration-500 ${isEnteringScene ? 'scale-[1.01] brightness-50' : ''}`}
                         src={currentGameCutsceneSrc}
                         playsInline
                         preload="auto"
@@ -628,22 +605,30 @@ export default function RoleSelectionPage() {
                         onError={() => enterSelectedGame()}
                     />
                     <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08),transparent_58%,rgba(0,0,0,0.72))]" />
-                    <div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] flex justify-center px-4 sm:px-6">
-                        <button
-                            type="button"
-                            onClick={() => enterSelectedGame(true)}
-                            className="min-h-12 rounded-full border border-white/15 bg-white/[0.08] px-4 py-3 text-center text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:bg-white/[0.14] sm:px-5 sm:tracking-[0.14em]"
-                        >
-                            {copy.skipIntro}
-                        </button>
-                    </div>
+                    {isEnteringScene ? (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="relative h-14 w-14">
+                                <span className="absolute inset-0 rounded-2xl border border-cyan-200/40 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                                <span className="absolute inset-2 rounded-xl border border-cyan-200/50 bg-cyan-200/10" />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] flex justify-center px-4 sm:px-6">
+                            <button
+                                type="button"
+                                onClick={() => enterSelectedGame(true)}
+                                className="min-h-12 rounded-full border border-white/15 bg-white/[0.08] px-4 py-3 text-center text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:bg-white/[0.14] sm:px-5 sm:tracking-[0.14em]"
+                            >
+                                {copy.skipIntro}
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 
             <section className="relative min-h-screen px-4 py-5 sm:px-6 lg:px-8">
-                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#071019_0%,#080b10_42%,#06080d_100%)]" />
-                <div className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(to_right,rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:44px_44px]" />
-                <div className="role-signal-pulse pointer-events-none absolute inset-x-0 top-24 h-px bg-gradient-to-r from-transparent via-cyan-200/35 to-transparent" />
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#071019_0%,#080b10_44%,#06080d_100%)]" />
+                <div className="pointer-events-none absolute inset-0 opacity-[0.055] [background-image:linear-gradient(to_right,rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:48px_48px]" />
 
                 <div className="relative mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-7xl flex-col">
                     <nav className="mb-7 flex flex-wrap items-center justify-between gap-3">
@@ -663,25 +648,31 @@ export default function RoleSelectionPage() {
                     </nav>
 
                     <div className="flex flex-1 flex-col justify-center gap-7">
-                        <header className="grid items-end gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
+                        <header className="grid items-end gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
                             <div className="min-w-0 fade-up">
                                 <BrandLogo size="sm" imageClassName="h-9 w-[10rem]" />
-                                <p className="mt-6 text-sm font-semibold uppercase text-cyan-100">{copy.introTag}</p>
-                                <h1 className="mt-4 max-w-5xl text-3xl font-semibold leading-tight text-white sm:text-5xl lg:text-6xl">
-                                    <TypewriterQuestion text={copy.title} />
+                                <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-200/[0.06] px-3 py-1.5 text-xs font-semibold uppercase text-cyan-100">
+                                    <Sparkles className="h-3.5 w-3.5" />
+                                    {copy.introTag}
+                                </div>
+                                <h1 className="mt-4 max-w-4xl text-4xl font-semibold leading-[1.08] text-white sm:text-5xl lg:text-[3.7rem]">
+                                    {copy.title}
                                 </h1>
                                 <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">{copy.subtitle}</p>
-                                <div className="mt-6 flex flex-wrap gap-2">
-                                    {copy.insights.map(({ title, icon: InsightIcon }) => (
-                                        <span key={title} className="inline-flex min-h-9 items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-200">
-                                            <InsightIcon className="h-4 w-4 text-cyan-200" />
-                                            {title}
-                                        </span>
+                                <div className="mt-7 grid max-w-4xl gap-3 sm:grid-cols-3">
+                                    {copy.insights.map(({ title, text, icon: InsightIcon }) => (
+                                        <div key={title} className="rounded-lg border border-white/10 bg-white/[0.035] p-3">
+                                            <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                                                <InsightIcon className="h-4 w-4 text-cyan-200" />
+                                                <span>{title}</span>
+                                            </div>
+                                            <p className="mt-2 text-xs leading-5 text-slate-500">{text}</p>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="fade-up delay-2 rounded-lg border border-white/12 bg-black/28 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.25)] backdrop-blur-xl">
+                            <div className="fade-up delay-2 rounded-lg border border-white/12 bg-black/24 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-xl">
                                 <p className="text-xs font-semibold uppercase text-slate-500">{copy.status.label}</p>
                                 <div className="mt-4 grid gap-3">
                                     {[
@@ -698,7 +689,7 @@ export default function RoleSelectionPage() {
                             </div>
                         </header>
 
-                        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-[1.18fr_0.91fr_0.91fr]">
+                        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {roleBases.map((base, index) => (
                                 <RoleCard
                                     key={base.tone}

@@ -2130,9 +2130,6 @@ export default function ExperiencePage() {
 
         setHasStartedExperience(true);
         setNeedsFastViewAudioUnlock(isFastViewRoute && !shouldStartWithAudio);
-        if (isFastViewRoute && videoElement) {
-            setIsVideoStreamingFrames(true);
-        }
     }, [hasStartedExperience, videoElement, isFastViewRoute]);
 
     useEffect(() => {
@@ -3142,7 +3139,7 @@ export default function ExperiencePage() {
     }, [sendUnrealExitFocus]);
 
     return (
-        <div className="relative h-dvh w-full overflow-hidden bg-gray-900 font-sans">
+        <div className="relative h-dvh w-full overflow-hidden bg-[radial-gradient(circle_at_top,rgba(102,217,203,0.16),transparent_42%),linear-gradient(160deg,#04070d,#09111c)] font-sans">
             {/* Video Container (Pixel Streaming) */}
             <div id="player-container" className="absolute inset-0 z-0">
                 {isFastViewRoute ? (

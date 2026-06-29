@@ -249,6 +249,7 @@ function LoginPageContent() {
   const [otpCode, setOtpCode] = useState("");
   const [isSignUpMode, setIsSignUpMode] = useState(requestedAudience === "user" && !isPlayerLoginRequest);
   const [otpRequested, setOtpRequested] = useState(false);
+  const [isBootstrappingAuth, setIsBootstrappingAuth] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
@@ -311,6 +312,7 @@ function LoginPageContent() {
   useEffect(() => {
     let isMounted = true;
     let unsubscribe = () => {};
+    setIsBootstrappingAuth(true);
 
     const bootstrapSession = async () => {
       try {
@@ -338,6 +340,9 @@ function LoginPageContent() {
               // Ignore and continue showing the supplier login form.
             }
 
+            if (isMounted) {
+              setIsBootstrappingAuth(false);
+            }
             return;
           }
 
@@ -364,8 +369,12 @@ function LoginPageContent() {
         unsubscribe = () => {
           authListener.subscription.unsubscribe();
         };
+        setIsBootstrappingAuth(false);
       } catch {
         // The page already surfaces missing Supabase config during submit.
+        if (isMounted) {
+          setIsBootstrappingAuth(false);
+        }
       }
     };
 
@@ -618,6 +627,10 @@ function LoginPageContent() {
     setOtpCode("");
     resetMessages();
   };
+
+  if (isBootstrappingAuth) {
+    return <LoginPageSkeleton />;
+  }
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#090b10] px-4 text-white">

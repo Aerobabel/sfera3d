@@ -152,68 +152,6 @@ select {
   }
 }
 
-@keyframes roleTypewriter {
-  from {
-    clip-path: inset(0 100% 0 0);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-  }
-}
-
-@keyframes roleCursorBlink {
-  0%,
-  45% {
-    border-color: rgba(102, 217, 203, 0.9);
-  }
-  46%,
-  100% {
-    border-color: transparent;
-  }
-}
-
-@keyframes roleSignalPulse {
-  0%,
-  100% {
-    opacity: 0.35;
-    transform: translateX(-18%);
-  }
-  50% {
-    opacity: 0.78;
-    transform: translateX(18%);
-  }
-}
-
-.role-typewriter {
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  border-right: 0.08em solid rgba(102, 217, 203, 0.9);
-  animation:
-    roleTypewriter 2.35s steps(var(--role-typewriter-steps, 34), end) both,
-    roleCursorBlink 0.82s step-end infinite;
-  white-space: nowrap;
-}
-
-.role-signal-pulse::before {
-  content: "";
-  position: absolute;
-  inset-block: 0;
-  left: 10%;
-  width: 32%;
-  background: linear-gradient(90deg, transparent, rgba(102, 217, 203, 0.16), transparent);
-  animation: roleSignalPulse 4.8s ease-in-out infinite;
-}
-
-@media (max-width: 640px) {
-  .role-typewriter {
-    width: auto;
-    border-right: 0;
-    animation: none;
-    white-space: normal;
-  }
-}
-
 .exhibit-reveal {
   opacity: 0;
   transform: translateY(18px);
