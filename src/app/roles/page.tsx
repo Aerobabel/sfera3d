@@ -1,7 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     ArrowRight,
@@ -24,6 +25,7 @@ import {
 import BrandLogo from '@/components/BrandLogo';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import type { AppLanguage } from '@/lib/i18n';
+import { fadeOutCutsceneAudio, resetCutsceneAudio, softenCutsceneAudioTail } from '@/lib/ui/cutsceneAudio';
 
 type RoleTone = 'player' | 'shopper' | 'business';
 
@@ -297,41 +299,61 @@ const rolePageCopy: Record<AppLanguage, RolePageText> = {
     },
 };
 
-const toneClasses: Record<RoleTone, { border: string; icon: string; glow: string; text: string; button: string }> = {
+const toneClasses: Record<RoleTone, { border: string; icon: string; glow: string; text: string; button: string; panel: string; rail: string }> = {
     player: {
-        border: 'hover:border-sky-300/40',
+        border: 'border-sky-300/20 hover:border-sky-200/55',
         icon: 'border-sky-300/25 bg-sky-300/10 text-sky-100',
         glow: 'from-sky-300/24 via-cyan-300/10 to-transparent',
         text: 'text-sky-100',
-        button: 'border-sky-300/35 bg-sky-300/12 text-sky-100',
+        button: 'border-sky-300/45 bg-sky-300/14 text-sky-50',
+        panel: 'from-sky-300/16 via-[#111b24] to-[#071015]',
+        rail: 'bg-sky-300',
     },
     shopper: {
-        border: 'hover:border-amber-300/40',
+        border: 'border-amber-300/20 hover:border-amber-200/55',
         icon: 'border-amber-300/25 bg-amber-300/10 text-amber-100',
         glow: 'from-amber-300/24 via-cyan-300/10 to-transparent',
         text: 'text-amber-100',
-        button: 'border-amber-300/35 bg-amber-300/12 text-amber-100',
+        button: 'border-amber-300/45 bg-amber-300/14 text-amber-50',
+        panel: 'from-amber-300/14 via-[#191814] to-[#090e13]',
+        rail: 'bg-amber-300',
     },
     business: {
-        border: 'hover:border-emerald-300/40',
+        border: 'border-emerald-300/20 hover:border-emerald-200/55',
         icon: 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100',
         glow: 'from-emerald-300/24 via-sky-300/10 to-transparent',
         text: 'text-emerald-100',
-        button: 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100',
+        button: 'border-emerald-300/45 bg-emerald-300/14 text-emerald-50',
+        panel: 'from-emerald-300/14 via-[#101d19] to-[#080d12]',
+        rail: 'bg-emerald-300',
     },
 };
+
+const typewriterStyle = (text: string) => ({
+    '--role-typewriter-steps': Math.max(text.length, 1),
+}) as CSSProperties;
+
+function TypewriterQuestion({ text }: { text: string }) {
+    return (
+        <span className="role-typewriter align-bottom" style={typewriterStyle(text)}>
+            {text}
+        </span>
+    );
+}
 
 function RoleCard({
     base,
     text,
     rolePath,
     primary = false,
+    index,
     onSelect,
 }: {
     base: RoleBase;
     text: RoleText;
     rolePath: string;
     primary?: boolean;
+    index: number;
     onSelect?: (href: string) => void;
 }) {
     const tone = toneClasses[base.tone];
@@ -346,30 +368,43 @@ function RoleCard({
                 event.preventDefault();
                 onSelect(base.href);
             }}
-            className={`group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0e141c] transition duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-[#111923] ${primary ? 'min-h-[19rem] p-6 shadow-[0_28px_90px_rgba(56,189,248,0.12)]' : 'min-h-[16rem] p-5'} ${tone.border}`}
+            style={{ animationDelay: `${index * 95}ms` }}
+            className={`fade-up group relative isolate flex min-h-[28rem] flex-col overflow-hidden rounded-lg border bg-gradient-to-br ${tone.panel} p-4 shadow-[0_24px_80px_rgba(0,0,0,0.28)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_34px_110px_rgba(0,0,0,0.42)] sm:p-5 ${primary ? 'lg:min-h-[31rem]' : 'lg:mt-8'} ${tone.border}`}
         >
-            <span className={`pointer-events-none absolute inset-x-0 top-0 ${primary ? 'h-36' : 'h-24'} bg-gradient-to-b ${tone.glow} opacity-55`} />
-            {primary && <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_72%_8%,rgba(255,255,255,0.08),transparent_34%)]" />}
+            <span className={`pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b ${tone.glow} opacity-80`} />
+            <span className={`absolute left-0 top-0 h-full w-1 ${tone.rail}`} />
+            <span className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(to_right,rgba(255,255,255,0.16)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:34px_34px]" />
 
-            <div className="relative flex items-start justify-between gap-4">
-                <span className={`flex items-center justify-center rounded-xl border ${primary ? 'h-14 w-14' : 'h-11 w-11'} ${tone.icon}`}>
+            <div className="relative flex items-center justify-between gap-4">
+                <span className={`flex h-12 w-12 items-center justify-center rounded-lg border ${tone.icon}`}>
                     <Icon className="h-5 w-5" strokeWidth={1.8} />
                 </span>
-                <span className={`inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[11px] font-semibold ${tone.text}`}>
+                <span className={`inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-black/25 px-2.5 py-1 text-[11px] font-semibold ${tone.text}`}>
                     {base.tone === 'player' && <LockKeyhole className="h-3.5 w-3.5" />}
                     {rolePath}
                 </span>
             </div>
 
-            <div className={`relative min-w-0 ${primary ? 'mt-7' : 'mt-5'}`}>
-                <p className={`text-xs font-semibold ${tone.text}`}>{text.label}</p>
-                <h2 className={`mt-2 break-words font-semibold tracking-tight text-white ${primary ? 'text-3xl' : 'text-2xl'}`}>{text.title}</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-400">{text.description}</p>
+            <div className="relative mt-5 h-28 overflow-hidden rounded-md border border-white/10 bg-black/20 sm:h-32">
+                <Image
+                    src={base.image}
+                    alt={base.imageAlt}
+                    fill
+                    sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                    className="object-contain p-4 opacity-90 transition duration-500 group-hover:scale-[1.04] group-hover:opacity-100"
+                />
+                <span className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
             </div>
 
-            <div className="relative mt-5 grid grid-cols-2 gap-2">
+            <div className="relative mt-5 min-w-0">
+                <p className={`text-xs font-semibold ${tone.text}`}>{text.label}</p>
+                <h2 className={`mt-2 break-words font-semibold text-white ${primary ? 'text-3xl sm:text-4xl' : 'text-2xl sm:text-3xl'}`}>{text.title}</h2>
+                <p className="mt-3 text-sm leading-6 text-slate-300/86">{text.description}</p>
+            </div>
+
+            <div className="relative mt-5 grid grid-cols-2 divide-x divide-white/10 border-y border-white/10 py-3">
                 {text.metrics.map((metric) => (
-                    <div key={metric.label} className="rounded-lg border border-white/10 bg-black/20 p-3">
+                    <div key={metric.label} className="px-3 first:pl-0 last:pr-0">
                         <p className={`${primary ? 'text-2xl' : 'text-xl'} font-semibold text-white`}>{metric.value}</p>
                         <p className="mt-1 text-[11px] leading-4 text-slate-500">{metric.label}</p>
                     </div>
@@ -385,7 +420,7 @@ function RoleCard({
             </div>
 
             <div className="relative mt-auto pt-5">
-                <span className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition group-hover:bg-white/[0.08] ${tone.button}`}>
+                <span className={`inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border px-3 py-3 text-center text-sm font-semibold transition group-hover:bg-white/[0.1] ${tone.button}`}>
                     {text.action}
                     <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                 </span>
@@ -418,7 +453,7 @@ export default function RoleSelectionPage() {
         if (!video) return;
 
         video.muted = false;
-        video.volume = 1;
+        resetCutsceneAudio(video);
         video.play().catch(() => {
             video.muted = true;
             video.play().catch(() => {});
@@ -435,7 +470,7 @@ export default function RoleSelectionPage() {
         if (!video) return;
 
         video.muted = false;
-        video.volume = 1;
+        resetCutsceneAudio(video);
         video.currentTime = 0;
         video.play().catch(() => {
             video.muted = true;
@@ -449,21 +484,45 @@ export default function RoleSelectionPage() {
         setIsGameCutsceneVisible(true);
     };
 
-    const enterSelectedGame = () => {
+    const enterSelectedGame = (fadeAudio = false) => {
         const href = gameCutsceneHref ?? roleBases.find((base) => base.tone === 'player')?.href ?? '/fastview?resume=scene&mode=player';
         const video = gameCutsceneVideoRef.current;
+
+        if (fadeAudio && video && !video.ended && !video.error) {
+            fadeOutCutsceneAudio(video, () => enterSelectedGame(false));
+            return;
+        }
 
         if (video) {
             video.pause();
             try {
                 video.currentTime = 0;
             } catch {}
+            resetCutsceneAudio(video);
         }
 
         setIsGameCutsceneVisible(false);
         setHasStartedGameCutscene(false);
         setGameCutsceneHref(null);
         router.push(href);
+    };
+
+    const closeIntroCutscene = () => {
+        const video = introVideoRef.current;
+
+        if (video) {
+            video.pause();
+            try {
+                video.currentTime = 0;
+            } catch {}
+            resetCutsceneAudio(video);
+        }
+
+        setIsIntroVisible(false);
+    };
+
+    const skipIntroCutscene = () => {
+        fadeOutCutsceneAudio(introVideoRef.current, closeIntroCutscene);
     };
 
     const advanceIntroCutscene = () => {
@@ -498,11 +557,11 @@ export default function RoleSelectionPage() {
             {isIntroVisible && (
                 <div className="fixed inset-0 z-50 bg-black">
                     <header className="absolute inset-x-0 top-0 z-[80] border-b border-white/15 bg-[#090b10]/95 shadow-[0_16px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl">
-                        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+                        <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-3 py-2 sm:min-h-20 sm:px-6 lg:px-8">
                             <Link href="/" className="flex min-w-0 items-center">
                                 <BrandLogo size="md" priority />
                             </Link>
-                            <div className="flex items-center gap-2">
+                            <div className="flex shrink-0 items-center gap-2">
                                 <Link
                                     href="/"
                                     className="hidden rounded-full border border-white/15 px-4 py-2 text-xs font-semibold tracking-wide text-[#f5f1e9] transition hover:border-white/35 hover:bg-white/10 sm:inline-flex sm:text-sm"
@@ -511,8 +570,8 @@ export default function RoleSelectionPage() {
                                 </Link>
                                 <button
                                     type="button"
-                                    onClick={() => setIsIntroVisible(false)}
-                                    className="rounded-full bg-[#f6ba4f] px-4 py-2 text-xs font-bold tracking-wide text-[#130f07] transition hover:bg-[#ffd084] sm:text-sm"
+                                    onClick={skipIntroCutscene}
+                                    className="rounded-full bg-[#f6ba4f] px-3 py-2 text-xs font-bold tracking-wide text-[#130f07] transition hover:bg-[#ffd084] sm:px-4 sm:text-sm"
                                 >
                                     {copy.skipIntro}
                                 </button>
@@ -524,19 +583,21 @@ export default function RoleSelectionPage() {
                         className="h-full w-full object-cover"
                         key={currentIntroCutsceneSrc}
                         src={currentIntroCutsceneSrc}
+                        data-cutscene-video="true"
                         muted={!hasStartedIntro}
                         playsInline
                         preload="auto"
+                        onTimeUpdate={(event) => softenCutsceneAudioTail(event.currentTarget)}
                         onEnded={advanceIntroCutscene}
-                        onError={() => setIsIntroVisible(false)}
+                        onError={closeIntroCutscene}
                     />
                     <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12),transparent_45%,rgba(0,0,0,0.78))]" />
-                    <div className="absolute inset-x-0 bottom-8 flex flex-wrap justify-center gap-3 px-6">
+                    <div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] grid gap-3 px-4 sm:flex sm:flex-wrap sm:justify-center sm:px-6">
                         {!hasStartedIntro && (
                             <button
                                 type="button"
                                 onClick={startIntroWithSound}
-                                className="inline-flex items-center gap-2 rounded-full border border-cyan-300/35 bg-cyan-300 px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-[#07110f] shadow-[0_18px_70px_rgba(34,211,238,0.25)] transition hover:scale-[1.02]"
+                                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-cyan-300/35 bg-cyan-300 px-4 py-3 text-center text-xs font-black uppercase tracking-[0.12em] text-[#07110f] shadow-[0_18px_70px_rgba(34,211,238,0.25)] transition hover:scale-[1.02] sm:px-5 sm:tracking-[0.14em]"
                             >
                                 <Play className="h-4 w-4" />
                                 {copy.startWithSound}
@@ -544,7 +605,7 @@ export default function RoleSelectionPage() {
                         )}
                         <button
                             type="button"
-                            onClick={() => setIsIntroVisible(false)}
+                            onClick={skipIntroCutscene}
                             className="rounded-full border border-white/15 bg-white/[0.08] px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-white shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:bg-white/[0.14]"
                         >
                             {copy.skipIntro}
@@ -562,15 +623,16 @@ export default function RoleSelectionPage() {
                         playsInline
                         preload="auto"
                         data-cutscene-video="true"
-                        onEnded={enterSelectedGame}
-                        onError={enterSelectedGame}
+                        onTimeUpdate={(event) => softenCutsceneAudioTail(event.currentTarget)}
+                        onEnded={() => enterSelectedGame()}
+                        onError={() => enterSelectedGame()}
                     />
                     <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08),transparent_58%,rgba(0,0,0,0.72))]" />
-                    <div className="absolute inset-x-0 bottom-8 flex justify-center px-6">
+                    <div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] flex justify-center px-4 sm:px-6">
                         <button
                             type="button"
-                            onClick={enterSelectedGame}
-                            className="rounded-full border border-white/15 bg-white/[0.08] px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-white shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:bg-white/[0.14]"
+                            onClick={() => enterSelectedGame(true)}
+                            className="min-h-12 rounded-full border border-white/15 bg-white/[0.08] px-4 py-3 text-center text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:bg-white/[0.14] sm:px-5 sm:tracking-[0.14em]"
                         >
                             {copy.skipIntro}
                         </button>
@@ -578,12 +640,13 @@ export default function RoleSelectionPage() {
                 </div>
             )}
 
-            <section className="relative px-4 py-5 sm:px-6 lg:px-8">
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(180deg,rgba(14,165,233,0.1),transparent)]" />
-                <div className="pointer-events-none absolute inset-0 opacity-[0.055] [background-image:linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:56px_56px]" />
+            <section className="relative min-h-screen px-4 py-5 sm:px-6 lg:px-8">
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#071019_0%,#080b10_42%,#06080d_100%)]" />
+                <div className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(to_right,rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:44px_44px]" />
+                <div className="role-signal-pulse pointer-events-none absolute inset-x-0 top-24 h-px bg-gradient-to-r from-transparent via-cyan-200/35 to-transparent" />
 
                 <div className="relative mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-7xl flex-col">
-                    <nav className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                    <nav className="mb-7 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap gap-2">
                             <Link href={returnToScene ? '/fastview?resume=scene' : '/'} className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/[0.07]">
                                 {returnToScene ? copy.backToScene : copy.home}
@@ -599,40 +662,51 @@ export default function RoleSelectionPage() {
                         </span>
                     </nav>
 
-                    <div className="flex flex-1 flex-col justify-center gap-5">
-                        <header className="grid gap-5 rounded-2xl border border-white/10 bg-[#0c1118]/88 p-5 shadow-[0_24px_90px_rgba(0,0,0,0.32)] backdrop-blur-xl lg:grid-cols-[minmax(0,1fr)_18rem] lg:p-6">
-                            <div className="min-w-0">
+                    <div className="flex flex-1 flex-col justify-center gap-7">
+                        <header className="grid items-end gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
+                            <div className="min-w-0 fade-up">
                                 <BrandLogo size="sm" imageClassName="h-9 w-[10rem]" />
-                                <p className="mt-5 text-sm font-semibold text-cyan-100">{copy.introTag}</p>
-                                <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">{copy.title}</h1>
-                                <p className="mt-3 max-w-2xl text-base leading-7 text-slate-400">{copy.subtitle}</p>
+                                <p className="mt-6 text-sm font-semibold uppercase text-cyan-100">{copy.introTag}</p>
+                                <h1 className="mt-4 max-w-5xl text-3xl font-semibold leading-tight text-white sm:text-5xl lg:text-6xl">
+                                    <TypewriterQuestion text={copy.title} />
+                                </h1>
+                                <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">{copy.subtitle}</p>
+                                <div className="mt-6 flex flex-wrap gap-2">
+                                    {copy.insights.map(({ title, icon: InsightIcon }) => (
+                                        <span key={title} className="inline-flex min-h-9 items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-200">
+                                            <InsightIcon className="h-4 w-4 text-cyan-200" />
+                                            {title}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
 
-                            <div className="rounded-xl border border-white/10 bg-black/18 p-4">
-                                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{copy.status.label}</p>
-                                <div className="mt-4 grid gap-2">
+                            <div className="fade-up delay-2 rounded-lg border border-white/12 bg-black/28 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.25)] backdrop-blur-xl">
+                                <p className="text-xs font-semibold uppercase text-slate-500">{copy.status.label}</p>
+                                <div className="mt-4 grid gap-3">
                                     {[
                                         ['3', copy.status.roles],
                                         ['1', copy.status.world],
                                         ['24/7', copy.status.trade],
                                     ].map(([value, label]) => (
-                                        <div key={label} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2.5">
-                                            <p className="text-lg font-semibold text-white">{value}</p>
-                                            <p className="text-[11px] text-slate-500">{label}</p>
+                                        <div key={label} className="flex items-center justify-between gap-3 border-b border-white/10 pb-3 last:border-0 last:pb-0">
+                                            <p className="text-2xl font-semibold text-white">{value}</p>
+                                            <p className="text-xs text-slate-500">{label}</p>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         </header>
 
-                        <section className="grid gap-3 lg:grid-cols-[1.18fr_0.91fr_0.91fr]">
-                            {roleBases.map((base) => (
+                        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-[1.18fr_0.91fr_0.91fr]">
+                            {roleBases.map((base, index) => (
                                 <RoleCard
                                     key={base.tone}
                                     base={base}
                                     text={copy.roles[base.tone]}
                                     rolePath={copy.rolePath}
                                     primary={base.tone === 'player'}
+                                    index={index}
                                     onSelect={base.tone === 'player' ? startGameCutscene : undefined}
                                 />
                             ))}

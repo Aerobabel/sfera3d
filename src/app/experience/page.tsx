@@ -27,6 +27,7 @@ import { useUnrealEventBridge } from "@/hooks/useUnrealEventBridge";
 import { GamerDashboard, ShopperDashboard, SupplierDashboard } from "@/components/dashboards/RoleDashboards";
 import { GAME_RULES } from "@/lib/unreal/gameRules";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { fadeOutCutsceneAudio, resetCutsceneAudio, softenCutsceneAudioTail } from "@/lib/ui/cutsceneAudio";
 import {
     getQuestCompletionPercent,
     getQuestDefinition,
@@ -2172,7 +2173,7 @@ export default function ExperiencePage() {
         if (!cutsceneVideo) return;
 
         cutsceneVideo.muted = false;
-        cutsceneVideo.volume = 1;
+        resetCutsceneAudio(cutsceneVideo);
         cutsceneVideo.play().catch(() => {
             cutsceneVideo.muted = true;
             cutsceneVideo.play().catch(() => {});
@@ -2227,25 +2228,37 @@ export default function ExperiencePage() {
 
         setHasStartedSferaHallCutsceneSound(true);
         video.muted = false;
-        video.volume = 1;
+        resetCutsceneAudio(video);
         video.play().catch(() => {
             video.muted = true;
             video.play().catch(() => {});
         });
     }, []);
 
-    const handleCloseSferaHallCutscene = useCallback(() => {
+    const completeSferaHallCutsceneClose = useCallback(() => {
         const video = sferaHallCutsceneVideoRef.current;
         if (video) {
             video.pause();
             try {
                 video.currentTime = 0;
             } catch { /* best-effort */ }
+            resetCutsceneAudio(video);
         }
 
         setIsSferaHallCutsceneVisible(false);
         setHasStartedSferaHallCutsceneSound(false);
     }, []);
+
+    const handleCloseSferaHallCutscene = useCallback((fadeAudio = false) => {
+        const video = sferaHallCutsceneVideoRef.current;
+
+        if (fadeAudio && video && !video.ended && !video.error) {
+            fadeOutCutsceneAudio(video, completeSferaHallCutsceneClose);
+            return;
+        }
+
+        completeSferaHallCutsceneClose();
+    }, [completeSferaHallCutsceneClose]);
 
     useEffect(() => {
         if (!isSferaHallCutsceneVisible) {
@@ -2287,11 +2300,13 @@ export default function ExperiencePage() {
     const handleSkipFastViewCutscene = useCallback(() => {
         if (!isFastViewRoute || hasCompletedFastViewCutscene) return;
 
-        if (videoElement && !fastViewError) {
-            handleStartExperience();
-        }
+        fadeOutCutsceneAudio(fastViewCutsceneVideoRef.current, () => {
+            if (videoElement && !fastViewError) {
+                handleStartExperience();
+            }
 
-        beginFastViewCutsceneExit();
+            beginFastViewCutsceneExit();
+        });
     }, [
         beginFastViewCutsceneExit,
         fastViewError,
@@ -3127,7 +3142,7 @@ export default function ExperiencePage() {
     }, [sendUnrealExitFocus]);
 
     return (
-        <div className="relative h-screen w-screen bg-gray-900 overflow-hidden font-sans">
+        <div className="relative h-dvh w-full overflow-hidden bg-gray-900 font-sans">
             {/* Video Container (Pixel Streaming) */}
             <div id="player-container" className="absolute inset-0 z-0">
                 {isFastViewRoute ? (
@@ -3166,7 +3181,7 @@ export default function ExperiencePage() {
                     }`}
                     onClick={hasStartedFastViewCutscene ? undefined : handleStartFastViewCutscene}
                 >
-                    <div className="absolute inset-x-0 bottom-0 top-20 overflow-hidden">
+                    <div className="absolute inset-x-0 bottom-0 top-16 overflow-hidden sm:top-20">
                         <video
                             ref={fastViewCutsceneVideoRef}
                             className={`h-full w-full object-cover transition-[filter,transform] duration-700 ${
@@ -3178,6 +3193,7 @@ export default function ExperiencePage() {
                             muted={!hasStartedFastViewCutscene}
                             playsInline
                             preload="auto"
+                            onTimeUpdate={(event) => softenCutsceneAudioTail(event.currentTarget)}
                             onEnded={handleCompleteFastViewCutscene}
                             onError={handleCompleteFastViewCutscene}
                         />
@@ -3192,7 +3208,7 @@ export default function ExperiencePage() {
                     />
 
                     {!hasStartedFastViewCutscene && (
-                        <div className="absolute inset-x-4 bottom-0 top-20 z-10 flex items-center justify-center">
+                        <div className="absolute inset-x-4 bottom-0 top-16 z-10 flex flex-col items-center justify-center sm:top-20">
                             <button
                                 type="button"
                                 onClick={(event) => {
@@ -3222,7 +3238,7 @@ export default function ExperiencePage() {
 
             {isSferaHallCutsceneVisible && showExperienceHud && (
                 <div className="absolute inset-0 z-[125] bg-[#05070b]">
-                    <div className="absolute inset-x-0 bottom-0 top-20 overflow-hidden">
+                    <div className="absolute inset-x-0 bottom-0 top-16 overflow-hidden sm:top-20">
                         <video
                             ref={sferaHallCutsceneVideoRef}
                             className="h-full w-full object-cover"
@@ -3232,17 +3248,18 @@ export default function ExperiencePage() {
                             muted={!hasStartedSferaHallCutsceneSound}
                             playsInline
                             preload="auto"
-                            onEnded={handleCloseSferaHallCutscene}
-                            onError={handleCloseSferaHallCutscene}
+                            onTimeUpdate={(event) => softenCutsceneAudioTail(event.currentTarget)}
+                            onEnded={() => handleCloseSferaHallCutscene()}
+                            onError={() => handleCloseSferaHallCutscene()}
                         />
                         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.25),transparent_34%,rgba(0,0,0,0.62))]" />
                     </div>
                     {!hasStartedSferaHallCutsceneSound && (
-                        <div className="absolute inset-x-4 bottom-0 top-20 z-10 flex items-center justify-center">
+                        <div className="absolute inset-x-4 bottom-0 top-16 z-10 flex items-center justify-center sm:top-20">
                             <button
                                 type="button"
                                 onClick={handleStartSferaHallCutsceneWithSound}
-                                className="rounded-3xl border border-[#66d9cb]/35 bg-black/60 px-6 py-4 text-center text-sm font-black uppercase tracking-[0.16em] text-white shadow-[0_22px_80px_rgba(0,0,0,0.5)] backdrop-blur-md transition hover:border-[#66d9cb]/65 hover:bg-[#66d9cb]/15"
+                                className="max-w-full rounded-2xl border border-[#66d9cb]/35 bg-black/60 px-4 py-4 text-center text-sm font-black uppercase tracking-[0.12em] text-white shadow-[0_22px_80px_rgba(0,0,0,0.5)] backdrop-blur-md transition hover:border-[#66d9cb]/65 hover:bg-[#66d9cb]/15 sm:rounded-3xl sm:px-6 sm:tracking-[0.16em]"
                             >
                                 <span className="block text-[#9ff4ec]">{cutsceneCopy.startWithSound}</span>
                                 <span className="mt-2 block text-[11px] font-semibold text-slate-300">{cutsceneCopy.soundHint}</span>
@@ -3253,7 +3270,7 @@ export default function ExperiencePage() {
                         statusOnline={ui.statusOnline}
                         instruction={sceneInstruction}
                         skipLabel={cutsceneCopy.skip}
-                        onSkip={handleCloseSferaHallCutscene}
+                        onSkip={() => handleCloseSferaHallCutscene(true)}
                         startLabel={!hasStartedSferaHallCutsceneSound ? cutsceneCopy.startWithSound : undefined}
                         onStart={!hasStartedSferaHallCutsceneSound ? handleStartSferaHallCutsceneWithSound : undefined}
                     />

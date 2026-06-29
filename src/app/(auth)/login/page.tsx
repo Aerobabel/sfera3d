@@ -192,7 +192,7 @@ const copy = {
 
 function LoginPageSkeleton() {
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#090b10] px-4 text-white">
+    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#090b10] px-3 py-6 text-white sm:px-4">
       <div className="absolute inset-0 z-0">
         <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-[#66d9cb]/20 blur-3xl mix-blend-screen animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-[#f6ba4f]/18 blur-3xl mix-blend-screen animate-pulse delay-700" />
@@ -217,6 +217,15 @@ const getAuthRedirectOrigin = () => {
 
   if (typeof window === "undefined") return undefined;
   return window.location.origin;
+};
+
+const isOtpRateLimitError = (error: unknown) => {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  return (
+    message.includes("rate limit") ||
+    message.includes("for security purposes") ||
+    message.includes("you can only request")
+  );
 };
 
 function LoginPageContent() {
@@ -440,12 +449,7 @@ function LoginPageContent() {
       // exceeded"). A code was almost certainly already delivered — flip
       // into entry mode with a friendly notice instead of surfacing a
       // scary red error.
-      const message = error.message?.toLowerCase() ?? "";
-      if (
-        message.includes("rate limit") ||
-        message.includes("for security purposes") ||
-        message.includes("you can only request")
-      ) {
+      if (isOtpRateLimitError(error)) {
         setOtpRequested(true);
         setInfoMessage(t.rateLimited);
         return;
@@ -503,12 +507,27 @@ function LoginPageContent() {
       }
 
       // No session returned means Supabase requires email confirmation.
-      // A 6-digit code was sent to the user's inbox — flip the UI into
-      // OTP verification mode so they have a field to enter it, instead
-      // of just displaying a "check your email" message with no action.
+      // Explicitly resend the signup confirmation here as well: some
+      // deployments deliver the 6-digit code reliably through the resend
+      // endpoint even when the initial signup email is delayed.
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: {
+          emailRedirectTo: buildEmailRedirectTo(),
+        },
+      });
+
+      if (resendError && !isOtpRateLimitError(resendError)) {
+        throw resendError;
+      }
+
+      // Flip the UI into OTP verification mode so they have a field to
+      // enter the code immediately, instead of just displaying a "check
+      // your email" message with no action.
       setAuthMethod("otp");
       setOtpRequested(true);
-      setInfoMessage(t.signupCodeSent);
+      setInfoMessage(resendError ? t.rateLimited : t.signupCodeSent);
       return;
     }
 
@@ -608,7 +627,7 @@ function LoginPageContent() {
         <div className="absolute inset-0 opacity-[0.16] [background-image:linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:44px_44px]" />
       </div>
 
-      <div className="sfera-card z-10 w-full max-w-md space-y-6 rounded-2xl p-8 shadow-2xl">
+      <div className="sfera-card z-10 w-full max-w-md space-y-5 rounded-2xl p-5 shadow-2xl sm:space-y-6 sm:p-8">
         <div className="text-center">
           <Link href="/" className="inline-flex justify-center">
             <BrandLogo size="xl" priority />

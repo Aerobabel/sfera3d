@@ -33,6 +33,32 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+* {
+  min-width: 0;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
 @keyframes riseIn {
   from {
     opacity: 0;
@@ -123,6 +149,68 @@ body {
     box-shadow:
       0 18px 54px rgba(0, 0, 0, 0.36),
       0 0 28px rgba(246, 186, 79, 0.18);
+  }
+}
+
+@keyframes roleTypewriter {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes roleCursorBlink {
+  0%,
+  45% {
+    border-color: rgba(102, 217, 203, 0.9);
+  }
+  46%,
+  100% {
+    border-color: transparent;
+  }
+}
+
+@keyframes roleSignalPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translateX(-18%);
+  }
+  50% {
+    opacity: 0.78;
+    transform: translateX(18%);
+  }
+}
+
+.role-typewriter {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  border-right: 0.08em solid rgba(102, 217, 203, 0.9);
+  animation:
+    roleTypewriter 2.35s steps(var(--role-typewriter-steps, 34), end) both,
+    roleCursorBlink 0.82s step-end infinite;
+  white-space: nowrap;
+}
+
+.role-signal-pulse::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 10%;
+  width: 32%;
+  background: linear-gradient(90deg, transparent, rgba(102, 217, 203, 0.16), transparent);
+  animation: roleSignalPulse 4.8s ease-in-out infinite;
+}
+
+@media (max-width: 640px) {
+  .role-typewriter {
+    width: auto;
+    border-right: 0;
+    animation: none;
+    white-space: normal;
   }
 }
 

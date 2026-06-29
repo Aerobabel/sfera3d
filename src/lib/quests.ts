@@ -138,11 +138,11 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
             {
                 id: 'clear_zombies',
                 event: 'zombie_killed',
-                count: 10,
+                count: 5,
                 label: {
-                    en: 'Clear 10 zombies',
-                    ru: 'Уничтожить 10 зомби',
-                    zh: '清理 10 个敌人',
+                    en: 'Clear 5 zombies',
+                    ru: 'Уничтожить 5 зомби',
+                    zh: '清理 5 个敌人',
                 },
             },
         ],
