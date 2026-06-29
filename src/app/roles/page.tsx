@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -32,8 +31,6 @@ type RoleTone = 'player' | 'shopper' | 'business';
 type RoleBase = {
     tone: RoleTone;
     href: string;
-    image: string;
-    imageAlt: string;
     Icon: LucideIcon;
 };
 
@@ -84,22 +81,16 @@ const roleBases: RoleBase[] = [
     {
         tone: 'player',
         href: '/fastview?resume=scene&mode=player',
-        image: '/visuals/player-arena.svg',
-        imageAlt: '3DSFERA player arena dashboard preview',
         Icon: Gamepad2,
     },
     {
         tone: 'shopper',
         href: '/shopper/dashboard',
-        image: '/visuals/shopper-market.svg',
-        imageAlt: '3DSFERA Sfera Hall shopper dashboard preview',
         Icon: ShoppingBag,
     },
     {
         tone: 'business',
         href: '/business/dashboard',
-        image: '/visuals/business-pavilion.svg',
-        imageAlt: '3DSFERA business pavilion dashboard preview',
         Icon: Building2,
     },
 ];
@@ -299,33 +290,30 @@ const rolePageCopy: Record<AppLanguage, RolePageText> = {
     },
 };
 
-const toneClasses: Record<RoleTone, { border: string; icon: string; text: string; button: string; panel: string; accent: string; image: string }> = {
+const toneClasses: Record<RoleTone, { border: string; icon: string; text: string; button: string; panel: string; accent: string }> = {
     player: {
-        border: 'border-sky-300/20 hover:border-sky-200/55',
-        icon: 'border-sky-300/25 bg-sky-300/10 text-sky-100',
+        border: 'border-sky-200/18 hover:border-sky-100/60',
+        icon: 'border-sky-200/25 bg-sky-200/10 text-sky-100',
         text: 'text-sky-100',
-        button: 'border-sky-300/45 bg-sky-300/14 text-sky-50',
-        panel: 'bg-[#0d1720]',
-        accent: 'bg-sky-300',
-        image: 'opacity-[0.16]',
+        button: 'border-sky-200/35 bg-white/[0.045] text-sky-50 group-hover:border-sky-100/55 group-hover:bg-sky-200/10',
+        panel: 'bg-[#09111a]/72',
+        accent: 'bg-sky-200',
     },
     shopper: {
-        border: 'border-amber-300/20 hover:border-amber-200/55',
-        icon: 'border-amber-300/25 bg-amber-300/10 text-amber-100',
+        border: 'border-[#d9b56e]/32 hover:border-[#f1d59b]/70',
+        icon: 'border-[#d9b56e]/40 bg-[#d9b56e]/10 text-[#f3dfb4]',
         text: 'text-amber-100',
-        button: 'border-amber-300/45 bg-amber-300/14 text-amber-50',
-        panel: 'bg-[#161711]',
-        accent: 'bg-amber-300',
-        image: 'opacity-[0.14]',
+        button: 'border-[#d9b56e]/45 bg-[#d9b56e]/10 text-[#f7e7bf] group-hover:border-[#f1d59b]/75 group-hover:bg-[#d9b56e]/16',
+        panel: 'bg-[#15130d]/74',
+        accent: 'bg-[#d9b56e]',
     },
     business: {
-        border: 'border-emerald-300/20 hover:border-emerald-200/55',
-        icon: 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100',
+        border: 'border-white/16 hover:border-white/45',
+        icon: 'border-white/25 bg-white/[0.055] text-white',
         text: 'text-emerald-100',
-        button: 'border-emerald-300/45 bg-emerald-300/14 text-emerald-50',
-        panel: 'bg-[#0d1916]',
-        accent: 'bg-emerald-300',
-        image: 'opacity-[0.14]',
+        button: 'border-white/18 bg-white/[0.035] text-white group-hover:border-white/45 group-hover:bg-white/[0.08]',
+        panel: 'bg-[#0b1114]/72',
+        accent: 'bg-white/70',
     },
 };
 
@@ -333,14 +321,12 @@ function RoleCard({
     base,
     text,
     rolePath,
-    primary = false,
     index,
     onSelect,
 }: {
     base: RoleBase;
     text: RoleText;
     rolePath: string;
-    primary?: boolean;
     index: number;
     onSelect?: (href: string) => void;
 }) {
@@ -357,55 +343,47 @@ function RoleCard({
                 onSelect(base.href);
             }}
             style={{ animationDelay: `${index * 95}ms` }}
-            className={`fade-up group relative isolate flex min-h-[24rem] flex-col overflow-hidden rounded-lg border ${tone.panel} p-5 shadow-[0_22px_70px_rgba(0,0,0,0.26)] transition duration-300 hover:-translate-y-1 hover:bg-[#111922] hover:shadow-[0_34px_110px_rgba(0,0,0,0.38)] sm:p-6 ${tone.border}`}
+            className={`fade-up group relative isolate flex min-h-[20.5rem] flex-col overflow-hidden rounded-lg border ${tone.panel} p-4 shadow-[0_30px_95px_rgba(0,0,0,0.42)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-black/72 hover:shadow-[0_38px_120px_rgba(0,0,0,0.5)] sm:p-5 ${tone.border}`}
         >
-            <span className={`absolute inset-x-0 top-0 h-1 ${tone.accent}`} />
-            <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),transparent_38%)]" />
-            <span className="pointer-events-none absolute -right-12 top-14 h-56 w-56 transition duration-500 group-hover:scale-105 group-hover:opacity-25 sm:h-64 sm:w-64">
-                <Image
-                    src={base.image}
-                    alt=""
-                    fill
-                    sizes="16rem"
-                    className={`object-contain ${tone.image}`}
-                />
-            </span>
+            <span className={`absolute inset-x-0 top-0 h-px ${tone.accent}`} />
+            <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.1),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),transparent_40%)]" />
+            <span className="pointer-events-none absolute inset-x-6 top-20 h-px bg-white/10" />
 
             <div className="relative flex items-center justify-between gap-4">
-                <span className={`flex h-12 w-12 items-center justify-center rounded-lg border ${tone.icon}`}>
+                <span className={`flex h-12 w-12 items-center justify-center rounded-full border ${tone.icon}`}>
                     <Icon className="h-5 w-5" strokeWidth={1.8} />
                 </span>
-                <span className={`inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-black/25 px-2.5 py-1 text-[11px] font-semibold ${tone.text}`}>
+                <span className={`inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[11px] font-semibold ${tone.text}`}>
                     {base.tone === 'player' && <LockKeyhole className="h-3.5 w-3.5" />}
                     {rolePath}
                 </span>
             </div>
 
-            <div className="relative mt-9 min-w-0">
-                <p className={`text-xs font-semibold ${tone.text}`}>{text.label}</p>
-                <h2 className="mt-2 break-words text-3xl font-semibold text-white sm:text-4xl">{text.title}</h2>
-                <p className="mt-3 max-w-md text-sm leading-6 text-slate-300/86">{text.description}</p>
+            <div className="relative mt-8 min-w-0">
+                <p className={`text-xs font-semibold uppercase ${tone.text}`}>{text.label}</p>
+                <h2 className="mt-2 break-words text-2xl font-semibold leading-tight text-white sm:text-3xl">{text.title}</h2>
+                <p className="mt-3 max-w-md text-sm leading-6 text-slate-300/88">{text.description}</p>
             </div>
 
-            <div className="relative mt-5 grid grid-cols-2 divide-x divide-white/10 border-y border-white/10 py-3">
+            <div className="relative mt-5 grid grid-cols-2 divide-x divide-white/10 border-y border-white/10 py-2.5">
                 {text.metrics.map((metric) => (
                     <div key={metric.label} className="px-3 first:pl-0 last:pr-0">
-                        <p className={`${primary ? 'text-2xl' : 'text-xl'} font-semibold text-white`}>{metric.value}</p>
+                        <p className="text-2xl font-semibold text-white">{metric.value}</p>
                         <p className="mt-1 text-[11px] leading-4 text-slate-500">{metric.label}</p>
                     </div>
                 ))}
             </div>
 
-            <div className="relative mt-4 flex min-h-16 flex-wrap content-start gap-2">
+            <div className="relative mt-3 flex min-h-10 flex-wrap content-start gap-2">
                 {text.proof.map((item) => (
-                    <span key={item} className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[11px] text-slate-300">
+                    <span key={item} className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300">
                         {item}
                     </span>
                 ))}
             </div>
 
-            <div className="relative mt-auto pt-5">
-                <span className={`inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border px-3 py-3 text-center text-sm font-semibold transition group-hover:bg-white/[0.1] ${tone.button}`}>
+            <div className="relative mt-auto pt-4">
+                <span className={`inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border px-3 py-3 text-center text-sm font-semibold uppercase transition ${tone.button}`}>
                     {text.action}
                     <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                 </span>
@@ -541,14 +519,14 @@ export default function RoleSelectionPage() {
                             <div className="flex shrink-0 items-center gap-2">
                                 <Link
                                     href="/"
-                                    className="hidden rounded-full border border-white/15 px-4 py-2 text-xs font-semibold tracking-wide text-[#f5f1e9] transition hover:border-white/35 hover:bg-white/10 sm:inline-flex sm:text-sm"
+                                    className="hidden rounded-full border border-white/15 px-4 py-2 text-xs font-semibold text-[#f5f1e9] transition hover:border-white/35 hover:bg-white/10 sm:inline-flex sm:text-sm"
                                 >
                                     {copy.home}
                                 </Link>
                                 <button
                                     type="button"
                                     onClick={skipIntroCutscene}
-                                    className="rounded-full bg-[#f6ba4f] px-3 py-2 text-xs font-bold tracking-wide text-[#130f07] transition hover:bg-[#ffd084] sm:px-4 sm:text-sm"
+                                    className="rounded-full bg-[#f6ba4f] px-3 py-2 text-xs font-bold text-[#130f07] transition hover:bg-[#ffd084] sm:px-4 sm:text-sm"
                                 >
                                     {copy.skipIntro}
                                 </button>
@@ -574,7 +552,7 @@ export default function RoleSelectionPage() {
                             <button
                                 type="button"
                                 onClick={startIntroWithSound}
-                                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-cyan-300/35 bg-cyan-300 px-4 py-3 text-center text-xs font-black uppercase tracking-[0.12em] text-[#07110f] shadow-[0_18px_70px_rgba(34,211,238,0.25)] transition hover:scale-[1.02] sm:px-5 sm:tracking-[0.14em]"
+                                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-cyan-300/35 bg-cyan-300 px-4 py-3 text-center text-xs font-black uppercase text-[#07110f] shadow-[0_18px_70px_rgba(34,211,238,0.25)] transition hover:scale-[1.02] sm:px-5"
                             >
                                 <Play className="h-4 w-4" />
                                 {copy.startWithSound}
@@ -583,7 +561,7 @@ export default function RoleSelectionPage() {
                         <button
                             type="button"
                             onClick={skipIntroCutscene}
-                            className="rounded-full border border-white/15 bg-white/[0.08] px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-white shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:bg-white/[0.14]"
+                            className="rounded-full border border-white/15 bg-white/[0.08] px-5 py-3 text-xs font-black uppercase text-white shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:bg-white/[0.14]"
                         >
                             {copy.skipIntro}
                         </button>
@@ -617,7 +595,7 @@ export default function RoleSelectionPage() {
                             <button
                                 type="button"
                                 onClick={() => enterSelectedGame(true)}
-                                className="min-h-12 rounded-full border border-white/15 bg-white/[0.08] px-4 py-3 text-center text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:bg-white/[0.14] sm:px-5 sm:tracking-[0.14em]"
+                                className="min-h-12 rounded-full border border-white/15 bg-white/[0.08] px-4 py-3 text-center text-xs font-black uppercase text-white shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:bg-white/[0.14] sm:px-5"
                             >
                                 {copy.skipIntro}
                             </button>
@@ -626,84 +604,83 @@ export default function RoleSelectionPage() {
                 </div>
             )}
 
-            <section className="relative min-h-screen px-4 py-5 sm:px-6 lg:px-8">
-                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#071019_0%,#080b10_44%,#06080d_100%)]" />
-                <div className="pointer-events-none absolute inset-0 opacity-[0.055] [background-image:linear-gradient(to_right,rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:48px_48px]" />
+            <section className="relative min-h-screen overflow-hidden px-4 pb-6 pt-4 sm:px-6 lg:px-8">
+                <video
+                    className="fixed inset-0 h-full w-full object-cover opacity-45"
+                    src="/cutscenes/cityvideo.mp4"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    aria-hidden="true"
+                />
+                <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.82),rgba(0,0,0,0.38)_48%,rgba(0,0,0,0.84)),linear-gradient(180deg,rgba(0,0,0,0.76),rgba(0,0,0,0.2)_36%,rgba(0,0,0,0.86))]" />
+                <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(217,181,110,0.18),transparent_32%),radial-gradient(circle_at_20%_70%,rgba(56,189,248,0.12),transparent_28%)]" />
 
                 <div className="relative mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-7xl flex-col">
-                    <nav className="mb-7 flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex flex-wrap gap-2">
-                            <Link href={returnToScene ? '/fastview?resume=scene' : '/'} className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/[0.07]">
-                                {returnToScene ? copy.backToScene : copy.home}
-                            </Link>
-                            <Link href="/fastview?resume=scene" className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/[0.07]">
-                                <Globe2 className="h-4 w-4" />
+                    <nav className="flex min-h-12 items-center justify-between gap-3">
+                        <Link href={returnToScene ? '/fastview?resume=scene' : '/'} className="flex min-w-0 items-center">
+                            <BrandLogo size="sm" imageClassName="h-8 w-[9.4rem]" />
+                        </Link>
+
+                        <div className="hidden min-w-0 flex-1 justify-start px-5 sm:flex">
+                            <span className="inline-flex max-w-full items-center gap-2 truncate rounded-md border border-white/8 bg-black/35 px-3 py-2 text-xs font-semibold uppercase text-slate-300 shadow-[0_14px_45px_rgba(0,0,0,0.24)] backdrop-blur-lg">
+                                <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#d9b56e]" />
+                                <span className="truncate">{copy.introTag}</span>
+                            </span>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-2">
+                            <Link href="/fastview?resume=scene" className="hidden items-center gap-2 rounded-md border border-white/8 bg-black/35 px-3 py-2 text-xs font-semibold text-slate-200 backdrop-blur-lg transition hover:border-white/18 hover:bg-white/[0.07] sm:inline-flex">
+                                <Globe2 className="h-4 w-4 text-emerald-300" />
                                 {copy.liveWorld}
                             </Link>
+                            <span className="inline-flex items-center gap-2 rounded-md border border-white/8 bg-black/35 px-3 py-2 text-xs font-semibold uppercase text-emerald-200 backdrop-blur-lg">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.7)]" />
+                                24/7
+                            </span>
                         </div>
-                        <span className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-3 py-2 text-sm font-semibold text-slate-400">
-                            <Sparkles className="h-4 w-4 text-cyan-200" />
-                            {copy.eyebrow}
-                        </span>
                     </nav>
 
-                    <div className="flex flex-1 flex-col justify-center gap-7">
-                        <header className="grid items-end gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
-                            <div className="min-w-0 fade-up">
-                                <BrandLogo size="sm" imageClassName="h-9 w-[10rem]" />
-                                <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-200/[0.06] px-3 py-1.5 text-xs font-semibold uppercase text-cyan-100">
-                                    <Sparkles className="h-3.5 w-3.5" />
-                                    {copy.introTag}
-                                </div>
-                                <h1 className="mt-4 max-w-4xl text-4xl font-semibold leading-[1.08] text-white sm:text-5xl lg:text-[3.7rem]">
-                                    {copy.title}
-                                </h1>
-                                <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">{copy.subtitle}</p>
-                                <div className="mt-7 grid max-w-4xl gap-3 sm:grid-cols-3">
-                                    {copy.insights.map(({ title, text, icon: InsightIcon }) => (
-                                        <div key={title} className="rounded-lg border border-white/10 bg-white/[0.035] p-3">
-                                            <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                                                <InsightIcon className="h-4 w-4 text-cyan-200" />
-                                                <span>{title}</span>
-                                            </div>
-                                            <p className="mt-2 text-xs leading-5 text-slate-500">{text}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="fade-up delay-2 rounded-lg border border-white/12 bg-black/24 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-xl">
-                                <p className="text-xs font-semibold uppercase text-slate-500">{copy.status.label}</p>
-                                <div className="mt-4 grid gap-3">
-                                    {[
-                                        ['3', copy.status.roles],
-                                        ['1', copy.status.world],
-                                        ['24/7', copy.status.trade],
-                                    ].map(([value, label]) => (
-                                        <div key={label} className="flex items-center justify-between gap-3 border-b border-white/10 pb-3 last:border-0 last:pb-0">
-                                            <p className="text-2xl font-semibold text-white">{value}</p>
-                                            <p className="text-xs text-slate-500">{label}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                    <div className="flex flex-1 flex-col justify-center gap-5 py-8 sm:py-10">
+                        <header className="mx-auto max-w-4xl text-center">
+                            <p className="fade-up text-sm font-medium text-slate-200 sm:text-base">{copy.eyebrow}</p>
+                            <h1 className="fade-up delay-1 mt-2 break-words text-5xl font-semibold leading-none text-[#f3dfb4] drop-shadow-[0_18px_40px_rgba(0,0,0,0.55)] sm:text-6xl lg:text-7xl">
+                                3DSFERA
+                            </h1>
+                            <p className="fade-up delay-2 mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
+                                {copy.subtitle}
+                            </p>
                         </header>
 
-                        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <section className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                             {roleBases.map((base, index) => (
                                 <RoleCard
                                     key={base.tone}
                                     base={base}
                                     text={copy.roles[base.tone]}
                                     rolePath={copy.rolePath}
-                                    primary={base.tone === 'player'}
                                     index={index}
                                     onSelect={base.tone === 'player' ? startGameCutscene : undefined}
                                 />
                             ))}
                         </section>
-                    </div>
 
+                        <section className="fade-up delay-3 grid gap-3 rounded-lg border border-white/10 bg-black/42 p-4 shadow-[0_28px_90px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:grid-cols-2 lg:grid-cols-4">
+                            {copy.footerInsights.map(({ title, text, icon: InsightIcon }) => (
+                                <div key={title} className="flex min-w-0 gap-3 border-white/10 lg:border-r lg:pr-4 lg:last:border-r-0 lg:last:pr-0">
+                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#f3dfb4]">
+                                        <InsightIcon className="h-4 w-4" />
+                                    </span>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-semibold text-white">{title}</p>
+                                        <p className="mt-1 text-xs leading-5 text-slate-400">{text}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </section>
+                    </div>
                 </div>
             </section>
         </main>
