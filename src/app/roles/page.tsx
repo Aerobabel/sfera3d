@@ -583,22 +583,12 @@ export default function RoleSelectionPage() {
                         onError={() => enterSelectedGame()}
                     />
                     <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08),transparent_58%,rgba(0,0,0,0.72))]" />
-                    {isEnteringScene ? (
+                    {isEnteringScene && (
                         <div className="absolute inset-0 flex items-center justify-center">
                             <div className="relative h-14 w-14">
                                 <span className="absolute inset-0 rounded-2xl border border-cyan-200/40 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
                                 <span className="absolute inset-2 rounded-xl border border-cyan-200/50 bg-cyan-200/10" />
                             </div>
-                        </div>
-                    ) : (
-                        <div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] flex justify-center px-4 sm:px-6">
-                            <button
-                                type="button"
-                                onClick={() => enterSelectedGame(true)}
-                                className="min-h-12 rounded-full border border-white/15 bg-white/[0.08] px-4 py-3 text-center text-xs font-black uppercase text-white shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:bg-white/[0.14] sm:px-5"
-                            >
-                                {copy.skipIntro}
-                            </button>
                         </div>
                     )}
                 </div>
