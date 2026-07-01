@@ -2,7 +2,7 @@
 
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Activity, ChevronDown, Coins, Gamepad2, Gift, ListChecks, Monitor, Play, Send, Sparkles, Trophy, Volume2, WalletCards, X, Zap, Menu } from "lucide-react";
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -976,31 +976,40 @@ type ArcadeCopy = {
 
 const ARCADE_GAME_ORDER: ArcadeGameId[] = ['pulse-runner', 'vault-drop', 'signal-match'];
 
-type RunnerGate = {
-    lane: number;
-    kind: 'coin' | 'barrier' | 'boost';
+type GridPoint = { x: number; y: number };
+type Direction = 'up' | 'down' | 'left' | 'right';
+type Pipe = { x: number; gapY: number; passed: boolean };
+type Brick = { id: number; x: number; y: number; alive: boolean };
+
+const SNAKE_GRID_SIZE = 14;
+const SNAKE_START: GridPoint[] = [
+    { x: 6, y: 7 },
+    { x: 5, y: 7 },
+    { x: 4, y: 7 },
+];
+const FLAPPY_HEIGHT = 64;
+const FLAPPY_GAP = 20;
+const BREAKER_ROWS = 4;
+const BREAKER_COLUMNS = 7;
+
+const createSnakeFood = (snake: GridPoint[]): GridPoint => {
+    const available: GridPoint[] = [];
+    for (let y = 0; y < SNAKE_GRID_SIZE; y += 1) {
+        for (let x = 0; x < SNAKE_GRID_SIZE; x += 1) {
+            if (!snake.some((segment) => segment.x === x && segment.y === y)) {
+                available.push({ x, y });
+            }
+        }
+    }
+    return available[Math.floor(Math.random() * available.length)] ?? { x: 10, y: 7 };
 };
 
-const RUNNER_GATE_COUNT = 6;
-const INITIAL_RUNNER_GATES: RunnerGate[] = [
-    { lane: 0, kind: 'coin' },
-    { lane: 2, kind: 'barrier' },
-    { lane: 1, kind: 'coin' },
-    { lane: 0, kind: 'boost' },
-    { lane: 2, kind: 'coin' },
-    { lane: 1, kind: 'barrier' },
-];
-
-const createRunnerGates = (): RunnerGate[] =>
-    Array.from({ length: RUNNER_GATE_COUNT }, (_, index) => ({
-        lane: Math.floor(Math.random() * 3),
-        kind: index === RUNNER_GATE_COUNT - 1
-            ? 'boost'
-            : Math.random() < 0.42
-              ? 'barrier'
-              : Math.random() < 0.68
-                ? 'coin'
-                : 'boost',
+const createBreakerBricks = (): Brick[] =>
+    Array.from({ length: BREAKER_ROWS * BREAKER_COLUMNS }, (_, index) => ({
+        id: index,
+        x: index % BREAKER_COLUMNS,
+        y: Math.floor(index / BREAKER_COLUMNS),
+        alive: true,
     }));
 
 const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
@@ -1027,22 +1036,22 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
         runnerHint: 'Green $ and amber x2 are safe prizes. Avoid the red ! lane, then press Dash.',
         games: {
             'pulse-runner': {
-                title: 'Neon Runner',
-                tag: 'Lane runner',
-                body: 'Dodge barriers, switch lanes, and collect Sfera coins before the gate closes.',
-                mechanic: 'Choose a lane, dash through the next gate, and survive six gates for a clean payout.',
+                title: 'Snake Cabinet',
+                tag: 'Classic snake',
+                body: 'Steer the neon snake, eat Sfera coins, and avoid the walls and your own trail.',
+                mechanic: 'Use arrow keys, WASD, or the direction buttons. Reach 5 coins for a clean payout.',
             },
             'signal-match': {
-                title: 'Signal Match',
-                tag: 'Memory',
-                body: 'Repeat the neon sequence before the circuit cools.',
-                mechanic: 'Complete the chain before the circuit cools to collect the small prize.',
+                title: 'Brick Breaker',
+                tag: 'Paddle arcade',
+                body: 'Move the paddle, keep the ball alive, and clear neon bricks from the cabinet.',
+                mechanic: 'Use left/right keys or the paddle buttons. Clear bricks for the bonus payout.',
             },
             'vault-drop': {
-                title: 'Sfera Prize Drop',
-                tag: 'Prize drop',
-                body: 'Drop a glowing token through the Sfera board and land it in a reward slot.',
-                mechanic: 'Release while the gold marker is over a lane. The token can drift one slot.',
+                title: 'Flappy Sfera',
+                tag: 'Tap flyer',
+                body: 'Pilot the Sfera orb through moving gates with short, precise taps.',
+                mechanic: 'Tap flap or press Space. Pass 4 gates for a clean payout.',
             },
         },
     },
@@ -1146,53 +1155,29 @@ function ArcadeOverlay({
     onPrize: (amountCents: number, gameTitle: string) => void;
 }) {
     const [activeGame, setActiveGame] = useState<ArcadeGameId>('pulse-runner');
-    const [runnerLane, setRunnerLane] = useState(1);
-    const [runnerStep, setRunnerStep] = useState(0);
-    const [runnerCoins, setRunnerCoins] = useState(0);
-    const [runnerCombo, setRunnerCombo] = useState(0);
-    const [runnerCrashed, setRunnerCrashed] = useState(false);
-    const [runnerGates, setRunnerGates] = useState<RunnerGate[]>(INITIAL_RUNNER_GATES);
-    const [signalSequence, setSignalSequence] = useState<number[]>([0, 2, 1, 3]);
-    const [signalInput, setSignalInput] = useState<number[]>([]);
-    const [prizeDropSlot, setPrizeDropSlot] = useState<number | null>(null);
-    const [isPrizeDropRunning, setIsPrizeDropRunning] = useState(false);
-    const [prizeDropTokenLane, setPrizeDropTokenLane] = useState(50);
-    const [prizeDropAim, setPrizeDropAim] = useState(50);
-    const [prizeDropAimDirection, setPrizeDropAimDirection] = useState(1);
+    const [snake, setSnake] = useState<GridPoint[]>(SNAKE_START);
+    const [snakeFood, setSnakeFood] = useState<GridPoint>(() => createSnakeFood(SNAKE_START));
+    const [snakeDirection, setSnakeDirection] = useState<Direction>('right');
+    const [snakeRunning, setSnakeRunning] = useState(false);
+    const [snakeScore, setSnakeScore] = useState(0);
+    const [snakeGameOver, setSnakeGameOver] = useState(false);
+    const [flappyY, setFlappyY] = useState(28);
+    const [flappyVelocity, setFlappyVelocity] = useState(0);
+    const [flappyPipes, setFlappyPipes] = useState<Pipe[]>([
+        { x: 68, gapY: 22, passed: false },
+        { x: 108, gapY: 34, passed: false },
+    ]);
+    const [flappyRunning, setFlappyRunning] = useState(false);
+    const [flappyScore, setFlappyScore] = useState(0);
+    const [flappyGameOver, setFlappyGameOver] = useState(false);
+    const [breakerPaddle, setBreakerPaddle] = useState(42);
+    const [breakerBall, setBreakerBall] = useState({ x: 50, y: 74, vx: 1.6, vy: -1.7 });
+    const [breakerBricks, setBreakerBricks] = useState<Brick[]>(() => createBreakerBricks());
+    const [breakerRunning, setBreakerRunning] = useState(false);
+    const [breakerScore, setBreakerScore] = useState(0);
+    const [breakerGameOver, setBreakerGameOver] = useState(false);
     const [result, setResult] = useState<{ label: string; amountCents: number } | null>(null);
     const [playsRemaining, setPlaysRemaining] = useState<number>(GAME_RULES.arcade.maxPlaysPerOpen);
-    const [signalSecondsLeft, setSignalSecondsLeft] = useState<number>(GAME_RULES.arcade.signalMatchSeconds);
-
-    useEffect(() => {
-        if (activeGame !== 'vault-drop' || isPrizeDropRunning) return;
-
-        const timer = window.setInterval(() => {
-            setPrizeDropAim((current) => {
-                const next = current + prizeDropAimDirection * 5.5;
-                if (next >= 91) {
-                    setPrizeDropAimDirection(-1);
-                    return 91;
-                }
-                if (next <= 9) {
-                    setPrizeDropAimDirection(1);
-                    return 9;
-                }
-                return next;
-            });
-        }, 70);
-
-        return () => window.clearInterval(timer);
-    }, [activeGame, isPrizeDropRunning, prizeDropAimDirection]);
-
-    useEffect(() => {
-        if (activeGame !== 'signal-match') return;
-
-        const timer = window.setInterval(() => {
-            setSignalSecondsLeft((current) => Math.max(0, current - 1));
-        }, 1000);
-
-        return () => window.clearInterval(timer);
-    }, [activeGame]);
 
     const award = useCallback((amountCents: number, label: string) => {
         if (playsRemaining <= 0) {
@@ -1207,123 +1192,234 @@ function ArcadeOverlay({
         }
     }, [activeGame, copy.games, copy.limitReached, onPrize, playsRemaining]);
 
+    const endSnake = useCallback((score: number) => {
+        setSnakeRunning(false);
+        setSnakeGameOver(true);
+        const amount = score >= 8
+            ? GAME_RULES.arcade.games[0].bonusCents
+            : score >= 5
+              ? GAME_RULES.arcade.games[0].prizeCents * 2
+              : score > 0
+                ? GAME_RULES.arcade.games[0].prizeCents
+                : 0;
+        award(amount, amount >= GAME_RULES.arcade.games[0].bonusCents ? copy.bonusReward : amount > 0 ? copy.nearPerfect : copy.tryAgain);
+    }, [award, copy.bonusReward, copy.nearPerfect, copy.tryAgain]);
+
+    const resetSnake = (start = false) => {
+        setSnake(SNAKE_START);
+        setSnakeFood(createSnakeFood(SNAKE_START));
+        setSnakeDirection('right');
+        setSnakeScore(0);
+        setSnakeGameOver(false);
+        setSnakeRunning(start);
+        setResult(null);
+    };
+
+    const setSnakeMove = (direction: Direction) => {
+        setSnakeDirection((current) => {
+            if ((current === 'up' && direction === 'down') || (current === 'down' && direction === 'up')) return current;
+            if ((current === 'left' && direction === 'right') || (current === 'right' && direction === 'left')) return current;
+            return direction;
+        });
+    };
+
     useEffect(() => {
-        if (activeGame !== 'signal-match' || signalSecondsLeft > 0 || signalInput.length === 0) return;
+        if (activeGame !== 'pulse-runner' || !snakeRunning || snakeGameOver) return;
 
-        const timer = window.setTimeout(() => {
-            setSignalInput([]);
-            award(0, copy.tryAgain);
-        }, 0);
+        const timer = window.setInterval(() => {
+            setSnake((currentSnake) => {
+                const head = currentSnake[0];
+                const nextHead = {
+                    x: head.x + (snakeDirection === 'left' ? -1 : snakeDirection === 'right' ? 1 : 0),
+                    y: head.y + (snakeDirection === 'up' ? -1 : snakeDirection === 'down' ? 1 : 0),
+                };
+                const hitWall = nextHead.x < 0 || nextHead.x >= SNAKE_GRID_SIZE || nextHead.y < 0 || nextHead.y >= SNAKE_GRID_SIZE;
+                const hitBody = currentSnake.some((segment) => segment.x === nextHead.x && segment.y === nextHead.y);
+                if (hitWall || hitBody) {
+                    endSnake(snakeScore);
+                    return currentSnake;
+                }
 
-        return () => window.clearTimeout(timer);
-    }, [activeGame, award, copy.tryAgain, signalInput.length, signalSecondsLeft]);
+                const ateFood = nextHead.x === snakeFood.x && nextHead.y === snakeFood.y;
+                const nextSnake = ateFood ? [nextHead, ...currentSnake] : [nextHead, ...currentSnake.slice(0, -1)];
+                if (ateFood) {
+                    const nextScore = snakeScore + 1;
+                    setSnakeScore(nextScore);
+                    setSnakeFood(createSnakeFood(nextSnake));
+                    if (nextScore >= 10) {
+                        window.setTimeout(() => endSnake(nextScore), 0);
+                    }
+                }
+                return nextSnake;
+            });
+        }, 145);
 
-    const resetRunner = () => {
-        setRunnerLane(1);
-        setRunnerStep(0);
-        setRunnerCoins(0);
-        setRunnerCombo(0);
-        setRunnerCrashed(false);
-        setRunnerGates(createRunnerGates());
+        return () => window.clearInterval(timer);
+    }, [activeGame, endSnake, snakeDirection, snakeFood, snakeGameOver, snakeRunning, snakeScore]);
+
+    const resetFlappy = (start = false) => {
+        setFlappyY(28);
+        setFlappyVelocity(0);
+        setFlappyPipes([
+            { x: 68, gapY: 22, passed: false },
+            { x: 108, gapY: 34, passed: false },
+        ]);
+        setFlappyScore(0);
+        setFlappyGameOver(false);
+        setFlappyRunning(start);
         setResult(null);
     };
 
-    const handleRunnerDash = () => {
-        if (runnerCrashed || runnerStep >= runnerGates.length) {
-            resetRunner();
+    const endFlappy = useCallback((score: number) => {
+        setFlappyRunning(false);
+        setFlappyGameOver(true);
+        const amount = score >= 7
+            ? GAME_RULES.arcade.games[2].bonusCents
+            : score >= 4
+              ? GAME_RULES.arcade.games[2].prizeCents * 2
+              : score > 0
+                ? GAME_RULES.arcade.games[2].prizeCents
+                : 0;
+        award(amount, amount >= GAME_RULES.arcade.games[2].bonusCents ? copy.bonusReward : amount > 0 ? copy.nearPerfect : copy.tryAgain);
+    }, [award, copy.bonusReward, copy.nearPerfect, copy.tryAgain]);
+
+    const flap = () => {
+        if (activeGame !== 'vault-drop' || playsRemaining <= 0) return;
+        if (!flappyRunning || flappyGameOver) {
+            resetFlappy(true);
             return;
         }
-
-        const gate = runnerGates[runnerStep];
-        if (gate.lane === runnerLane && gate.kind === 'barrier') {
-            setRunnerCrashed(true);
-            award(0, copy.tryAgain);
-            return;
-        }
-
-        const collectedCoin = gate.lane === runnerLane && gate.kind === 'coin';
-        const collectedBoost = gate.lane === runnerLane && gate.kind === 'boost';
-        const nextCoins = runnerCoins + (collectedCoin ? 1 : 0) + (collectedBoost ? 2 : 0);
-        const nextCombo = runnerCombo + 1;
-        const nextStep = runnerStep + 1;
-
-        setRunnerCoins(nextCoins);
-        setRunnerCombo(nextCombo);
-        setRunnerStep(nextStep);
-
-        if (nextStep >= runnerGates.length) {
-            const amountCents = Math.min(
-                GAME_RULES.arcade.games[0].bonusCents,
-                nextCoins * GAME_RULES.arcade.games[0].prizeCents + Math.floor(nextCombo / 3) * 2
-            );
-            award(amountCents > 0 ? amountCents : GAME_RULES.arcade.games[0].prizeCents, nextCoins >= 5 ? copy.bonusReward : copy.nearPerfect);
-        }
+        setFlappyVelocity(-4.7);
     };
 
-    const resetSignal = () => {
-        const next = Array.from({ length: 4 }, () => Math.floor(Math.random() * 4));
-        setSignalSequence(next);
-        setSignalInput([]);
-        setSignalSecondsLeft(GAME_RULES.arcade.signalMatchSeconds);
+    useEffect(() => {
+        if (activeGame !== 'vault-drop' || !flappyRunning || flappyGameOver) return;
+
+        const timer = window.setInterval(() => {
+            setFlappyVelocity((velocity) => velocity + 0.62);
+            setFlappyY((currentY) => {
+                const nextY = currentY + flappyVelocity * 0.32;
+                if (nextY < 0 || nextY > FLAPPY_HEIGHT - 6) {
+                    endFlappy(flappyScore);
+                    return Math.max(0, Math.min(FLAPPY_HEIGHT - 6, nextY));
+                }
+                return nextY;
+            });
+            setFlappyPipes((pipes) => pipes.map((pipe) => {
+                const nextX = pipe.x - 2.2;
+                if (nextX < -10) {
+                    return { x: 108, gapY: 12 + Math.random() * 34, passed: false };
+                }
+                if (!pipe.passed && nextX < 22) {
+                    setFlappyScore((score) => score + 1);
+                    return { ...pipe, x: nextX, passed: true };
+                }
+                return { ...pipe, x: nextX };
+            }));
+        }, 48);
+
+        return () => window.clearInterval(timer);
+    }, [activeGame, endFlappy, flappyGameOver, flappyRunning, flappyScore, flappyVelocity]);
+
+    useEffect(() => {
+        if (activeGame !== 'vault-drop' || !flappyRunning || flappyGameOver) return;
+
+        const hitPipe = flappyPipes.some((pipe) => {
+            const nearBird = pipe.x < 27 && pipe.x > 13;
+            const outsideGap = flappyY < pipe.gapY || flappyY > pipe.gapY + FLAPPY_GAP;
+            return nearBird && outsideGap;
+        });
+        if (hitPipe) {
+            window.setTimeout(() => endFlappy(flappyScore), 0);
+        }
+    }, [activeGame, endFlappy, flappyGameOver, flappyPipes, flappyRunning, flappyScore, flappyY]);
+
+    const resetBreaker = (start = false) => {
+        setBreakerPaddle(42);
+        setBreakerBall({ x: 50, y: 74, vx: 1.6, vy: -1.7 });
+        setBreakerBricks(createBreakerBricks());
+        setBreakerScore(0);
+        setBreakerGameOver(false);
+        setBreakerRunning(start);
         setResult(null);
     };
 
-    const handleSignalPress = (value: number) => {
-        if (playsRemaining <= 0 || signalSecondsLeft <= 0) return;
+    const endBreaker = useCallback((score: number, cleared = false) => {
+        setBreakerRunning(false);
+        setBreakerGameOver(true);
+        const amount = cleared || score >= 18
+            ? GAME_RULES.arcade.games[1].bonusCents
+            : score >= 10
+              ? GAME_RULES.arcade.games[1].prizeCents * 2
+              : score > 0
+                ? GAME_RULES.arcade.games[1].prizeCents
+                : 0;
+        award(amount, amount >= GAME_RULES.arcade.games[1].bonusCents ? copy.bonusReward : amount > 0 ? copy.nearPerfect : copy.tryAgain);
+    }, [award, copy.bonusReward, copy.nearPerfect, copy.tryAgain]);
 
-        const next = [...signalInput, value];
-        setSignalInput(next);
-
-        if (signalSequence[next.length - 1] !== value) {
-            setSignalInput([]);
-            award(0, copy.tryAgain);
-            return;
-        }
-
-        if (next.length === signalSequence.length) {
-            const isBonus = new Set(signalSequence).size >= 4;
-            award(
-                isBonus ? GAME_RULES.arcade.games[1].bonusCents : GAME_RULES.arcade.games[1].prizeCents,
-                isBonus ? copy.bonusReward : copy.nearPerfect
-            );
-            window.setTimeout(resetSignal, 720);
-        }
+    const movePaddle = (delta: number) => {
+        setBreakerPaddle((current) => Math.max(0, Math.min(84, current + delta)));
     };
 
-    const prizeDropSlots = [
-        { label: 'TRY', amountCents: 0, tone: 'border-slate-400/20 bg-slate-400/10 text-slate-300' },
-        { label: formatMoney(GAME_RULES.arcade.games[2].prizeCents), amountCents: GAME_RULES.arcade.games[2].prizeCents, tone: 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100' },
-        { label: formatMoney(GAME_RULES.arcade.games[2].prizeCents * 2), amountCents: GAME_RULES.arcade.games[2].prizeCents * 2, tone: 'border-cyan-300/35 bg-cyan-300/12 text-cyan-100' },
-        { label: 'BONUS', amountCents: GAME_RULES.arcade.games[2].bonusCents, tone: 'border-amber-300/45 bg-amber-300/16 text-amber-100' },
-        { label: formatMoney(GAME_RULES.arcade.games[2].prizeCents * 2), amountCents: GAME_RULES.arcade.games[2].prizeCents * 2, tone: 'border-cyan-300/35 bg-cyan-300/12 text-cyan-100' },
-        { label: formatMoney(GAME_RULES.arcade.games[2].prizeCents), amountCents: GAME_RULES.arcade.games[2].prizeCents, tone: 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100' },
-        { label: 'TRY', amountCents: 0, tone: 'border-slate-400/20 bg-slate-400/10 text-slate-300' },
-    ];
+    useEffect(() => {
+        if (activeGame !== 'signal-match' || !breakerRunning || breakerGameOver) return;
 
-    const prizeDropPegs = Array.from({ length: 42 }, (_, index) => ({
-        id: index,
-        left: 10 + (index % 7) * 13 + (Math.floor(index / 7) % 2 === 0 ? 0 : 6),
-        top: 15 + Math.floor(index / 7) * 10,
-    }));
+        const timer = window.setInterval(() => {
+            setBreakerBall((ball) => {
+                let next = { ...ball, x: ball.x + ball.vx, y: ball.y + ball.vy };
+                if (next.x <= 2 || next.x >= 98) next = { ...next, vx: -next.vx };
+                if (next.y <= 4) next = { ...next, vy: Math.abs(next.vy) };
 
-    const handleVaultSpin = () => {
-        if (isPrizeDropRunning || playsRemaining <= 0) return;
+                const hitPaddle = next.y >= 82 && next.y <= 88 && next.x >= breakerPaddle && next.x <= breakerPaddle + 16;
+                if (hitPaddle) {
+                    const paddleCenter = breakerPaddle + 8;
+                    next = { ...next, vy: -Math.abs(next.vy), vx: (next.x - paddleCenter) / 4 };
+                }
 
-        const drift = Math.floor(Math.random() * 3) - 1;
-        const aimedSlot = Math.round((prizeDropAim - 9) / 13.5);
-        const nextSlot = Math.max(0, Math.min(prizeDropSlots.length - 1, aimedSlot + drift));
-        const slot = prizeDropSlots[nextSlot];
-        setPrizeDropSlot(null);
-        setResult(null);
-        setPrizeDropTokenLane(prizeDropAim);
-        setIsPrizeDropRunning(true);
+                if (next.y > 98) {
+                    endBreaker(breakerScore);
+                    return ball;
+                }
 
-        window.setTimeout(() => {
-            setPrizeDropSlot(nextSlot);
-            setPrizeDropTokenLane(9 + nextSlot * 13.5);
-            setIsPrizeDropRunning(false);
-            award(slot.amountCents, slot.amountCents >= GAME_RULES.arcade.games[2].bonusCents ? copy.bonusReward : slot.amountCents > 0 ? copy.nearPerfect : copy.tryAgain);
-        }, 980);
+                const hitBrick = breakerBricks.find((brick) => {
+                    if (!brick.alive) return false;
+                    const left = 8 + brick.x * 12;
+                    const top = 10 + brick.y * 7;
+                    return next.x >= left && next.x <= left + 9 && next.y >= top && next.y <= top + 4.5;
+                });
+
+                if (hitBrick) {
+                    setBreakerBricks((bricks) => bricks.map((brick) => brick.id === hitBrick.id ? { ...brick, alive: false } : brick));
+                    const nextScore = breakerScore + 1;
+                    setBreakerScore(nextScore);
+                    next = { ...next, vy: Math.abs(next.vy) };
+                    if (nextScore >= BREAKER_ROWS * BREAKER_COLUMNS) {
+                        window.setTimeout(() => endBreaker(nextScore, true), 0);
+                    }
+                }
+
+                return next;
+            });
+        }, 42);
+
+        return () => window.clearInterval(timer);
+    }, [activeGame, breakerBall, breakerBricks, breakerGameOver, breakerPaddle, breakerRunning, breakerScore, endBreaker]);
+
+    const handleArcadeKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+        if (activeGame === 'pulse-runner') {
+            if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') setSnakeMove('up');
+            if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') setSnakeMove('down');
+            if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') setSnakeMove('left');
+            if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') setSnakeMove('right');
+        }
+        if (activeGame === 'vault-drop' && event.code === 'Space') {
+            event.preventDefault();
+            flap();
+        }
+        if (activeGame === 'signal-match') {
+            if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') movePaddle(-7);
+            if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') movePaddle(7);
+        }
     };
 
     const activeCopy = copy.games[activeGame];
@@ -1380,9 +1476,9 @@ function ArcadeOverlay({
                                         type="button"
                                         onClick={() => {
                                             setActiveGame(gameId);
-                                            if (gameId === 'signal-match') {
-                                                setSignalSecondsLeft(GAME_RULES.arcade.signalMatchSeconds);
-                                            }
+                                            setSnakeRunning(false);
+                                            setFlappyRunning(false);
+                                            setBreakerRunning(false);
                                             setResult(null);
                                         }}
                                         className={`rounded-xl border px-3 py-3 text-left transition ${
@@ -1411,64 +1507,55 @@ function ArcadeOverlay({
                             <Gamepad2 className="h-8 w-8 shrink-0 text-[#66d9cb]" />
                         </div>
 
-                        <div className="mt-5 min-h-[16rem] rounded-2xl border border-white/10 bg-[linear-gradient(145deg,rgba(102,217,203,0.06),rgba(245,199,102,0.05),rgba(255,255,255,0.03))] p-4">
+                        <div
+                            className="mt-5 min-h-[16rem] rounded-2xl border border-white/10 bg-[linear-gradient(145deg,rgba(102,217,203,0.06),rgba(245,199,102,0.05),rgba(255,255,255,0.03))] p-4 outline-none focus:border-[#66d9cb]/35"
+                            tabIndex={0}
+                            onKeyDown={handleArcadeKeyDown}
+                        >
                             {activeGame === 'pulse-runner' && (
                                 <div className="grid gap-5">
-                                    <div className="overflow-hidden rounded-2xl border border-cyan-300/15 bg-[#031018] p-3 shadow-[inset_0_0_70px_rgba(34,211,238,0.08)]">
+                                    <div className="rounded-2xl border border-cyan-300/15 bg-[#031018] p-3 shadow-[inset_0_0_70px_rgba(34,211,238,0.08)]">
                                         <div className="mb-3 flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-                                            <span>Gate {Math.min(runnerStep + 1, RUNNER_GATE_COUNT)} / {RUNNER_GATE_COUNT}</span>
-                                            <span>{runnerCoins} coins · {runnerCombo}x flow</span>
+                                            <span>{snakeRunning ? 'Live run' : snakeGameOver ? 'Run ended' : 'Ready'}</span>
+                                            <span>{snakeScore} coins</span>
                                         </div>
-                                        <div className="grid gap-2">
-                                            {[0, 1, 2].map((lane) => (
-                                                <button
-                                                    key={lane}
-                                                    type="button"
-                                                    onClick={() => setRunnerLane(lane)}
-                                                    className={`relative h-16 overflow-hidden rounded-xl border transition ${
-                                                        runnerLane === lane
-                                                            ? 'border-cyan-200/55 bg-cyan-300/[0.13] shadow-[0_0_30px_rgba(34,211,238,0.18)]'
-                                                            : 'border-white/10 bg-black/24 hover:border-white/20'
-                                                    }`}
-                                                >
-                                                    <span className="absolute inset-y-0 left-3 grid place-items-center text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Lane {lane + 1}</span>
-                                                    <span className={`absolute right-4 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg border text-lg ${
-                                                        runnerGates[runnerStep]?.lane === lane && runnerGates[runnerStep]?.kind === 'barrier'
-                                                            ? 'border-rose-300/35 bg-rose-300/14 text-rose-100'
-                                                            : runnerGates[runnerStep]?.lane === lane && runnerGates[runnerStep]?.kind === 'boost'
-                                                              ? 'border-amber-300/40 bg-amber-300/16 text-amber-100'
-                                                              : runnerGates[runnerStep]?.lane === lane
-                                                                ? 'border-emerald-300/35 bg-emerald-300/14 text-emerald-100'
-                                                                : 'border-white/10 bg-white/[0.035] text-slate-600'
-                                                    }`}>
-                                                        {runnerGates[runnerStep]?.lane === lane
-                                                            ? runnerGates[runnerStep]?.kind === 'barrier'
-                                                                ? '!'
-                                                                : runnerGates[runnerStep]?.kind === 'boost'
-                                                                  ? 'x2'
-                                                                  : '$'
-                                                            : ''}
-                                                    </span>
-                                                    {runnerLane === lane && (
-                                                        <span className="absolute left-1/2 top-1/2 grid h-10 w-10 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-white/45 bg-[radial-gradient(circle_at_35%_28%,#fff,#9ff4ec_35%,#0ea5e9_74%)] text-[10px] font-black text-[#03110f] shadow-[0_0_28px_rgba(34,211,238,0.72)]">
-                                                            RUN
-                                                        </span>
-                                                    )}
-                                                </button>
-                                            ))}
+                                        <div className="mx-auto grid aspect-square max-w-[24rem] grid-cols-[repeat(14,minmax(0,1fr))] gap-1 rounded-xl border border-white/10 bg-black/35 p-2">
+                                            {Array.from({ length: SNAKE_GRID_SIZE * SNAKE_GRID_SIZE }, (_, index) => {
+                                                const x = index % SNAKE_GRID_SIZE;
+                                                const y = Math.floor(index / SNAKE_GRID_SIZE);
+                                                const isHead = snake[0]?.x === x && snake[0]?.y === y;
+                                                const isBody = snake.some((segment, segmentIndex) => segmentIndex > 0 && segment.x === x && segment.y === y);
+                                                const isFood = snakeFood.x === x && snakeFood.y === y;
+                                                return (
+                                                    <span
+                                                        key={`${x}-${y}`}
+                                                        className={`aspect-square rounded-[3px] border ${
+                                                            isHead
+                                                                ? 'border-white/70 bg-[#66d9cb] shadow-[0_0_14px_rgba(102,217,203,0.8)]'
+                                                                : isBody
+                                                                  ? 'border-cyan-300/20 bg-cyan-300/35'
+                                                                  : isFood
+                                                                    ? 'border-amber-200/80 bg-amber-300 shadow-[0_0_14px_rgba(251,191,36,0.72)]'
+                                                                    : 'border-white/[0.035] bg-white/[0.025]'
+                                                        }`}
+                                                    />
+                                                );
+                                            })}
                                         </div>
                                     </div>
-                                    <p className="text-sm leading-6 text-slate-300">
-                                        {runnerCrashed ? copy.tryAgain : `${activeCopy.mechanic} ${copy.runnerHint}`}
-                                    </p>
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <button type="button" onClick={handleRunnerDash} disabled={playsRemaining <= 0} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#66d9cb] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#03110f] transition hover:bg-[#8df0e6] disabled:cursor-not-allowed disabled:bg-slate-500 disabled:text-slate-900">
+                                    <p className="text-sm leading-6 text-slate-300">{activeCopy.mechanic}</p>
+                                    <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <span />
+                                            <button type="button" onClick={() => setSnakeMove('up')} className="rounded-xl border border-white/12 bg-white/[0.055] px-3 py-2 text-sm font-black text-white">Up</button>
+                                            <span />
+                                            <button type="button" onClick={() => setSnakeMove('left')} className="rounded-xl border border-white/12 bg-white/[0.055] px-3 py-2 text-sm font-black text-white">Left</button>
+                                            <button type="button" onClick={() => setSnakeMove('down')} className="rounded-xl border border-white/12 bg-white/[0.055] px-3 py-2 text-sm font-black text-white">Down</button>
+                                            <button type="button" onClick={() => setSnakeMove('right')} className="rounded-xl border border-white/12 bg-white/[0.055] px-3 py-2 text-sm font-black text-white">Right</button>
+                                        </div>
+                                        <button type="button" onClick={() => resetSnake(true)} disabled={playsRemaining <= 0} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#66d9cb] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#03110f] transition hover:bg-[#8df0e6] disabled:cursor-not-allowed disabled:bg-slate-500 disabled:text-slate-900">
                                             <Zap className="h-4 w-4" />
-                                            {runnerCrashed || runnerStep >= runnerGates.length ? copy.play : 'Dash'}
-                                        </button>
-                                        <button type="button" onClick={resetRunner} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.055] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.09]">
-                                            <Sparkles className="h-4 w-4" />
-                                            New route
+                                            {snakeRunning ? copy.stop : copy.play}
                                         </button>
                                     </div>
                                 </div>
@@ -1476,92 +1563,81 @@ function ArcadeOverlay({
 
                             {activeGame === 'signal-match' && (
                                 <div className="grid gap-5">
-                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                        <div className="flex flex-wrap gap-2">
-                                            {signalSequence.map((value, index) => (
-                                                <span key={`${value}-${index}`} className="grid h-10 w-10 place-items-center rounded-lg border border-[#66d9cb]/25 bg-[#66d9cb]/10 font-mono text-sm font-black text-[#9ff4ec]">
-                                                    {['A', 'B', 'C', 'D'][value]}
-                                                </span>
-                                            ))}
-                                        </div>
-                                        <div className={`rounded-xl border px-3 py-2 text-right ${signalSecondsLeft > 2 ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100' : 'border-rose-300/24 bg-rose-300/10 text-rose-100'}`}>
-                                            <p className="text-[9px] font-black uppercase tracking-[0.16em]">{copy.signalTimeLeft}</p>
-                                            <p className="mt-0.5 font-mono text-lg font-black">{signalSecondsLeft}s</p>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                                        {[0, 1, 2, 3].map((value) => (
-                                            <button key={value} type="button" onClick={() => handleSignalPress(value)} disabled={playsRemaining <= 0 || signalSecondsLeft <= 0} className="h-20 rounded-xl border border-white/10 bg-white/[0.055] text-xl font-black text-white transition hover:border-[#66d9cb]/35 hover:bg-[#66d9cb]/12 disabled:cursor-not-allowed disabled:bg-slate-900/70 disabled:text-slate-600">
-                                                {['A', 'B', 'C', 'D'][value]}
-                                            </button>
+                                    <div className="relative mx-auto aspect-[4/3] w-full max-w-[34rem] overflow-hidden rounded-2xl border border-cyan-300/15 bg-[#050914] shadow-[inset_0_0_80px_rgba(102,217,203,0.08)]">
+                                        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:32px_32px]" />
+                                        {breakerBricks.map((brick) => brick.alive && (
+                                            <span
+                                                key={brick.id}
+                                                className="absolute rounded-md border border-white/20 bg-[linear-gradient(135deg,#66d9cb,#f6ba4f)] shadow-[0_0_14px_rgba(102,217,203,0.32)]"
+                                                style={{
+                                                    left: `${8 + brick.x * 12}%`,
+                                                    top: `${10 + brick.y * 7}%`,
+                                                    width: '9%',
+                                                    height: '4.5%',
+                                                }}
+                                            />
                                         ))}
+                                        <span
+                                            className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/60 bg-white shadow-[0_0_24px_rgba(255,255,255,0.82)]"
+                                            style={{ left: `${breakerBall.x}%`, top: `${breakerBall.y}%` }}
+                                        />
+                                        <span
+                                            className="absolute bottom-[8%] h-3 rounded-full border border-cyan-100/50 bg-cyan-300 shadow-[0_0_24px_rgba(34,211,238,0.55)]"
+                                            style={{ left: `${breakerPaddle}%`, width: '16%' }}
+                                        />
+                                        <div className="absolute left-4 top-4 rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-300">
+                                            {breakerScore}/{BREAKER_ROWS * BREAKER_COLUMNS} bricks
+                                        </div>
                                     </div>
-                                    <p className="text-sm leading-6 text-slate-300">{activeCopy.mechanic} {signalInput.length}/{signalSequence.length}</p>
-                                    <button type="button" onClick={resetSignal} className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.055] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.09]">
-                                        <Sparkles className="h-4 w-4" />
-                                        {copy.play}
-                                    </button>
+                                    <p className="text-sm leading-6 text-slate-300">{activeCopy.mechanic}</p>
+                                    <div className="grid gap-2 sm:grid-cols-3">
+                                        <button type="button" onClick={() => movePaddle(-8)} className="inline-flex items-center justify-center rounded-xl border border-white/12 bg-white/[0.055] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.09]">Left</button>
+                                        <button type="button" onClick={() => resetBreaker(true)} disabled={playsRemaining <= 0} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#66d9cb] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#03110f] transition hover:bg-[#8df0e6] disabled:cursor-not-allowed disabled:bg-slate-500 disabled:text-slate-900">
+                                            <Sparkles className="h-4 w-4" />
+                                            {breakerRunning ? copy.stop : copy.play}
+                                        </button>
+                                        <button type="button" onClick={() => movePaddle(8)} className="inline-flex items-center justify-center rounded-xl border border-white/12 bg-white/[0.055] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.09]">Right</button>
+                                    </div>
                                 </div>
                             )}
 
                             {activeGame === 'vault-drop' && (
                                 <div className="grid gap-5">
-                                    <div className="relative min-h-[22rem] overflow-hidden rounded-2xl border border-white/10 bg-[#050914] shadow-[inset_0_0_80px_rgba(102,217,203,0.08)]">
-                                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.18),transparent_26%),radial-gradient(circle_at_20%_32%,rgba(102,217,203,0.2),transparent_22%),radial-gradient(circle_at_82%_45%,rgba(236,72,153,0.13),transparent_24%)]" />
-                                        <div className="absolute inset-x-6 top-4 flex items-center justify-between">
-                                            <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100">Token rail</span>
-                                            <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100">Prize lanes</span>
-                                        </div>
-
-                                        <div
-                                            className="absolute top-12 z-10 h-7 w-1.5 rounded-full bg-amber-200 shadow-[0_0_20px_rgba(251,191,36,0.8)] transition-all duration-75"
-                                            style={{
-                                                left: `${prizeDropAim}%`,
-                                                transform: 'translateX(-50%)',
-                                            }}
-                                        />
-
-                                        <div
-                                            className="absolute z-20 grid h-8 w-8 place-items-center rounded-full border border-white/50 bg-[radial-gradient(circle_at_35%_28%,#ffffff,#9ff4ec_32%,#08a7a5_68%,#075b65)] text-[10px] font-black text-[#03110f] shadow-[0_0_28px_rgba(102,217,203,0.95)] transition-all duration-1000 ease-in-out"
-                                            style={{
-                                                left: `${prizeDropTokenLane}%`,
-                                                top: isPrizeDropRunning || prizeDropSlot !== null ? '67%' : '11%',
-                                                transform: 'translate(-50%, -50%)',
-                                            }}
+                                    <div className="relative mx-auto aspect-[16/10] w-full max-w-[34rem] overflow-hidden rounded-2xl border border-white/10 bg-[#050914] shadow-[inset_0_0_80px_rgba(102,217,203,0.08)]">
+                                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_24%,rgba(102,217,203,0.2),transparent_22%),radial-gradient(circle_at_82%_45%,rgba(251,191,36,0.14),transparent_24%)]" />
+                                        <span
+                                            className="absolute left-[20%] z-20 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/55 bg-[radial-gradient(circle_at_35%_28%,#ffffff,#9ff4ec_32%,#08a7a5_68%,#075b65)] text-[10px] font-black text-[#03110f] shadow-[0_0_28px_rgba(102,217,203,0.95)]"
+                                            style={{ top: `${(flappyY / FLAPPY_HEIGHT) * 100}%` }}
                                         >
                                             3D
-                                        </div>
-
-                                        {prizeDropPegs.map((peg) => (
-                                            <span
-                                                key={peg.id}
-                                                className="absolute h-3 w-3 rounded-full border border-white/25 bg-white/80 shadow-[0_0_16px_rgba(255,255,255,0.42)]"
-                                                style={{ left: `${peg.left}%`, top: `${peg.top}%` }}
-                                            />
+                                        </span>
+                                        {flappyPipes.map((pipe, index) => (
+                                            <div key={`${pipe.x}-${index}`}>
+                                                <span
+                                                    className="absolute top-0 w-10 rounded-b-xl border border-emerald-200/20 bg-emerald-300/45 shadow-[0_0_22px_rgba(52,211,153,0.25)]"
+                                                    style={{ left: `${pipe.x}%`, height: `${(pipe.gapY / FLAPPY_HEIGHT) * 100}%` }}
+                                                />
+                                                <span
+                                                    className="absolute bottom-0 w-10 rounded-t-xl border border-emerald-200/20 bg-emerald-300/45 shadow-[0_0_22px_rgba(52,211,153,0.25)]"
+                                                    style={{
+                                                        left: `${pipe.x}%`,
+                                                        height: `${((FLAPPY_HEIGHT - pipe.gapY - FLAPPY_GAP) / FLAPPY_HEIGHT) * 100}%`,
+                                                    }}
+                                                />
+                                            </div>
                                         ))}
-
-                                        <div className="absolute inset-x-4 bottom-4 grid grid-cols-7 gap-1.5">
-                                            {prizeDropSlots.map((slot, index) => (
-                                                <div
-                                                    key={`${slot.label}-${index}`}
-                                                    className={`grid min-h-16 place-items-center rounded-xl border px-1 text-center text-[10px] font-black uppercase tracking-[0.08em] transition ${slot.tone} ${
-                                                        prizeDropSlot === index ? 'scale-[1.04] shadow-[0_0_28px_rgba(251,191,36,0.35)]' : ''
-                                                    }`}
-                                                >
-                                                    {slot.label}
-                                                </div>
-                                            ))}
+                                        <div className="absolute left-4 top-4 rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-300">
+                                            {flappyScore} gates
                                         </div>
                                     </div>
                                     <p className="text-sm leading-6 text-slate-300">{activeCopy.mechanic}</p>
-                                    <button type="button" onClick={handleVaultSpin} disabled={isPrizeDropRunning || playsRemaining <= 0} className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-slate-500 disabled:text-slate-900">
+                                    <button type="button" onClick={flap} disabled={playsRemaining <= 0} className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-slate-500 disabled:text-slate-900">
                                         <Trophy className="h-4 w-4" />
-                                        {isPrizeDropRunning ? copy.stop : copy.play}
+                                        {flappyRunning ? 'Flap' : copy.play}
                                     </button>
                                 </div>
                             )}
                         </div>
-
                         {result && (
                             <div className={`mt-4 rounded-xl border p-3 ${result.amountCents > 0 ? 'border-emerald-300/24 bg-emerald-300/[0.07]' : 'border-white/10 bg-white/[0.04]'}`}>
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
