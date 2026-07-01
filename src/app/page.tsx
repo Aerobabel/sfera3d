@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import BrandLogo from "@/components/BrandLogo";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 type PillarKey = "pipeline" | "attendance" | "safe";
 type TrustKey = "verified" | "response" | "security";
@@ -419,8 +420,258 @@ const copy = {
   },
 } as const;
 
+const localizedCopy = {
+  ...copy,
+  ru: {
+    nav: {
+      exhibition: "Игровой мир",
+      fastview: "Играть",
+      marketplace: "Магазины в игре",
+      solutions: "Квесты",
+      onboarding: "Онбординг",
+      about: "О нас",
+    },
+    cta: {
+      supplier: "Вход для бренда",
+      fastview: "Играть сейчас",
+      visit: "Войти в игру",
+      onboarding: "Добавить товары в игру",
+      startTour: "Начать играть",
+      visitSection: "Войти в мир",
+      explore: "Запустить опыт",
+    },
+    hero: {
+      tag: "Игровой мир с покупками",
+      title: "Играйте в 3DSFERA, получайте награды и покупайте реальные товары внутри игры.",
+      description:
+        "Браузерный игровой мир, где игроки исследуют городские зоны, запускают аркадные автоматы, получают бонусы в кошелек и покупают товары в брендовых павильонах, не выходя из опыта.",
+    },
+    stats: [
+      { value: "3", label: "Аркадных режима" },
+      { value: "24", label: "Уровня наград" },
+      { value: "4K", label: "Кинематографичный игровой стрим" },
+    ],
+    trust: {
+      tag: "Игровая экономика",
+      title: "Сначала удовольствие. Покупки ощущаются частью мира.",
+      description:
+        "Игроки набирают очки, собирают награды, изучают товары и переходят к покупке через интерфейсы, которые выглядят как естественная часть игрового цикла.",
+      metrics: [
+        { value: "100%", label: "Проверенные брендовые павильоны" },
+        { value: "1", label: "Кошелек для монет и наград" },
+        { value: "24/7", label: "Доступ из браузера" },
+      ],
+      pillars: [
+        {
+          key: "verified" as const,
+          title: "Награды с реальной пользой",
+          description: "Победы в аркадах могут открывать бонусы кошелька, купоны и действия с товарами.",
+        },
+        {
+          key: "response" as const,
+          title: "Дропы, квесты и бонусы",
+          description: "Бренды могут открывать предложения через игровые моменты, не ломая погружение.",
+        },
+        {
+          key: "security" as const,
+          title: "Контролируемая коммерция",
+          description: "Карточки товаров, диалоги и путь к покупке остаются понятными и модерируемыми.",
+        },
+      ],
+      buyersTitle: "Для игроков",
+      buyersDescription: "Сначала игра, затем награды помогают открыть товары в момент живого интереса.",
+      suppliersTitle: "Для брендов",
+      suppliersDescription: "Размещайте товары в премиальном игровом мире, а не в очередном плоском каталоге.",
+    },
+    sectionA: {
+      tag: "Слой игрового мира",
+      title: "Аркадная энергия на поверхности, премиальная коммерция внутри.",
+      description:
+        "3DSFERA превращает павильоны в игровые точки притяжения: автоматы, квесты, товары, чат и награды живут в одном сценическом потоке.",
+      pillars: [
+        {
+          key: "pipeline" as const,
+          title: "Игровые аркадные автоматы",
+          description:
+            "Snake, Flappy Sfera и Brick Breaker дают посетителям игру, которую хочется освоить перед покупками.",
+        },
+        {
+          key: "attendance" as const,
+          title: "Открытие товаров через квесты",
+          description: "Товары можно раскрывать через миссии, цели по очкам, бонусы кошелька и события.",
+        },
+        {
+          key: "safe" as const,
+          title: "Покупки внутри игры",
+          description: "Игроки открывают карточки товаров, пишут брендам, сохраняют позиции и переходят к покупке.",
+        },
+      ],
+      signal: {
+        title: "Превью игрового HUD",
+        subtitle: "Живая сессия игрока",
+        session: "Игрок",
+        online: "Онлайн",
+        items: ["Аркадный автомат", "Кошелек наград", "Товарный дроп", "Павильон бренда"],
+        ready: "Готово",
+        trusted: "Игровой цикл",
+        tags: ["Играть", "Побеждать", "Собирать", "Покупать"],
+      },
+    },
+    sectionB: {
+      tag: "Цикл игрока",
+      title: "Понятный путь от игры к покупке.",
+      steps: [
+        {
+          step: "01",
+          title: "Войти в город",
+          description: "Попадайте в 3D-мир и перемещайтесь по зонам как в премиальной браузерной игре.",
+        },
+        {
+          step: "02",
+          title: "Играть и зарабатывать",
+          description: "Открывайте автоматы, проходите испытания, собирайте серии очков и получайте награды.",
+        },
+        {
+          step: "03",
+          title: "Покупать в мире",
+          description: "Используйте карточки товаров, чаты павильонов, избранное и награды, не выходя из игры.",
+        },
+      ],
+    },
+    sectionC: {
+      tag: "Готово к запуску",
+      title: "Сделайте коммерцию миром, в который действительно хочется играть.",
+      description:
+        "Объедините игры, награды, товарные павильоны и реальные покупки в одном премиальном опыте для удержания и конверсии.",
+    },
+  },
+  zh: {
+    nav: {
+      exhibition: "游戏世界",
+      fastview: "开始玩",
+      marketplace: "游戏内商店",
+      solutions: "任务",
+      onboarding: "入驻",
+      about: "关于",
+    },
+    cta: {
+      supplier: "品牌登录",
+      fastview: "立即开始",
+      visit: "进入游戏",
+      onboarding: "把商品带入游戏",
+      startTour: "开始游戏",
+      visitSection: "进入世界",
+      explore: "启动体验",
+    },
+    hero: {
+      tag: "可玩的商业世界",
+      title: "在 3DSFERA 中游玩、赢取奖励，并在游戏内购买真实商品。",
+      description:
+        "一个基于浏览器的游戏世界，玩家可以探索城市区域、进入街机小游戏、获得钱包奖励，并在品牌展馆中完成商品发现与购买。",
+    },
+    stats: [
+      { value: "3", label: "可玩的街机模式" },
+      { value: "24", label: "奖励等级" },
+      { value: "4K", label: "电影级游戏串流" },
+    ],
+    trust: {
+      tag: "游戏经济层",
+      title: "乐趣优先，购物自然融入世界。",
+      description:
+        "玩家可以冲击分数、收集奖励、查看商品，并通过像游戏界面一样自然的路径进入购买流程。",
+      metrics: [
+        { value: "100%", label: "已验证品牌展馆" },
+        { value: "1", label: "金币与奖励钱包" },
+        { value: "24/7", label: "浏览器随时进入" },
+      ],
+      pillars: [
+        {
+          key: "verified" as const,
+          title: "有真实用途的奖励",
+          description: "街机胜利可以连接钱包额度、优惠券和商品行动。",
+        },
+        {
+          key: "response" as const,
+          title: "掉落、任务与奖励",
+          description: "品牌可以通过游戏时刻解锁优惠，同时保持沉浸感。",
+        },
+        {
+          key: "security" as const,
+          title: "可控的商业流程",
+          description: "商品页、沟通与购买路径保持清晰，并处于可管理状态。",
+        },
+      ],
+      buyersTitle: "面向玩家",
+      buyersDescription: "先玩起来，再用奖励在兴趣最强的时候发现商品。",
+      suppliersTitle: "面向品牌",
+      suppliersDescription: "把商品放入高级游戏世界，而不是另一个平面目录。",
+    },
+    sectionA: {
+      tag: "游戏世界层",
+      title: "表面是街机能量，底层是高级商业能力。",
+      description:
+        "3DSFERA 将展馆变成可玩的目的地：街机、任务、商品发现、聊天和奖励都在同一个场景流程中。",
+      pillars: [
+        {
+          key: "pipeline" as const,
+          title: "可玩的街机设备",
+          description: "Snake、Flappy Sfera 和 Brick Breaker 风格挑战，让访客先掌握玩法再购物。",
+        },
+        {
+          key: "attendance" as const,
+          title: "基于任务的发现",
+          description: "商品可以通过任务、分数目标、钱包奖励和活动掉落被解锁。",
+        },
+        {
+          key: "safe" as const,
+          title: "游戏内购买",
+          description: "玩家可以打开商品浮层、联系品牌、收藏商品，并继续进入购买流程。",
+        },
+      ],
+      signal: {
+        title: "游戏 HUD 预览",
+        subtitle: "实时玩家会话",
+        session: "玩家",
+        online: "在线",
+        items: ["街机设备", "奖励钱包", "商品掉落", "品牌展馆"],
+        ready: "就绪",
+        trusted: "游戏循环",
+        tags: ["玩", "赢", "收集", "购买"],
+      },
+    },
+    sectionB: {
+      tag: "玩家循环",
+      title: "从游戏到购买的清晰路径。",
+      steps: [
+        {
+          step: "01",
+          title: "进入城市",
+          description: "进入 3D 世界，在不同区域中移动，体验高级浏览器游戏般的空间感。",
+        },
+        {
+          step: "02",
+          title: "游玩并获得奖励",
+          description: "打开街机设备、完成挑战、累积分数连击，并获得奖励价值。",
+        },
+        {
+          step: "03",
+          title: "在世界中购物",
+          description: "使用商品浮层、展馆聊天、收藏商品和钱包奖励，不离开游戏即可继续购物。",
+        },
+      ],
+    },
+    sectionC: {
+      tag: "准备上线",
+      title: "让商业变成一个用户愿意真正游玩的世界。",
+      description:
+        "将游戏、奖励、商品展馆和真实购买整合进一个高级体验，用于提升留存与转化。",
+    },
+  },
+} as const;
+
 export default function LandingPage() {
-  const t = copy.en;
+  const { language } = useLanguage();
+  const t = localizedCopy[language];
 
   return (
     <div
