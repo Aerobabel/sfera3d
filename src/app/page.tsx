@@ -14,7 +14,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import BrandLogo from "@/components/BrandLogo";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 type PillarKey = "pipeline" | "attendance" | "safe";
 type TrustKey = "verified" | "response" | "security";
@@ -421,8 +420,7 @@ const copy = {
 } as const;
 
 export default function LandingPage() {
-  const { language } = useLanguage();
-  const t = copy[language];
+  const t = copy.en;
 
   return (
     <div

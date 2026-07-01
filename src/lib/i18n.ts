@@ -2,7 +2,7 @@ import { Product } from "./types";
 
 export type AppLanguage = "ru" | "zh" | "en";
 
-export const DEFAULT_LANGUAGE: AppLanguage = "ru";
+export const DEFAULT_LANGUAGE: AppLanguage = "en";
 export const CHINA_HOSTNAME = "china.3dsfera.org";
 export const LANGUAGE_STORAGE_KEY = "3dsfera_language";
 
