@@ -4,11 +4,12 @@ import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
-  Clock3,
-  Cpu,
-  Globe2,
+  Gamepad2,
+  Gift,
   Handshake,
+  ShoppingBag,
   ShieldCheck,
+  Trophy,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -19,14 +20,14 @@ type PillarKey = "pipeline" | "attendance" | "safe";
 type TrustKey = "verified" | "response" | "security";
 
 const pillarIcons: Record<PillarKey, LucideIcon> = {
-  pipeline: Cpu,
-  attendance: Globe2,
-  safe: ShieldCheck,
+  pipeline: Gamepad2,
+  attendance: Trophy,
+  safe: ShoppingBag,
 };
 
 const trustIcons: Record<TrustKey, LucideIcon> = {
-  verified: BadgeCheck,
-  response: Clock3,
+  verified: Trophy,
+  response: Gift,
   security: ShieldCheck,
 };
 
@@ -35,130 +36,130 @@ const playerIntroLoginHref = "/login?role=player&next=%2Froles%3Fintro%3Dcity";
 const copy = {
   en: {
     nav: {
-      exhibition: "Exhibition",
-      fastview: "FastView",
-      marketplace: "Marketplace",
-      solutions: "Solutions",
+      exhibition: "Game World",
+      fastview: "Play",
+      marketplace: "In-Game Shops",
+      solutions: "Quests",
       onboarding: "Onboarding",
       about: "About",
     },
     cta: {
-      supplier: "Supplier Login",
-      fastview: "Open FastView",
-      visit: "Visit Exhibition",
-      onboarding: "Supplier Onboarding",
-      startTour: "Start Interactive Tour",
-      visitSection: "Visit Exhibition",
-      explore: "Explore Live",
+      supplier: "Creator Login",
+      fastview: "Play Now",
+      visit: "Enter Game",
+      onboarding: "Bring Products In-Game",
+      startTour: "Start Playing",
+      visitSection: "Enter the World",
+      explore: "Launch Experience",
     },
     hero: {
-      tag: "Immersive B2B Marketplace",
-      title: "3DSFERA turns supplier catalogs into a live virtual marketplace buyers can walk through.",
+      tag: "Playable Commerce World",
+      title: "Play through 3DSFERA, win rewards, and shop real products inside the game.",
       description:
-        "Buyers enter branded 3D pavilions, inspect products, open details, and start supplier conversations in one browser-based experience built for serious trade.",
+        "A browser-based game world where players explore city zones, jump into arcade cabinets, earn wallet credits, and buy from branded pavilions without leaving the experience.",
     },
     stats: [
-      { value: "42", label: "Active Supplier Halls" },
-      { value: "13 ms", label: "Median Input Latency" },
-      { value: "4K", label: "Cinematic Stream Quality" },
+      { value: "3", label: "Playable Arcade Modes" },
+      { value: "24", label: "Reward Levels" },
+      { value: "4K", label: "Cinematic Game Stream" },
     ],
     trust: {
-      tag: "Trust Layer",
-      title: "Built for confident buyer-supplier decisions.",
+      tag: "Game Economy Layer",
+      title: "The fun comes first. The shopping feels native to the world.",
       description:
-        "Every inquiry, listing, and supplier profile is designed to reduce risk and shorten time to deal.",
+        "Players can chase scores, collect rewards, inspect products, and move to checkout through interfaces that feel like part of the game loop.",
       metrics: [
-        { value: "100%", label: "Verified Supplier Profiles" },
-        { value: "< 15m", label: "Median First Reply Time" },
-        { value: "24/7", label: "Session Monitoring" },
+        { value: "100%", label: "Verified Brand Pavilions" },
+        { value: "1", label: "Wallet for Coins and Rewards" },
+        { value: "24/7", label: "Playable Browser Access" },
       ],
       pillars: [
         {
           key: "verified" as const,
-          title: "Verified Supplier Identity",
-          description: "Each supplier profile is screened before going live in the marketplace.",
+          title: "Rewards With Real Utility",
+          description: "Arcade wins can connect to wallet credits, coupons, and product actions.",
         },
         {
           key: "response" as const,
-          title: "Measured Response SLA",
-          description: "Live chat responsiveness is tracked so buyers know when to expect answers.",
+          title: "Drops, Quests, and Bonuses",
+          description: "Brands can use game moments to unlock offers without breaking immersion.",
         },
         {
           key: "security" as const,
-          title: "Secure Commercial Sessions",
-          description: "Session-level protection and moderated channels keep conversations business-safe.",
+          title: "Commerce That Stays Controlled",
+          description: "Product pages, conversations, and checkout paths remain clear and moderated.",
         },
       ],
-      buyersTitle: "For Buyers",
-      buyersDescription: "Compare products with confidence and speak directly to accountable suppliers.",
-      suppliersTitle: "For Suppliers",
-      suppliersDescription: "Receive qualified inquiries and reply in a structured, trusted environment.",
+      buyersTitle: "For Players",
+      buyersDescription: "Play first, then use rewards to discover products when curiosity is already high.",
+      suppliersTitle: "For Brands",
+      suppliersDescription: "Place products inside a premium game world instead of another flat catalog.",
     },
     sectionA: {
-      tag: "Experience Layer",
-      title: "A polished commercial stage for every supplier booth.",
+      tag: "Game World Layer",
+      title: "Arcade energy on the surface, premium commerce underneath.",
       description:
-        "Real-time overlays, AI-assisted chat, and object-level interaction create the feeling of a hosted showroom while preserving web-native accessibility for global attendees.",
+        "3DSFERA turns pavilions into playable destinations: cabinets, quests, product discovery, chat, and rewards all live in one scene-first flow.",
       pillars: [
         {
           key: "pipeline" as const,
-          title: "Realtime Unreal Pipeline",
+          title: "Playable Arcade Cabinets",
           description:
-            "Products are streamed from Unreal Engine with interactive lighting, reflections, and physical scale.",
+            "Snake, Flappy Sfera, and Brick Breaker style challenges give visitors something to master before they shop.",
         },
         {
           key: "attendance" as const,
-          title: "Borderless Attendance",
+          title: "Quest-Based Discovery",
           description:
-            "Open from desktop, tablet, or mobile browser. No installer, no high-end workstation requirement.",
+            "Products can be revealed through missions, score targets, wallet bonuses, and event drops.",
         },
         {
           key: "safe" as const,
-          title: "Enterprise Safe",
+          title: "In-Game Purchasing",
           description:
-            "Session isolation, verified supplier channels, and moderated interactions designed for commercial events.",
+            "Players can open product overlays, message suppliers, save items, and continue into checkout.",
         },
       ],
       signal: {
-        title: "Signal Preview",
-        subtitle: "Live Stage Quality",
-        session: "Session",
+        title: "Game HUD Preview",
+        subtitle: "Live Player Session",
+        session: "Player",
         online: "Online",
-        items: ["Render Pipeline", "Pixel Stream", "Supplier Chat", "Product Overlay"],
+        items: ["Arcade Cabinet", "Reward Wallet", "Product Drop", "Brand Pavilion"],
         ready: "Ready",
-        trusted: "Trusted by teams",
-        tags: ["Footwear", "Consumer Tech", "Industrial", "Home & Living"],
+        trusted: "Game loop",
+        tags: ["Play", "Win", "Collect", "Shop"],
       },
     },
     sectionB: {
-      tag: "Conversion Journey",
-      title: "From curiosity to qualified lead in three steps.",
+      tag: "Player Loop",
+      title: "A clear path from gameplay to purchase.",
       steps: [
         {
           step: "01",
-          title: "Enter a Live Pavilion",
+          title: "Enter the City",
           description:
-            "Walk curated halls, inspect products, and control the scene with responsive interactions.",
+            "Land inside the 3D world and move through zones that feel like a premium browser game.",
         },
         {
           step: "02",
-          title: "Focus on Any Object",
+          title: "Play and Earn",
           description:
-            "Use crosshair targeting, open detail cards instantly, and compare specs without context switching.",
+            "Open arcade cabinets, complete challenges, build score streaks, and collect reward value.",
         },
         {
           step: "03",
-          title: "Connect and Convert",
+          title: "Shop In-World",
           description:
-            "Launch supplier chat, request catalogs, and move directly from discovery to qualified lead flow.",
+            "Use product overlays, pavilion chats, saved items, and wallet rewards without leaving the game.",
         },
       ],
     },
     sectionC: {
       tag: "Ready for Launch",
-      title: "Turn your next expo into a premium digital destination.",
+      title: "Make commerce feel like a world people actually want to play.",
       description:
-        "Bring your suppliers, catalogs, and product scenes into one immersive environment designed for measurable engagement.",
+        "Bring games, rewards, product pavilions, and real purchasing into one premium experience built for retention and conversion.",
     },
   },
   ru: {
