@@ -1,5 +1,6 @@
 'use client';
 
+import type { SyntheticEvent } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -32,6 +33,16 @@ const trustIcons: Record<TrustKey, LucideIcon> = {
 };
 
 const playerIntroLoginHref = "/login?role=player&next=%2Froles%3Fintro%3Dcity";
+const HERO_VIDEO_STOP_TIME_SECONDS = 8.6;
+
+const pauseHeroVideoBeforeBrightTail = (event: SyntheticEvent<HTMLVideoElement>) => {
+  const video = event.currentTarget;
+
+  if (video.currentTime < HERO_VIDEO_STOP_TIME_SECONDS) return;
+
+  video.pause();
+  video.currentTime = HERO_VIDEO_STOP_TIME_SECONDS;
+};
 
 const copy = {
   en: {
@@ -736,9 +747,10 @@ export default function LandingPage() {
             className="absolute inset-0 h-full w-full object-cover opacity-[0.64]"
             autoPlay
             muted
-            loop
             playsInline
             poster="/sferapic.png"
+            onEnded={pauseHeroVideoBeforeBrightTail}
+            onTimeUpdate={pauseHeroVideoBeforeBrightTail}
           >
             <source src="/cutscenes/cityvideo.mp4" type="video/mp4" />
           </video>
