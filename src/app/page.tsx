@@ -1,6 +1,6 @@
 'use client';
 
-import type { SyntheticEvent } from "react";
+import { useState, type SyntheticEvent } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -33,10 +33,18 @@ const trustIcons: Record<TrustKey, LucideIcon> = {
 };
 
 const playerIntroLoginHref = "/login?role=player&next=%2Froles%3Fintro%3Dcity";
+const HERO_VIDEO_FADE_START_TIME_SECONDS = 5.25;
 const HERO_VIDEO_STOP_TIME_SECONDS = 6.55;
 
-const pauseHeroVideoBeforeBrightTail = (event: SyntheticEvent<HTMLVideoElement>) => {
+const syncHeroVideoOutro = (
+  event: SyntheticEvent<HTMLVideoElement>,
+  fadeHeroVideo: () => void,
+) => {
   const video = event.currentTarget;
+
+  if (video.currentTime >= HERO_VIDEO_FADE_START_TIME_SECONDS) {
+    fadeHeroVideo();
+  }
 
   if (video.currentTime < HERO_VIDEO_STOP_TIME_SECONDS) return;
 
@@ -682,6 +690,7 @@ const localizedCopy = {
 
 export default function LandingPage() {
   const { language } = useLanguage();
+  const [isHeroVideoFaded, setIsHeroVideoFaded] = useState(false);
   const t = localizedCopy[language];
 
   return (
@@ -744,13 +753,15 @@ export default function LandingPage() {
           className="relative isolate min-h-[calc(100svh-4rem)] overflow-hidden border-b border-white/10"
         >
           <video
-            className="absolute inset-0 h-full w-full object-cover opacity-[0.64]"
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1400ms] ease-out ${
+              isHeroVideoFaded ? "opacity-0" : "opacity-[0.64]"
+            }`}
             autoPlay
             muted
             playsInline
             poster="/sferapic.png"
-            onEnded={pauseHeroVideoBeforeBrightTail}
-            onTimeUpdate={pauseHeroVideoBeforeBrightTail}
+            onEnded={(event) => syncHeroVideoOutro(event, () => setIsHeroVideoFaded(true))}
+            onTimeUpdate={(event) => syncHeroVideoOutro(event, () => setIsHeroVideoFaded(true))}
           >
             <source src="/cutscenes/cityvideo.mp4" type="video/mp4" />
           </video>
