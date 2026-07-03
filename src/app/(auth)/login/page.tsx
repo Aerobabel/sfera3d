@@ -251,6 +251,7 @@ function LoginPageContent() {
   const [otpRequested, setOtpRequested] = useState(false);
   const [isBootstrappingAuth, setIsBootstrappingAuth] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResendingOtp, setIsResendingOtp] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
@@ -797,10 +798,10 @@ function LoginPageContent() {
             {authMethod === "otp" && otpRequested && (
               <button
                 type="button"
-                disabled={isSubmitting}
+                disabled={isResendingOtp}
                 onClick={() => {
                   resetMessages();
-                  setIsSubmitting(true);
+                  setIsResendingOtp(true);
                   void sendOtp()
                     .catch((error: unknown) => {
                       const rawMessage = error instanceof Error ? error.message : '';
@@ -819,12 +820,12 @@ function LoginPageContent() {
                       setErrorMessage(friendly);
                     })
                     .finally(() => {
-                      setIsSubmitting(false);
+                      setIsResendingOtp(false);
                     });
                 }}
                 className="flex w-full justify-center rounded-lg border border-white/15 px-3 py-3 text-sm font-semibold text-gray-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isSubmitting ? t.loading : t.resendOtp}
+                {isResendingOtp ? t.loading : t.resendOtp}
               </button>
             )}
           </div>

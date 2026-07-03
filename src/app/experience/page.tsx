@@ -2,7 +2,7 @@
 
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { Activity, ChevronDown, Coins, Gamepad2, Gift, ListChecks, Monitor, Play, Send, Sparkles, Trophy, Volume2, WalletCards, X, Zap, Menu } from "lucide-react";
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -821,6 +821,7 @@ const BLOCKED_UNREAL_KEY_CODES = [
     'F1', 'F2', 'F3', 'F4', 'F5', 'F6',
     'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
 ];
+const ARCADE_CONTROL_KEY_CODES = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'];
 
 
 type FrontendCinematic = {
@@ -1078,22 +1079,22 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
         runnerHint: 'Зеленый $ и янтарный x2 дают приз. Избегайте красной ! дорожки, затем жмите Dash.',
         games: {
             'pulse-runner': {
-                title: 'Neon Runner',
-                tag: 'Раннер',
-                body: 'Уклоняйтесь от барьеров, меняйте дорожки и собирайте монеты Sfera.',
-                mechanic: 'Выберите дорожку и пройдите шесть ворот, чтобы получить небольшой приз.',
+                title: 'Snake Cabinet',
+                tag: 'Классическая змейка',
+                body: 'Управляйте неоновой змейкой, собирайте монеты Sfera и не врезайтесь в стены или собственный хвост.',
+                mechanic: 'Используйте стрелки, WASD или кнопки направления. Соберите 5 монет для выплаты.',
             },
             'signal-match': {
-                title: 'Signal Match',
-                tag: 'Память',
-                body: 'Повторите неоновую последовательность до остывания цепи.',
-                mechanic: 'Соберите цепочку до остывания, чтобы получить небольшой приз.',
+                title: 'Brick Breaker',
+                tag: 'Аркада с платформой',
+                body: 'Двигайте платформу, удерживайте шар в игре и разбивайте неоновые блоки.',
+                mechanic: 'Используйте стрелки влево/вправо, A/D или кнопки платформы. Разбейте блоки для бонусной выплаты.',
             },
             'vault-drop': {
-                title: 'Sfera Prize Drop',
-                tag: 'Приз-дроп',
-                body: 'Бросьте светящийся жетон через поле Sfera и поймайте призовой слот.',
-                mechanic: 'Отпустите жетон, когда золотой маркер над нужной дорожкой. Жетон может сместиться на один слот.',
+                title: 'Flappy Sfera',
+                tag: 'Полет через ворота',
+                body: 'Проведите шар Sfera через движущиеся ворота короткими точными нажатиями.',
+                mechanic: 'Нажимайте Space или кнопку Flap, чтобы подпрыгивать. Пройдите 4 ворот для выплаты.',
             },
         },
     },
@@ -1120,22 +1121,22 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
         runnerHint: '绿色 $ 和琥珀 x2 是奖励。避开红色 ! 路线，然后点击 Dash。',
         games: {
             'pulse-runner': {
-                title: 'Neon Runner',
-                tag: '跑酷',
-                body: '躲避障碍、切换路线并收集 Sfera 硬币。',
-                mechanic: '选择路线并通过六道门即可获得小额奖励。',
+                title: 'Snake Cabinet',
+                tag: '经典贪吃蛇',
+                body: '控制霓虹蛇收集 Sfera 硬币，避开墙壁和自己的轨迹。',
+                mechanic: '使用方向键、WASD 或方向按钮。收集 5 枚硬币即可获得奖励。',
             },
             'signal-match': {
-                title: 'Signal Match',
-                tag: '记忆',
-                body: '在电路冷却前重复霓虹序列。',
-                mechanic: '在电路冷却前完成整条序列即可领取小额奖励。',
+                title: 'Brick Breaker',
+                tag: '挡板街机',
+                body: '移动挡板，让球保持在场内并击碎霓虹砖块。',
+                mechanic: '使用左/右方向键、A/D 或挡板按钮。清除砖块即可获得额外奖励。',
             },
             'vault-drop': {
-                title: 'Sfera Prize Drop',
-                tag: '奖励掉落',
-                body: '让发光代币穿过 Sfera 奖励板并落入奖励槽。',
-                mechanic: '金色标记移动到目标槽位时释放，代币可能左右漂移一格。',
+                title: 'Flappy Sfera',
+                tag: '穿越闸门',
+                body: '用短促精准的点击操控 Sfera 球穿过移动闸门。',
+                mechanic: '按 Space 或点击 Flap。通过 4 道闸门即可获得奖励。',
             },
         },
     },
@@ -1145,12 +1146,16 @@ function ArcadeOverlay({
     copy,
     walletBalanceCents,
     transactions,
+    playsRemaining,
+    setPlaysRemaining,
     onClose,
     onPrize,
 }: {
     copy: ArcadeCopy;
     walletBalanceCents: number;
     transactions: WalletTransaction[];
+    playsRemaining: number;
+    setPlaysRemaining: Dispatch<SetStateAction<number>>;
     onClose: () => void;
     onPrize: (amountCents: number, gameTitle: string) => void;
 }) {
@@ -1177,7 +1182,6 @@ function ArcadeOverlay({
     const [breakerScore, setBreakerScore] = useState(0);
     const [breakerGameOver, setBreakerGameOver] = useState(false);
     const [result, setResult] = useState<{ label: string; amountCents: number } | null>(null);
-    const [playsRemaining, setPlaysRemaining] = useState<number>(GAME_RULES.arcade.maxPlaysPerOpen);
 
     const award = useCallback((amountCents: number, label: string) => {
         if (playsRemaining <= 0) {
@@ -1190,7 +1194,7 @@ function ArcadeOverlay({
         if (amountCents > 0) {
             onPrize(amountCents, copy.games[activeGame].title);
         }
-    }, [activeGame, copy.games, copy.limitReached, onPrize, playsRemaining]);
+    }, [activeGame, copy.games, copy.limitReached, onPrize, playsRemaining, setPlaysRemaining]);
 
     const endSnake = useCallback((score: number) => {
         setSnakeRunning(false);
@@ -1405,22 +1409,59 @@ function ArcadeOverlay({
         return () => window.clearInterval(timer);
     }, [activeGame, breakerBall, breakerBricks, breakerGameOver, breakerPaddle, breakerRunning, breakerScore, endBreaker]);
 
-    const handleArcadeKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const handleArcadeKeyboardInput = (key: string, code: string) => {
+        const normalizedKey = key.toLowerCase();
+
         if (activeGame === 'pulse-runner') {
-            if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') setSnakeMove('up');
-            if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') setSnakeMove('down');
-            if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') setSnakeMove('left');
-            if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') setSnakeMove('right');
+            if (key === 'ArrowUp' || normalizedKey === 'w') setSnakeMove('up');
+            if (key === 'ArrowDown' || normalizedKey === 's') setSnakeMove('down');
+            if (key === 'ArrowLeft' || normalizedKey === 'a') setSnakeMove('left');
+            if (key === 'ArrowRight' || normalizedKey === 'd') setSnakeMove('right');
+            return true;
         }
-        if (activeGame === 'vault-drop' && event.code === 'Space') {
-            event.preventDefault();
+        if (activeGame === 'vault-drop' && code === 'Space') {
             flap();
+            return true;
         }
         if (activeGame === 'signal-match') {
-            if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') movePaddle(-7);
-            if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') movePaddle(7);
+            if (key === 'ArrowLeft' || normalizedKey === 'a') {
+                movePaddle(-7);
+                return true;
+            }
+            if (key === 'ArrowRight' || normalizedKey === 'd') {
+                movePaddle(7);
+                return true;
+            }
         }
+
+        return false;
     };
+
+    useEffect(() => {
+        const stopArcadeKeysFromReachingStreamer = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement | null;
+            if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+
+            const isArcadeControlKey =
+                ARCADE_CONTROL_KEY_CODES.includes(event.code) ||
+                ARCADE_CONTROL_KEY_CODES.includes(event.key);
+            if (!isArcadeControlKey) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            if (event.type === 'keydown') {
+                handleArcadeKeyboardInput(event.key, event.code);
+            }
+        };
+
+        document.addEventListener('keydown', stopArcadeKeysFromReachingStreamer, true);
+        document.addEventListener('keyup', stopArcadeKeysFromReachingStreamer, true);
+        return () => {
+            document.removeEventListener('keydown', stopArcadeKeysFromReachingStreamer, true);
+            document.removeEventListener('keyup', stopArcadeKeysFromReachingStreamer, true);
+        };
+    });
 
     const activeCopy = copy.games[activeGame];
     const visibleTransactions = transactions.slice(0, 4);
@@ -1510,7 +1551,6 @@ function ArcadeOverlay({
                         <div
                             className="mt-5 min-h-[16rem] rounded-2xl border border-white/10 bg-[linear-gradient(145deg,rgba(102,217,203,0.06),rgba(245,199,102,0.05),rgba(255,255,255,0.03))] p-4 outline-none focus:border-[#66d9cb]/35"
                             tabIndex={0}
-                            onKeyDown={handleArcadeKeyDown}
                         >
                             {activeGame === 'pulse-runner' && (
                                 <div className="grid gap-5">
@@ -1980,6 +2020,7 @@ export default function ExperiencePage() {
     const [activePavilion, setActivePavilion] = useState<PavilionInfo | null>(null);
     const [isRewardTerminalOpen, setIsRewardTerminalOpen] = useState(false);
     const [isArcadeOpen, setIsArcadeOpen] = useState(false);
+    const [arcadePlaysRemaining, setArcadePlaysRemaining] = useState<number>(GAME_RULES.arcade.maxPlaysPerOpen);
     const [isQuestChecklistOpen, setIsQuestChecklistOpen] = useState(false);
     const [seenRewardTerminalRewardId, setSeenRewardTerminalRewardId] = useState<string | null>(null);
     const localizedActiveProduct = useMemo(
@@ -2074,6 +2115,11 @@ export default function ExperiencePage() {
         }));
         playSferaUiSound('reward');
     }, [unrealBridge]);
+
+    const blockedUnrealKeyboardCodes = useMemo(
+        () => (isArcadeOpen ? [...BLOCKED_UNREAL_KEY_CODES, ...ARCADE_CONTROL_KEY_CODES] : BLOCKED_UNREAL_KEY_CODES),
+        [isArcadeOpen]
+    );
 
 
     useEffect(() => {
@@ -3226,8 +3272,8 @@ export default function ExperiencePage() {
                         onConnectionError={setFastViewError}
                         mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
                         isMobileDevice={isMobile}
-                        keyboardInputEnabled={!isChatFocused}
-                        blockedKeyboardCodes={BLOCKED_UNREAL_KEY_CODES}
+                        keyboardInputEnabled={!isChatFocused && !isArcadeOpen}
+                        blockedKeyboardCodes={blockedUnrealKeyboardCodes}
                         mouseSensitivity={mouseSensitivity}
                     />
                 ) : (
@@ -3239,8 +3285,8 @@ export default function ExperiencePage() {
                             onVideoInitialized={setVideoElement}
                             mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
                             isMobileDevice={isMobile}
-                            keyboardInputEnabled={!isChatFocused}
-                            blockedKeyboardCodes={BLOCKED_UNREAL_KEY_CODES}
+                            keyboardInputEnabled={!isChatFocused && !isArcadeOpen}
+                            blockedKeyboardCodes={blockedUnrealKeyboardCodes}
                             mouseSensitivity={mouseSensitivity}
                         />
                     </>
@@ -4016,6 +4062,8 @@ export default function ExperiencePage() {
                             copy={ARCADE_COPY[language]}
                             walletBalanceCents={walletBalanceCents}
                             transactions={recentWalletTransactions}
+                            playsRemaining={arcadePlaysRemaining}
+                            setPlaysRemaining={setArcadePlaysRemaining}
                             onClose={() => setIsArcadeOpen(false)}
                             onPrize={handleArcadePrize}
                         />

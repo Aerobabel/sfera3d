@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useState, type SyntheticEvent } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import BrandLogo from "@/components/BrandLogo";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { clearServerAuthSession } from "@/lib/auth/browser";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type PillarKey = "pipeline" | "attendance" | "safe";
 type TrustKey = "verified" | "response" | "security";
@@ -691,7 +693,53 @@ const localizedCopy = {
 export default function LandingPage() {
   const { language } = useLanguage();
   const [isHeroVideoFaded, setIsHeroVideoFaded] = useState(false);
+  const [viewerEmail, setViewerEmail] = useState<string | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const t = localizedCopy[language];
+  const signOutLabel = language === "ru" ? "Выйти" : language === "zh" ? "退出登录" : "Sign out";
+
+  useEffect(() => {
+    let isMounted = true;
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      void supabase.auth
+        .getSession()
+        .then(({ data }) => {
+          if (isMounted) {
+            setViewerEmail(data.session?.user.email ?? null);
+          }
+        })
+        .catch(() => {});
+
+      const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (isMounted) {
+          setViewerEmail(session?.user.email ?? null);
+        }
+      });
+
+      return () => {
+        isMounted = false;
+        authListener.subscription.unsubscribe();
+      };
+    } catch {
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    setIsSigningOut(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      await supabase.auth.signOut();
+      await clearServerAuthSession().catch(() => {});
+      setViewerEmail(null);
+    } finally {
+      setIsSigningOut(false);
+    }
+  }, []);
 
   return (
     <div
@@ -743,6 +791,17 @@ export default function LandingPage() {
             >
               {t.cta.visit}
             </Link>
+            {viewerEmail && (
+              <button
+                type="button"
+                onClick={() => void handleSignOut()}
+                disabled={isSigningOut}
+                className="rounded-full border border-white/15 px-3 py-2 text-xs font-semibold tracking-wide text-[#f5f1e9] transition hover:border-white/35 hover:bg-white/10 disabled:cursor-wait disabled:opacity-50 sm:px-4 sm:text-sm"
+                title={viewerEmail}
+              >
+                {signOutLabel}
+              </button>
+            )}
           </div>
         </div>
       </header>

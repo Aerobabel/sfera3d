@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { applyQuestEvent, createInitialQuestProgress, getQuestDefinition } from '@/lib/quests';
 import { GAME_RULES } from '@/lib/unreal/gameRules';
 import type { ArenaMoment, UnrealEventBridgeState, UnrealPixelStreamingEvent } from '@/lib/unreal/types';
@@ -8,6 +8,7 @@ import type { ArenaMoment, UnrealEventBridgeState, UnrealPixelStreamingEvent } f
 const ACCESS_DENIED_PLAYER_MODE_NEEDED = 'Switch to Player Mode to enter game zones.';
 const MAX_RECENT_ACTIVITY = 8;
 const MAX_ARENA_MOMENTS = 5;
+const PERSISTED_STATE_KEY = '3dsfera:player-progress:v1';
 
 const resolveZombieRank = (score: number) => {
     const rank = [...GAME_RULES.zombieArena.ranks]
@@ -58,6 +59,67 @@ const INITIAL_STATE: UnrealEventBridgeState = {
     lastCompletedQuestId: null,
     walletBalanceCents: 0,
     walletTransactions: [],
+};
+
+type PersistedBridgeState = Pick<
+    UnrealEventBridgeState,
+    'currentMode' | 'questProgress' | 'questRewards' | 'walletBalanceCents' | 'walletTransactions' | 'recentActivity'
+>;
+
+const isPersistedBridgeState = (value: unknown): value is Partial<PersistedBridgeState> => {
+    if (!value || typeof value !== 'object') return false;
+    const candidate = value as Partial<PersistedBridgeState>;
+    return (
+        (candidate.currentMode === undefined || candidate.currentMode === 'player' || candidate.currentMode === 'shopper') &&
+        (candidate.questProgress === undefined || Array.isArray(candidate.questProgress)) &&
+        (candidate.questRewards === undefined || Array.isArray(candidate.questRewards)) &&
+        (candidate.walletBalanceCents === undefined || typeof candidate.walletBalanceCents === 'number') &&
+        (candidate.walletTransactions === undefined || Array.isArray(candidate.walletTransactions)) &&
+        (candidate.recentActivity === undefined || Array.isArray(candidate.recentActivity))
+    );
+};
+
+const readPersistedBridgeState = (): UnrealEventBridgeState => {
+    if (typeof window === 'undefined') return INITIAL_STATE;
+
+    try {
+        const raw = window.localStorage.getItem(PERSISTED_STATE_KEY);
+        if (!raw) return INITIAL_STATE;
+
+        const parsed = JSON.parse(raw) as unknown;
+        if (!isPersistedBridgeState(parsed)) return INITIAL_STATE;
+
+        return {
+            ...INITIAL_STATE,
+            currentMode: parsed.currentMode ?? INITIAL_STATE.currentMode,
+            questProgress: parsed.questProgress ?? INITIAL_STATE.questProgress,
+            questRewards: parsed.questRewards ?? INITIAL_STATE.questRewards,
+            walletBalanceCents: parsed.walletBalanceCents ?? INITIAL_STATE.walletBalanceCents,
+            walletTransactions: parsed.walletTransactions ?? INITIAL_STATE.walletTransactions,
+            recentActivity: parsed.recentActivity ?? INITIAL_STATE.recentActivity,
+        };
+    } catch {
+        return INITIAL_STATE;
+    }
+};
+
+const persistBridgeState = (state: UnrealEventBridgeState) => {
+    if (typeof window === 'undefined') return;
+
+    const persisted: PersistedBridgeState = {
+        currentMode: state.currentMode,
+        questProgress: state.questProgress,
+        questRewards: state.questRewards,
+        walletBalanceCents: state.walletBalanceCents,
+        walletTransactions: state.walletTransactions,
+        recentActivity: state.recentActivity,
+    };
+
+    try {
+        window.localStorage.setItem(PERSISTED_STATE_KEY, JSON.stringify(persisted));
+    } catch {
+        // Ignore storage failures; gameplay should still work in private mode.
+    }
 };
 
 const parseUnrealEvent = (message: string): UnrealPixelStreamingEvent | null => {
@@ -112,7 +174,11 @@ const withQuestUpdate = (
 };
 
 export const useUnrealEventBridge = () => {
-    const [state, setState] = useState<UnrealEventBridgeState>(INITIAL_STATE);
+    const [state, setState] = useState<UnrealEventBridgeState>(readPersistedBridgeState);
+
+    useEffect(() => {
+        persistBridgeState(state);
+    }, [state]);
 
     const handleUnrealResponse = useCallback((message: string): UnrealPixelStreamingEvent | null => {
         const unrealEvent = parseUnrealEvent(message);
