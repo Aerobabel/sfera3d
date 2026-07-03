@@ -33,7 +33,7 @@ const trustIcons: Record<TrustKey, LucideIcon> = {
 };
 
 const playerIntroLoginHref = "/login?role=player&next=%2Froles%3Fintro%3Dcity";
-const HERO_VIDEO_STOP_TIME_SECONDS = 8.6;
+const HERO_VIDEO_STOP_TIME_SECONDS = 6.55;
 
 const pauseHeroVideoBeforeBrightTail = (event: SyntheticEvent<HTMLVideoElement>) => {
   const video = event.currentTarget;
