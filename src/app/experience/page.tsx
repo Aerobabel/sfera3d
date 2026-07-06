@@ -312,8 +312,8 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         recentWinnings: 'Recent winnings',
         noWinnings: 'Arcade prizes and quest money will appear here.',
         guideTitle: 'What to do now',
-        guideBody: 'Your goal is simple and weirdly urgent: buy water. Start at the locked dispenser, get J2 and B3 from suppliers, open Zombie Hall, win the water code and coins, then come back for EVIAN.',
-        guideSteps: ['Try the locked water dispenser', 'Find Zombie Hall code J2 and B3', 'Win Zombie Hall for the water code', 'Buy EVIAN water'],
+        guideBody: 'Your goal is simple and weirdly urgent: buy water. Start at the locked dispenser, get the code fragments from suppliers, open Zombie Hall, win the water code and coins, then come back for EVIAN.',
+        guideSteps: ['Try the locked water dispenser', 'Find the Zombie Hall code', 'Win Zombie Hall for the water code', 'Buy EVIAN water'],
         arenaTrainingTitle: 'Zombie Arena controls',
         arenaTrainingSteps: ['WASD to move', 'Mouse to aim', 'P to fire', 'Leave through the return portal'],
         questDetailsOpen: 'Show full checklist',
@@ -780,9 +780,9 @@ const SFERA_HALL_CUTSCENE_SRC: Record<AppLanguage, string> = {
     zh: '/cutscenes/chinesesphere.MOV',
 };
 const FASTVIEW_START_CUTSCENE_PLAYLIST: Record<AppLanguage, string[]> = {
-    en: ['/cutscenes/maincutscene.MOV', '/cutscenes/gamecutscene.MOV', '/cutscenes/gameagain.MOV'],
-    ru: ['/cutscenes/maincutscene-ru.MP4', '/cutscenes/gamecutscene-ru.MOV', '/cutscenes/gameagain.MOV'],
-    zh: ['/cutscenes/maincutscene-zh.MP4', '/cutscenes/gamecutscene-zh.MOV', '/cutscenes/gameagain.MOV'],
+    en: ['/cutscenes/gameagain.MOV'],
+    ru: ['/cutscenes/gameagain.MOV'],
+    zh: ['/cutscenes/gameagain.MOV'],
 };
 const WATER_WIN_CUTSCENE_SRC = '/cutscenes/wincut.MOV';
 const FASTVIEW_CUTSCENE_FADE_MS = 700;
@@ -1237,7 +1237,7 @@ function ArenaPasswordOverlay({
                         onChange={(event) => setPassword(event.target.value.toUpperCase())}
                         autoFocus
                         maxLength={8}
-                        placeholder="J2 B3"
+                        placeholder="ENTER CODE"
                         className="w-full rounded-xl border border-cyan-300/22 bg-black/35 px-4 py-4 font-mono text-2xl font-black uppercase tracking-[0.3em] text-white outline-none transition focus:border-cyan-200/70"
                     />
                     <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
@@ -1276,7 +1276,7 @@ function WaterDispenserOverlay({
     const hasWaterKey = Boolean(waterKey);
     const canBuy = hasWaterKey && canAfford && !waterPurchased;
     const lockHint = !hasArenaAccess
-        ? 'The dispenser stays locked. Get J2 and B3 from suppliers, then enter that code at Zombie Hall.'
+        ? 'The dispenser stays locked. Get the code fragments from suppliers, then enter that code at Zombie Hall.'
         : !hasWaterKey
             ? 'Zombie Hall is open now. Win the fight to receive the water code for this dispenser.'
             : `Need ${GAME_RULES.water.bottlePriceCoins - walletBalanceCents} more coins.`;
@@ -2327,6 +2327,7 @@ export default function ExperiencePage() {
     const [isSferaHallCutsceneVisible, setIsSferaHallCutsceneVisible] = useState(false);
     const sferaHallCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const [isWaterWinCutsceneVisible, setIsWaterWinCutsceneVisible] = useState(false);
+    const [hasStartedWaterWinCutsceneSound, setHasStartedWaterWinCutsceneSound] = useState(false);
     const waterWinCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const fastViewCutsceneExitTimerRef = useRef<number | null>(null);
     const fastViewCutscenePlaylist = FASTVIEW_START_CUTSCENE_PLAYLIST[language] ?? FASTVIEW_START_CUTSCENE_PLAYLIST.en;
@@ -2347,6 +2348,13 @@ export default function ExperiencePage() {
                 break;
             case 'game_access_denied':
                 playSferaUiSound('warning');
+                if (unrealBridge.lastUnrealEvent.reason === 'arena_key_required') {
+                    sendUnrealUiInteraction({
+                        type: 'arena_access_denied',
+                        destination: 'ZombieArena',
+                        reason: 'supplier_code_required',
+                    });
+                }
                 break;
             default:
                 break;
@@ -2486,16 +2494,9 @@ export default function ExperiencePage() {
         }
         if (hasAppliedInitialModeRef.current && unrealBridge.currentMode === targetMode) return;
 
-        const shouldSendInitialGameModeToggle =
-            targetMode === 'player' &&
-            unrealBridge.currentMode !== 'player';
-
         hasAppliedInitialModeRef.current = true;
         sendUnrealUiInteraction({ type: 'set_mode', mode: targetMode });
         sendUnrealUiInteraction({ event: 'mode_changed', mode: targetMode });
-        if (shouldSendInitialGameModeToggle) {
-            sendUnrealKeyPress(71);
-        }
         unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: targetMode }));
     }, [hasStartedExperience, isFastViewRoute, searchParams, unrealBridge]);
 
@@ -2648,8 +2649,7 @@ export default function ExperiencePage() {
         cutsceneVideo.muted = false;
         resetCutsceneAudio(cutsceneVideo);
         cutsceneVideo.play().catch(() => {
-            cutsceneVideo.muted = true;
-            cutsceneVideo.play().catch(() => {});
+            setHasStartedFastViewCutscene(false);
         });
     }, [
         hasCompletedFastViewCutscene,
@@ -2712,9 +2712,34 @@ export default function ExperiencePage() {
         video.muted = false;
         resetCutsceneAudio(video);
         video.play().catch(() => {
-            video.muted = true;
-            video.play().catch(() => {});
+            setHasStartedSferaHallCutsceneSound(false);
         });
+    }, []);
+
+    const handleStartWaterWinCutsceneWithSound = useCallback(() => {
+        const video = waterWinCutsceneVideoRef.current;
+        if (!video) return;
+
+        setHasStartedWaterWinCutsceneSound(true);
+        video.muted = false;
+        resetCutsceneAudio(video);
+        video.play().catch(() => {
+            setHasStartedWaterWinCutsceneSound(false);
+        });
+    }, []);
+
+    const closeWaterWinCutscene = useCallback(() => {
+        const video = waterWinCutsceneVideoRef.current;
+        if (video) {
+            video.pause();
+            try {
+                video.currentTime = 0;
+            } catch { /* best-effort */ }
+            resetCutsceneAudio(video);
+        }
+
+        setIsWaterWinCutsceneVisible(false);
+        setHasStartedWaterWinCutsceneSound(false);
     }, []);
 
     const completeSferaHallCutsceneClose = useCallback(() => {
@@ -2793,6 +2818,16 @@ export default function ExperiencePage() {
         return () => window.removeEventListener('keydown', startFromKey);
     }, [handleStartSferaHallCutsceneWithSound, hasStartedSferaHallCutsceneSound, isSferaHallCutsceneVisible]);
 
+    useEffect(() => {
+        if (!isWaterWinCutsceneVisible || hasStartedWaterWinCutsceneSound) return;
+        const startFromKey = (event: KeyboardEvent) => {
+            if (event.metaKey || event.ctrlKey || event.altKey) return;
+            handleStartWaterWinCutsceneWithSound();
+        };
+        window.addEventListener('keydown', startFromKey);
+        return () => window.removeEventListener('keydown', startFromKey);
+    }, [handleStartWaterWinCutsceneWithSound, hasStartedWaterWinCutsceneSound, isWaterWinCutsceneVisible]);
+
     const handleSkipFastViewCutscene = useCallback(() => {
         if (!isFastViewRoute || hasCompletedFastViewCutscene) return;
 
@@ -2864,7 +2899,6 @@ export default function ExperiencePage() {
         sendUnrealUiInteraction({ type: 'set_mode', mode });
         sendUnrealUiInteraction({ event: 'mode_changed', mode });
         unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode }));
-        sendUnrealKeyPress(71);
     }, [unrealBridge]);
 
     const toggleUnrealMode = useCallback(() => {
@@ -2988,7 +3022,6 @@ export default function ExperiencePage() {
 
         sendUnrealUiInteraction({ type: 'set_mode', mode: 'player' });
         sendUnrealUiInteraction({ event: 'mode_changed', mode: 'player' });
-        sendUnrealKeyPress(71);
         unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: 'player' }));
         setIsPlayerModePromptDismissed(true);
     }, [effectiveSceneMode, isPlayerModeAccessDenied, unrealBridge]);
@@ -3703,14 +3736,13 @@ export default function ExperiencePage() {
                     <div className="absolute inset-x-0 bottom-0 top-16 overflow-hidden sm:top-20">
                         <video
                             ref={fastViewCutsceneVideoRef}
-                            className={`h-full w-full object-cover transition-[filter,transform] duration-700 ${
+                            className={`h-full w-full bg-black object-contain transition-[filter,transform] duration-700 ${
                                 hasEndedFastViewCutscene && !isVideoStreamingFrames ? 'scale-[1.01] brightness-75' : ''
                             }`}
                             key={fastViewCutsceneSrc}
                             src={fastViewCutsceneSrc}
                             data-cutscene-video="true"
                             muted={!hasStartedFastViewCutscene}
-                            autoPlay
                             playsInline
                             preload="auto"
                             onTimeUpdate={(event) => softenCutsceneAudioTail(event.currentTarget)}
@@ -3801,32 +3833,40 @@ export default function ExperiencePage() {
                 <div className="absolute inset-0 z-[126] bg-[#05070b]">
                     <video
                         ref={waterWinCutsceneVideoRef}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full bg-black object-contain"
                         src={WATER_WIN_CUTSCENE_SRC}
                         data-cutscene-video="true"
-                        autoPlay
+                        muted={!hasStartedWaterWinCutsceneSound}
                         playsInline
                         preload="auto"
-                        onLoadedData={(event) => {
-                            event.currentTarget.muted = false;
-                            resetCutsceneAudio(event.currentTarget);
-                            event.currentTarget.play().catch(() => {
-                                event.currentTarget.muted = true;
-                                event.currentTarget.play().catch(() => {});
-                            });
-                        }}
                         onTimeUpdate={(event) => softenCutsceneAudioTail(event.currentTarget)}
-                        onEnded={() => setIsWaterWinCutsceneVisible(false)}
-                        onError={() => setIsWaterWinCutsceneVisible(false)}
+                        onEnded={closeWaterWinCutscene}
+                        onError={closeWaterWinCutscene}
                     />
                     <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.18),transparent_34%,rgba(0,0,0,0.5))]" />
+                    {!hasStartedWaterWinCutsceneSound && (
+                        <div className="absolute inset-x-4 bottom-0 top-16 z-10 flex flex-col items-center justify-center sm:top-20">
+                            <button
+                                type="button"
+                                onClick={handleStartWaterWinCutsceneWithSound}
+                                className="inline-flex max-w-full items-center justify-center gap-2 rounded-2xl border border-[#66d9cb]/35 bg-black/55 px-5 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:border-[#66d9cb]/60 hover:bg-[#66d9cb]/[0.16] sm:px-6"
+                            >
+                                <Play className="h-4 w-4 shrink-0 text-[#66d9cb]" />
+                                <span className="truncate">{cutsceneCopy.pressAnyKey}</span>
+                                <Volume2 className="h-4 w-4 shrink-0 text-[#66d9cb]" />
+                            </button>
+                            <p className="mt-3 max-w-md text-center text-xs font-semibold uppercase tracking-[0.16em] text-slate-300/80">{cutsceneCopy.soundHint}</p>
+                        </div>
+                    )}
                     <CutsceneSiteHeader
                         statusOnline={ui.statusOnline}
                         instruction="Water secured. Wheel coupon unlocked in Sfera Hall."
                         skipLabel={cutsceneCopy.skip}
                         onSkip={() => {
-                            fadeOutCutsceneAudio(waterWinCutsceneVideoRef.current, () => setIsWaterWinCutsceneVisible(false));
+                            fadeOutCutsceneAudio(waterWinCutsceneVideoRef.current, closeWaterWinCutscene);
                         }}
+                        startLabel={!hasStartedWaterWinCutsceneSound ? cutsceneCopy.startWithSound : undefined}
+                        onStart={!hasStartedWaterWinCutsceneSound ? handleStartWaterWinCutsceneWithSound : undefined}
                     />
                 </div>
             )}

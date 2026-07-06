@@ -6,7 +6,7 @@ import { GAME_RULES } from '@/lib/unreal/gameRules';
 import type { ArenaMoment, UnrealEventBridgeState, UnrealPixelStreamingEvent } from '@/lib/unreal/types';
 
 const ACCESS_DENIED_PLAYER_MODE_NEEDED = 'Switch to Player Mode to enter game zones.';
-const ACCESS_DENIED_ARENA_KEY_NEEDED = 'Arena locked. Find the supplier key J2 B3 in Sfera Hall first.';
+const ACCESS_DENIED_ARENA_KEY_NEEDED = 'Zombie Hall locked. Find the supplier key fragments in Sfera Hall first.';
 const MAX_RECENT_ACTIVITY = 8;
 const MAX_ARENA_MOMENTS = 5;
 const PERSISTED_STATE_KEY = '3dsfera:player-progress:v2';
@@ -311,6 +311,21 @@ export const useUnrealEventBridge = () => {
                 case 'game_entered': {
                     if (unrealEvent.game !== 'ZombieArena') {
                         return withQuestUpdate(nextBase, unrealEvent);
+                    }
+                    if (!previous.hasArenaAccess) {
+                        const deniedEvent = {
+                            event: 'game_access_denied',
+                            game: 'ZombieArena',
+                            reason: 'arena_key_required',
+                        } satisfies UnrealPixelStreamingEvent;
+                        return withQuestUpdate({
+                            ...nextBase,
+                            lastUnrealEvent: deniedEvent,
+                            currentGame: null,
+                            isInGame: false,
+                            accessDeniedMessage: ACCESS_DENIED_ARENA_KEY_NEEDED,
+                            recentActivity: withActivity(previous.recentActivity, 'Zombie Hall locked: supplier code required'),
+                        }, deniedEvent);
                     }
                     return withQuestUpdate({
                         ...nextBase,

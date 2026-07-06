@@ -77,9 +77,9 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
             zh: 'Buy Water',
         },
         description: {
-            en: 'Start at the water dispenser, learn that EVIAN 0.5L costs 160 coins, collect the J2 B3 arena key from suppliers, clear Zombie Arena, then return with the water code and buy water.',
-            ru: 'Start at the water dispenser, collect the J2 B3 arena key from suppliers, clear Zombie Arena, then return with the water code and buy water.',
-            zh: 'Start at the water dispenser, collect the J2 B3 arena key from suppliers, clear Zombie Arena, then return with the water code and buy water.',
+            en: 'Start at the water dispenser, learn that EVIAN 0.5L costs 160 coins, collect the arena key from suppliers, clear Zombie Arena, then return with the water code and buy water.',
+            ru: 'Start at the water dispenser, collect the arena key from suppliers, clear Zombie Arena, then return with the water code and buy water.',
+            zh: 'Start at the water dispenser, collect the arena key from suppliers, clear Zombie Arena, then return with the water code and buy water.',
         },
         objectives: [
             {
@@ -107,9 +107,9 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
                 event: 'arena_key_piece_found',
                 count: 2,
                 label: {
-                    en: 'Collect both supplier key halves: J2 and B3',
-                    ru: 'Collect both supplier key halves: J2 and B3',
-                    zh: 'Collect both supplier key halves: J2 and B3',
+                    en: 'Collect both supplier key halves',
+                    ru: 'Collect both supplier key halves',
+                    zh: 'Collect both supplier key halves',
                 },
             },
             {

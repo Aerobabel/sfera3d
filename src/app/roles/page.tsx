@@ -419,8 +419,7 @@ export default function RoleSelectionPage() {
         video.muted = false;
         resetCutsceneAudio(video);
         video.play().catch(() => {
-            video.muted = true;
-            video.play().catch(() => {});
+            setHasStartedIntro(false);
         });
     };
 
@@ -436,10 +435,7 @@ export default function RoleSelectionPage() {
         video.muted = false;
         resetCutsceneAudio(video);
         video.currentTime = 0;
-        video.play().catch(() => {
-            video.muted = true;
-            video.play().catch(() => {});
-        });
+        video.play().catch(() => {});
     };
 
     const startGameCutscene = (href: string) => {
