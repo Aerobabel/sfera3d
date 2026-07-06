@@ -2349,6 +2349,12 @@ export default function ExperiencePage() {
             case 'game_access_denied':
                 playSferaUiSound('warning');
                 if (unrealBridge.lastUnrealEvent.reason === 'arena_key_required') {
+                    setIsRewardTerminalOpen(false);
+                    setIsArcadeOpen(false);
+                    setIsWaterDispenserOpen(false);
+                    setIsWheelOpen(false);
+                    setIsPlayerModePromptDismissed(true);
+                    setIsArenaPasswordOpen(true);
                     sendUnrealUiInteraction({
                         type: 'arena_access_denied',
                         destination: 'ZombieArena',
@@ -3019,12 +3025,17 @@ export default function ExperiencePage() {
 
     useEffect(() => {
         if (!isPlayerModeAccessDenied || effectiveSceneMode !== 'player') return;
+        if (isArenaKeyAccessDenied) {
+            setIsArenaPasswordOpen(true);
+            setIsPlayerModePromptDismissed(true);
+            return;
+        }
 
         sendUnrealUiInteraction({ type: 'set_mode', mode: 'player' });
         sendUnrealUiInteraction({ event: 'mode_changed', mode: 'player' });
         unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: 'player' }));
         setIsPlayerModePromptDismissed(true);
-    }, [effectiveSceneMode, isPlayerModeAccessDenied, unrealBridge]);
+    }, [effectiveSceneMode, isArenaKeyAccessDenied, isPlayerModeAccessDenied, unrealBridge]);
 
     useEffect(() => {
         liveActivityRemovalTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
