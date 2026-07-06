@@ -250,6 +250,7 @@ const fallback: UnrealEventBridgeState = {
     arenaKeyPieces: [],
     hasArenaAccess: false,
     arcadeKey: null,
+    waterKey: null,
     waterPurchased: false,
     wheelCoupon: null,
     wheelSpinsRemaining: 0,

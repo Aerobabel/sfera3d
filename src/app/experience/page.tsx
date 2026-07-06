@@ -312,8 +312,8 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         recentWinnings: 'Recent winnings',
         noWinnings: 'Arcade prizes and quest money will appear here.',
         guideTitle: 'What to do now',
-        guideBody: 'Your goal is simple and weirdly urgent: buy water. Start at the dispenser, get the supplier key, clear Zombie Arena for coins, then come back for EVIAN.',
-        guideSteps: ['Try to buy water', 'Find key halves J2 and B3', 'Win Zombie Arena', 'Buy EVIAN water'],
+        guideBody: 'Your goal is simple and weirdly urgent: buy water. Start at the locked dispenser, get J2 and B3 from suppliers, open Zombie Hall, win the water code and coins, then come back for EVIAN.',
+        guideSteps: ['Try the locked water dispenser', 'Find Zombie Hall code J2 and B3', 'Win Zombie Hall for the water code', 'Buy EVIAN water'],
         arenaTrainingTitle: 'Zombie Arena controls',
         arenaTrainingSteps: ['WASD to move', 'Mouse to aim', 'P to fire', 'Leave through the return portal'],
         questDetailsOpen: 'Show full checklist',
@@ -779,7 +779,11 @@ const SFERA_HALL_CUTSCENE_SRC: Record<AppLanguage, string> = {
     ru: '/cutscenes/russiansphere.MP4',
     zh: '/cutscenes/chinesesphere.MOV',
 };
-const FASTVIEW_START_CUTSCENE_SRC = '/cutscenes/gameagain.MOV';
+const FASTVIEW_START_CUTSCENE_PLAYLIST: Record<AppLanguage, string[]> = {
+    en: ['/cutscenes/maincutscene.MOV', '/cutscenes/gamecutscene.MOV', '/cutscenes/gameagain.MOV'],
+    ru: ['/cutscenes/maincutscene-ru.MP4', '/cutscenes/gamecutscene-ru.MOV', '/cutscenes/gameagain.MOV'],
+    zh: ['/cutscenes/maincutscene-zh.MP4', '/cutscenes/gamecutscene-zh.MOV', '/cutscenes/gameagain.MOV'],
+};
 const WATER_WIN_CUTSCENE_SRC = '/cutscenes/wincut.MOV';
 const FASTVIEW_CUTSCENE_FADE_MS = 700;
 
@@ -1252,6 +1256,7 @@ function ArenaPasswordOverlay({
 function WaterDispenserOverlay({
     walletBalanceCents,
     hasArenaAccess,
+    waterKey,
     waterPurchased,
     onClose,
     onAttempt,
@@ -1260,6 +1265,7 @@ function WaterDispenserOverlay({
 }: {
     walletBalanceCents: number;
     hasArenaAccess: boolean;
+    waterKey: string | null;
     waterPurchased: boolean;
     onClose: () => void;
     onAttempt: () => void;
@@ -1267,7 +1273,13 @@ function WaterDispenserOverlay({
     onOpenPassword: () => void;
 }) {
     const canAfford = walletBalanceCents >= GAME_RULES.water.bottlePriceCoins;
-    const canBuy = hasArenaAccess && canAfford && !waterPurchased;
+    const hasWaterKey = Boolean(waterKey);
+    const canBuy = hasWaterKey && canAfford && !waterPurchased;
+    const lockHint = !hasArenaAccess
+        ? 'The dispenser stays locked. Get J2 and B3 from suppliers, then enter that code at Zombie Hall.'
+        : !hasWaterKey
+            ? 'Zombie Hall is open now. Win the fight to receive the water code for this dispenser.'
+            : `Need ${GAME_RULES.water.bottlePriceCoins - walletBalanceCents} more coins.`;
 
     return (
         <div className="absolute inset-0 z-[94] grid place-items-center bg-[#02060b]/72 p-4 text-white backdrop-blur-sm pointer-events-auto" role="dialog" aria-modal="true" aria-label="Water dispenser">
@@ -1290,14 +1302,18 @@ function WaterDispenserOverlay({
                                 <span className="font-mono text-lg font-black text-white">{formatMoney(walletBalanceCents)}</span>
                             </div>
                             <div className="flex items-center justify-between gap-3">
-                                <span className="text-xs font-black uppercase tracking-[0.15em] text-slate-400">Arena key</span>
+                                <span className="text-xs font-black uppercase tracking-[0.15em] text-slate-400">Zombie Hall code</span>
                                 <span className={hasArenaAccess ? 'text-emerald-200' : 'text-amber-200'}>{hasArenaAccess ? 'accepted' : 'required'}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="text-xs font-black uppercase tracking-[0.15em] text-slate-400">Water code</span>
+                                <span className={hasWaterKey ? 'text-emerald-200' : 'text-amber-200'}>{hasWaterKey ? waterKey : 'locked'}</span>
                             </div>
                         </div>
                         {!hasArenaAccess && (
                             <button type="button" onClick={onOpenPassword} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300/24 bg-amber-300/10 px-4 py-3 text-sm font-black uppercase tracking-[0.13em] text-amber-100 transition hover:bg-amber-300/16">
                                 <KeyRound className="h-4 w-4" />
-                                Enter J2 B3 key
+                                Enter Zombie Hall code
                             </button>
                         )}
                         <button
@@ -1314,7 +1330,7 @@ function WaterDispenserOverlay({
                         </button>
                         {!canBuy && !waterPurchased && (
                             <p className="mt-3 text-xs leading-5 text-amber-100/90">
-                                {!hasArenaAccess ? 'The dispenser refuses the first purchase until the arena key is entered.' : `Need ${GAME_RULES.water.bottlePriceCoins - walletBalanceCents} more coins.`}
+                                {lockHint}
                             </p>
                         )}
                     </div>
@@ -2302,16 +2318,20 @@ export default function ExperiencePage() {
     // transition overlay visible between the user's "enter" click and the
     // first frame so they don't see a black screen while UE unpauses.
     const [isVideoStreamingFrames, setIsVideoStreamingFrames] = useState(false);
-    const [hasCompletedFastViewCutscene, setHasCompletedFastViewCutscene] = useState(true);
+    const [hasCompletedFastViewCutscene, setHasCompletedFastViewCutscene] = useState(() => !isFastViewRoute);
     const [isFastViewCutsceneExiting, setIsFastViewCutsceneExiting] = useState(false);
     const [hasStartedFastViewCutscene, setHasStartedFastViewCutscene] = useState(() => !isFastViewRoute);
     const [hasEndedFastViewCutscene, setHasEndedFastViewCutscene] = useState(() => !isFastViewRoute);
+    const [fastViewCutsceneIndex, setFastViewCutsceneIndex] = useState(0);
     const fastViewCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const [isSferaHallCutsceneVisible, setIsSferaHallCutsceneVisible] = useState(false);
     const sferaHallCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const [isWaterWinCutsceneVisible, setIsWaterWinCutsceneVisible] = useState(false);
     const waterWinCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const fastViewCutsceneExitTimerRef = useRef<number | null>(null);
+    const fastViewCutscenePlaylist = FASTVIEW_START_CUTSCENE_PLAYLIST[language] ?? FASTVIEW_START_CUTSCENE_PLAYLIST.en;
+    const fastViewCutsceneSrc = fastViewCutscenePlaylist[fastViewCutsceneIndex] ?? fastViewCutscenePlaylist[0];
+    const fastViewCutsceneStepLabel = `${Math.min(fastViewCutsceneIndex + 1, fastViewCutscenePlaylist.length)}/${fastViewCutscenePlaylist.length}`;
 
     useEffect(() => {
         if (!hasStartedExperience || !unrealBridge.lastUnrealEvent) return;
@@ -2656,6 +2676,13 @@ export default function ExperiencePage() {
     const handleCompleteFastViewCutscene = useCallback(() => {
         if (!isFastViewRoute || hasCompletedFastViewCutscene) return;
 
+        if (fastViewCutsceneIndex < fastViewCutscenePlaylist.length - 1) {
+            setFastViewCutsceneIndex((current) =>
+                Math.min(current + 1, fastViewCutscenePlaylist.length - 1)
+            );
+            return;
+        }
+
         setHasEndedFastViewCutscene(true);
 
         if (videoElement && !fastViewError) {
@@ -2668,6 +2695,8 @@ export default function ExperiencePage() {
     }, [
         beginFastViewCutsceneExit,
         fastViewError,
+        fastViewCutsceneIndex,
+        fastViewCutscenePlaylist.length,
         handleStartExperience,
         hasCompletedFastViewCutscene,
         isFastViewRoute,
@@ -3677,10 +3706,11 @@ export default function ExperiencePage() {
                             className={`h-full w-full object-cover transition-[filter,transform] duration-700 ${
                                 hasEndedFastViewCutscene && !isVideoStreamingFrames ? 'scale-[1.01] brightness-75' : ''
                             }`}
-                            key={FASTVIEW_START_CUTSCENE_SRC}
-                            src={FASTVIEW_START_CUTSCENE_SRC}
+                            key={fastViewCutsceneSrc}
+                            src={fastViewCutsceneSrc}
                             data-cutscene-video="true"
                             muted={!hasStartedFastViewCutscene}
+                            autoPlay
                             playsInline
                             preload="auto"
                             onTimeUpdate={(event) => softenCutsceneAudioTail(event.currentTarget)}
@@ -3692,7 +3722,7 @@ export default function ExperiencePage() {
 
                     <CutsceneSiteHeader
                         statusOnline={ui.statusOnline}
-                        instruction={sceneInstruction}
+                        instruction={`${sceneInstruction} · Cutscene ${fastViewCutsceneStepLabel}`}
                         skipLabel={cutsceneCopy.skip}
                         onSkip={handleSkipFastViewCutscene}
                     />
@@ -4497,6 +4527,7 @@ export default function ExperiencePage() {
                         <WaterDispenserOverlay
                             walletBalanceCents={walletBalanceCents}
                             hasArenaAccess={unrealBridge.hasArenaAccess}
+                            waterKey={unrealBridge.waterKey}
                             waterPurchased={unrealBridge.waterPurchased}
                             onClose={() => setIsWaterDispenserOpen(false)}
                             onAttempt={handleWaterPurchaseAttempt}

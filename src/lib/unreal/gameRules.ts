@@ -16,6 +16,7 @@ export const GAME_RULES = {
         ],
         completionRewardCoins: 150,
         arcadeKeyReward: 'WHEEL-7',
+        waterKeyReward: 'EVIAN-KEY-160',
     },
     water: {
         bottleName: 'EVIAN 0.5L',

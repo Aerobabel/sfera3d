@@ -61,6 +61,7 @@ const INITIAL_STATE: UnrealEventBridgeState = {
     arenaKeyPieces: [],
     hasArenaAccess: false,
     arcadeKey: null,
+    waterKey: null,
     waterPurchased: false,
     wheelCoupon: null,
     wheelSpinsRemaining: 0,
@@ -78,6 +79,7 @@ type PersistedBridgeState = Pick<
     | 'arenaKeyPieces'
     | 'hasArenaAccess'
     | 'arcadeKey'
+    | 'waterKey'
     | 'waterPurchased'
     | 'wheelCoupon'
     | 'wheelSpinsRemaining'
@@ -97,6 +99,7 @@ const isPersistedBridgeState = (value: unknown): value is Partial<PersistedBridg
         (candidate.arenaKeyPieces === undefined || Array.isArray(candidate.arenaKeyPieces)) &&
         (candidate.hasArenaAccess === undefined || typeof candidate.hasArenaAccess === 'boolean') &&
         (candidate.arcadeKey === undefined || candidate.arcadeKey === null || typeof candidate.arcadeKey === 'string') &&
+        (candidate.waterKey === undefined || candidate.waterKey === null || typeof candidate.waterKey === 'string') &&
         (candidate.waterPurchased === undefined || typeof candidate.waterPurchased === 'boolean') &&
         (candidate.wheelCoupon === undefined || candidate.wheelCoupon === null || typeof candidate.wheelCoupon === 'string') &&
         (candidate.wheelSpinsRemaining === undefined || typeof candidate.wheelSpinsRemaining === 'number') &&
@@ -125,6 +128,7 @@ const readPersistedBridgeState = (): UnrealEventBridgeState => {
             arenaKeyPieces: parsed.arenaKeyPieces ?? INITIAL_STATE.arenaKeyPieces,
             hasArenaAccess: parsed.hasArenaAccess ?? INITIAL_STATE.hasArenaAccess,
             arcadeKey: parsed.arcadeKey ?? INITIAL_STATE.arcadeKey,
+            waterKey: parsed.waterKey ?? INITIAL_STATE.waterKey,
             waterPurchased: parsed.waterPurchased ?? INITIAL_STATE.waterPurchased,
             wheelCoupon: parsed.wheelCoupon ?? INITIAL_STATE.wheelCoupon,
             wheelSpinsRemaining: parsed.wheelSpinsRemaining ?? INITIAL_STATE.wheelSpinsRemaining,
@@ -148,6 +152,7 @@ const persistBridgeState = (state: UnrealEventBridgeState) => {
         arenaKeyPieces: state.arenaKeyPieces,
         hasArenaAccess: state.hasArenaAccess,
         arcadeKey: state.arcadeKey,
+        waterKey: state.waterKey,
         waterPurchased: state.waterPurchased,
         wheelCoupon: state.wheelCoupon,
         wheelSpinsRemaining: state.wheelSpinsRemaining,
@@ -225,7 +230,8 @@ const withQuestUpdate = (
     );
     let walletBalanceCents = nextState.walletBalanceCents;
     let walletTransactions = nextState.walletTransactions;
-    let arcadeKey = nextState.arcadeKey;
+    const arcadeKey = nextState.arcadeKey;
+    let waterKey = nextState.waterKey;
 
     for (const questId of questUpdate.completedQuestIds) {
         const quest = getQuestDefinition(questId);
@@ -240,7 +246,7 @@ const withQuestUpdate = (
         }
 
         if (questId === 'water_arena_run') {
-            arcadeKey = GAME_RULES.zombieArena.arcadeKeyReward;
+            waterKey = GAME_RULES.zombieArena.waterKeyReward;
         }
     }
 
@@ -253,6 +259,7 @@ const withQuestUpdate = (
         walletBalanceCents,
         walletTransactions,
         arcadeKey,
+        waterKey,
     };
 };
 
@@ -430,7 +437,7 @@ export const useUnrealEventBridge = () => {
                         recentActivity: withActivity(previous.recentActivity, 'Left water dispenser'),
                     }, unrealEvent);
                 case 'water_purchased': {
-                    if (previous.waterPurchased || previous.walletBalanceCents < GAME_RULES.water.bottlePriceCoins) {
+                    if (previous.waterPurchased || !previous.waterKey || previous.walletBalanceCents < GAME_RULES.water.bottlePriceCoins) {
                         return withQuestUpdate(nextBase, unrealEvent);
                     }
 
@@ -489,8 +496,8 @@ export const useUnrealEventBridge = () => {
                 case 'arena_completed':
                     return withQuestUpdate({
                         ...nextBase,
-                        arcadeKey: GAME_RULES.zombieArena.arcadeKeyReward,
-                        recentActivity: withActivity(previous.recentActivity, `Zombie Arena cleared: arcade key ${GAME_RULES.zombieArena.arcadeKeyReward} earned`),
+                        waterKey: GAME_RULES.zombieArena.waterKeyReward,
+                        recentActivity: withActivity(previous.recentActivity, `Zombie Arena cleared: water code ${GAME_RULES.zombieArena.waterKeyReward} earned`),
                     }, unrealEvent);
                 case 'wheel':
                     return withQuestUpdate({

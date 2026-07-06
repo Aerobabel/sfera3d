@@ -91,6 +91,7 @@ export type UnrealEventBridgeState = {
     arenaKeyPieces: string[];
     hasArenaAccess: boolean;
     arcadeKey: string | null;
+    waterKey: string | null;
     waterPurchased: boolean;
     wheelCoupon: string | null;
     wheelSpinsRemaining: number;
