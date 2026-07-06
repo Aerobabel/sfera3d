@@ -6,9 +6,11 @@ import { GAME_RULES } from '@/lib/unreal/gameRules';
 import type { ArenaMoment, UnrealEventBridgeState, UnrealPixelStreamingEvent } from '@/lib/unreal/types';
 
 const ACCESS_DENIED_PLAYER_MODE_NEEDED = 'Switch to Player Mode to enter game zones.';
+const ACCESS_DENIED_ARENA_KEY_NEEDED = 'Arena locked. Find the supplier key J2 B3 in Sfera Hall first.';
 const MAX_RECENT_ACTIVITY = 8;
 const MAX_ARENA_MOMENTS = 5;
-const PERSISTED_STATE_KEY = '3dsfera:player-progress:v1';
+const PERSISTED_STATE_KEY = '3dsfera:player-progress:v2';
+const ARENA_KEY_PIECES = [GAME_RULES.keys.firstHalf, GAME_RULES.keys.secondHalf] as const;
 
 const resolveZombieRank = (score: number) => {
     const rank = [...GAME_RULES.zombieArena.ranks]
@@ -30,10 +32,7 @@ const resolveGameTitle = (value: unknown) =>
     typeof value === 'string' && value.trim().length > 0 ? value.trim().slice(0, 80) : 'Sfera Arcade';
 
 const formatWalletAmount = (amountCents: number) =>
-    `$${(amountCents / 100).toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    })}`;
+    `${amountCents.toLocaleString('en-US')} coins`;
 
 const INITIAL_STATE: UnrealEventBridgeState = {
     currentMode: 'shopper',
@@ -59,11 +58,30 @@ const INITIAL_STATE: UnrealEventBridgeState = {
     lastCompletedQuestId: null,
     walletBalanceCents: 0,
     walletTransactions: [],
+    arenaKeyPieces: [],
+    hasArenaAccess: false,
+    arcadeKey: null,
+    waterPurchased: false,
+    wheelCoupon: null,
+    wheelSpinsRemaining: 0,
+    lastDogMood: null,
 };
 
 type PersistedBridgeState = Pick<
     UnrealEventBridgeState,
-    'currentMode' | 'questProgress' | 'questRewards' | 'walletBalanceCents' | 'walletTransactions' | 'recentActivity'
+    | 'currentMode'
+    | 'questProgress'
+    | 'questRewards'
+    | 'walletBalanceCents'
+    | 'walletTransactions'
+    | 'recentActivity'
+    | 'arenaKeyPieces'
+    | 'hasArenaAccess'
+    | 'arcadeKey'
+    | 'waterPurchased'
+    | 'wheelCoupon'
+    | 'wheelSpinsRemaining'
+    | 'lastDogMood'
 >;
 
 const isPersistedBridgeState = (value: unknown): value is Partial<PersistedBridgeState> => {
@@ -75,7 +93,14 @@ const isPersistedBridgeState = (value: unknown): value is Partial<PersistedBridg
         (candidate.questRewards === undefined || Array.isArray(candidate.questRewards)) &&
         (candidate.walletBalanceCents === undefined || typeof candidate.walletBalanceCents === 'number') &&
         (candidate.walletTransactions === undefined || Array.isArray(candidate.walletTransactions)) &&
-        (candidate.recentActivity === undefined || Array.isArray(candidate.recentActivity))
+        (candidate.recentActivity === undefined || Array.isArray(candidate.recentActivity)) &&
+        (candidate.arenaKeyPieces === undefined || Array.isArray(candidate.arenaKeyPieces)) &&
+        (candidate.hasArenaAccess === undefined || typeof candidate.hasArenaAccess === 'boolean') &&
+        (candidate.arcadeKey === undefined || candidate.arcadeKey === null || typeof candidate.arcadeKey === 'string') &&
+        (candidate.waterPurchased === undefined || typeof candidate.waterPurchased === 'boolean') &&
+        (candidate.wheelCoupon === undefined || candidate.wheelCoupon === null || typeof candidate.wheelCoupon === 'string') &&
+        (candidate.wheelSpinsRemaining === undefined || typeof candidate.wheelSpinsRemaining === 'number') &&
+        (candidate.lastDogMood === undefined || candidate.lastDogMood === null || candidate.lastDogMood === 'mad' || candidate.lastDogMood === 'calm')
     );
 };
 
@@ -97,6 +122,13 @@ const readPersistedBridgeState = (): UnrealEventBridgeState => {
             walletBalanceCents: parsed.walletBalanceCents ?? INITIAL_STATE.walletBalanceCents,
             walletTransactions: parsed.walletTransactions ?? INITIAL_STATE.walletTransactions,
             recentActivity: parsed.recentActivity ?? INITIAL_STATE.recentActivity,
+            arenaKeyPieces: parsed.arenaKeyPieces ?? INITIAL_STATE.arenaKeyPieces,
+            hasArenaAccess: parsed.hasArenaAccess ?? INITIAL_STATE.hasArenaAccess,
+            arcadeKey: parsed.arcadeKey ?? INITIAL_STATE.arcadeKey,
+            waterPurchased: parsed.waterPurchased ?? INITIAL_STATE.waterPurchased,
+            wheelCoupon: parsed.wheelCoupon ?? INITIAL_STATE.wheelCoupon,
+            wheelSpinsRemaining: parsed.wheelSpinsRemaining ?? INITIAL_STATE.wheelSpinsRemaining,
+            lastDogMood: parsed.lastDogMood ?? INITIAL_STATE.lastDogMood,
         };
     } catch {
         return INITIAL_STATE;
@@ -113,6 +145,13 @@ const persistBridgeState = (state: UnrealEventBridgeState) => {
         walletBalanceCents: state.walletBalanceCents,
         walletTransactions: state.walletTransactions,
         recentActivity: state.recentActivity,
+        arenaKeyPieces: state.arenaKeyPieces,
+        hasArenaAccess: state.hasArenaAccess,
+        arcadeKey: state.arcadeKey,
+        waterPurchased: state.waterPurchased,
+        wheelCoupon: state.wheelCoupon,
+        wheelSpinsRemaining: state.wheelSpinsRemaining,
+        lastDogMood: state.lastDogMood,
     };
 
     try {
@@ -146,6 +185,27 @@ const questCompletionActivity = (questId: string) => {
     return `Quest completed: ${quest?.title.en ?? questId}`;
 };
 
+const normalizeKeyPiece = (value: unknown) => {
+    if (typeof value !== 'string') return null;
+    const normalized = value.trim().toUpperCase().replace(/\s+/g, '');
+    return ARENA_KEY_PIECES.find((piece) => piece === normalized) ?? null;
+};
+
+const hasAllArenaKeyPieces = (pieces: string[]) =>
+    ARENA_KEY_PIECES.every((piece) => pieces.includes(piece));
+
+const createWalletTransaction = (
+    kind: 'arcade_win' | 'quest_reward' | 'water_purchase',
+    label: string,
+    amountCents: number
+) => ({
+    id: `${kind}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    kind,
+    label,
+    amountCents,
+    createdAt: Date.now(),
+});
+
 const withQuestUpdate = (
     nextState: UnrealEventBridgeState,
     unrealEvent: UnrealPixelStreamingEvent
@@ -163,6 +223,26 @@ const withQuestUpdate = (
         (activity, questId) => withActivity(activity, questCompletionActivity(questId)),
         nextState.recentActivity
     );
+    let walletBalanceCents = nextState.walletBalanceCents;
+    let walletTransactions = nextState.walletTransactions;
+    let arcadeKey = nextState.arcadeKey;
+
+    for (const questId of questUpdate.completedQuestIds) {
+        const quest = getQuestDefinition(questId);
+        if (!quest) continue;
+
+        if (quest.reward.kind === 'coins' && typeof quest.reward.value === 'number') {
+            walletBalanceCents += quest.reward.value;
+            walletTransactions = [
+                createWalletTransaction('quest_reward', quest.reward.label.en, quest.reward.value),
+                ...walletTransactions,
+            ].slice(0, 12);
+        }
+
+        if (questId === 'water_arena_run') {
+            arcadeKey = GAME_RULES.zombieArena.arcadeKeyReward;
+        }
+    }
 
     return {
         ...nextState,
@@ -170,6 +250,9 @@ const withQuestUpdate = (
         questRewards: questUpdate.questRewards,
         lastCompletedQuestId,
         recentActivity,
+        walletBalanceCents,
+        walletTransactions,
+        arcadeKey,
     };
 };
 
@@ -246,6 +329,13 @@ export const useUnrealEventBridge = () => {
                     }, unrealEvent);
                 }
                 case 'game_access_denied':
+                    if (unrealEvent.reason === 'arena_key_required') {
+                        return withQuestUpdate({
+                            ...nextBase,
+                            accessDeniedMessage: ACCESS_DENIED_ARENA_KEY_NEEDED,
+                            recentActivity: withActivity(previous.recentActivity, 'Zombie Arena locked: key required'),
+                        }, unrealEvent);
+                    }
                     return withQuestUpdate({
                         ...nextBase,
                         accessDeniedMessage: ACCESS_DENIED_PLAYER_MODE_NEEDED,
@@ -329,6 +419,95 @@ export const useUnrealEventBridge = () => {
                         ...nextBase,
                         recentActivity: withActivity(previous.recentActivity, 'Left Reward ATM'),
                     }, unrealEvent);
+                case 'water_nearby':
+                    return withQuestUpdate({
+                        ...nextBase,
+                        recentActivity: withActivity(previous.recentActivity, 'Water dispenser opened'),
+                    }, unrealEvent);
+                case 'water_left':
+                    return withQuestUpdate({
+                        ...nextBase,
+                        recentActivity: withActivity(previous.recentActivity, 'Left water dispenser'),
+                    }, unrealEvent);
+                case 'water_purchased': {
+                    if (previous.waterPurchased || previous.walletBalanceCents < GAME_RULES.water.bottlePriceCoins) {
+                        return withQuestUpdate(nextBase, unrealEvent);
+                    }
+
+                    return withQuestUpdate({
+                        ...nextBase,
+                        walletBalanceCents: previous.walletBalanceCents - GAME_RULES.water.bottlePriceCoins,
+                        walletTransactions: [
+                            createWalletTransaction('water_purchase', GAME_RULES.water.bottleName, -GAME_RULES.water.bottlePriceCoins),
+                            ...previous.walletTransactions,
+                        ].slice(0, 12),
+                        waterPurchased: true,
+                        wheelCoupon: GAME_RULES.wheel.couponCode,
+                        wheelSpinsRemaining: GAME_RULES.wheel.maxSpins,
+                        recentActivity: withActivity(previous.recentActivity, 'Water purchased: wheel coupon unlocked'),
+                    }, unrealEvent);
+                }
+                case 'dog_mad':
+                    return withQuestUpdate({
+                        ...nextBase,
+                        lastDogMood: 'mad',
+                        recentActivity: withActivity(previous.recentActivity, 'Heyy, stay focused haha. Doggy is mad.'),
+                    }, unrealEvent);
+                case 'dog_calm':
+                    return withQuestUpdate({
+                        ...nextBase,
+                        lastDogMood: 'calm',
+                        recentActivity: withActivity(previous.recentActivity, 'Doggy is calm again'),
+                    }, unrealEvent);
+                case 'arena_key_piece_found': {
+                    const piece = normalizeKeyPiece(unrealEvent.piece);
+                    if (!piece || previous.arenaKeyPieces.includes(piece)) {
+                        return withQuestUpdate(nextBase, unrealEvent);
+                    }
+
+                    const arenaKeyPieces = [...previous.arenaKeyPieces, piece];
+                    return withQuestUpdate({
+                        ...nextBase,
+                        arenaKeyPieces,
+                        hasArenaAccess: hasAllArenaKeyPieces(arenaKeyPieces),
+                        recentActivity: withActivity(previous.recentActivity, `Arena key piece found: ${piece}`),
+                    }, unrealEvent);
+                }
+                case 'arena_password_submitted': {
+                    const password = typeof unrealEvent.password === 'string'
+                        ? unrealEvent.password.trim().toUpperCase().replace(/\s+/g, '')
+                        : '';
+                    const success = password === GAME_RULES.keys.arenaPassword || unrealEvent.success === true;
+
+                    return withQuestUpdate({
+                        ...nextBase,
+                        hasArenaAccess: success || previous.hasArenaAccess,
+                        accessDeniedMessage: success ? null : ACCESS_DENIED_ARENA_KEY_NEEDED,
+                        recentActivity: withActivity(previous.recentActivity, success ? 'Arena password accepted' : 'Arena password rejected'),
+                    }, unrealEvent);
+                }
+                case 'arena_completed':
+                    return withQuestUpdate({
+                        ...nextBase,
+                        arcadeKey: GAME_RULES.zombieArena.arcadeKeyReward,
+                        recentActivity: withActivity(previous.recentActivity, `Zombie Arena cleared: arcade key ${GAME_RULES.zombieArena.arcadeKeyReward} earned`),
+                    }, unrealEvent);
+                case 'wheel':
+                    return withQuestUpdate({
+                        ...nextBase,
+                        recentActivity: withActivity(previous.recentActivity, 'Wheel of Fortune opened'),
+                    }, unrealEvent);
+                case 'wheel_left':
+                    return withQuestUpdate({
+                        ...nextBase,
+                        recentActivity: withActivity(previous.recentActivity, 'Left Wheel of Fortune'),
+                    }, unrealEvent);
+                case 'wheel_spun':
+                    return withQuestUpdate({
+                        ...nextBase,
+                        wheelSpinsRemaining: Math.max(0, previous.wheelSpinsRemaining - 1),
+                        recentActivity: withActivity(previous.recentActivity, 'Wheel of Fortune spin used'),
+                    }, unrealEvent);
                 case 'arcade_nearby':
                     return withQuestUpdate({
                         ...nextBase,
@@ -341,9 +520,12 @@ export const useUnrealEventBridge = () => {
                     }, unrealEvent);
                 case 'arcade_prize_won': {
                     const requestedAmountCents = resolvePrizeAmountCents(unrealEvent.amountCents);
+                    const sessionArcadeCoins = previous.walletTransactions
+                        .filter((transaction) => transaction.kind === 'arcade_win')
+                        .reduce((sum, transaction) => sum + Math.max(0, transaction.amountCents), 0);
                     const remainingSessionCents = Math.max(
                         0,
-                        GAME_RULES.arcade.maxSessionWalletCents - previous.walletBalanceCents
+                        GAME_RULES.arcade.maxSessionWalletCents - sessionArcadeCoins
                     );
                     const amountCents = Math.min(requestedAmountCents, remainingSessionCents);
                     if (amountCents <= 0) {

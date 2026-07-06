@@ -3,7 +3,7 @@
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { Activity, ChevronDown, Coins, Gamepad2, Gift, ListChecks, Monitor, Play, Send, Sparkles, Trophy, Volume2, WalletCards, X, Zap, Menu } from "lucide-react";
+import { Activity, ChevronDown, Coins, Droplets, Gamepad2, Gift, KeyRound, ListChecks, LockKeyhole, Monitor, Play, RotateCw, Send, ShoppingCart, Sparkles, Ticket, Trophy, Volume2, WalletCards, X, Zap, Menu } from "lucide-react";
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
@@ -265,7 +265,7 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
     noWinnings: string;
     guideTitle: string;
     guideBody: string;
-    guideSteps: readonly [string, string, string];
+    guideSteps: readonly string[];
     arenaTrainingTitle: string;
     arenaTrainingSteps: readonly [string, string, string, string];
     questDetailsOpen: string;
@@ -312,8 +312,8 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         recentWinnings: 'Recent winnings',
         noWinnings: 'Arcade prizes and quest money will appear here.',
         guideTitle: 'What to do now',
-        guideBody: 'You are in a 3D city. Visit Sfera Hall, explore one pavilion, then enter Zombie Arena and claim the reward.',
-        guideSteps: ['Explore Sfera Hall', 'Enter Zombie Arena', 'Claim reward'],
+        guideBody: 'Your goal is simple and weirdly urgent: buy water. Start at the dispenser, get the supplier key, clear Zombie Arena for coins, then come back for EVIAN.',
+        guideSteps: ['Try to buy water', 'Find key halves J2 and B3', 'Win Zombie Arena', 'Buy EVIAN water'],
         arenaTrainingTitle: 'Zombie Arena controls',
         arenaTrainingSteps: ['WASD to move', 'Mouse to aim', 'P to fire', 'Leave through the return portal'],
         questDetailsOpen: 'Show full checklist',
@@ -779,6 +779,8 @@ const SFERA_HALL_CUTSCENE_SRC: Record<AppLanguage, string> = {
     ru: '/cutscenes/russiansphere.MP4',
     zh: '/cutscenes/chinesesphere.MOV',
 };
+const FASTVIEW_START_CUTSCENE_SRC = '/cutscenes/gameagain.MOV';
+const WATER_WIN_CUTSCENE_SRC = '/cutscenes/wincut.MOV';
 const FASTVIEW_CUTSCENE_FADE_MS = 700;
 
 const buildStreamPixelPreviewUrl = (appId: string) => `https://share.streampixel.io/${appId}`;
@@ -944,10 +946,44 @@ const resolveFrontendCinematic = (event: unknown, language: AppLanguage): Omit<F
 };
 
 const formatMoney = (amountCents: number) =>
-    `$${(amountCents / 100).toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    })}`;
+    `${amountCents.toLocaleString('en-US')} coins`;
+
+const WATER_PRODUCTS = [
+    'EVIAN Still Water 0.5L',
+    'EVIAN Still Water 0.75L',
+    'EVIAN Still Water 1L',
+    'EVIAN Sport Cap 0.75L',
+    'EVIAN Glass Bottle 0.33L',
+    'EVIAN Glass Bottle 0.75L',
+    'EVIAN Prestige 0.5L',
+    'EVIAN Prestige 1L',
+    'EVIAN Kids 0.33L',
+    'EVIAN Mineral Water 1.5L',
+    'EVIAN Natural Spring 0.5L',
+    'EVIAN Natural Spring 1L',
+    'EVIAN Multipack 6 x 0.5L',
+    'EVIAN Multipack 12 x 0.5L',
+    'EVIAN Multipack 6 x 1L',
+    'EVIAN Still Water 0.33L',
+    'EVIAN Still Water 0.25L',
+    'EVIAN Glass Still 0.5L',
+    'EVIAN Premium Glass 1L',
+    'EVIAN Hydration Pack 4 x 0.5L',
+    'EVIAN Office Pack 24 x 0.5L',
+    'EVIAN Fridge Pack 8 x 0.5L',
+    'EVIAN Mini 0.2L',
+    'EVIAN On The Go 0.5L',
+    'EVIAN Family 1.5L',
+    'EVIAN Compact 0.75L',
+    'EVIAN Sports Bundle 6 x 0.75L',
+    'EVIAN Event Pack 12 x 0.75L',
+    'EVIAN Hall Pack 18 x 0.5L',
+    'EVIAN First Buyer Pack 24 x 0.5L',
+].slice(0, GAME_RULES.water.productsToShow).map((name, index) => ({
+    id: `evian-${index + 1}`,
+    name,
+    priceCoins: index === 0 ? GAME_RULES.water.bottlePriceCoins : GAME_RULES.water.bottlePriceCoins + Math.ceil((index + 1) * 7 / 10) * 10,
+}));
 
 type ArcadeGameId = 'pulse-runner' | 'signal-match' | 'vault-drop';
 
@@ -1141,6 +1177,216 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
         },
     },
 };
+
+function ArenaPasswordOverlay({
+    pieces,
+    onClose,
+    onSubmit,
+}: {
+    pieces: string[];
+    onClose: () => void;
+    onSubmit: (password: string) => void;
+}) {
+    const [password, setPassword] = useState('');
+    const normalized = password.trim().toUpperCase().replace(/\s+/g, '');
+    const expected = GAME_RULES.keys.arenaPassword;
+    const matchedCount = normalized
+        .split('')
+        .filter((char, index) => expected[index] === char).length;
+    const progress = Math.min(100, Math.round((matchedCount / expected.length) * 100));
+    const isComplete = normalized === expected;
+
+    return (
+        <div className="absolute inset-0 z-[96] grid place-items-center bg-[#02060b]/76 p-4 text-white backdrop-blur-sm pointer-events-auto" role="dialog" aria-modal="true" aria-label="Arena password">
+            <section className="sfera-reward-pop relative w-[min(100%,34rem)] overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#071018]/96 p-5 shadow-[0_34px_120px_rgba(0,0,0,0.6)]">
+                <button type="button" onClick={onClose} className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/25 text-slate-300 transition hover:text-white" aria-label="Close">
+                    <X className="h-4 w-4" />
+                </button>
+                <div className="flex items-center gap-3 pr-10">
+                    <span className="grid h-12 w-12 place-items-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-100">
+                        <LockKeyhole className="h-5 w-5" />
+                    </span>
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100">Zombie Arena Access</p>
+                        <h2 className="mt-1 text-2xl font-black">Enter supplier key</h2>
+                    </div>
+                </div>
+                <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                    <p className="text-xs leading-5 text-slate-300">Known fragments</p>
+                    <div className="mt-2 flex gap-2">
+                        {[GAME_RULES.keys.firstHalf, GAME_RULES.keys.secondHalf].map((piece) => (
+                            <span key={piece} className={`rounded-lg border px-3 py-2 font-mono text-sm font-black ${pieces.includes(piece) ? 'border-emerald-300/40 bg-emerald-300/12 text-emerald-100' : 'border-white/10 bg-black/25 text-white/30'}`}>
+                                {pieces.includes(piece) ? piece : '??'}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+                <form
+                    className="mt-4"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        onSubmit(password);
+                    }}
+                >
+                    <input
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value.toUpperCase())}
+                        autoFocus
+                        maxLength={8}
+                        placeholder="J2 B3"
+                        className="w-full rounded-xl border border-cyan-300/22 bg-black/35 px-4 py-4 font-mono text-2xl font-black uppercase tracking-[0.3em] text-white outline-none transition focus:border-cyan-200/70"
+                    />
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                        <div className={`h-full rounded-full transition-all duration-300 ${isComplete ? 'bg-emerald-300 shadow-[0_0_24px_rgba(110,231,183,0.7)]' : 'bg-cyan-300/80'}`} style={{ width: `${progress}%` }} />
+                    </div>
+                    <button type="submit" className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:scale-[1.01]">
+                        <KeyRound className="h-4 w-4" />
+                        Unlock Arena
+                    </button>
+                </form>
+            </section>
+        </div>
+    );
+}
+
+function WaterDispenserOverlay({
+    walletBalanceCents,
+    hasArenaAccess,
+    waterPurchased,
+    onClose,
+    onAttempt,
+    onBuy,
+    onOpenPassword,
+}: {
+    walletBalanceCents: number;
+    hasArenaAccess: boolean;
+    waterPurchased: boolean;
+    onClose: () => void;
+    onAttempt: () => void;
+    onBuy: () => void;
+    onOpenPassword: () => void;
+}) {
+    const canAfford = walletBalanceCents >= GAME_RULES.water.bottlePriceCoins;
+    const canBuy = hasArenaAccess && canAfford && !waterPurchased;
+
+    return (
+        <div className="absolute inset-0 z-[94] grid place-items-center bg-[#02060b]/72 p-4 text-white backdrop-blur-sm pointer-events-auto" role="dialog" aria-modal="true" aria-label="Water dispenser">
+            <section className="sfera-reward-pop grid max-h-[calc(100vh-2rem)] w-[min(100%,66rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#071018]/96 shadow-[0_34px_130px_rgba(0,0,0,0.62)] lg:grid-cols-[0.9fr_1.2fr]">
+                <div className="relative overflow-hidden border-b border-white/10 p-5 lg:border-b-0 lg:border-r">
+                    <button type="button" onClick={onClose} className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/35 text-slate-300 transition hover:text-white" aria-label="Close">
+                        <X className="h-4 w-4" />
+                    </button>
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(102,217,203,0.22),transparent_34%),radial-gradient(circle_at_80%_80%,rgba(245,199,102,0.14),transparent_30%)]" />
+                    <div className="relative">
+                        <span className="grid h-12 w-12 place-items-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-100">
+                            <Droplets className="h-6 w-6" />
+                        </span>
+                        <p className="mt-5 text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100">Water dispenser</p>
+                        <h2 className="mt-2 text-3xl font-black leading-tight">Buy water</h2>
+                        <p className="mt-3 text-sm leading-6 text-slate-300">Cheapest item: {GAME_RULES.water.bottleName}. Price EUR {GAME_RULES.water.bottlePriceEuro.toFixed(2)} = {GAME_RULES.water.bottlePriceCoins} coins.</p>
+                        <div className="mt-5 grid gap-2 rounded-xl border border-white/10 bg-white/[0.045] p-3">
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="text-xs font-black uppercase tracking-[0.15em] text-slate-400">Balance</span>
+                                <span className="font-mono text-lg font-black text-white">{formatMoney(walletBalanceCents)}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="text-xs font-black uppercase tracking-[0.15em] text-slate-400">Arena key</span>
+                                <span className={hasArenaAccess ? 'text-emerald-200' : 'text-amber-200'}>{hasArenaAccess ? 'accepted' : 'required'}</span>
+                            </div>
+                        </div>
+                        {!hasArenaAccess && (
+                            <button type="button" onClick={onOpenPassword} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300/24 bg-amber-300/10 px-4 py-3 text-sm font-black uppercase tracking-[0.13em] text-amber-100 transition hover:bg-amber-300/16">
+                                <KeyRound className="h-4 w-4" />
+                                Enter J2 B3 key
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onAttempt();
+                                if (canBuy) onBuy();
+                            }}
+                            disabled={waterPurchased}
+                            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.13em] text-slate-950 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                            <ShoppingCart className="h-4 w-4" />
+                            {waterPurchased ? 'Water bought' : canBuy ? 'Buy EVIAN 0.5L' : 'Try to buy'}
+                        </button>
+                        {!canBuy && !waterPurchased && (
+                            <p className="mt-3 text-xs leading-5 text-amber-100/90">
+                                {!hasArenaAccess ? 'The dispenser refuses the first purchase until the arena key is entered.' : `Need ${GAME_RULES.water.bottlePriceCoins - walletBalanceCents} more coins.`}
+                            </p>
+                        )}
+                    </div>
+                </div>
+                <div className="min-h-0 overflow-y-auto p-4">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                        {WATER_PRODUCTS.map((product, index) => (
+                            <div key={product.id} className={`rounded-xl border p-3 ${index === 0 ? 'border-cyan-300/28 bg-cyan-300/[0.075]' : 'border-white/10 bg-white/[0.035]'}`}>
+                                <div className="flex items-start justify-between gap-3">
+                                    <p className="min-w-0 text-sm font-black text-white">{product.name}</p>
+                                    <span className="shrink-0 rounded-full border border-white/10 px-2 py-1 font-mono text-[11px] text-cyan-100">{product.priceCoins}</span>
+                                </div>
+                                {index === 0 && <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100">Cheapest water</p>}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+        </div>
+    );
+}
+
+function WheelOverlay({
+    spinsRemaining,
+    coupon,
+    onClose,
+    onSpin,
+}: {
+    spinsRemaining: number;
+    coupon: string | null;
+    onClose: () => void;
+    onSpin: () => void;
+}) {
+    const [isSpinning, setIsSpinning] = useState(false);
+
+    const spin = () => {
+        if (spinsRemaining <= 0 || isSpinning) return;
+        setIsSpinning(true);
+        window.setTimeout(() => {
+            setIsSpinning(false);
+            onSpin();
+        }, 1800);
+    };
+
+    return (
+        <div className="absolute inset-0 z-[95] grid place-items-center bg-[#02060b]/76 p-4 text-white backdrop-blur-sm pointer-events-auto" role="dialog" aria-modal="true" aria-label="Wheel of Fortune">
+            <section className="sfera-reward-pop relative w-[min(100%,44rem)] overflow-hidden rounded-2xl border border-amber-300/20 bg-[#0a1018]/96 p-5 text-center shadow-[0_34px_130px_rgba(0,0,0,0.62)]">
+                <button type="button" onClick={onClose} className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/35 text-slate-300 transition hover:text-white" aria-label="Close">
+                    <X className="h-4 w-4" />
+                </button>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-100">First buyer bonus</p>
+                <h2 className="mt-2 text-3xl font-black">Wheel of Fortune</h2>
+                <div className="mx-auto mt-5 grid h-[min(62vw,22rem)] w-[min(62vw,22rem)] place-items-center">
+                    <img src="/wheeloffortune.jpg" alt="Wheel of Fortune" className={`h-full w-full rounded-full object-cover shadow-[0_0_80px_rgba(245,199,102,0.26)] ${isSpinning ? 'animate-spin' : ''}`} />
+                </div>
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-100">
+                        <Ticket className="h-4 w-4" />
+                        {coupon ?? 'Coupon required'}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-200">
+                        {spinsRemaining} try left
+                    </span>
+                </div>
+                <button type="button" onClick={spin} disabled={spinsRemaining <= 0 || isSpinning || !coupon} className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#f5c766,#66d9cb)] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45">
+                    <RotateCw className="h-4 w-4" />
+                    {spinsRemaining > 0 ? 'Spin once' : 'Already played'}
+                </button>
+            </section>
+        </div>
+    );
+}
 
 function ArcadeOverlay({
     copy,
@@ -1820,6 +2066,19 @@ export default function ExperiencePage() {
     const sceneInstruction = isZombieArenaActive ? ui.zombieInstruction : ui.instruction;
     const emitQuestEvent = useCallback((event: QuestEventInput) => {
         unrealBridge.handleUnrealResponse(JSON.stringify(event));
+        if (
+            (event.event === 'supplier_chat_opened' || event.event === 'pavilion_product_viewed') &&
+            (event.pavilionId === 'youbo' || event.pavilionId === 'doublelin')
+        ) {
+            const piece = event.pavilionId === 'youbo'
+                ? GAME_RULES.keys.firstHalf
+                : GAME_RULES.keys.secondHalf;
+            unrealBridge.handleUnrealResponse(JSON.stringify({
+                event: 'arena_key_piece_found',
+                piece,
+                pavilionId: event.pavilionId,
+            }));
+        }
     }, [unrealBridge]);
     const [frontendCinematic, setFrontendCinematic] = useState<FrontendCinematic | null>(null);
     const [signalingServerUrl] = useState<string>(() => resolveDefaultSignalingUrl());
@@ -2020,6 +2279,9 @@ export default function ExperiencePage() {
     const [activePavilion, setActivePavilion] = useState<PavilionInfo | null>(null);
     const [isRewardTerminalOpen, setIsRewardTerminalOpen] = useState(false);
     const [isArcadeOpen, setIsArcadeOpen] = useState(false);
+    const [isWaterDispenserOpen, setIsWaterDispenserOpen] = useState(false);
+    const [isArenaPasswordOpen, setIsArenaPasswordOpen] = useState(false);
+    const [isWheelOpen, setIsWheelOpen] = useState(false);
     const [arcadePlaysRemaining, setArcadePlaysRemaining] = useState<number>(GAME_RULES.arcade.maxPlaysPerOpen);
     const [isQuestChecklistOpen, setIsQuestChecklistOpen] = useState(false);
     const [seenRewardTerminalRewardId, setSeenRewardTerminalRewardId] = useState<string | null>(null);
@@ -2047,6 +2309,8 @@ export default function ExperiencePage() {
     const fastViewCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const [isSferaHallCutsceneVisible, setIsSferaHallCutsceneVisible] = useState(false);
     const sferaHallCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
+    const [isWaterWinCutsceneVisible, setIsWaterWinCutsceneVisible] = useState(false);
+    const waterWinCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const fastViewCutsceneExitTimerRef = useRef<number | null>(null);
 
     useEffect(() => {
@@ -2090,17 +2354,39 @@ export default function ExperiencePage() {
         switch (unrealBridge.lastUnrealEvent.event) {
             case 'terminal_nearby':
                 setIsArcadeOpen(false);
+                setIsWaterDispenserOpen(false);
+                setIsWheelOpen(false);
                 setIsRewardTerminalOpen(true);
                 break;
             case 'terminal_left':
                 setIsRewardTerminalOpen(false);
                 break;
+            case 'water_nearby':
+                setIsRewardTerminalOpen(false);
+                setIsArcadeOpen(false);
+                setIsWheelOpen(false);
+                setIsWaterDispenserOpen(true);
+                break;
+            case 'water_left':
+                setIsWaterDispenserOpen(false);
+                break;
             case 'arcade_nearby':
                 setIsRewardTerminalOpen(false);
+                setIsWaterDispenserOpen(false);
+                setIsWheelOpen(false);
                 setIsArcadeOpen(true);
                 break;
             case 'arcade_left':
                 setIsArcadeOpen(false);
+                break;
+            case 'wheel':
+                setIsRewardTerminalOpen(false);
+                setIsArcadeOpen(false);
+                setIsWaterDispenserOpen(false);
+                setIsWheelOpen(true);
+                break;
+            case 'wheel_left':
+                setIsWheelOpen(false);
                 break;
             default:
                 break;
@@ -2113,6 +2399,54 @@ export default function ExperiencePage() {
             amountCents,
             gameTitle,
         }));
+        playSferaUiSound('reward');
+    }, [unrealBridge]);
+
+    const handleArenaPasswordSubmit = useCallback((password: string) => {
+        const normalized = password.trim().toUpperCase().replace(/\s+/g, '');
+        const success = normalized === GAME_RULES.keys.arenaPassword;
+        unrealBridge.handleUnrealResponse(JSON.stringify({
+            event: 'arena_password_submitted',
+            password: normalized,
+            success,
+        }));
+        sendUnrealUiInteraction({
+            type: 'arena_password_submitted',
+            password: normalized,
+            success,
+        });
+        if (success) {
+            sendUnrealUiInteraction({ type: 'arena_access_granted', destination: 'ZombieArena' });
+            sendUnrealUiInteraction({ type: 'set_mode', mode: 'player' });
+            unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'mode_changed', mode: 'player' }));
+            sendUnrealKeyPress(71);
+            setIsArenaPasswordOpen(false);
+            playSferaUiSound('reward');
+        } else {
+            playSferaUiSound('warning');
+        }
+    }, [unrealBridge]);
+
+    const handleWaterPurchaseAttempt = useCallback(() => {
+        unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'water_purchase_attempted' }));
+        sendUnrealUiInteraction({ type: 'water_purchase_attempted' });
+    }, [unrealBridge]);
+
+    const handleWaterPurchase = useCallback(() => {
+        unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'water_purchased' }));
+        sendUnrealUiInteraction({
+            type: 'water_purchased',
+            item: GAME_RULES.water.bottleName,
+            priceCoins: GAME_RULES.water.bottlePriceCoins,
+        });
+        setIsWaterDispenserOpen(false);
+        setIsWaterWinCutsceneVisible(true);
+        playSferaUiSound('reward');
+    }, [unrealBridge]);
+
+    const handleWheelSpin = useCallback(() => {
+        unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'wheel_spun' }));
+        sendUnrealUiInteraction({ type: 'wheel_spun' });
         playSferaUiSound('reward');
     }, [unrealBridge]);
 
@@ -2397,6 +2731,20 @@ export default function ExperiencePage() {
     }, [hasStartedExperience, isSferaHallCutsceneVisible]);
 
     useEffect(() => {
+        if (!isWaterWinCutsceneVisible) return;
+
+        isStreamAudioSuppressedRef.current = true;
+        setNonCutsceneMediaMuted(true);
+
+        return () => {
+            isStreamAudioSuppressedRef.current = false;
+            if (hasStartedExperience) {
+                setNonCutsceneMediaMuted(false);
+            }
+        };
+    }, [hasStartedExperience, isWaterWinCutsceneVisible]);
+
+    useEffect(() => {
         if (!isFastViewRoute || hasCompletedFastViewCutscene || fastViewError || hasStartedFastViewCutscene) return;
         const startFromKey = (event: KeyboardEvent) => {
             if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -2504,7 +2852,7 @@ export default function ExperiencePage() {
     }, [handleStartExperience, hasStartedExperience, switchUnrealMode]);
 
     useEffect(() => {
-        if (!hasStartedExperience || isChatFocused || activeProduct || isCatalogueOpen || activePavilion || isMenuOpen || isRewardTerminalOpen || isArcadeOpen) return;
+        if (!hasStartedExperience || isChatFocused || activeProduct || isCatalogueOpen || activePavilion || isMenuOpen || isRewardTerminalOpen || isArcadeOpen || isWaterDispenserOpen || isArenaPasswordOpen || isWheelOpen) return;
 
         const handleModeHotkey = (event: KeyboardEvent) => {
             const target = event.target as HTMLElement | null;
@@ -2516,7 +2864,7 @@ export default function ExperiencePage() {
 
         document.addEventListener('keydown', handleModeHotkey, true);
         return () => document.removeEventListener('keydown', handleModeHotkey, true);
-    }, [activePavilion, activeProduct, isArcadeOpen, isCatalogueOpen, isChatFocused, isMenuOpen, isRewardTerminalOpen, hasStartedExperience, toggleUnrealMode]);
+    }, [activePavilion, activeProduct, isArcadeOpen, isArenaPasswordOpen, isCatalogueOpen, isChatFocused, isMenuOpen, isRewardTerminalOpen, isWaterDispenserOpen, isWheelOpen, hasStartedExperience, toggleUnrealMode]);
 
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
     const streamPixelPreviewUrl = useMemo(
@@ -2553,6 +2901,9 @@ export default function ExperiencePage() {
         !isMenuOpen &&
         !isRewardTerminalOpen &&
         !isArcadeOpen &&
+        !isWaterDispenserOpen &&
+        !isArenaPasswordOpen &&
+        !isWheelOpen &&
         !isStreamPixelOpen;
     const canEnterFastView = Boolean(videoElement) && !fastViewError;
     const fastViewLaunchTitle = fastViewError
@@ -2591,10 +2942,17 @@ export default function ExperiencePage() {
     const isPlayerModeAccessDenied =
         Boolean(unrealBridge.accessDeniedMessage) &&
         unrealBridge.lastUnrealEvent?.event === 'game_access_denied';
+    const isArenaKeyAccessDenied =
+        isPlayerModeAccessDenied &&
+        Boolean(
+            unrealBridge.lastUnrealEvent &&
+            'reason' in unrealBridge.lastUnrealEvent &&
+            unrealBridge.lastUnrealEvent.reason === 'arena_key_required'
+        );
     const shouldShowPlayerModePrompt =
         isPlayerModeAccessDenied &&
         !isPlayerModePromptDismissed &&
-        effectiveSceneMode !== 'player';
+        (effectiveSceneMode !== 'player' || isArenaKeyAccessDenied);
 
     useEffect(() => {
         if (!isPlayerModeAccessDenied || effectiveSceneMode !== 'player') return;
@@ -3144,10 +3502,10 @@ export default function ExperiencePage() {
     // This prevents the "running forward forever" bug caused by keyup events
     // being swallowed when a product card, menu, or chat input opens.
     useEffect(() => {
-        if (activeProduct || isMenuOpen || isCatalogueOpen || isChatFocused || activePavilion || isRewardTerminalOpen || isArcadeOpen) {
+        if (activeProduct || isMenuOpen || isCatalogueOpen || isChatFocused || activePavilion || isRewardTerminalOpen || isArcadeOpen || isWaterDispenserOpen || isArenaPasswordOpen || isWheelOpen) {
             releaseAllInputs();
         }
-    }, [activeProduct, isArcadeOpen, isMenuOpen, isCatalogueOpen, isChatFocused, activePavilion, isRewardTerminalOpen]);
+    }, [activeProduct, isArcadeOpen, isArenaPasswordOpen, isMenuOpen, isCatalogueOpen, isChatFocused, activePavilion, isRewardTerminalOpen, isWaterDispenserOpen, isWheelOpen]);
 
     // Ensure Unreal Engine state matches React state on video connection/reconnection
     // If the user's connection dropped while inspecting, Unreal remains stuck in inspection
@@ -3172,6 +3530,21 @@ export default function ExperiencePage() {
         // or "entered_pavilion:doublelin". Handle them before JSON parsing so
         // the payload isn't mangled.
         if (typeof jsonString === 'string') {
+            const rawEventName = jsonString.trim().replace(/^"|"$/g, '');
+            const rawEventMap: Record<string, QuestEventInput> = {
+                water_nearby: { event: 'water_nearby' },
+                water_left: { event: 'water_left' },
+                dog_mad: { event: 'dog_mad' },
+                dog_calm: { event: 'dog_calm' },
+                wheel: { event: 'wheel' },
+                wheel_left: { event: 'wheel_left' },
+            };
+            const rawEvent = rawEventMap[rawEventName];
+            if (rawEvent) {
+                unrealBridge.handleUnrealResponse(JSON.stringify(rawEvent));
+                return;
+            }
+
             const pavilionId = parseEnterPavilionMessage(jsonString);
             if (pavilionId) {
                 const now = Date.now();
@@ -3213,8 +3586,6 @@ export default function ExperiencePage() {
     };
 
     const activeSceneQuest = useMemo(() => {
-        if (!isGamerScene) return null;
-
         for (const progress of unrealBridge.questProgress) {
             const quest = getQuestDefinition(progress.questId);
             if (quest?.role === 'player' && progress.status === 'active') {
@@ -3223,7 +3594,7 @@ export default function ExperiencePage() {
         }
 
         return null;
-    }, [isGamerScene, unrealBridge.questProgress]);
+    }, [unrealBridge.questProgress]);
     const activeSceneQuestText = activeSceneQuest ? getQuestText(activeSceneQuest.quest, language) : null;
     const activeSceneQuestPercent = activeSceneQuest ? getQuestCompletionPercent(activeSceneQuest.progress) : 0;
     const activeSceneQuestNextObjective = activeSceneQuest
@@ -3272,7 +3643,7 @@ export default function ExperiencePage() {
                         onConnectionError={setFastViewError}
                         mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
                         isMobileDevice={isMobile}
-                        keyboardInputEnabled={!isChatFocused && !isArcadeOpen}
+                        keyboardInputEnabled={!isChatFocused && !isArcadeOpen && !isWaterDispenserOpen && !isArenaPasswordOpen && !isWheelOpen}
                         blockedKeyboardCodes={blockedUnrealKeyboardCodes}
                         mouseSensitivity={mouseSensitivity}
                     />
@@ -3285,7 +3656,7 @@ export default function ExperiencePage() {
                             onVideoInitialized={setVideoElement}
                             mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
                             isMobileDevice={isMobile}
-                            keyboardInputEnabled={!isChatFocused && !isArcadeOpen}
+                            keyboardInputEnabled={!isChatFocused && !isArcadeOpen && !isWaterDispenserOpen && !isArenaPasswordOpen && !isWheelOpen}
                             blockedKeyboardCodes={blockedUnrealKeyboardCodes}
                             mouseSensitivity={mouseSensitivity}
                         />
@@ -3306,8 +3677,8 @@ export default function ExperiencePage() {
                             className={`h-full w-full object-cover transition-[filter,transform] duration-700 ${
                                 hasEndedFastViewCutscene && !isVideoStreamingFrames ? 'scale-[1.01] brightness-75' : ''
                             }`}
-                            key={sferaHallCutsceneSrc}
-                            src={sferaHallCutsceneSrc}
+                            key={FASTVIEW_START_CUTSCENE_SRC}
+                            src={FASTVIEW_START_CUTSCENE_SRC}
                             data-cutscene-video="true"
                             muted={!hasStartedFastViewCutscene}
                             playsInline
@@ -3392,6 +3763,40 @@ export default function ExperiencePage() {
                         onSkip={() => handleCloseSferaHallCutscene(true)}
                         startLabel={!hasStartedSferaHallCutsceneSound ? cutsceneCopy.startWithSound : undefined}
                         onStart={!hasStartedSferaHallCutsceneSound ? handleStartSferaHallCutsceneWithSound : undefined}
+                    />
+                </div>
+            )}
+
+            {isWaterWinCutsceneVisible && showExperienceHud && (
+                <div className="absolute inset-0 z-[126] bg-[#05070b]">
+                    <video
+                        ref={waterWinCutsceneVideoRef}
+                        className="h-full w-full object-cover"
+                        src={WATER_WIN_CUTSCENE_SRC}
+                        data-cutscene-video="true"
+                        autoPlay
+                        playsInline
+                        preload="auto"
+                        onLoadedData={(event) => {
+                            event.currentTarget.muted = false;
+                            resetCutsceneAudio(event.currentTarget);
+                            event.currentTarget.play().catch(() => {
+                                event.currentTarget.muted = true;
+                                event.currentTarget.play().catch(() => {});
+                            });
+                        }}
+                        onTimeUpdate={(event) => softenCutsceneAudioTail(event.currentTarget)}
+                        onEnded={() => setIsWaterWinCutsceneVisible(false)}
+                        onError={() => setIsWaterWinCutsceneVisible(false)}
+                    />
+                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.18),transparent_34%,rgba(0,0,0,0.5))]" />
+                    <CutsceneSiteHeader
+                        statusOnline={ui.statusOnline}
+                        instruction="Water secured. Wheel coupon unlocked in Sfera Hall."
+                        skipLabel={cutsceneCopy.skip}
+                        onSkip={() => {
+                            fadeOutCutsceneAudio(waterWinCutsceneVideoRef.current, () => setIsWaterWinCutsceneVisible(false));
+                        }}
                     />
                 </div>
             )}
@@ -3572,6 +3977,15 @@ export default function ExperiencePage() {
                 </div>
             )}
 
+            {showExperienceHud && unrealBridge.lastDogMood === 'mad' && (
+                <div className="pointer-events-none absolute left-1/2 top-28 z-[45] w-[min(92vw,26rem)] -translate-x-1/2">
+                    <div className="sfera-reward-pop rounded-2xl border border-amber-300/30 bg-[#160f05]/86 p-3 text-center text-white shadow-[0_22px_70px_rgba(0,0,0,0.42)] backdrop-blur-md">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-100">Focus check</p>
+                        <p className="mt-1 text-sm font-black">heyy be focused hahah, doggy is mad</p>
+                    </div>
+                </div>
+            )}
+
             {/* StreamPixel Live Preview Overlay */}
             {!isFastViewRoute && isStreamPixelOpen && (
                 <div className="absolute inset-0 z-[200] flex flex-col bg-black">
@@ -3623,10 +4037,10 @@ export default function ExperiencePage() {
 
                     <MarketplaceCrosshair />
                     {shouldShowPlayerModePrompt && (
-                        <div className="absolute left-1/2 top-1/2 z-[70] w-[min(calc(100vw-2rem),26rem)] -translate-x-1/2 -translate-y-1/2 pointer-events-auto" role="dialog" aria-live="assertive" aria-label={sceneHud.playerModeRequired}>
+                        <div className="absolute left-1/2 top-1/2 z-[70] w-[min(calc(100vw-2rem),26rem)] -translate-x-1/2 -translate-y-1/2 pointer-events-auto" role="dialog" aria-live="assertive" aria-label={isArenaKeyAccessDenied ? 'Arena key required' : sceneHud.playerModeRequired}>
                             <div className="rounded-3xl border border-amber-300/35 bg-slate-950/90 p-5 text-white shadow-[0_30px_90px_rgba(0,0,0,0.55)] backdrop-blur-xl">
-                                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-200">{sceneHud.playerModeRequired}</p>
-                                <p className="mt-3 text-sm leading-6 text-slate-200">{sceneHud.playerModeRequiredBody}</p>
+                                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-200">{isArenaKeyAccessDenied ? 'Arena key required' : sceneHud.playerModeRequired}</p>
+                                <p className="mt-3 text-sm leading-6 text-slate-200">{isArenaKeyAccessDenied ? unrealBridge.accessDeniedMessage : sceneHud.playerModeRequiredBody}</p>
                                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                                     <button
                                         type="button"
@@ -3637,10 +4051,13 @@ export default function ExperiencePage() {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={handleSwitchToPlayerMode}
+                                        onClick={isArenaKeyAccessDenied ? () => {
+                                            setIsArenaPasswordOpen(true);
+                                            setIsPlayerModePromptDismissed(true);
+                                        } : handleSwitchToPlayerMode}
                                         className="rounded-2xl bg-[linear-gradient(135deg,#66d9cb,#d9fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:scale-[1.01]"
                                     >
-                                        {sceneHud.switchMode}
+                                        {isArenaKeyAccessDenied ? 'Enter key' : sceneHud.switchMode}
                                     </button>
                                 </div>
                             </div>
@@ -3709,7 +4126,7 @@ export default function ExperiencePage() {
                                     </div>
                                 </div>
                             )}
-                            {isGamerScene && activeSceneQuest && (
+                            {activeSceneQuest && (
                                 <div className="sfera-guide-enter mt-2 w-[min(92vw,22rem)] rounded-xl border border-cyan-300/18 bg-[#041018]/70 px-3 py-2.5 text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.28)] backdrop-blur-md">
                                     <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-100">{sceneHud.guideTitle}</p>
                                     <p className="mt-1 text-xs leading-5 text-slate-300">{sceneHud.guideBody}</p>
@@ -3832,6 +4249,25 @@ export default function ExperiencePage() {
                                     </span>
                                     <span className="shrink-0 rounded-full border border-cyan-300/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100">
                                         {sceneHud.openTerminal}
+                                    </span>
+                                </button>
+                            )}
+                            {unrealBridge.waterPurchased && unrealBridge.wheelCoupon && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsWheelOpen(true)}
+                                    className="sfera-reward-pop mt-2 flex w-[min(92vw,22rem)] items-center gap-3 rounded-xl border border-amber-300/24 bg-[#171006]/72 px-3 py-2.5 text-left text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.32)] backdrop-blur-md transition hover:border-amber-200/45 hover:bg-amber-300/[0.08]"
+                                >
+                                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-amber-300/24 bg-amber-300/10 text-amber-100">
+                                        <Ticket className="h-4 w-4" />
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-amber-100">Wheel unlocked</span>
+                                        <span className="mt-0.5 block truncate text-sm font-black text-white">Go back to Sfera Hall for 1 spin</span>
+                                        <span className="mt-0.5 block truncate text-[11px] text-slate-400">{unrealBridge.wheelCoupon}</span>
+                                    </span>
+                                    <span className="shrink-0 rounded-full border border-amber-300/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-amber-100">
+                                        {unrealBridge.wheelSpinsRemaining} try
                                     </span>
                                 </button>
                             )}
@@ -4055,6 +4491,35 @@ export default function ExperiencePage() {
                                 </div>
                             </section>
                         </div>
+                    )}
+
+                    {isWaterDispenserOpen && (
+                        <WaterDispenserOverlay
+                            walletBalanceCents={walletBalanceCents}
+                            hasArenaAccess={unrealBridge.hasArenaAccess}
+                            waterPurchased={unrealBridge.waterPurchased}
+                            onClose={() => setIsWaterDispenserOpen(false)}
+                            onAttempt={handleWaterPurchaseAttempt}
+                            onBuy={handleWaterPurchase}
+                            onOpenPassword={() => setIsArenaPasswordOpen(true)}
+                        />
+                    )}
+
+                    {isArenaPasswordOpen && (
+                        <ArenaPasswordOverlay
+                            pieces={unrealBridge.arenaKeyPieces}
+                            onClose={() => setIsArenaPasswordOpen(false)}
+                            onSubmit={handleArenaPasswordSubmit}
+                        />
+                    )}
+
+                    {isWheelOpen && (
+                        <WheelOverlay
+                            spinsRemaining={unrealBridge.wheelSpinsRemaining}
+                            coupon={unrealBridge.wheelCoupon}
+                            onClose={() => setIsWheelOpen(false)}
+                            onSpin={handleWheelSpin}
+                        />
                     )}
 
                     {isArcadeOpen && (

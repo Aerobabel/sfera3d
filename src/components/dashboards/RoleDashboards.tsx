@@ -247,6 +247,13 @@ const fallback: UnrealEventBridgeState = {
     lastCompletedQuestId: null,
     walletBalanceCents: 0,
     walletTransactions: [],
+    arenaKeyPieces: [],
+    hasArenaAccess: false,
+    arcadeKey: null,
+    waterPurchased: false,
+    wheelCoupon: null,
+    wheelSpinsRemaining: 0,
+    lastDogMood: null,
 };
 
 const dashboardCopy: Record<AppLanguage, DashboardText> = {
@@ -1107,10 +1114,7 @@ const questStatusLabel = (
 };
 
 const formatMoney = (amountCents: number) =>
-    `$${(amountCents / 100).toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    })}`;
+    `${amountCents.toLocaleString('en-US')} coins`;
 
 function DashboardBackNav() {
     const { language } = useLanguage();
@@ -1181,6 +1185,47 @@ function DashboardRail({ mode }: { mode: 'player' | 'shopper' | 'business' }) {
     );
 }
 
+function MobileDashboardNav({ mode }: { mode: 'player' | 'shopper' | 'business' }) {
+    const activeTone: Tone = mode === 'business' ? 'emerald' : mode === 'shopper' ? 'amber' : 'sky';
+    const railItems = [
+        { href: '/roles?skipIntro=true', icon: Home, label: 'Roles' },
+        { href: '/fastview?resume=scene', icon: Globe2, label: 'Scene' },
+        { href: '/player/dashboard', icon: Gamepad2, label: 'Player' },
+        { href: '/shopper/dashboard', icon: ShoppingBag, label: 'Shopper' },
+        { href: '/business/dashboard', icon: Store, label: 'Business' },
+    ];
+
+    return (
+        <nav
+            className="fixed inset-x-2 bottom-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] z-[210] grid grid-cols-5 gap-1 rounded-2xl border border-white/10 bg-[#070b11]/95 p-1.5 shadow-[0_18px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl lg:hidden"
+            aria-label="Dashboard navigation"
+        >
+            {railItems.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                    (mode === 'player' && item.href === '/player/dashboard') ||
+                    (mode === 'shopper' && item.href === '/shopper/dashboard') ||
+                    (mode === 'business' && item.href === '/business/dashboard');
+
+                return (
+                    <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl border px-1 text-[10px] font-black uppercase tracking-[0.04em] transition ${
+                            isActive
+                                ? toneStyles[activeTone].icon
+                                : 'border-transparent bg-white/[0.035] text-slate-400 hover:bg-white/[0.07] hover:text-white'
+                        }`}
+                    >
+                        <Icon className="h-4 w-4" />
+                        <span className="max-w-full truncate">{item.label}</span>
+                    </Link>
+                );
+            })}
+        </nav>
+    );
+}
+
 function DashboardFrame({
     children,
     sidebar,
@@ -1208,8 +1253,9 @@ function DashboardFrame({
             <div className={`relative grid ${embedded ? 'min-h-0' : 'min-h-screen'} ${gridColumns}`}>
                 {!embedded && <DashboardRail mode={mode} />}
                 {!embedded && sidebar}
-                <div className={`min-w-0 ${embedded ? 'p-3 sm:p-4' : 'p-3 sm:p-4 lg:p-5'}`}>{children}</div>
+                <div className={`min-w-0 ${embedded ? 'p-3 sm:p-4' : 'p-3 pb-24 sm:p-4 sm:pb-24 lg:p-5 lg:pb-5'}`}>{children}</div>
             </div>
+            {!embedded && <MobileDashboardNav mode={mode} />}
         </section>
     );
 }
@@ -1219,11 +1265,11 @@ function HeaderSearch({ label, shortcut }: { label: string; shortcut: string }) 
         <div className="relative w-full max-w-xl">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input
-                className="h-11 w-full rounded-lg border border-white/10 bg-[#0d131c] pl-10 pr-24 text-sm text-slate-200 outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 focus:bg-cyan-300/[0.07]"
+                className="h-11 w-full rounded-lg border border-white/10 bg-[#0d131c] pl-10 pr-3 text-sm text-slate-200 outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 focus:bg-cyan-300/[0.07] sm:pr-24"
                 placeholder={label}
                 readOnly
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg border border-white/10 bg-white/[0.05] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+            <span className="absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-lg border border-white/10 bg-white/[0.05] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400 sm:inline-flex">
                 {shortcut}
             </span>
         </div>

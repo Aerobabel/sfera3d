@@ -412,6 +412,21 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
     // The first product of the full manifest acts as the "signature piece" — the
     // editorial hero above the grid.
     const signatureProduct = pavilion.products[0] ?? null;
+    const arenaKeyHint = useMemo<ChatEntry | null>(() => {
+        if (pavilion.id !== 'youbo' && pavilion.id !== 'doublelin') return null;
+        const piece = pavilion.id === 'youbo' ? 'J2' : 'B3';
+        const other = pavilion.id === 'youbo' ? 'Double Lin' : 'Youbo';
+        const address = pavilion.id === 'youbo'
+            ? 'Legal office: Zhejiang Province, China, Jiaxing district, Youbo representation desk.'
+            : 'Legal office: Zhejiang Province, China, Jiaxing district, Double Lin representation desk.';
+
+        return {
+            id: `arena-key-hint-${pavilion.id}`,
+            role: 'pavilion',
+            text: `Hello, otherworld traveler. To find the arena key, inspect my goods carefully. I can hold only one half: ${piece}. ${address} The other half is with ${other}.`,
+            timestamp: Date.now(),
+        };
+    }, [pavilion.id]);
 
     // --- Contact form state ---
     const [contactName, setContactName] = useState('');
@@ -579,7 +594,8 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
             const body = (await res.json()) as { success?: boolean; error?: string; messages?: PavilionMessage[] };
             if (!res.ok || !body.success) throw new Error(body.error || 'Unable to load messages.');
             setChatAuthError(null);
-            setChatEntries((body.messages ?? []).map(toChatEntry));
+            const remoteEntries = (body.messages ?? []).map(toChatEntry);
+            setChatEntries(arenaKeyHint ? [arenaKeyHint, ...remoteEntries] : remoteEntries);
         } catch (err) {
             if (chatEntries.length === 0) {
                 const msg = err instanceof Error ? err.message : 'Connection issue.';
@@ -588,7 +604,7 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
         } finally {
             setIsSyncingChat(false);
         }
-    }, [pavilion.id, chatEntries.length, copy.chatSigninHint]);
+    }, [pavilion.id, chatEntries.length, copy.chatSigninHint, arenaKeyHint]);
 
     const handleSendChat = useCallback(async () => {
         const text = chatInput.trim();
@@ -671,7 +687,7 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
             onWheel={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
         >
-            <div className="relative bg-[linear-gradient(160deg,rgba(8,12,20,0.95),rgba(15,22,36,0.92))] backdrop-blur-2xl border border-white/10 w-full max-w-6xl h-[88vh] rounded-3xl shadow-[0_40px_120px_rgba(0,0,0,0.7)] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="relative flex h-[calc(100dvh-1rem)] w-full max-w-6xl animate-in flex-col overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(8,12,20,0.95),rgba(15,22,36,0.92))] shadow-[0_40px_120px_rgba(0,0,0,0.7)] backdrop-blur-2xl duration-300 zoom-in-95 sm:h-[88vh] sm:rounded-3xl">
                 {/* Ambient glow */}
                 <div className={`pointer-events-none absolute -top-32 -right-32 w-[40rem] h-[40rem] rounded-full blur-[140px] opacity-60 bg-gradient-to-br ${pavilion.heroColor}`} />
                 <div className="pointer-events-none absolute -bottom-32 -left-32 w-[32rem] h-[32rem] rounded-full blur-[120px] opacity-40 bg-gradient-to-tr from-white/5 to-cyan-500/10" />
@@ -688,18 +704,18 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                 <div className="grain-overlay" />
 
                 {/* Header */}
-                <div className="relative p-8 border-b border-white/5 bg-black/20 z-10">
-                    <div className="flex items-start justify-between gap-4">
+                <div className="relative z-10 border-b border-white/5 bg-black/20 p-4 sm:p-8">
+                    <div className="flex items-start justify-between gap-3 sm:gap-4">
                         <div>
-                            <div className="text-xs uppercase tracking-[0.35em] text-cyan-300 font-bold">{copy.pavilionLabel}</div>
+                            <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-cyan-300 sm:text-xs sm:tracking-[0.35em]">{copy.pavilionLabel}</div>
                             {/* Editorial serif display — bumped weight for readability */}
-                            <h2 className="font-display mt-2 text-[clamp(2.25rem,4.5vw,3.75rem)] font-semibold leading-[0.95] tracking-[-0.01em] text-white drop-shadow-[0_0_18px_rgba(255,255,255,0.12)]">
+                            <h2 className="font-display mt-2 text-[clamp(1.75rem,11vw,3.75rem)] font-semibold leading-[0.98] tracking-[-0.01em] text-white drop-shadow-[0_0_18px_rgba(255,255,255,0.12)]">
                                 {pavilion.name}
                             </h2>
                             {/* Tagline: was italic gray-400 light — disappeared against the dark
                                 panel on larger displays per client feedback. Now: solid white,
                                 medium weight, larger, no italic. */}
-                            <p className="mt-3 text-base sm:text-lg text-white/90 max-w-2xl leading-relaxed font-medium">{pavilion.tagline}</p>
+                            <p className="mt-3 max-w-2xl text-sm font-medium leading-relaxed text-white/90 sm:text-lg">{pavilion.tagline}</p>
                         </div>
                         <button
                             onClick={onClose}
@@ -711,14 +727,14 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                     </div>
 
                     {/* Tabs */}
-                    <div className="mt-7 flex flex-wrap gap-2">
+                    <div className="mt-5 flex gap-2 overflow-x-auto pb-1 sm:mt-7 sm:flex-wrap sm:overflow-visible">
                         {TAB_DEFS.map(({ id, icon: Icon }) => {
                             const isActive = tab === id;
                             return (
                                 <button
                                     key={id}
                                     onClick={() => handleTabChange(id)}
-                                    className={`relative flex items-center gap-2 px-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-[0.2em] transition ${
+                                    className={`relative flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] transition sm:px-5 sm:tracking-[0.2em] ${
                                         isActive
                                             ? 'bg-white text-slate-900 shadow-[0_0_25px_rgba(255,255,255,0.25)]'
                                             : 'bg-white/[0.04] text-gray-400 hover:bg-white/10 hover:text-white border border-white/10'
@@ -737,8 +753,8 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                     {tab === 'products' && (
                         <div className="relative">
                             {/* Editorial hero band — left-aligned single column (matches client feedback: no stretched right-column misalignment) */}
-                            <div className="relative border-b border-white/5 bg-[radial-gradient(circle_at_20%_0%,rgba(240,200,134,0.1),transparent_50%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] px-8 pt-10 pb-8">
-                                <div className="flex flex-wrap items-center gap-3 text-sm font-bold uppercase tracking-[0.3em] text-[#fcdba0]">
+                            <div className="relative border-b border-white/5 bg-[radial-gradient(circle_at_20%_0%,rgba(240,200,134,0.1),transparent_50%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] px-4 pb-6 pt-6 sm:px-8 sm:pb-8 sm:pt-10">
+                                <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#fcdba0] sm:gap-3 sm:text-sm sm:tracking-[0.3em]">
                                     <span className="h-px w-10 bg-[#fcdba0]/70" />
                                     <span>{copy.collectionLabel}</span>
                                     <span className="text-[#fcdba0]/50">·</span>
@@ -754,12 +770,12 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
 
                             {/* Signature hero piece — the "walking into the gallery" focal point */}
                             {signatureProduct && (
-                                <div className="relative px-8 pt-10 pb-4">
-                                    <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-8 items-center">
+                                <div className="relative px-4 pb-4 pt-6 sm:px-8 sm:pt-10">
+                                    <div className="grid grid-cols-1 items-center gap-5 lg:grid-cols-[1.15fr_1fr] lg:gap-8">
                                         <button
                                             type="button"
                                             onClick={() => handleSelectProduct(signatureProduct)}
-                                            className="group relative block overflow-hidden rounded-3xl border border-white/10 bg-[radial-gradient(ellipse_at_bottom,rgba(240,200,134,0.14),rgba(255,255,255,0.02)_50%,rgba(0,0,0,0.3))] aspect-[4/3] shadow-[0_20px_70px_rgba(0,0,0,0.6)] hover:border-[#f0c886]/60 transition-all duration-700"
+                                            className="group relative block aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(ellipse_at_bottom,rgba(240,200,134,0.14),rgba(255,255,255,0.02)_50%,rgba(0,0,0,0.3))] shadow-[0_20px_70px_rgba(0,0,0,0.6)] transition-all duration-700 hover:border-[#f0c886]/60 sm:rounded-3xl"
                                         >
                                             <Image
                                                 src={signatureProduct.hero}
@@ -770,7 +786,7 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                                                 className="object-cover group-hover:scale-[1.03] transition-transform duration-[1200ms] ease-out"
                                             />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                                            <div className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-sm border border-[#f0c886]/60 text-sm font-bold uppercase tracking-[0.25em] text-[#f0c886]">
+                                            <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full border border-[#f0c886]/60 bg-black/60 px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#f0c886] backdrop-blur-sm sm:left-6 sm:top-6 sm:px-4 sm:text-sm sm:tracking-[0.25em]">
                                                 <span className="h-2 w-2 rounded-full bg-[#f0c886] animate-pulse" />
                                                 {copy.signaturePiece}
                                             </div>
@@ -785,11 +801,11 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                                                 {signatureProduct.code}
                                             </h4>
                                             <p className="text-base text-white/85 leading-[1.7] font-medium">{copy.signatureBlurb}</p>
-                                            <div className="flex gap-3 pt-2">
+                                            <div className="grid gap-3 pt-2 sm:flex">
                                                 <button
                                                     type="button"
                                                     onClick={() => handleRequestQuote(signatureProduct)}
-                                                    className="group inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#f0c886] hover:bg-[#fcdba0] text-[#1a1408] text-sm font-bold uppercase tracking-[0.2em] transition shadow-[0_6px_24px_rgba(240,200,134,0.4)]"
+                                                    className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#f0c886] px-5 py-3 text-center text-sm font-bold uppercase tracking-[0.14em] text-[#1a1408] shadow-[0_6px_24px_rgba(240,200,134,0.4)] transition hover:bg-[#fcdba0] sm:px-6 sm:tracking-[0.2em]"
                                                 >
                                                     {copy.requestQuote}
                                                     <ArrowUpRight size={16} strokeWidth={2.5} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
@@ -797,7 +813,7 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                                                 <button
                                                     type="button"
                                                     onClick={() => handleSelectProduct(signatureProduct)}
-                                                    className="px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-bold uppercase tracking-[0.2em] border border-white/20 transition"
+                                                    className="min-h-11 rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-white/20 sm:px-6 sm:tracking-[0.2em]"
                                                 >
                                                     {copy.viewPiece}
                                                 </button>
@@ -809,16 +825,16 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
 
                             {/* Category filter bar — Series 500 / 1000 / 2000 … inferred from codes */}
                             {seriesGroups.length > 1 && (
-                                <div className="px-8 pt-8 pb-2">
-                                    <div className="flex items-center gap-3 mb-4 text-xs font-bold uppercase tracking-[0.32em] text-gray-400">
+                                <div className="px-4 pb-2 pt-6 sm:px-8 sm:pt-8">
+                                    <div className="mb-4 flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400 sm:text-xs sm:tracking-[0.32em]">
                                         <span className="h-px w-8 bg-white/20" />
                                         <span>{copy.exploreCollection}</span>
                                     </div>
-                                    <div className="flex flex-wrap gap-2">
+                                    <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
                                         <button
                                             type="button"
                                             onClick={() => setActiveCategory('all')}
-                                            className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-[0.22em] border transition ${
+                                            className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition sm:tracking-[0.22em] ${
                                                 activeCategory === 'all'
                                                     ? 'bg-[#f0c886] text-[#0a0e1a] border-[#f0c886] shadow-[0_4px_20px_rgba(240,200,134,0.3)]'
                                                     : 'bg-white/[0.03] text-gray-300 border-white/10 hover:bg-white/10'
@@ -831,7 +847,7 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                                                 key={key}
                                                 type="button"
                                                 onClick={() => setActiveCategory(key)}
-                                                className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-[0.22em] border transition ${
+                                                className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition sm:tracking-[0.22em] ${
                                                     activeCategory === key
                                                         ? 'bg-[#f0c886] text-[#0a0e1a] border-[#f0c886] shadow-[0_4px_20px_rgba(240,200,134,0.3)]'
                                                         : 'bg-white/[0.03] text-gray-300 border-white/10 hover:bg-white/10'
@@ -845,11 +861,11 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                             )}
 
                             {/* Product grid — staggered scroll-reveal */}
-                            <div className="p-8 pt-4">
+                            <div className="p-4 pt-4 sm:p-8 sm:pt-4">
                                 {filteredProducts.length === 0 ? (
                                     <div className="text-gray-500 text-sm">{copy.productsEmpty}</div>
                                 ) : (
-                                    <div key={activeCategory} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8">
+                                    <div key={activeCategory} className="grid grid-cols-1 gap-x-5 gap-y-6 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 lg:gap-y-8">
                                         {filteredProducts.map((product, idx) => {
                                             const indexLabel = String(idx + 1).padStart(3, '0');
                                             return (
@@ -920,7 +936,7 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                     )}
 
                     {tab === 'contact' && (
-                        <div className="p-8 max-w-2xl">
+                        <div className="max-w-2xl p-4 sm:p-8">
                             <p className="mb-5 text-lg text-white/90 leading-relaxed font-medium">{copy.contactHeadline}</p>
                             <div className="mb-7 text-base text-gray-300 space-y-2">
                                 <div><span className="text-gray-400">{copy.contactEmail}:</span> <span className="text-cyan-300 font-semibold">{pavilion.contactEmail}</span></div>
@@ -1006,10 +1022,10 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                     )}
 
                     {tab === 'meeting' && (
-                        <div className="p-8">
+                        <div className="p-4 sm:p-8">
                             <p className="mb-6 text-lg text-white/90 leading-relaxed font-medium">{copy.meetingHeadline(pavilion.name)}</p>
-                            <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_320px] gap-4">
-                                <div className="space-y-2 max-h-[55vh] overflow-y-auto custom-scrollbar pr-1">
+                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[220px_1fr_320px]">
+                                <div className="grid max-h-48 grid-cols-1 gap-2 overflow-y-auto pr-1 custom-scrollbar sm:max-h-[55vh]">
                                     {dayOptions.map((day) => {
                                         const iso = day.toISOString();
                                         const isActive = iso === selectedDayIso;
@@ -1022,7 +1038,7 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                                         );
                                     })}
                                 </div>
-                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 content-start">
+                                <div className="grid grid-cols-2 content-start gap-2 min-[420px]:grid-cols-3 sm:grid-cols-4">
                                     {slotsForDay.map((slot) => {
                                         const iso = slot.toISOString();
                                         const isTaken = takenSlots.has(iso);
@@ -1039,7 +1055,7 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                                         );
                                     })}
                                 </div>
-                                <form onSubmit={handleSubmitMeeting} className="space-y-3 bg-black/20 border border-white/10 rounded-2xl p-5">
+                                <form onSubmit={handleSubmitMeeting} className="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4 sm:p-5">
                                     <input required value={meetingName} onChange={(e) => setMeetingName(e.target.value)} placeholder={copy.fieldName} className="w-full px-4 py-3 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-base placeholder-gray-400 transition" />
                                     <input required type="email" value={meetingEmail} onChange={(e) => setMeetingEmail(e.target.value)} placeholder={copy.fieldEmail} className="w-full px-4 py-3 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-base placeholder-gray-400 transition" />
                                     <input value={meetingCompany} onChange={(e) => setMeetingCompany(e.target.value)} placeholder={copy.fieldCompany} className="w-full px-4 py-3 rounded-lg bg-white/[0.04] border border-white/10 focus:border-cyan-400/50 focus:bg-white/[0.08] outline-none text-white text-base placeholder-gray-400 transition" />
@@ -1060,9 +1076,9 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
 
                 {/* Product lightbox */}
                 {selectedProduct && (
-                    <div className="absolute inset-0 z-20 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setSelectedProduct(null)}>
-                        <div onClick={(e) => e.stopPropagation()} className="relative bg-[linear-gradient(160deg,rgba(12,18,28,0.96),rgba(20,28,42,0.94))] border border-white/10 rounded-3xl shadow-[0_30px_80px_rgba(0,0,0,0.7)] max-w-5xl w-full max-h-[85vh] flex flex-col md:flex-row overflow-hidden">
-                            <div className="md:w-3/5 relative bg-[radial-gradient(ellipse_at_center,rgba(20,28,42,0.6),rgba(0,0,0,0.95))] flex items-center justify-center min-h-[300px] md:min-h-[480px]">
+                    <div className="absolute inset-0 z-20 flex animate-in items-center justify-center bg-black/85 p-2 backdrop-blur-sm duration-200 fade-in sm:p-4" onClick={() => setSelectedProduct(null)}>
+                        <div onClick={(e) => e.stopPropagation()} className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(12,18,28,0.96),rgba(20,28,42,0.94))] shadow-[0_30px_80px_rgba(0,0,0,0.7)] md:max-h-[85vh] md:flex-row md:rounded-3xl">
+                            <div className="relative flex min-h-[220px] items-center justify-center bg-[radial-gradient(ellipse_at_center,rgba(20,28,42,0.6),rgba(0,0,0,0.95))] md:min-h-[480px] md:w-3/5">
                                 {selectedProduct.model ? (
                                     <ModelViewer src={selectedProduct.model} alt={selectedProduct.code} orientation={selectedProduct.modelOrientation} />
                                 ) : selectedProduct.sketchfabModelId ? (
@@ -1080,11 +1096,11 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                                     />
                                 )}
                             </div>
-                            <div className="md:w-2/5 p-8 flex flex-col gap-5 overflow-y-auto custom-scrollbar">
+                            <div className="flex flex-col gap-4 overflow-y-auto p-4 custom-scrollbar sm:p-6 md:w-2/5 md:gap-5 md:p-8">
                                 <div className="flex items-start justify-between">
                                     <div className="min-w-0">
                                         <div className="text-[10px] uppercase tracking-[0.3em] text-cyan-300/80 font-bold">{pavilion.name}</div>
-                                        <h3 className="mt-2 text-3xl font-black text-white tracking-[0.08em]">{selectedProduct.code}</h3>
+                                        <h3 className="mt-2 break-words text-2xl font-black tracking-[0.08em] text-white sm:text-3xl">{selectedProduct.code}</h3>
                                         {(() => {
                                             const youbo = getYouboSpec(selectedProduct.id);
                                             if (youbo) {

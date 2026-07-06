@@ -3,7 +3,7 @@ import type { QuestProgress, QuestRewardState } from '@/lib/quests';
 export type SferaMode = 'shopper' | 'player';
 export type SferaLocation = 'city' | 'sferaHall' | 'zombieArena' | 'racingZone';
 export type SferaGame = null | 'ZombieArena' | 'RacingZone' | 'TreasureHunt';
-export type WalletTransactionKind = 'arcade_win' | 'quest_reward';
+export type WalletTransactionKind = 'arcade_win' | 'quest_reward' | 'water_purchase';
 
 export type WalletTransaction = {
     id: string;
@@ -38,6 +38,18 @@ export type UnrealPixelStreamingEvent =
     | { event: 'lead_inbox_opened' }
     | { event: 'terminal_nearby' }
     | { event: 'terminal_left' }
+    | { event: 'water_nearby' }
+    | { event: 'water_left' }
+    | { event: 'water_purchase_attempted' }
+    | { event: 'water_purchased' }
+    | { event: 'dog_mad' }
+    | { event: 'dog_calm' }
+    | { event: 'wheel' }
+    | { event: 'wheel_left' }
+    | { event: 'wheel_spun' }
+    | { event: 'arena_key_piece_found'; piece?: unknown; pavilionId?: unknown }
+    | { event: 'arena_password_submitted'; password?: unknown; success?: unknown }
+    | { event: 'arena_completed' }
     | { event: 'arcade_nearby' }
     | { event: 'arcade_left' }
     | { event: 'arcade_prize_won'; amountCents?: unknown; gameTitle?: unknown }
@@ -76,4 +88,11 @@ export type UnrealEventBridgeState = {
     lastCompletedQuestId: string | null;
     walletBalanceCents: number;
     walletTransactions: WalletTransaction[];
+    arenaKeyPieces: string[];
+    hasArenaAccess: boolean;
+    arcadeKey: string | null;
+    waterPurchased: boolean;
+    wheelCoupon: string | null;
+    wheelSpinsRemaining: number;
+    lastDogMood: 'mad' | 'calm' | null;
 };

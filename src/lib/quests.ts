@@ -68,6 +68,94 @@ type QuestUpdateResult = {
 
 export const QUEST_DEFINITIONS: QuestDefinition[] = [
     {
+        id: 'water_arena_run',
+        role: 'player',
+        sponsor: '3DSFERA Water Quest',
+        title: {
+            en: 'Buy Water',
+            ru: 'Buy Water',
+            zh: 'Buy Water',
+        },
+        description: {
+            en: 'Start at the water dispenser, learn that EVIAN 0.5L costs 160 coins, collect the J2 B3 arena key from suppliers, clear Zombie Arena, then come back to buy water.',
+            ru: 'Start at the water dispenser, collect the J2 B3 arena key from suppliers, clear Zombie Arena, then buy water.',
+            zh: 'Start at the water dispenser, collect the J2 B3 arena key from suppliers, clear Zombie Arena, then buy water.',
+        },
+        objectives: [
+            {
+                id: 'find_water_dispenser',
+                event: 'water_nearby',
+                count: 1,
+                label: {
+                    en: 'Find the water dispenser',
+                    ru: 'Find the water dispenser',
+                    zh: 'Find the water dispenser',
+                },
+            },
+            {
+                id: 'try_buy_water',
+                event: 'water_purchase_attempted',
+                count: 1,
+                label: {
+                    en: 'Try to buy water',
+                    ru: 'Try to buy water',
+                    zh: 'Try to buy water',
+                },
+            },
+            {
+                id: 'collect_supplier_key',
+                event: 'arena_key_piece_found',
+                count: 2,
+                label: {
+                    en: 'Collect both supplier key halves: J2 and B3',
+                    ru: 'Collect both supplier key halves: J2 and B3',
+                    zh: 'Collect both supplier key halves: J2 and B3',
+                },
+            },
+            {
+                id: 'unlock_arena',
+                event: 'arena_password_submitted',
+                count: 1,
+                match: { success: true },
+                label: {
+                    en: 'Enter the arena password',
+                    ru: 'Enter the arena password',
+                    zh: 'Enter the arena password',
+                },
+            },
+            {
+                id: 'enter_arena',
+                event: 'game_entered',
+                count: 1,
+                match: { game: 'ZombieArena' },
+                label: {
+                    en: 'Enter Zombie Arena',
+                    ru: 'Enter Zombie Arena',
+                    zh: 'Enter Zombie Arena',
+                },
+            },
+            {
+                id: 'clear_zombies',
+                event: 'zombie_killed',
+                count: 5,
+                label: {
+                    en: 'Clear 5 zombies',
+                    ru: 'Clear 5 zombies',
+                    zh: 'Clear 5 zombies',
+                },
+            },
+        ],
+        reward: {
+            kind: 'coins',
+            value: 150,
+            label: {
+                en: '150 coins and arcade key WHEEL-7',
+                ru: '150 coins and arcade key WHEEL-7',
+                zh: '150 coins and arcade key WHEEL-7',
+            },
+        },
+    },
+    {
         id: 'player_arena_trial',
         role: 'player',
         sponsor: '3DSFERA Arena',
@@ -148,11 +236,11 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
         ],
         reward: {
             kind: 'coins',
-            value: 120,
+            value: 150,
             label: {
-                en: '120 arena coins',
-                ru: '120 монет арены',
-                zh: '120 竞技场金币',
+                en: '150 arena coins',
+                ru: '150 монет арены',
+                zh: '150 竞技场金币',
             },
         },
     },
