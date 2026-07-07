@@ -1447,6 +1447,55 @@ function CutsceneTimeline({ active }: { active: 'opening' | 'role' | 'hall' | 'w
     );
 }
 
+function CutsceneCinematicOverlay({ tone, label }: { tone: 'opening' | 'hall' | 'water'; label: string }) {
+    const toneClass = {
+        opening: 'border-cyan-200/18 text-cyan-100',
+        hall: 'border-fuchsia-200/18 text-fuchsia-100',
+        water: 'border-amber-200/22 text-amber-100',
+    }[tone];
+    const glowClass = {
+        opening: 'from-cyan-200/80 via-cyan-200/18',
+        hall: 'from-fuchsia-200/80 via-cyan-200/18',
+        water: 'from-amber-200/80 via-cyan-200/18',
+    }[tone];
+
+    return (
+        <>
+            <div className="pointer-events-none absolute inset-0 z-[4] bg-[radial-gradient(circle_at_50%_42%,transparent_0%,transparent_48%,rgba(0,0,0,0.34)_76%,rgba(0,0,0,0.72)_100%)]" />
+            <div className="grain-overlay z-[5] opacity-[0.075]" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-[6] h-[clamp(3.25rem,7vh,5.25rem)] bg-gradient-to-b from-black/78 via-black/34 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[6] h-[clamp(5.5rem,14vh,8.5rem)] bg-gradient-to-t from-black/88 via-black/42 to-transparent" />
+            <div className="pointer-events-none absolute bottom-0 left-0 z-[7] h-[34vh] w-[min(44vw,34rem)] bg-[radial-gradient(ellipse_at_bottom_left,rgba(0,0,0,0.86),rgba(0,0,0,0.42)_42%,transparent_72%)]" />
+            <div className="pointer-events-none absolute bottom-8 right-4 z-[20] hidden h-32 w-32 rounded-2xl border border-white/8 bg-black/72 shadow-[0_18px_70px_rgba(0,0,0,0.55)] backdrop-blur-sm sm:block" />
+            <div className={`pointer-events-none absolute bottom-5 left-4 z-[21] hidden w-[min(38vw,17rem)] overflow-hidden rounded-r-2xl border-y border-r bg-black/82 px-4 py-3 shadow-[0_18px_70px_rgba(0,0,0,0.5)] backdrop-blur-md sm:block ${toneClass}`}>
+                <div className="absolute inset-0 bg-gradient-to-r from-white/[0.08] via-white/[0.02] to-transparent" />
+                <div className="relative flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                        <p className="truncate text-[9px] font-black uppercase tracking-[0.22em] text-white/72">3DSFERA signal</p>
+                        <p className="mt-1 truncate text-[11px] font-black uppercase tracking-[0.18em]">{label}</p>
+                    </div>
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/14 bg-white/[0.06]">
+                        <span className="h-2 w-2 rounded-full bg-current shadow-[0_0_16px_currentColor]" />
+                    </span>
+                </div>
+                <div className="relative mt-3 h-px overflow-hidden rounded-full bg-white/12">
+                    <span className={`absolute inset-y-0 left-0 w-2/3 animate-[shimmer_2.4s_linear_infinite] bg-gradient-to-r ${glowClass} to-transparent`} />
+                </div>
+            </div>
+            <div className="pointer-events-none absolute bottom-5 right-4 z-[21] hidden w-[min(26vw,13rem)] overflow-hidden rounded-l-2xl border-y border-l border-white/12 bg-black/64 px-4 py-3 text-right text-white shadow-[0_18px_70px_rgba(0,0,0,0.48)] backdrop-blur-md sm:block">
+                <div className="absolute inset-0 bg-gradient-to-l from-white/[0.08] via-white/[0.02] to-transparent" />
+                <p className="relative text-[9px] font-black uppercase tracking-[0.22em] text-white/70">access film</p>
+                <p className="relative mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-white">premium signal</p>
+                <div className="relative mt-3 ml-auto grid w-20 grid-cols-5 gap-1">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                        <span key={index} className="h-1 rounded-full bg-white/20" />
+                    ))}
+                </div>
+            </div>
+        </>
+    );
+}
+
 function ArenaPasswordOverlay({
     pieces,
     onClose,
@@ -4540,11 +4589,11 @@ export default function ExperiencePage() {
                     }`}
                     onClick={hasStartedFastViewCutscene ? undefined : handleStartFastViewCutscene}
                 >
-                    <div className="absolute inset-x-0 bottom-0 top-16 overflow-hidden sm:top-20">
+                    <div className="absolute inset-x-0 bottom-0 top-16 overflow-hidden bg-black sm:top-20">
                         <video
                             ref={fastViewCutsceneVideoRef}
-                            className={`h-full w-full bg-black object-contain transition-[filter,transform] duration-700 ${
-                                hasEndedFastViewCutscene && !isVideoStreamingFrames ? 'scale-[1.01] brightness-75' : ''
+                            className={`cinematic-cutscene-video h-full w-full bg-black object-cover transition-[filter,transform] duration-700 ${
+                                hasEndedFastViewCutscene && !isVideoStreamingFrames ? 'scale-[1.055] brightness-75' : 'scale-[1.035]'
                             }`}
                             key={fastViewCutsceneSrc}
                             src={fastViewCutsceneSrc}
@@ -4556,7 +4605,7 @@ export default function ExperiencePage() {
                             onEnded={handleCompleteFastViewCutscene}
                             onError={handleCompleteFastViewCutscene}
                         />
-                        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.2),transparent_26%,rgba(0,0,0,0.16))]" />
+                        <CutsceneCinematicOverlay tone="opening" label="opening film" />
                     </div>
 
                     <CutsceneSiteHeader
@@ -4598,10 +4647,10 @@ export default function ExperiencePage() {
 
             {isSferaHallCutsceneVisible && showExperienceHud && (
                 <div className="absolute inset-0 z-[125] bg-[#05070b]">
-                    <div className="absolute inset-x-0 bottom-0 top-16 overflow-hidden sm:top-20">
+                    <div className="absolute inset-x-0 bottom-0 top-16 overflow-hidden bg-black sm:top-20">
                         <video
                             ref={sferaHallCutsceneVideoRef}
-                            className="h-full w-full object-cover"
+                            className="cinematic-cutscene-video h-full w-full scale-[1.025] object-cover"
                             key={sferaHallCutsceneSrc}
                             src={sferaHallCutsceneSrc}
                             data-cutscene-video="true"
@@ -4612,7 +4661,7 @@ export default function ExperiencePage() {
                             onEnded={() => handleCloseSferaHallCutscene()}
                             onError={() => handleCloseSferaHallCutscene()}
                         />
-                        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.25),transparent_34%,rgba(0,0,0,0.62))]" />
+                        <CutsceneCinematicOverlay tone="hall" label="hall arrival" />
                     </div>
                     {!hasStartedSferaHallCutsceneSound && (
                         <div className="absolute inset-x-4 bottom-0 top-16 z-10 flex items-center justify-center sm:top-20">
@@ -4644,19 +4693,21 @@ export default function ExperiencePage() {
 
             {isWaterWinCutsceneVisible && showExperienceHud && (
                 <div className="absolute inset-0 z-[126] bg-[#05070b]">
-                    <video
-                        ref={waterWinCutsceneVideoRef}
-                        className="h-full w-full bg-black object-contain"
-                        src={WATER_WIN_CUTSCENE_SRC}
-                        data-cutscene-video="true"
-                        muted={!hasStartedWaterWinCutsceneSound}
-                        playsInline
-                        preload="auto"
-                        onTimeUpdate={(event) => softenCutsceneAudioTail(event.currentTarget)}
-                        onEnded={closeWaterWinCutscene}
-                        onError={closeWaterWinCutscene}
-                    />
-                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.18),transparent_34%,rgba(0,0,0,0.5))]" />
+                    <div className="absolute inset-0 overflow-hidden bg-black">
+                        <video
+                            ref={waterWinCutsceneVideoRef}
+                            className="cinematic-cutscene-video h-full w-full scale-[1.04] bg-black object-cover"
+                            src={WATER_WIN_CUTSCENE_SRC}
+                            data-cutscene-video="true"
+                            muted={!hasStartedWaterWinCutsceneSound}
+                            playsInline
+                            preload="auto"
+                            onTimeUpdate={(event) => softenCutsceneAudioTail(event.currentTarget)}
+                            onEnded={closeWaterWinCutscene}
+                            onError={closeWaterWinCutscene}
+                        />
+                        <CutsceneCinematicOverlay tone="water" label="water win" />
+                    </div>
                     {!hasStartedWaterWinCutsceneSound && (
                         <div className="absolute inset-x-4 bottom-0 top-16 z-10 flex flex-col items-center justify-center sm:top-20">
                             <button

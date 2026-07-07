@@ -191,6 +191,12 @@ select {
   background-size: 200px 200px;
 }
 
+.cinematic-cutscene-video {
+  filter: contrast(1.08) saturate(1.12) brightness(0.95);
+  image-rendering: auto;
+  backface-visibility: hidden;
+}
+
 .fade-up {
   opacity: 0;
   animation: riseIn 0.7s cubic-bezier(0.2, 0.65, 0.2, 1) forwards;

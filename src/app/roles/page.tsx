@@ -77,6 +77,44 @@ const GAME_SELECTION_CUTSCENE_SRCS: Record<AppLanguage, string> = {
     zh: '/cutscenes/gamecutscene-zh.MOV',
 };
 
+function RoleCutsceneOverlay({ label }: { label: string }) {
+    return (
+        <>
+            <div className="pointer-events-none absolute inset-0 z-[4] bg-[radial-gradient(circle_at_50%_42%,transparent_0%,transparent_48%,rgba(0,0,0,0.34)_76%,rgba(0,0,0,0.72)_100%)]" />
+            <div className="grain-overlay z-[5] opacity-[0.075]" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-[6] h-[clamp(3.25rem,7vh,5.25rem)] bg-gradient-to-b from-black/78 via-black/34 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[6] h-[clamp(5.5rem,14vh,8.5rem)] bg-gradient-to-t from-black/88 via-black/42 to-transparent" />
+            <div className="pointer-events-none absolute bottom-0 left-0 z-[7] h-[34vh] w-[min(44vw,34rem)] bg-[radial-gradient(ellipse_at_bottom_left,rgba(0,0,0,0.86),rgba(0,0,0,0.42)_42%,transparent_72%)]" />
+            <div className="pointer-events-none absolute bottom-8 right-4 z-[20] hidden h-32 w-32 rounded-2xl border border-white/8 bg-black/72 shadow-[0_18px_70px_rgba(0,0,0,0.55)] backdrop-blur-sm sm:block" />
+            <div className="pointer-events-none absolute bottom-5 left-4 z-[21] hidden w-[min(38vw,17rem)] overflow-hidden rounded-r-2xl border-y border-r border-cyan-200/18 bg-black/82 px-4 py-3 text-cyan-100 shadow-[0_18px_70px_rgba(0,0,0,0.5)] backdrop-blur-md sm:block">
+                <div className="absolute inset-0 bg-gradient-to-r from-white/[0.08] via-white/[0.02] to-transparent" />
+                <div className="relative flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                        <p className="truncate text-[9px] font-black uppercase tracking-[0.22em] text-white/72">3DSFERA signal</p>
+                        <p className="mt-1 truncate text-[11px] font-black uppercase tracking-[0.18em]">{label}</p>
+                    </div>
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/14 bg-white/[0.06]">
+                        <span className="h-2 w-2 rounded-full bg-current shadow-[0_0_16px_currentColor]" />
+                    </span>
+                </div>
+                <div className="relative mt-3 h-px overflow-hidden rounded-full bg-white/12">
+                    <span className="absolute inset-y-0 left-0 w-2/3 animate-[shimmer_2.4s_linear_infinite] bg-gradient-to-r from-cyan-200/80 via-cyan-200/18 to-transparent" />
+                </div>
+            </div>
+            <div className="pointer-events-none absolute bottom-5 right-4 z-[21] hidden w-[min(26vw,13rem)] overflow-hidden rounded-l-2xl border-y border-l border-white/12 bg-black/64 px-4 py-3 text-right text-white shadow-[0_18px_70px_rgba(0,0,0,0.48)] backdrop-blur-md sm:block">
+                <div className="absolute inset-0 bg-gradient-to-l from-white/[0.08] via-white/[0.02] to-transparent" />
+                <p className="relative text-[9px] font-black uppercase tracking-[0.22em] text-white/70">access film</p>
+                <p className="relative mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-white">premium signal</p>
+                <div className="relative mt-3 ml-auto grid w-20 grid-cols-5 gap-1">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                        <span key={index} className="h-1 rounded-full bg-white/20" />
+                    ))}
+                </div>
+            </div>
+        </>
+    );
+}
+
 const roleBases: RoleBase[] = [
     {
         tone: 'player',
@@ -531,7 +569,7 @@ export default function RoleSelectionPage() {
                     </header>
                     <video
                         ref={introVideoRef}
-                        className="h-full w-full object-cover"
+                        className="cinematic-cutscene-video h-full w-full scale-[1.025] object-cover"
                         key={currentIntroCutsceneSrc}
                         src={currentIntroCutsceneSrc}
                         data-cutscene-video="true"
@@ -542,7 +580,7 @@ export default function RoleSelectionPage() {
                         onEnded={advanceIntroCutscene}
                         onError={closeIntroCutscene}
                     />
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12),transparent_45%,rgba(0,0,0,0.78))]" />
+                    <RoleCutsceneOverlay label="opening film" />
                     <div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] grid gap-3 px-4 sm:flex sm:flex-wrap sm:justify-center sm:px-6">
                         {!hasStartedIntro && (
                             <button
@@ -569,7 +607,7 @@ export default function RoleSelectionPage() {
                 <div className="fixed inset-0 z-50 bg-black">
                     <video
                         ref={gameCutsceneVideoRef}
-                        className={`h-full w-full object-cover transition duration-500 ${isEnteringScene ? 'scale-[1.01] brightness-50' : ''}`}
+                        className={`cinematic-cutscene-video h-full w-full object-cover transition duration-500 ${isEnteringScene ? 'scale-[1.045] brightness-50' : 'scale-[1.025]'}`}
                         src={currentGameCutsceneSrc}
                         playsInline
                         preload="auto"
@@ -578,7 +616,7 @@ export default function RoleSelectionPage() {
                         onEnded={() => enterSelectedGame()}
                         onError={() => enterSelectedGame()}
                     />
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08),transparent_58%,rgba(0,0,0,0.72))]" />
+                    <RoleCutsceneOverlay label="scene transfer" />
                     {isEnteringScene && (
                         <div className="absolute inset-0 flex items-center justify-center">
                             <div className="relative h-14 w-14">
