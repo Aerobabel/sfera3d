@@ -3342,6 +3342,7 @@ export default function ExperiencePage() {
     const missionStatementTimerRef = useRef<number | null>(null);
     const hasShownMissionStatementRef = useRef(false);
     const hasAppliedInitialModeRef = useRef(false);
+    const canPlaySferaHallCutsceneRef = useRef(false);
     const isStreamAudioSuppressedRef = useRef(false);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
 
@@ -3358,12 +3359,18 @@ export default function ExperiencePage() {
         const cinematic = resolveFrontendCinematic(unrealBridge.lastUnrealEvent, language);
         if (!cinematic) return;
 
-        if (unrealBridge.lastUnrealEvent &&
+        const isSferaHallPortal = unrealBridge.lastUnrealEvent &&
             typeof unrealBridge.lastUnrealEvent === 'object' &&
             'event' in unrealBridge.lastUnrealEvent &&
             unrealBridge.lastUnrealEvent.event === 'portal_entered' &&
             'portal' in unrealBridge.lastUnrealEvent &&
-            unrealBridge.lastUnrealEvent.portal === 'SferaHall') {
+            unrealBridge.lastUnrealEvent.portal === 'SferaHall';
+
+        if (isSferaHallPortal && !canPlaySferaHallCutsceneRef.current) {
+            return;
+        }
+
+        if (isSferaHallPortal) {
             setHasStartedSferaHallCutsceneSound(false);
             setIsSferaHallCutsceneVisible(true);
         }
@@ -4250,6 +4257,21 @@ export default function ExperiencePage() {
         !isFastViewRoute ||
         (!showFastViewCutscene && !showFastViewLaunchOverlay && isVideoStreamingFrames);
     const shouldRunLiveActivity = showExperienceHud && hasStartedExperience && !fastViewError;
+
+    useEffect(() => {
+        canPlaySferaHallCutsceneRef.current =
+            showExperienceHud &&
+            hasStartedExperience &&
+            hasCompletedFastViewCutscene &&
+            !showFastViewCutscene &&
+            !showFastViewLaunchOverlay;
+    }, [
+        hasCompletedFastViewCutscene,
+        hasStartedExperience,
+        showExperienceHud,
+        showFastViewCutscene,
+        showFastViewLaunchOverlay,
+    ]);
 
     useEffect(() => {
         if (!showExperienceHud || !hasStartedExperience || !isWaterQuestActive || unrealBridge.waterPurchased || hasShownMissionStatementRef.current) return;
