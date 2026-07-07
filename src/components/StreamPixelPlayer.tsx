@@ -232,6 +232,7 @@ export default function StreamPixelPlayer({
     useEffect(() => {
         const stopBlockedKeysFromReachingStreamer = (event: KeyboardEvent) => {
             if (!keyboardInputEnabledRef.current) return;
+            if (!event.isTrusted) return;
 
             const blockedCodes = blockedKeyboardCodesRef.current;
             if (blockedCodes.size === 0) return;

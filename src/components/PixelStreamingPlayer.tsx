@@ -370,6 +370,7 @@ export default function PixelStreamingPlayer({
         // Capture phase runs before Pixel Streaming's own document listeners.
         const stopBlockedKeysFromReachingStreamer = (event: KeyboardEvent) => {
             if (!keyboardInputEnabledRef.current) return;
+            if (!event.isTrusted) return;
 
             const blockedCodes = blockedKeyboardCodesRef.current;
             if (blockedCodes.size === 0) return;

@@ -423,7 +423,7 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
         return {
             id: `arena-key-hint-${pavilion.id}`,
             role: 'pavilion',
-            text: `Hello, otherworld traveler. To find the arena key, inspect my goods carefully. I can hold only one half: ${piece}. ${address} The other half is with ${other}.`,
+            text: `Hello, otherworld traveler. I checked the private catalogue drawer for you. One arena fragment is registered here: ${piece}. ${address} The other half is not in my pavilion - continue to ${other} and inspect their goods or chat with them.`,
             timestamp: Date.now(),
         };
     }, [pavilion.id]);

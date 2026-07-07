@@ -3,7 +3,8 @@
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { Activity, ChevronDown, Coins, Droplets, Gamepad2, Gift, KeyRound, ListChecks, LockKeyhole, Monitor, Play, RotateCw, Send, ShoppingCart, Sparkles, Ticket, Trophy, Volume2, WalletCards, X, Zap, Menu } from "lucide-react";
+import { Activity, ArrowRight, CheckCircle2, ChevronDown, Coins, Droplets, Gamepad2, Gift, KeyRound, ListChecks, LockKeyhole, MapPin, Monitor, Package, Play, RotateCw, Send, ShieldCheck, ShoppingCart, Sparkles, Ticket, Trophy, Volume2, WalletCards, X, Zap, Menu } from "lucide-react";
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Product, Supplier } from "@/lib/types";
@@ -786,6 +787,17 @@ const FASTVIEW_START_CUTSCENE_PLAYLIST: Record<AppLanguage, string[]> = {
 };
 const WATER_WIN_CUTSCENE_SRC = '/cutscenes/wincut.MOV';
 const FASTVIEW_CUTSCENE_FADE_MS = 700;
+const ARENA_ENTRANCE_EVENT_NAMES = new Set([
+    'arena_nearby',
+    'arena_enter',
+    'arena_gate',
+    'zombie_nearby',
+    'zombie_hall',
+    'zombie_hall_nearby',
+    'zombie_room',
+    'zombie_room_nearby',
+    'zombiehall_nearby',
+]);
 
 const buildStreamPixelPreviewUrl = (appId: string) => `https://share.streampixel.io/${appId}`;
 
@@ -827,6 +839,7 @@ const BLOCKED_UNREAL_KEY_CODES = [
     'F1', 'F2', 'F3', 'F4', 'F5', 'F6',
     'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
 ];
+const ARENA_UNLOCK_KEY_CODES = ['KeyG', 'g', '71'];
 const ARCADE_CONTROL_KEY_CODES = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'];
 
 
@@ -952,40 +965,51 @@ const resolveFrontendCinematic = (event: unknown, language: AppLanguage): Omit<F
 const formatMoney = (amountCents: number) =>
     `${amountCents.toLocaleString('en-US')} coins`;
 
-const WATER_PRODUCTS = [
-    'EVIAN Still Water 0.5L',
-    'EVIAN Still Water 0.75L',
-    'EVIAN Still Water 1L',
-    'EVIAN Sport Cap 0.75L',
-    'EVIAN Glass Bottle 0.33L',
-    'EVIAN Glass Bottle 0.75L',
-    'EVIAN Prestige 0.5L',
-    'EVIAN Prestige 1L',
-    'EVIAN Kids 0.33L',
-    'EVIAN Mineral Water 1.5L',
-    'EVIAN Natural Spring 0.5L',
-    'EVIAN Natural Spring 1L',
-    'EVIAN Multipack 6 x 0.5L',
-    'EVIAN Multipack 12 x 0.5L',
-    'EVIAN Multipack 6 x 1L',
-    'EVIAN Still Water 0.33L',
-    'EVIAN Still Water 0.25L',
-    'EVIAN Glass Still 0.5L',
-    'EVIAN Premium Glass 1L',
-    'EVIAN Hydration Pack 4 x 0.5L',
-    'EVIAN Office Pack 24 x 0.5L',
-    'EVIAN Fridge Pack 8 x 0.5L',
-    'EVIAN Mini 0.2L',
-    'EVIAN On The Go 0.5L',
-    'EVIAN Family 1.5L',
-    'EVIAN Compact 0.75L',
-    'EVIAN Sports Bundle 6 x 0.75L',
-    'EVIAN Event Pack 12 x 0.75L',
-    'EVIAN Hall Pack 18 x 0.5L',
-    'EVIAN First Buyer Pack 24 x 0.5L',
-].slice(0, GAME_RULES.water.productsToShow).map((name, index) => ({
+const EVIAN_IMAGE_BY_SIZE = {
+    '0.33L': '/evian/evian-330ml.png',
+    '0.5L': '/evian/evian-50cl.png',
+    '0.75L': '/evian/evian-75cl.png',
+    '1L': '/evian/evian-1l.png',
+    '1.5L': '/evian/evian-15l.png',
+} as const;
+
+const WATER_PRODUCT_SEED = [
+    { name: 'EVIAN Still Water', size: '0.5L', tier: 'Everyday', tag: 'Cheapest water' },
+    { name: 'EVIAN Still Water', size: '0.75L', tier: 'Everyday', tag: 'On the go' },
+    { name: 'EVIAN Still Water', size: '1L', tier: 'Everyday', tag: 'Share size' },
+    { name: 'EVIAN Sport Cap', size: '0.75L', tier: 'Sport', tag: 'Fast cap' },
+    { name: 'EVIAN Glass Bottle', size: '0.33L', tier: 'Glass', tag: 'Dining' },
+    { name: 'EVIAN Glass Bottle', size: '0.75L', tier: 'Glass', tag: 'Table service' },
+    { name: 'EVIAN Prestige', size: '0.5L', tier: 'Prestige', tag: 'Premium' },
+    { name: 'EVIAN Prestige', size: '1L', tier: 'Prestige', tag: 'Premium' },
+    { name: 'EVIAN Kids', size: '0.33L', tier: 'Kids', tag: 'Small bottle' },
+    { name: 'EVIAN Mineral Water', size: '1.5L', tier: 'Family', tag: 'Large' },
+    { name: 'EVIAN Natural Spring', size: '0.5L', tier: 'Everyday', tag: 'Source' },
+    { name: 'EVIAN Natural Spring', size: '1L', tier: 'Everyday', tag: 'Source' },
+    { name: 'EVIAN Multipack 6x', size: '0.5L', tier: 'Pack', tag: 'Bundle' },
+    { name: 'EVIAN Multipack 12x', size: '0.5L', tier: 'Pack', tag: 'Bundle' },
+    { name: 'EVIAN Multipack 6x', size: '1L', tier: 'Pack', tag: 'Bundle' },
+    { name: 'EVIAN Still Water', size: '0.33L', tier: 'Everyday', tag: 'Mini' },
+    { name: 'EVIAN Still Water', size: '0.25L', tier: 'Everyday', tag: 'Sample' },
+    { name: 'EVIAN Glass Still', size: '0.5L', tier: 'Glass', tag: 'Dining' },
+    { name: 'EVIAN Premium Glass', size: '1L', tier: 'Glass', tag: 'Premium' },
+    { name: 'EVIAN Hydration Pack 4x', size: '0.5L', tier: 'Pack', tag: 'Pack' },
+    { name: 'EVIAN Office Pack 24x', size: '0.5L', tier: 'Pack', tag: 'Office' },
+    { name: 'EVIAN Fridge Pack 8x', size: '0.5L', tier: 'Pack', tag: 'Cold shelf' },
+    { name: 'EVIAN Mini', size: '0.33L', tier: 'Mini', tag: 'Pocket' },
+    { name: 'EVIAN On The Go', size: '0.5L', tier: 'Everyday', tag: 'Quick buy' },
+    { name: 'EVIAN Family', size: '1.5L', tier: 'Family', tag: 'Large' },
+    { name: 'EVIAN Compact', size: '0.75L', tier: 'Everyday', tag: 'Compact' },
+    { name: 'EVIAN Sports Bundle 6x', size: '0.75L', tier: 'Sport', tag: 'Bundle' },
+    { name: 'EVIAN Event Pack 12x', size: '0.75L', tier: 'Event', tag: 'Event' },
+    { name: 'EVIAN Hall Pack 18x', size: '0.5L', tier: 'Event', tag: 'Hall' },
+    { name: 'EVIAN First Buyer Pack 24x', size: '0.5L', tier: 'Reward', tag: 'Delivery bonus' },
+].slice(0, GAME_RULES.water.productsToShow);
+
+const WATER_PRODUCTS = WATER_PRODUCT_SEED.map((product, index) => ({
     id: `evian-${index + 1}`,
-    name,
+    ...product,
+    image: EVIAN_IMAGE_BY_SIZE[product.size as keyof typeof EVIAN_IMAGE_BY_SIZE] ?? EVIAN_IMAGE_BY_SIZE['0.5L'],
     priceCoins: index === 0 ? GAME_RULES.water.bottlePriceCoins : GAME_RULES.water.bottlePriceCoins + Math.ceil((index + 1) * 7 / 10) * 10,
 }));
 
@@ -1194,60 +1218,135 @@ function ArenaPasswordOverlay({
     const [password, setPassword] = useState('');
     const normalized = password.trim().toUpperCase().replace(/\s+/g, '');
     const expected = GAME_RULES.keys.arenaPassword;
+    const requiredPieces = [GAME_RULES.keys.firstHalf, GAME_RULES.keys.secondHalf];
+    const foundPieces = requiredPieces.filter((piece) => pieces.includes(piece));
     const matchedCount = normalized
         .split('')
         .filter((char, index) => expected[index] === char).length;
     const progress = Math.min(100, Math.round((matchedCount / expected.length) * 100));
     const isComplete = normalized === expected;
+    const inputCells = Array.from({ length: expected.length }, (_, index) => normalized[index] ?? '');
 
     return (
-        <div className="absolute inset-0 z-[96] grid place-items-center bg-[#02060b]/76 p-4 text-white backdrop-blur-sm pointer-events-auto" role="dialog" aria-modal="true" aria-label="Arena password">
-            <section className="sfera-reward-pop relative w-[min(100%,34rem)] overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#071018]/96 p-5 shadow-[0_34px_120px_rgba(0,0,0,0.6)]">
-                <button type="button" onClick={onClose} className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/25 text-slate-300 transition hover:text-white" aria-label="Close">
+        <div className="absolute inset-0 z-[96] grid place-items-center bg-[#01040a]/84 p-4 text-white backdrop-blur-md pointer-events-auto" role="dialog" aria-modal="true" aria-label="Zombie Hall access code">
+            <section className="sfera-reward-pop relative grid max-h-[calc(100vh-2rem)] w-[min(100%,58rem)] overflow-hidden rounded-2xl border border-cyan-200/22 bg-[#050914]/96 shadow-[0_44px_150px_rgba(0,0,0,0.72)] lg:grid-cols-[0.9fr_1.1fr]">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(102,217,203,0.24),transparent_32%),radial-gradient(circle_at_90%_18%,rgba(244,63,94,0.18),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.05),transparent_42%)]" />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/80 to-transparent" />
+                <button type="button" onClick={onClose} className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/35 text-slate-300 transition hover:text-white" aria-label="Close">
                     <X className="h-4 w-4" />
                 </button>
-                <div className="flex items-center gap-3 pr-10">
-                    <span className="grid h-12 w-12 place-items-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-100">
-                        <LockKeyhole className="h-5 w-5" />
-                    </span>
-                    <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100">Zombie Arena Access</p>
-                        <h2 className="mt-1 text-2xl font-black">Enter supplier key</h2>
+
+                <div className="relative border-b border-white/10 p-5 lg:border-b-0 lg:border-r lg:p-6">
+                    <div className="flex items-start gap-3 pr-8">
+                        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-100 shadow-[0_0_34px_rgba(102,217,203,0.24)]">
+                            <LockKeyhole className="h-5 w-5" />
+                        </span>
+                        <div className="min-w-0">
+                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100">Zombie Hall gate</p>
+                            <h2 className="mt-1 text-3xl font-black leading-tight">Enter the supplier code</h2>
+                            <p className="mt-2 text-sm leading-6 text-slate-300">The hall only opens when both supplier fragments are combined. This is the lock in front of the zombie fight, not the water dispenser.</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 grid gap-3">
+                        {requiredPieces.map((piece, index) => {
+                            const isFound = pieces.includes(piece);
+                            return (
+                                <div key={piece} className={`relative overflow-hidden rounded-xl border p-3 transition ${
+                                    isFound
+                                        ? 'border-emerald-300/34 bg-emerald-300/[0.08] shadow-[0_0_26px_rgba(110,231,183,0.1)]'
+                                        : 'border-white/10 bg-white/[0.04]'
+                                }`}>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            <span className={`grid h-9 w-9 place-items-center rounded-lg border ${
+                                                isFound ? 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100' : 'border-white/10 bg-black/25 text-white/36'
+                                            }`}>
+                                                {isFound ? <CheckCircle2 className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
+                                            </span>
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Supplier fragment {index + 1}</p>
+                                                <p className="mt-0.5 text-sm font-black text-white">{isFound ? 'Recovered from pavilion chat' : 'Still hidden in a pavilion'}</p>
+                                            </div>
+                                        </div>
+                                        <span className={`rounded-lg border px-3 py-2 font-mono text-sm font-black ${
+                                            isFound ? 'border-emerald-300/40 bg-black/25 text-emerald-100' : 'border-white/10 bg-black/25 text-white/30'
+                                        }`}>
+                                            {isFound ? piece : '??'}
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="mt-5 rounded-xl border border-cyan-300/18 bg-cyan-300/[0.06] p-3">
+                        <div className="flex items-center justify-between gap-3">
+                            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100">Fragments recovered</span>
+                            <span className="font-mono text-sm font-black text-white">{foundPieces.length}/{requiredPieces.length}</span>
+                        </div>
+                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                            <div className="h-full rounded-full bg-[linear-gradient(90deg,#66d9cb,#f5c766)] shadow-[0_0_20px_rgba(102,217,203,0.42)] transition-all duration-500" style={{ width: `${(foundPieces.length / requiredPieces.length) * 100}%` }} />
+                        </div>
                     </div>
                 </div>
-                <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] p-3">
-                    <p className="text-xs leading-5 text-slate-300">Known fragments</p>
-                    <div className="mt-2 flex gap-2">
-                        {[GAME_RULES.keys.firstHalf, GAME_RULES.keys.secondHalf].map((piece) => (
-                            <span key={piece} className={`rounded-lg border px-3 py-2 font-mono text-sm font-black ${pieces.includes(piece) ? 'border-emerald-300/40 bg-emerald-300/12 text-emerald-100' : 'border-white/10 bg-black/25 text-white/30'}`}>
-                                {pieces.includes(piece) ? piece : '??'}
-                            </span>
-                        ))}
+
+                <div className="relative flex min-h-0 flex-col justify-center p-5 lg:p-6">
+                    <div className="rounded-2xl border border-white/10 bg-black/30 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                        <div className="flex items-center justify-between gap-3">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-100">Access console</p>
+                                <p className="mt-1 text-sm text-slate-300">Type the combined code. The bar turns green when it is correct.</p>
+                            </div>
+                            <ShieldCheck className={`h-6 w-6 ${isComplete ? 'text-emerald-200' : 'text-cyan-100'}`} />
+                        </div>
+                        <form
+                            className="mt-4"
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                onSubmit(password);
+                            }}
+                        >
+                            <div className="grid grid-cols-4 gap-2">
+                                {inputCells.map((char, index) => {
+                                    const isMatched = expected[index] === char;
+                                    const hasChar = Boolean(char);
+                                    return (
+                                        <span key={index} className={`grid h-14 place-items-center rounded-xl border bg-black/35 font-mono text-2xl font-black transition ${
+                                            isMatched
+                                                ? 'border-emerald-300/50 text-emerald-100 shadow-[0_0_24px_rgba(110,231,183,0.18)]'
+                                                : hasChar
+                                                    ? 'border-amber-300/45 text-amber-100'
+                                                    : 'border-white/10 text-white/18'
+                                        }`}>
+                                            {char || '-'}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                            <input
+                                value={password}
+                                onChange={(event) => setPassword(event.target.value.toUpperCase())}
+                                autoFocus
+                                maxLength={8}
+                                placeholder="ENTER CODE"
+                                className="mt-3 w-full rounded-xl border border-cyan-300/22 bg-black/45 px-4 py-4 font-mono text-xl font-black uppercase tracking-[0.28em] text-white outline-none transition placeholder:text-white/22 focus:border-cyan-200/70 focus:bg-black/62"
+                            />
+                            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                                <div className={`h-full rounded-full transition-all duration-300 ${isComplete ? 'bg-emerald-300 shadow-[0_0_24px_rgba(110,231,183,0.7)]' : 'bg-cyan-300/80'}`} style={{ width: `${progress}%` }} />
+                            </div>
+                            <button type="submit" className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:scale-[1.01]">
+                                <KeyRound className="h-4 w-4" />
+                                Unlock Zombie Hall
+                                <ArrowRight className="h-4 w-4" />
+                            </button>
+                        </form>
                     </div>
+
+                    <p className="mt-4 text-center text-xs leading-5 text-slate-400">
+                        Tip: if a fragment is missing, return to Sfera Hall and inspect supplier products or open supplier chat.
+                    </p>
                 </div>
-                <form
-                    className="mt-4"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        onSubmit(password);
-                    }}
-                >
-                    <input
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value.toUpperCase())}
-                        autoFocus
-                        maxLength={8}
-                        placeholder="ENTER CODE"
-                        className="w-full rounded-xl border border-cyan-300/22 bg-black/35 px-4 py-4 font-mono text-2xl font-black uppercase tracking-[0.3em] text-white outline-none transition focus:border-cyan-200/70"
-                    />
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-                        <div className={`h-full rounded-full transition-all duration-300 ${isComplete ? 'bg-emerald-300 shadow-[0_0_24px_rgba(110,231,183,0.7)]' : 'bg-cyan-300/80'}`} style={{ width: `${progress}%` }} />
-                    </div>
-                    <button type="submit" className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:scale-[1.01]">
-                        <KeyRound className="h-4 w-4" />
-                        Unlock Arena
-                    </button>
-                </form>
             </section>
         </div>
     );
@@ -1275,6 +1374,12 @@ function WaterDispenserOverlay({
     const canAfford = walletBalanceCents >= GAME_RULES.water.bottlePriceCoins;
     const hasWaterKey = Boolean(waterKey);
     const canBuy = hasWaterKey && canAfford && !waterPurchased;
+    const questRail = [
+        { label: 'Dispenser found', complete: true },
+        { label: 'Zombie Hall code', complete: hasArenaAccess },
+        { label: 'Water code won', complete: hasWaterKey },
+        { label: 'Enough coins', complete: canAfford },
+    ];
     const lockHint = !hasArenaAccess
         ? 'The dispenser stays locked. Get the code fragments from suppliers, then enter that code at Zombie Hall.'
         : !hasWaterKey
@@ -1282,38 +1387,76 @@ function WaterDispenserOverlay({
             : `Need ${GAME_RULES.water.bottlePriceCoins - walletBalanceCents} more coins.`;
 
     return (
-        <div className="absolute inset-0 z-[94] grid place-items-center bg-[#02060b]/72 p-4 text-white backdrop-blur-sm pointer-events-auto" role="dialog" aria-modal="true" aria-label="Water dispenser">
-            <section className="sfera-reward-pop grid max-h-[calc(100vh-2rem)] w-[min(100%,66rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#071018]/96 shadow-[0_34px_130px_rgba(0,0,0,0.62)] lg:grid-cols-[0.9fr_1.2fr]">
-                <div className="relative overflow-hidden border-b border-white/10 p-5 lg:border-b-0 lg:border-r">
+        <div className="absolute inset-0 z-[94] grid place-items-center bg-[#01040a]/78 p-3 text-white backdrop-blur-md pointer-events-auto sm:p-4" role="dialog" aria-modal="true" aria-label="Water dispenser">
+            <section className="sfera-reward-pop grid max-h-[calc(100vh-1.25rem)] w-[min(100%,74rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#071018]/96 shadow-[0_44px_150px_rgba(0,0,0,0.72)] lg:grid-cols-[1fr_1.18fr]">
+                <div className="relative overflow-hidden border-b border-white/10 p-5 lg:border-b-0 lg:border-r lg:p-6">
                     <button type="button" onClick={onClose} className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/35 text-slate-300 transition hover:text-white" aria-label="Close">
                         <X className="h-4 w-4" />
                     </button>
-                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(102,217,203,0.22),transparent_34%),radial-gradient(circle_at_80%_80%,rgba(245,199,102,0.14),transparent_30%)]" />
-                    <div className="relative">
-                        <span className="grid h-12 w-12 place-items-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-100">
-                            <Droplets className="h-6 w-6" />
-                        </span>
-                        <p className="mt-5 text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100">Water dispenser</p>
-                        <h2 className="mt-2 text-3xl font-black leading-tight">Buy water</h2>
-                        <p className="mt-3 text-sm leading-6 text-slate-300">Cheapest item: {GAME_RULES.water.bottleName}. Price EUR {GAME_RULES.water.bottlePriceEuro.toFixed(2)} = {GAME_RULES.water.bottlePriceCoins} coins.</p>
-                        <div className="mt-5 grid gap-2 rounded-xl border border-white/10 bg-white/[0.045] p-3">
-                            <div className="flex items-center justify-between gap-3">
-                                <span className="text-xs font-black uppercase tracking-[0.15em] text-slate-400">Balance</span>
-                                <span className="font-mono text-lg font-black text-white">{formatMoney(walletBalanceCents)}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-3">
-                                <span className="text-xs font-black uppercase tracking-[0.15em] text-slate-400">Zombie Hall code</span>
-                                <span className={hasArenaAccess ? 'text-emerald-200' : 'text-amber-200'}>{hasArenaAccess ? 'accepted' : 'required'}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-3">
-                                <span className="text-xs font-black uppercase tracking-[0.15em] text-slate-400">Water code</span>
-                                <span className={hasWaterKey ? 'text-emerald-200' : 'text-amber-200'}>{hasWaterKey ? waterKey : 'locked'}</span>
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_12%,rgba(102,217,203,0.24),transparent_34%),radial-gradient(circle_at_75%_70%,rgba(244,63,94,0.13),transparent_32%),linear-gradient(160deg,rgba(255,255,255,0.05),transparent_45%)]" />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-[linear-gradient(to_top,rgba(102,217,203,0.1),transparent)]" />
+                    <div className="relative flex h-full flex-col">
+                        <div className="flex items-start gap-4 pr-8">
+                            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-100 shadow-[0_0_34px_rgba(102,217,203,0.22)]">
+                                <Droplets className="h-6 w-6" />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100">3DSFERA hydration terminal</p>
+                                <h2 className="mt-1 text-4xl font-black leading-none tracking-tight">Buy EVIAN</h2>
+                                <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">The machine has stock, but the first purchase is gated by a water code earned in Zombie Hall.</p>
                             </div>
                         </div>
+
+                        <div className="relative mt-6 grid min-h-[14rem] place-items-center overflow-hidden rounded-2xl border border-cyan-300/18 bg-[linear-gradient(180deg,rgba(220,252,255,0.08),rgba(2,6,23,0.18))]">
+                            <div className="absolute inset-x-8 bottom-4 h-16 rounded-full bg-cyan-200/14 blur-2xl" />
+                            <div className="absolute inset-0 bg-[url('/evian/evian-teaser.jpg')] bg-cover bg-center opacity-[0.18]" />
+                            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.76),rgba(2,6,23,0.16),rgba(2,6,23,0.76))]" />
+                            <div className="relative flex items-end justify-center gap-5 py-5">
+                                <div className="h-48 w-24 bg-contain bg-center bg-no-repeat drop-shadow-[0_28px_45px_rgba(0,0,0,0.65)]" style={{ backgroundImage: "url('/evian/evian-50cl.png')" }} />
+                                <div className="mb-4 hidden rounded-2xl border border-white/10 bg-black/38 p-4 backdrop-blur sm:block">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100">Cheapest item</p>
+                                    <p className="mt-1 text-xl font-black text-white">{GAME_RULES.water.bottleName}</p>
+                                    <p className="mt-1 font-mono text-3xl font-black text-cyan-100">{GAME_RULES.water.bottlePriceCoins}</p>
+                                    <p className="text-xs text-slate-400">coins</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-2">
+                            {questRail.map((item, index) => (
+                                <div key={item.label} className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${
+                                    item.complete ? 'border-emerald-300/24 bg-emerald-300/[0.065]' : 'border-white/10 bg-white/[0.04]'
+                                }`}>
+                                    <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border text-[11px] font-black ${
+                                        item.complete ? 'border-emerald-300/45 bg-emerald-300/14 text-emerald-100' : 'border-white/12 bg-black/25 text-white/34'
+                                    }`}>
+                                        {item.complete ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}
+                                    </span>
+                                    <span className="min-w-0 flex-1 text-sm font-bold text-slate-100">{item.label}</span>
+                                    <span className={`text-[10px] font-black uppercase tracking-[0.14em] ${item.complete ? 'text-emerald-100' : 'text-slate-500'}`}>{item.complete ? 'ready' : 'locked'}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-4 grid gap-2 rounded-xl border border-white/10 bg-black/24 p-3 sm:grid-cols-3">
+                            <div>
+                                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">Balance</p>
+                                <p className="mt-1 font-mono text-lg font-black text-white">{formatMoney(walletBalanceCents)}</p>
+                            </div>
+                            <div>
+                                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">Water code</p>
+                                <p className={hasWaterKey ? 'mt-1 truncate font-mono text-sm font-black text-emerald-100' : 'mt-1 font-bold text-amber-100'}>{hasWaterKey ? waterKey : 'Win Zombie Hall'}</p>
+                            </div>
+                            <div>
+                                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">First buyer bonus</p>
+                                <p className="mt-1 text-sm font-black text-amber-100">Wheel coupon</p>
+                            </div>
+                        </div>
+
                         {!hasArenaAccess && (
-                            <button type="button" onClick={onOpenPassword} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300/24 bg-amber-300/10 px-4 py-3 text-sm font-black uppercase tracking-[0.13em] text-amber-100 transition hover:bg-amber-300/16">
+                            <button type="button" onClick={onOpenPassword} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300/28 bg-amber-300/10 px-4 py-3 text-sm font-black uppercase tracking-[0.13em] text-amber-100 transition hover:bg-amber-300/16">
                                 <KeyRound className="h-4 w-4" />
-                                Enter Zombie Hall code
+                                Open Zombie Hall code console
                             </button>
                         )}
                         <button
@@ -1323,7 +1466,7 @@ function WaterDispenserOverlay({
                                 if (canBuy) onBuy();
                             }}
                             disabled={waterPurchased}
-                            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.13em] text-slate-950 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45"
+                            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.13em] text-slate-950 shadow-[0_18px_48px_rgba(102,217,203,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45"
                         >
                             <ShoppingCart className="h-4 w-4" />
                             {waterPurchased ? 'Water bought' : canBuy ? 'Buy EVIAN 0.5L' : 'Try to buy'}
@@ -1335,15 +1478,47 @@ function WaterDispenserOverlay({
                         )}
                     </div>
                 </div>
-                <div className="min-h-0 overflow-y-auto p-4">
-                    <div className="grid gap-2 sm:grid-cols-2">
+                <div className="min-h-0 overflow-y-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.035),transparent)] p-4 lg:p-5">
+                    <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100">EVIAN catalogue</p>
+                            <h3 className="mt-1 text-2xl font-black text-white">30 visible products</h3>
+                        </div>
+                        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-slate-200">
+                            <Package className="h-3.5 w-3.5 text-cyan-100" />
+                            Official bottle imagery
+                        </span>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         {WATER_PRODUCTS.map((product, index) => (
-                            <div key={product.id} className={`rounded-xl border p-3 ${index === 0 ? 'border-cyan-300/28 bg-cyan-300/[0.075]' : 'border-white/10 bg-white/[0.035]'}`}>
-                                <div className="flex items-start justify-between gap-3">
-                                    <p className="min-w-0 text-sm font-black text-white">{product.name}</p>
-                                    <span className="shrink-0 rounded-full border border-white/10 px-2 py-1 font-mono text-[11px] text-cyan-100">{product.priceCoins}</span>
+                            <div key={product.id} className={`group relative min-h-[10.5rem] overflow-hidden rounded-xl border p-3 transition hover:-translate-y-0.5 ${
+                                index === 0
+                                    ? 'border-cyan-300/38 bg-cyan-300/[0.085] shadow-[0_0_34px_rgba(102,217,203,0.12)]'
+                                    : 'border-white/10 bg-white/[0.035] hover:border-cyan-200/24 hover:bg-cyan-300/[0.045]'
+                            }`}>
+                                <div className="absolute right-2 top-2 h-28 w-20 bg-contain bg-center bg-no-repeat opacity-90 transition group-hover:scale-105" style={{ backgroundImage: `url('${product.image}')` }} />
+                                <div className="relative flex min-h-[8.8rem] flex-col justify-between pr-16">
+                                    <div>
+                                        <span className={`inline-flex rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] ${
+                                            index === 0 ? 'border-cyan-200/40 bg-cyan-200/12 text-cyan-100' : 'border-white/10 bg-black/24 text-slate-300'
+                                        }`}>
+                                            {index === 0 ? 'Cheapest water' : product.tag}
+                                        </span>
+                                        <p className="mt-3 text-sm font-black leading-tight text-white">{product.name}</p>
+                                        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{product.size} / {product.tier}</p>
+                                    </div>
+                                    <div className="flex items-end justify-between gap-2">
+                                        <div>
+                                            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-500">Machine price</p>
+                                            <p className="font-mono text-lg font-black text-cyan-100">{product.priceCoins}</p>
+                                        </div>
+                                        {index === 0 && (
+                                            <span className="rounded-full border border-emerald-300/28 bg-emerald-300/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-emerald-100">
+                                                Quest item
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                                {index === 0 && <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100">Cheapest water</p>}
                             </div>
                         ))}
                     </div>
@@ -1365,40 +1540,70 @@ function WheelOverlay({
     onSpin: () => void;
 }) {
     const [isSpinning, setIsSpinning] = useState(false);
+    const [hasSpun, setHasSpun] = useState(false);
 
     const spin = () => {
         if (spinsRemaining <= 0 || isSpinning) return;
         setIsSpinning(true);
         window.setTimeout(() => {
             setIsSpinning(false);
+            setHasSpun(true);
             onSpin();
         }, 1800);
     };
 
     return (
-        <div className="absolute inset-0 z-[95] grid place-items-center bg-[#02060b]/76 p-4 text-white backdrop-blur-sm pointer-events-auto" role="dialog" aria-modal="true" aria-label="Wheel of Fortune">
-            <section className="sfera-reward-pop relative w-[min(100%,44rem)] overflow-hidden rounded-2xl border border-amber-300/20 bg-[#0a1018]/96 p-5 text-center shadow-[0_34px_130px_rgba(0,0,0,0.62)]">
+        <div className="absolute inset-0 z-[95] grid place-items-center bg-[#02040a]/82 p-4 text-white backdrop-blur-md pointer-events-auto" role="dialog" aria-modal="true" aria-label="Wheel of Fortune">
+            <section className="sfera-reward-pop relative grid max-h-[calc(100vh-2rem)] w-[min(100%,64rem)] overflow-hidden rounded-2xl border border-amber-300/22 bg-[#0a1018]/96 text-center shadow-[0_44px_150px_rgba(0,0,0,0.72)] lg:grid-cols-[1.05fr_0.95fr]">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_28%_18%,rgba(245,199,102,0.18),transparent_34%),radial-gradient(circle_at_75%_65%,rgba(102,217,203,0.12),transparent_32%)]" />
                 <button type="button" onClick={onClose} className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/35 text-slate-300 transition hover:text-white" aria-label="Close">
                     <X className="h-4 w-4" />
                 </button>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-100">First buyer bonus</p>
-                <h2 className="mt-2 text-3xl font-black">Wheel of Fortune</h2>
-                <div className="mx-auto mt-5 grid h-[min(62vw,22rem)] w-[min(62vw,22rem)] place-items-center">
-                    <img src="/wheeloffortune.jpg" alt="Wheel of Fortune" className={`h-full w-full rounded-full object-cover shadow-[0_0_80px_rgba(245,199,102,0.26)] ${isSpinning ? 'animate-spin' : ''}`} />
+
+                <div className="relative grid place-items-center p-5 lg:p-7">
+                    <div className="pointer-events-none absolute left-1/2 top-5 z-10 h-0 w-0 -translate-x-1/2 border-x-[18px] border-t-[34px] border-x-transparent border-t-amber-200 drop-shadow-[0_0_18px_rgba(245,199,102,0.65)]" />
+                    <div className="relative grid h-[min(74vw,30rem)] w-[min(74vw,30rem)] place-items-center">
+                        <div className="absolute inset-0 rounded-full border border-amber-200/22 bg-amber-200/5 shadow-[0_0_100px_rgba(245,199,102,0.18)]" />
+                        <div className="absolute inset-4 rounded-full border border-cyan-200/12" />
+                        <div className={`relative h-[88%] w-[88%] overflow-hidden rounded-full shadow-[0_0_80px_rgba(245,199,102,0.26)] transition-transform duration-700 ${isSpinning ? 'animate-spin' : ''}`}>
+                            <Image src="/wheeloffortune.jpg" alt="Wheel of Fortune" fill sizes="(max-width: 768px) 74vw, 30rem" className="object-cover" />
+                        </div>
+                        <div className="absolute grid h-20 w-20 place-items-center rounded-full border border-white/18 bg-black/70 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur">
+                            <Sparkles className={`h-8 w-8 ${hasSpun ? 'text-emerald-200' : 'text-amber-100'}`} />
+                        </div>
+                    </div>
                 </div>
-                <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-                    <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-100">
-                        <Ticket className="h-4 w-4" />
-                        {coupon ?? 'Coupon required'}
-                    </span>
-                    <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-200">
-                        {spinsRemaining} try left
-                    </span>
+
+                <div className="relative flex flex-col justify-center border-t border-white/10 p-5 text-left lg:border-l lg:border-t-0 lg:p-7">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-100">First buyer bonus</p>
+                    <h2 className="mt-2 text-4xl font-black leading-tight">Wheel of Fortune</h2>
+                    <p className="mt-3 text-sm leading-6 text-slate-300">Your water purchase created one coupon. Go to the wheel in Sfera Hall, spin once, and the attempt is consumed.</p>
+                    <div className="mt-5 grid gap-2">
+                        <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/18 bg-cyan-300/[0.06] px-3 py-3">
+                            <span className="inline-flex min-w-0 items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-100">
+                                <Ticket className="h-4 w-4" />
+                                Coupon
+                            </span>
+                            <span className="truncate font-mono text-sm font-black text-white">{coupon ?? 'Required'}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-3">
+                            <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-300">Attempts</span>
+                            <span className="font-mono text-sm font-black text-amber-100">{spinsRemaining} / {GAME_RULES.wheel.maxSpins}</span>
+                        </div>
+                    </div>
+                    {hasSpun && (
+                        <div className="mt-4 rounded-xl border border-emerald-300/24 bg-emerald-300/[0.08] p-3 text-sm font-bold text-emerald-100">
+                            Spin recorded. This coupon has been used.
+                        </div>
+                    )}
+                    <button type="button" onClick={spin} disabled={spinsRemaining <= 0 || isSpinning || !coupon} className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#f5c766,#66d9cb)] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 shadow-[0_18px_48px_rgba(245,199,102,0.18)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45">
+                        <RotateCw className="h-4 w-4" />
+                        {spinsRemaining > 0 ? (isSpinning ? 'Spinning' : 'Spin once') : 'Already played'}
+                    </button>
+                    <button type="button" onClick={onClose} className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.08]">
+                        Close wheel
+                    </button>
                 </div>
-                <button type="button" onClick={spin} disabled={spinsRemaining <= 0 || isSpinning || !coupon} className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#f5c766,#66d9cb)] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45">
-                    <RotateCw className="h-4 w-4" />
-                    {spinsRemaining > 0 ? 'Spin once' : 'Already played'}
-                </button>
             </section>
         </div>
     );
@@ -2484,9 +2689,18 @@ export default function ExperiencePage() {
         playSferaUiSound('reward');
     }, [unrealBridge]);
 
+    const isWaterQuestActive = useMemo(
+        () => unrealBridge.questProgress.some((progress) => progress.questId === 'water_arena_run' && progress.status === 'active'),
+        [unrealBridge.questProgress]
+    );
+    const shouldBlockManualArenaUnlockKey = isWaterQuestActive && !unrealBridge.hasArenaAccess;
     const blockedUnrealKeyboardCodes = useMemo(
-        () => (isArcadeOpen ? [...BLOCKED_UNREAL_KEY_CODES, ...ARCADE_CONTROL_KEY_CODES] : BLOCKED_UNREAL_KEY_CODES),
-        [isArcadeOpen]
+        () => [
+            ...BLOCKED_UNREAL_KEY_CODES,
+            ...(isArcadeOpen ? ARCADE_CONTROL_KEY_CODES : []),
+            ...(shouldBlockManualArenaUnlockKey ? ARENA_UNLOCK_KEY_CODES : []),
+        ],
+        [isArcadeOpen, shouldBlockManualArenaUnlockKey]
     );
 
 
@@ -2928,12 +3142,25 @@ export default function ExperiencePage() {
             const isEditableTarget = Boolean(target?.closest('input, textarea, select, [contenteditable="true"]'));
             if (isEditableTarget || event.repeat || event.key.toLowerCase() !== 'g') return;
 
+            if (isWaterQuestActive) {
+                if (!unrealBridge.hasArenaAccess) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    setIsRewardTerminalOpen(false);
+                    setIsArcadeOpen(false);
+                    setIsWaterDispenserOpen(false);
+                    setIsWheelOpen(false);
+                    setIsArenaPasswordOpen(true);
+                }
+                return;
+            }
+
             toggleUnrealMode();
         };
 
         document.addEventListener('keydown', handleModeHotkey, true);
         return () => document.removeEventListener('keydown', handleModeHotkey, true);
-    }, [activePavilion, activeProduct, isArcadeOpen, isArenaPasswordOpen, isCatalogueOpen, isChatFocused, isMenuOpen, isRewardTerminalOpen, isWaterDispenserOpen, isWheelOpen, hasStartedExperience, toggleUnrealMode]);
+    }, [activePavilion, activeProduct, isArcadeOpen, isArenaPasswordOpen, isCatalogueOpen, isChatFocused, isMenuOpen, isRewardTerminalOpen, isWaterDispenserOpen, isWaterQuestActive, isWheelOpen, hasStartedExperience, toggleUnrealMode, unrealBridge.hasArenaAccess]);
 
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
     const streamPixelPreviewUrl = useMemo(
@@ -3592,6 +3819,45 @@ export default function ExperiencePage() {
     }, [videoElement, sendUnrealExitFocus]);
 
     const handlePixelStreamingResponse = (jsonString: string) => {
+        let incomingEventName = typeof jsonString === 'string'
+            ? jsonString.trim().replace(/^"|"$/g, '')
+            : '';
+
+        try {
+            const parsedPayload = JSON.parse(jsonString) as unknown;
+            if (parsedPayload && typeof parsedPayload === 'object') {
+                const eventName = (parsedPayload as Record<string, unknown>).event;
+                if (typeof eventName === 'string') {
+                    incomingEventName = eventName;
+                }
+            }
+        } catch {
+            // Some Pixel Streaming events are plain strings.
+        }
+
+        if (ARENA_ENTRANCE_EVENT_NAMES.has(incomingEventName)) {
+            if (unrealBridge.hasArenaAccess) {
+                unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'game_entered', game: 'ZombieArena' }));
+            } else {
+                setIsRewardTerminalOpen(false);
+                setIsArcadeOpen(false);
+                setIsWaterDispenserOpen(false);
+                setIsWheelOpen(false);
+                setIsArenaPasswordOpen(true);
+                unrealBridge.handleUnrealResponse(JSON.stringify({
+                    event: 'game_access_denied',
+                    game: 'ZombieArena',
+                    reason: 'arena_key_required',
+                }));
+                sendUnrealUiInteraction({
+                    type: 'arena_access_denied',
+                    destination: 'ZombieArena',
+                    reason: 'supplier_code_required',
+                });
+            }
+            return;
+        }
+
         const normalizedUnrealEvent = unrealBridge.handleUnrealResponse(jsonString);
         if (normalizedUnrealEvent) return;
 
@@ -3686,6 +3952,41 @@ export default function ExperiencePage() {
     const walletBalanceCents = unrealBridge.walletBalanceCents;
     const recentWalletTransactions = unrealBridge.walletTransactions.slice(0, 5);
     const hasWalletActivity = walletBalanceCents > 0 || recentWalletTransactions.length > 0;
+    const waterQuestObjectives = activeSceneQuest?.quest.id === 'water_arena_run'
+        ? activeSceneQuest.progress.objectives
+        : null;
+    const waterQuestMilestones = waterQuestObjectives
+        ? [
+            {
+                title: 'Locked water machine',
+                body: 'Find the dispenser and try the first purchase.',
+                complete: waterQuestObjectives.find_water_dispenser?.completed && waterQuestObjectives.try_buy_water?.completed,
+                Icon: Droplets,
+            },
+            {
+                title: 'Supplier fragments',
+                body: `${unrealBridge.arenaKeyPieces.length}/2 fragments recovered from pavilion suppliers.`,
+                complete: waterQuestObjectives.collect_supplier_key?.completed,
+                Icon: KeyRound,
+            },
+            {
+                title: 'Zombie Hall gate',
+                body: unrealBridge.hasArenaAccess ? 'Access accepted. Enter the arena.' : 'Use the supplier code at the hall entrance.',
+                complete: waterQuestObjectives.unlock_arena?.completed,
+                Icon: LockKeyhole,
+            },
+            {
+                title: 'Water code and coins',
+                body: unrealBridge.waterKey ? `Water code ${unrealBridge.waterKey} earned.` : 'Win the fight to unlock the dispenser.',
+                complete: Boolean(unrealBridge.waterKey),
+                Icon: Trophy,
+            },
+        ]
+        : [];
+    const shouldOfferArenaCodeEntry =
+        activeSceneQuest?.quest.id === 'water_arena_run' &&
+        !unrealBridge.hasArenaAccess &&
+        unrealBridge.arenaKeyPieces.length > 0;
 
     useEffect(() => {
         if (!hasStartedExperience || !isGamerScene || !latestPlayerReward) return;
@@ -4208,22 +4509,66 @@ export default function ExperiencePage() {
                                 </div>
                             )}
                             {activeSceneQuest && (
-                                <div className="sfera-guide-enter mt-2 w-[min(92vw,22rem)] rounded-xl border border-cyan-300/18 bg-[#041018]/70 px-3 py-2.5 text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.28)] backdrop-blur-md">
-                                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-100">{sceneHud.guideTitle}</p>
-                                    <p className="mt-1 text-xs leading-5 text-slate-300">{sceneHud.guideBody}</p>
-                                    <div className="mt-2 grid gap-1.5">
-                                        {sceneHud.guideSteps.map((step, index) => (
-                                            <div key={step} className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.035] px-2 py-1.5">
-                                                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-cyan-300/20 bg-cyan-300/10 text-[10px] font-black text-cyan-100">
-                                                    {index + 1}
-                                                </span>
-                                                <span className="min-w-0 truncate text-[11px] font-semibold text-slate-200">{step}</span>
+                                <div className="sfera-guide-enter mt-2 w-[min(92vw,24rem)] overflow-hidden rounded-xl border border-cyan-300/22 bg-[#041018]/78 text-slate-100 shadow-[0_24px_70px_rgba(0,0,0,0.34)] backdrop-blur-md">
+                                    <div className="border-b border-cyan-300/10 bg-cyan-300/[0.055] px-3 py-2.5">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-100">{sceneHud.guideTitle}</p>
+                                            <span className="rounded-full border border-cyan-300/18 px-2 py-1 font-mono text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100">{activeSceneQuestPercent}%</span>
+                                        </div>
+                                        <p className="mt-1 text-xs leading-5 text-slate-300">{sceneHud.guideBody}</p>
+                                        <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+                                            <div className="h-full rounded-full bg-[linear-gradient(90deg,#66d9cb,#f5c766)] shadow-[0_0_18px_rgba(102,217,203,0.45)]" style={{ width: `${activeSceneQuestPercent}%` }} />
+                                        </div>
+                                    </div>
+                                    <div className="grid gap-2 p-3">
+                                        {(waterQuestMilestones.length > 0 ? waterQuestMilestones : sceneHud.guideSteps.map((step, index) => ({
+                                            title: step,
+                                            body: index === 0 ? 'Start here and follow the prompts.' : 'Continue the sequence.',
+                                            complete: index < Math.floor(activeSceneQuestPercent / 25),
+                                            Icon: Sparkles,
+                                        }))).map((step, index) => {
+                                            const StepIcon = step.Icon;
+                                            return (
+                                                <div key={step.title} className={`grid grid-cols-[2rem_1fr_auto] items-center gap-2 rounded-xl border px-2.5 py-2 ${
+                                                    step.complete
+                                                        ? 'border-emerald-300/20 bg-emerald-300/[0.06]'
+                                                        : index === 0 || !waterQuestMilestones[index - 1] || waterQuestMilestones[index - 1].complete
+                                                            ? 'border-cyan-300/22 bg-cyan-300/[0.055]'
+                                                            : 'border-white/10 bg-white/[0.032]'
+                                                }`}>
+                                                    <span className={`grid h-8 w-8 place-items-center rounded-lg border ${
+                                                        step.complete ? 'border-emerald-300/28 bg-emerald-300/10 text-emerald-100' : 'border-white/10 bg-black/24 text-cyan-100'
+                                                    }`}>
+                                                        {step.complete ? <CheckCircle2 className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}
+                                                    </span>
+                                                    <span className="min-w-0">
+                                                        <span className="block truncate text-xs font-black text-white">{step.title}</span>
+                                                        <span className="mt-0.5 block truncate text-[11px] text-slate-400">{step.body}</span>
+                                                    </span>
+                                                    <span className="font-mono text-[10px] font-black text-white/38">{index + 1}</span>
+                                                </div>
+                                            );
+                                        })}
+                                        {shouldOfferArenaCodeEntry && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsArenaPasswordOpen(true)}
+                                                className="pointer-events-auto mt-1 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#f5c766,#66d9cb)] px-3 py-3 text-xs font-black uppercase tracking-[0.13em] text-slate-950 shadow-[0_18px_44px_rgba(245,199,102,0.18)] transition hover:scale-[1.01]"
+                                            >
+                                                <KeyRound className="h-4 w-4" />
+                                                Enter Zombie Hall code
+                                            </button>
+                                        )}
+                                        {waterQuestMilestones.length > 0 && (
+                                            <div className="rounded-xl border border-amber-300/16 bg-amber-300/[0.06] px-3 py-2 text-[10px] leading-5 text-amber-50">
+                                                <span className="font-black uppercase tracking-[0.14em] text-amber-200">{sceneHud.reward}: </span>
+                                                {getQuestRewardText(activeSceneQuest.quest.reward, activeSceneQuest.quest.id, language)}
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
                                 </div>
                             )}
-                            {activeSceneQuest && activeSceneQuestText && (
+                            {activeSceneQuest && activeSceneQuestText && waterQuestMilestones.length === 0 && (
                                 <div className="sfera-quest-glow mt-2 w-[min(92vw,22rem)] overflow-hidden rounded-xl border border-amber-300/24 bg-[linear-gradient(145deg,rgba(7,10,15,0.82),rgba(18,14,8,0.58))] text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.36)] backdrop-blur-md">
                                     <div className="flex items-center justify-between gap-3 border-b border-amber-300/10 bg-amber-300/[0.04] px-3 py-2.5">
                                         <div className="min-w-0">
@@ -4279,7 +4624,7 @@ export default function ExperiencePage() {
                                                             ? 'border-[#66d9cb]/70 bg-[#66d9cb]/20 text-[#9ff4ec]'
                                                             : 'border-white/15 bg-white/[0.035] text-white/45'
                                                     }`}>
-                                                        {objective.completed ? '✓' : index + 1}
+                                                        {objective.completed ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}
                                                     </span>
                                                     <span className={`min-w-0 truncate ${objective.completed ? 'text-white/70 line-through decoration-white/30' : 'text-slate-200'}`}>
                                                         {getQuestObjectiveText(activeSceneQuest.quest, objectiveId, language)}
