@@ -86,6 +86,9 @@ type PersistedBridgeState = Pick<
     | 'lastDogMood'
 >;
 
+const hasWaterArenaPayout = (questRewards: UnrealEventBridgeState['questRewards']) =>
+    questRewards.some((reward) => reward.questId === 'water_arena_run' && reward.kind === 'coins');
+
 const isPersistedBridgeState = (value: unknown): value is Partial<PersistedBridgeState> => {
     if (!value || typeof value !== 'object') return false;
     const candidate = value as Partial<PersistedBridgeState>;
@@ -120,12 +123,15 @@ const readPersistedBridgeState = (): UnrealEventBridgeState => {
         const hasVerifiedArenaAccess =
             Boolean(parsed.hasArenaAccess) &&
             ARENA_KEY_PIECES.every((piece) => arenaKeyPieces.includes(piece));
+        const questRewards = parsed.questRewards ?? INITIAL_STATE.questRewards;
+        const hasArenaPayout = hasWaterArenaPayout(questRewards);
+        const waterPurchased = Boolean(parsed.waterPurchased) && hasArenaPayout;
 
         return {
             ...INITIAL_STATE,
             currentMode: parsed.currentMode ?? INITIAL_STATE.currentMode,
             questProgress: parsed.questProgress ?? INITIAL_STATE.questProgress,
-            questRewards: parsed.questRewards ?? INITIAL_STATE.questRewards,
+            questRewards,
             walletBalanceCents: parsed.walletBalanceCents ?? INITIAL_STATE.walletBalanceCents,
             walletTransactions: parsed.walletTransactions ?? INITIAL_STATE.walletTransactions,
             recentActivity: parsed.recentActivity ?? INITIAL_STATE.recentActivity,
@@ -133,9 +139,9 @@ const readPersistedBridgeState = (): UnrealEventBridgeState => {
             hasArenaAccess: hasVerifiedArenaAccess,
             arcadeKey: parsed.arcadeKey ?? INITIAL_STATE.arcadeKey,
             waterKey: parsed.waterKey ?? INITIAL_STATE.waterKey,
-            waterPurchased: parsed.waterPurchased ?? INITIAL_STATE.waterPurchased,
-            wheelCoupon: parsed.wheelCoupon ?? INITIAL_STATE.wheelCoupon,
-            wheelSpinsRemaining: parsed.wheelSpinsRemaining ?? INITIAL_STATE.wheelSpinsRemaining,
+            waterPurchased,
+            wheelCoupon: waterPurchased ? parsed.wheelCoupon ?? INITIAL_STATE.wheelCoupon : INITIAL_STATE.wheelCoupon,
+            wheelSpinsRemaining: waterPurchased ? parsed.wheelSpinsRemaining ?? INITIAL_STATE.wheelSpinsRemaining : INITIAL_STATE.wheelSpinsRemaining,
             lastDogMood: parsed.lastDogMood ?? INITIAL_STATE.lastDogMood,
         };
     } catch {
@@ -458,7 +464,12 @@ export const useUnrealEventBridge = () => {
                         recentActivity: withActivity(previous.recentActivity, 'Left water dispenser'),
                     }, unrealEvent);
                 case 'water_purchased': {
-                    if (previous.waterPurchased || previous.walletBalanceCents < GAME_RULES.water.bottlePriceCoins) {
+                    const hasArenaPayout = hasWaterArenaPayout(previous.questRewards);
+                    if (
+                        previous.waterPurchased ||
+                        !hasArenaPayout ||
+                        previous.walletBalanceCents < GAME_RULES.water.bottlePriceCoins
+                    ) {
                         return withQuestUpdate(nextBase, unrealEvent);
                     }
 

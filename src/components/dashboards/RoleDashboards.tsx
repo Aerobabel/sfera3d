@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
     Activity,
@@ -255,6 +255,60 @@ const fallback: UnrealEventBridgeState = {
     wheelCoupon: null,
     wheelSpinsRemaining: 0,
     lastDogMood: null,
+};
+
+const PLAYER_PROGRESS_STORAGE_KEY = '3dsfera:player-progress:v2';
+
+const readPersistedPlayerBridge = (): UnrealEventBridgeState | null => {
+    if (typeof window === 'undefined') return null;
+
+    try {
+        const raw = window.localStorage.getItem(PLAYER_PROGRESS_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as Partial<UnrealEventBridgeState>;
+        if (!parsed || typeof parsed !== 'object') return null;
+        const questRewards = Array.isArray(parsed.questRewards) ? parsed.questRewards : fallback.questRewards;
+        const hasArenaPayout = questRewards.some((reward) => reward.questId === 'water_arena_run' && reward.kind === 'coins');
+        const waterPurchased = Boolean(parsed.waterPurchased) && hasArenaPayout;
+
+        return {
+            ...fallback,
+            currentMode: parsed.currentMode ?? fallback.currentMode,
+            questProgress: Array.isArray(parsed.questProgress) ? parsed.questProgress : fallback.questProgress,
+            questRewards,
+            walletBalanceCents: typeof parsed.walletBalanceCents === 'number' ? parsed.walletBalanceCents : fallback.walletBalanceCents,
+            walletTransactions: Array.isArray(parsed.walletTransactions) ? parsed.walletTransactions : fallback.walletTransactions,
+            recentActivity: Array.isArray(parsed.recentActivity) ? parsed.recentActivity : fallback.recentActivity,
+            arenaKeyPieces: Array.isArray(parsed.arenaKeyPieces) ? parsed.arenaKeyPieces : fallback.arenaKeyPieces,
+            hasArenaAccess: typeof parsed.hasArenaAccess === 'boolean' ? parsed.hasArenaAccess : fallback.hasArenaAccess,
+            arcadeKey: typeof parsed.arcadeKey === 'string' || parsed.arcadeKey === null ? parsed.arcadeKey : fallback.arcadeKey,
+            waterKey: typeof parsed.waterKey === 'string' || parsed.waterKey === null ? parsed.waterKey : fallback.waterKey,
+            waterPurchased,
+            wheelCoupon: waterPurchased && (typeof parsed.wheelCoupon === 'string' || parsed.wheelCoupon === null) ? parsed.wheelCoupon : fallback.wheelCoupon,
+            wheelSpinsRemaining: waterPurchased && typeof parsed.wheelSpinsRemaining === 'number' ? parsed.wheelSpinsRemaining : fallback.wheelSpinsRemaining,
+            lastDogMood: parsed.lastDogMood === 'mad' || parsed.lastDogMood === 'calm' ? parsed.lastDogMood : fallback.lastDogMood,
+        };
+    } catch {
+        return null;
+    }
+};
+
+const usePersistedPlayerBridge = (bridge: UnrealEventBridgeState | undefined) => {
+    const [snapshot, setSnapshot] = useState<UnrealEventBridgeState | null>(() => bridge ? null : readPersistedPlayerBridge());
+
+    useEffect(() => {
+        if (bridge) return;
+
+        const syncSnapshot = () => setSnapshot(readPersistedPlayerBridge());
+        window.addEventListener('storage', syncSnapshot);
+        window.addEventListener('focus', syncSnapshot);
+        return () => {
+            window.removeEventListener('storage', syncSnapshot);
+            window.removeEventListener('focus', syncSnapshot);
+        };
+    }, [bridge]);
+
+    return bridge ?? snapshot ?? fallback;
 };
 
 const dashboardCopy: Record<AppLanguage, DashboardText> = {
@@ -1672,6 +1726,98 @@ function RewardPanel({
     );
 }
 
+function WheelFortuneDashboardCard({ bridge }: { bridge: UnrealEventBridgeState }) {
+    const hasCoupon = Boolean(bridge.wheelCoupon);
+    const hasAttempt = hasCoupon && bridge.wheelSpinsRemaining > 0;
+    const status = !bridge.waterPurchased
+        ? 'Locked until water purchase'
+        : hasAttempt
+            ? '1 spin available'
+            : 'Phone prize recorded';
+
+    return (
+        <section className={`${panel} relative overflow-hidden p-3 xl:col-span-2`}>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(245,199,102,0.18),transparent_34%),radial-gradient(circle_at_86%_68%,rgba(102,217,203,0.12),transparent_34%)]" />
+            <div className="relative grid gap-4 md:grid-cols-[16rem_1fr]">
+                <div className="relative grid min-h-56 place-items-center overflow-hidden rounded-xl border border-amber-300/18 bg-black/28">
+                    <div className="absolute inset-6 rounded-full border border-amber-200/20 bg-amber-200/[0.04] shadow-[0_0_80px_rgba(245,199,102,0.18)]" />
+                    <div className="absolute inset-10 animate-pulse rounded-full border border-dashed border-cyan-200/22" />
+                    <div className={`relative h-44 w-44 overflow-hidden rounded-full shadow-[0_0_70px_rgba(245,199,102,0.24)] ${hasAttempt ? 'animate-[spin_12s_linear_infinite]' : ''}`}>
+                        <Image src="/wheeloffortune.jpg" alt="Wheel of Fortune" fill sizes="11rem" className="object-cover" />
+                    </div>
+                    <div className="absolute grid h-14 w-14 place-items-center rounded-full border border-white/16 bg-black/72 backdrop-blur">
+                        <Star className={`h-6 w-6 ${hasAttempt ? 'text-amber-100' : hasCoupon ? 'text-emerald-100' : 'text-slate-500'}`} />
+                    </div>
+                </div>
+
+                <div className="relative flex flex-col justify-center">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-100">First buyer bonus</p>
+                    <h2 className="mt-2 text-2xl font-black text-white">Wheel of Fortune</h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                        Buy EVIAN in the scene to unlock a single Sfera Hall wheel attempt. The prize pool is focused: phone only.
+                    </p>
+
+                    <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                        <div className="rounded-lg border border-amber-300/15 bg-amber-300/[0.06] p-3">
+                            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-amber-100">Status</p>
+                            <p className="mt-1 text-sm font-black text-white">{status}</p>
+                        </div>
+                        <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.06] p-3">
+                            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-cyan-100">Coupon</p>
+                            <p className="mt-1 truncate font-mono text-sm font-black text-white">{bridge.wheelCoupon ?? 'Pending'}</p>
+                        </div>
+                        <div className="rounded-lg border border-white/10 bg-white/[0.045] p-3">
+                            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">Attempts</p>
+                            <p className="mt-1 font-mono text-sm font-black text-white">{bridge.wheelSpinsRemaining} / {GAME_RULES.wheel.maxSpins}</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/18 bg-emerald-300/[0.07] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100">
+                            <Gift className="h-3.5 w-3.5" />
+                            Prize: phone
+                        </span>
+                        <Link href="/fastview?resume=scene&mode=player" className="inline-flex items-center gap-2 rounded-full border border-amber-300/22 bg-amber-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-amber-100 transition hover:border-amber-200/42 hover:bg-amber-300/[0.16]">
+                            Go to Sfera Hall
+                            <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
+}
+
+function WheelFortuneDashboardBanner({ bridge }: { bridge: UnrealEventBridgeState }) {
+    const hasCoupon = Boolean(bridge.wheelCoupon);
+    const hasAttempt = hasCoupon && bridge.wheelSpinsRemaining > 0;
+    const status = !bridge.waterPurchased
+        ? 'Buy water to unlock'
+        : hasAttempt
+            ? '1 phone-prize spin ready'
+            : 'Phone prize recorded';
+
+    return (
+        <section className={`${panel} relative overflow-hidden p-3`}>
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,rgba(245,199,102,0.13),transparent_42%,rgba(102,217,203,0.1))]" />
+            <div className="relative flex flex-wrap items-center gap-3">
+                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-amber-300/24 shadow-[0_0_38px_rgba(245,199,102,0.18)]">
+                    <Image src="/wheeloffortune.jpg" alt="Wheel of Fortune" fill sizes="3.5rem" className={`object-cover ${hasAttempt ? 'animate-[spin_14s_linear_infinite]' : ''}`} />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-100">Wheel of Fortune</p>
+                    <p className="mt-1 truncate text-sm font-black text-white">{status}</p>
+                    <p className="mt-0.5 truncate text-xs text-slate-400">{bridge.wheelCoupon ?? 'Prize path: buy EVIAN, receive one wheel coupon, win a phone.'}</p>
+                </div>
+                <Link href="/fastview?resume=scene&mode=player" className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-amber-300/22 bg-amber-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-amber-100 transition hover:border-amber-200/42 hover:bg-amber-300/[0.16]">
+                    Open scene
+                    <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+            </div>
+        </section>
+    );
+}
+
 function RewardTerminalPanel({
     rewards,
     language,
@@ -2021,9 +2167,10 @@ function DashboardHero({
     );
 }
 
-export function GamerDashboard({ bridge = fallback, embedded = false }: DashboardProps) {
+export function GamerDashboard({ bridge: bridgeProp, embedded = false }: DashboardProps) {
     const { language } = useLanguage();
     const [workspaceTab, setWorkspaceTab] = useState<PlayerWorkspaceTab>('quests');
+    const bridge = usePersistedPlayerBridge(bridgeProp);
     const copy = dashboardCopy[language];
     const coinsPreview = bridge.zombieCoins || Math.floor(bridge.zombieScore / GAME_RULES.zombieArena.zombieKillPoints) * GAME_RULES.zombieArena.coinsPerKill;
     const playerQuestProgress = getRoleQuestProgress(bridge.questProgress, 'player');
@@ -2075,6 +2222,8 @@ export function GamerDashboard({ bridge = fallback, embedded = false }: Dashboar
                         currentGame={currentGame}
                     />
 
+                    <WheelFortuneDashboardBanner bridge={bridge} />
+
                     <PlayerWorkspaceTabs copy={copy.player} activeTab={workspaceTab} onChange={setWorkspaceTab} />
 
                     <div>
@@ -2087,6 +2236,7 @@ export function GamerDashboard({ bridge = fallback, embedded = false }: Dashboar
 
                         {workspaceTab === 'rewards' && (
                             <div className="grid max-h-[36rem] gap-4 overflow-y-auto pr-1 xl:grid-cols-2">
+                                <WheelFortuneDashboardCard bridge={bridge} />
                                 <RewardPanel
                                     rewards={bridge.questRewards}
                                     language={language}

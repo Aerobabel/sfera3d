@@ -1357,6 +1357,19 @@ function QuestDirectorOverlay({
                 </div>
 
                 {canOpenCode && (
+                    <div className="rounded-xl border border-amber-300/22 bg-amber-300/[0.075] px-3 py-2">
+                        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-amber-100">Zombie Hall code console</p>
+                        <div className="mt-1 flex items-center gap-2 font-mono text-sm font-black text-white">
+                            <span>{GAME_RULES.keys.firstHalf}</span>
+                            <span className="text-slate-500">+</span>
+                            <span>{GAME_RULES.keys.secondHalf}</span>
+                            <span className="text-slate-500">=</span>
+                            <span className="text-amber-100">{GAME_RULES.keys.arenaPassword}</span>
+                        </div>
+                    </div>
+                )}
+
+                {canOpenCode && (
                     <button
                         type="button"
                         onClick={onOpenPassword}
@@ -1366,6 +1379,60 @@ function QuestDirectorOverlay({
                         {state.action}
                     </button>
                 )}
+            </div>
+        </div>
+    );
+}
+
+function ZombieHallCodePrompt({ onOpenPassword }: { onOpenPassword: () => void }) {
+    return (
+        <button
+            type="button"
+            onClick={onOpenPassword}
+            className="pointer-events-auto sfera-reward-pop flex w-[min(92vw,28rem)] items-center gap-3 overflow-hidden rounded-2xl border border-amber-300/28 bg-[#140f05]/82 p-3 text-left text-white shadow-[0_22px_70px_rgba(0,0,0,0.42)] backdrop-blur-md transition hover:border-amber-200/48 hover:bg-amber-300/[0.12]"
+        >
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-amber-300/26 bg-amber-300/10 text-amber-100">
+                <KeyRound className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+                <span className="block text-[9px] font-black uppercase tracking-[0.2em] text-amber-100">Zombie Hall code ready</span>
+                <span className="mt-0.5 block truncate text-sm font-black text-white">Open the code console at the hall gate</span>
+                <span className="mt-1 flex items-center gap-1.5 font-mono text-[11px] font-black text-slate-300">
+                    <span>{GAME_RULES.keys.firstHalf}</span>
+                    <span>+</span>
+                    <span>{GAME_RULES.keys.secondHalf}</span>
+                    <span>=</span>
+                    <span className="text-amber-100">{GAME_RULES.keys.arenaPassword}</span>
+                </span>
+            </span>
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-300/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-amber-100">
+                Enter
+                <ArrowRight className="h-3 w-3" />
+            </span>
+        </button>
+    );
+}
+
+function OpeningMissionStatement({ onDismiss }: { onDismiss: () => void }) {
+    return (
+        <div className="pointer-events-auto sfera-reward-pop w-[min(92vw,34rem)] overflow-hidden rounded-2xl border border-cyan-300/24 bg-[#031018]/88 text-white shadow-[0_26px_86px_rgba(0,0,0,0.48)] backdrop-blur-md">
+            <div className="relative p-4">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(102,217,203,0.28),transparent_38%),radial-gradient(circle_at_90%_110%,rgba(245,199,102,0.18),transparent_34%)]" />
+                <button type="button" onClick={onDismiss} className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-black/32 text-slate-300 transition hover:text-white" aria-label="Dismiss mission statement">
+                    <X className="h-4 w-4" />
+                </button>
+                <div className="relative flex items-start gap-3 pr-8">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-cyan-300/26 bg-cyan-300/10 text-cyan-100">
+                        <Droplets className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100">Mission statement</p>
+                        <h2 className="mt-1 text-2xl font-black leading-tight">Buy water</h2>
+                        <p className="mt-2 text-sm leading-5 text-slate-300">
+                            Find the dispenser, get the supplier code, win the Zombie Hall payout, then buy EVIAN.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -1655,6 +1722,7 @@ function ArenaPasswordOverlay({
 function WaterDispenserOverlay({
     walletBalanceCents,
     hasArenaAccess,
+    hasArenaPayout,
     waterPurchased,
     onClose,
     onAttempt,
@@ -1663,6 +1731,7 @@ function WaterDispenserOverlay({
 }: {
     walletBalanceCents: number;
     hasArenaAccess: boolean;
+    hasArenaPayout: boolean;
     waterPurchased: boolean;
     onClose: () => void;
     onAttempt: () => void;
@@ -1670,16 +1739,18 @@ function WaterDispenserOverlay({
     onOpenPassword: () => void;
 }) {
     const canAfford = walletBalanceCents >= GAME_RULES.water.bottlePriceCoins;
-    const canBuy = canAfford && !waterPurchased;
+    const canBuy = hasArenaPayout && canAfford && !waterPurchased;
     const questRail = [
         { label: 'Dispenser found', complete: true },
         { label: 'Zombie Hall code', complete: hasArenaAccess },
-        { label: '5 zombies cleared', complete: canAfford },
+        { label: 'Arena payout received', complete: hasArenaPayout },
         { label: 'Enough coins', complete: canAfford },
     ];
     const lockHint = !hasArenaAccess
-        ? 'You need 160 coins. Get the supplier code, clear Zombie Hall, then return with enough money.'
-        : !canAfford
+        ? 'You need the Zombie Hall payout. Get the supplier code, unlock the hall, win the arena, then return with enough money.'
+        : !hasArenaPayout
+            ? 'The dispenser is waiting for the Zombie Hall payout. Enter the hall and finish the 5-zombie arena mission.'
+            : !canAfford
             ? `You need ${GAME_RULES.water.bottlePriceCoins - walletBalanceCents} more coins. Clear all 5 zombies to finish the arena reward.`
             : 'Enough money ready. Buy the EVIAN bottle.';
 
@@ -1700,7 +1771,7 @@ function WaterDispenserOverlay({
                             <div className="min-w-0">
                                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100">3DSFERA hydration terminal</p>
                                 <h2 className="mt-1 text-4xl font-black leading-none tracking-tight">Buy EVIAN</h2>
-                                <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">The machine accepts coins only. You start short, so clear the supplier-code Zombie Hall route to earn the 160 coins.</p>
+                                <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">The machine accepts coins only. The water money comes from the Zombie Hall payout, so unlock the hall and win the arena first.</p>
                             </div>
                         </div>
 
@@ -1766,7 +1837,7 @@ function WaterDispenserOverlay({
                             className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.13em] text-slate-950 shadow-[0_18px_48px_rgba(102,217,203,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45"
                         >
                             <ShoppingCart className="h-4 w-4" />
-                            {waterPurchased ? 'Water bought' : canBuy ? 'Buy EVIAN 0.5L' : 'Try to buy'}
+                            {waterPurchased ? 'Water bought' : canBuy ? 'Buy EVIAN 0.5L' : hasArenaPayout ? 'Try to buy' : 'Zombie Hall payout needed'}
                         </button>
                         {!canBuy && !waterPurchased && (
                             <p className="mt-3 text-xs leading-5 text-amber-100/90">
@@ -1838,6 +1909,7 @@ function WheelOverlay({
 }) {
     const [isSpinning, setIsSpinning] = useState(false);
     const [hasSpun, setHasSpun] = useState(false);
+    const wheelTicks = Array.from({ length: 18 }, (_, index) => index);
 
     const spin = () => {
         if (spinsRemaining <= 0 || isSpinning) return;
@@ -1860,18 +1932,37 @@ function WheelOverlay({
                 <div className="relative grid place-items-center p-5 lg:p-7">
                     <div className={`pointer-events-none absolute left-1/2 top-5 z-10 h-0 w-0 -translate-x-1/2 border-x-[18px] border-t-[34px] border-x-transparent border-t-amber-200 drop-shadow-[0_0_18px_rgba(245,199,102,0.65)] ${isSpinning ? 'animate-bounce' : ''}`} />
                     <div className="relative grid h-[min(74vw,30rem)] w-[min(74vw,30rem)] place-items-center">
-                        <div className="absolute inset-0 rounded-full border border-amber-200/22 bg-amber-200/5 shadow-[0_0_100px_rgba(245,199,102,0.18)]" />
-                        <div className="absolute inset-4 rounded-full border border-cyan-200/12" />
-                        <div className="pointer-events-none absolute inset-2 rounded-full border border-dashed border-amber-100/20" />
+                        <div className={`absolute inset-0 rounded-full border border-amber-200/22 bg-amber-200/5 shadow-[0_0_100px_rgba(245,199,102,0.18)] ${isSpinning ? 'animate-pulse' : ''}`} />
+                        <div className={`absolute inset-3 rounded-full border border-cyan-200/16 ${isSpinning ? 'animate-[spin_5s_linear_infinite]' : ''}`} />
+                        <div className={`pointer-events-none absolute inset-2 rounded-full border border-dashed border-amber-100/24 ${isSpinning ? 'animate-[spin_2.2s_linear_infinite_reverse]' : ''}`} />
+                        {wheelTicks.map((tick) => (
+                            <span
+                                key={tick}
+                                className={`absolute left-1/2 top-1/2 h-2 w-1 rounded-full ${tick % 3 === 0 ? 'bg-amber-100' : 'bg-cyan-100/60'} shadow-[0_0_14px_rgba(245,199,102,0.35)]`}
+                                style={{ transform: `rotate(${tick * 20}deg) translateY(calc(-1 * min(34vw, 13.8rem)))` }}
+                            />
+                        ))}
                         <div className={`relative h-[88%] w-[88%] overflow-hidden rounded-full shadow-[0_0_80px_rgba(245,199,102,0.26)] transition-transform duration-1000 ${isSpinning ? 'animate-spin' : hasSpun ? 'rotate-6' : ''}`}>
                             <Image src="/wheeloffortune.jpg" alt="Wheel of Fortune" fill sizes="(max-width: 768px) 74vw, 30rem" className="object-cover" />
+                            <div className={`pointer-events-none absolute inset-0 bg-[conic-gradient(from_90deg,rgba(255,255,255,0.18),transparent_16%,rgba(255,255,255,0.12)_22%,transparent_42%,rgba(255,255,255,0.16)_58%,transparent_76%)] mix-blend-screen ${isSpinning ? 'opacity-90' : 'opacity-35'}`} />
                         </div>
                         <div className="absolute grid h-20 w-20 place-items-center rounded-full border border-white/18 bg-black/70 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur">
                             <Sparkles className={`h-8 w-8 ${hasSpun ? 'text-emerald-200' : 'text-amber-100'}`} />
                         </div>
                         {hasSpun && (
+                            <div className="pointer-events-none absolute inset-0">
+                                {wheelTicks.slice(0, 12).map((tick) => (
+                                    <span
+                                        key={tick}
+                                        className="absolute left-1/2 top-1/2 h-2 w-2 rounded-full bg-emerald-200 shadow-[0_0_16px_rgba(110,231,183,0.8)]"
+                                        style={{ transform: `rotate(${tick * 30}deg) translateY(calc(-1 * min(36vw, 14.8rem)))` }}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                        {hasSpun && (
                             <div className="pointer-events-none absolute -bottom-1 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100 shadow-[0_0_30px_rgba(110,231,183,0.2)]">
-                                Coupon stamped
+                                Phone prize stamped
                             </div>
                         )}
                     </div>
@@ -2663,10 +2754,13 @@ export default function ExperiencePage() {
     const [dashboardOverlay, setDashboardOverlay] = useState<SceneDashboardOverlay | null>(null);
     const [liveActivityToasts, setLiveActivityToasts] = useState<LiveActivityToast[]>([]);
     const [dogReactionToast, setDogReactionToast] = useState<{ id: number; mood: 'mad' | 'calm' } | null>(null);
+    const [isMissionStatementVisible, setIsMissionStatementVisible] = useState(false);
     const liveActivityIndexRef = useRef(0);
     const liveActivityRemovalTimersRef = useRef<number[]>([]);
     const lastQuestActivitySignatureRef = useRef('');
     const dogReactionTimerRef = useRef<number | null>(null);
+    const missionStatementTimerRef = useRef<number | null>(null);
+    const hasShownMissionStatementRef = useRef(false);
     const hasAppliedInitialModeRef = useRef(false);
     const isStreamAudioSuppressedRef = useRef(false);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
@@ -3123,6 +3217,9 @@ export default function ExperiencePage() {
             if (dogReactionTimerRef.current !== null) {
                 window.clearTimeout(dogReactionTimerRef.current);
             }
+            if (missionStatementTimerRef.current !== null) {
+                window.clearTimeout(missionStatementTimerRef.current);
+            }
         };
     }, []);
 
@@ -3573,6 +3670,21 @@ export default function ExperiencePage() {
         !isFastViewRoute ||
         (!showFastViewCutscene && !showFastViewLaunchOverlay && isVideoStreamingFrames);
     const shouldRunLiveActivity = showExperienceHud && hasStartedExperience && !fastViewError;
+
+    useEffect(() => {
+        if (!showExperienceHud || !hasStartedExperience || !isWaterQuestActive || unrealBridge.waterPurchased || hasShownMissionStatementRef.current) return;
+
+        hasShownMissionStatementRef.current = true;
+        setIsMissionStatementVisible(true);
+        if (missionStatementTimerRef.current !== null) {
+            window.clearTimeout(missionStatementTimerRef.current);
+        }
+        missionStatementTimerRef.current = window.setTimeout(() => {
+            setIsMissionStatementVisible(false);
+            missionStatementTimerRef.current = null;
+        }, 7800);
+    }, [hasStartedExperience, isWaterQuestActive, showExperienceHud, unrealBridge.waterPurchased]);
+
     const showLiveActivityToasts =
         shouldRunLiveActivity &&
         liveActivityToasts.length > 0 &&
@@ -4367,6 +4479,7 @@ export default function ExperiencePage() {
     const latestPlayerRewardQuest = latestPlayerReward ? getQuestDefinition(latestPlayerReward.questId) : null;
     const latestPlayerRewardQuestText = latestPlayerRewardQuest ? getQuestText(latestPlayerRewardQuest, language) : null;
     const walletBalanceCents = unrealBridge.walletBalanceCents;
+    const hasWaterArenaPayout = unrealBridge.questRewards.some((reward) => reward.questId === 'water_arena_run' && reward.kind === 'coins');
     const recentWalletTransactions = unrealBridge.walletTransactions.slice(0, 5);
     const hasWalletActivity = walletBalanceCents > 0 || recentWalletTransactions.length > 0;
     const waterQuestObjectives = activeSceneQuest?.quest.id === 'water_arena_run'
@@ -4394,8 +4507,8 @@ export default function ExperiencePage() {
             },
             {
                 title: '5 zombies and coins',
-                body: walletBalanceCents >= GAME_RULES.water.bottlePriceCoins ? '160 coins ready for EVIAN.' : 'Clear 5 zombies to earn enough money.',
-                complete: walletBalanceCents >= GAME_RULES.water.bottlePriceCoins,
+                body: hasWaterArenaPayout ? 'Zombie Hall payout received for EVIAN.' : 'Clear 5 zombies to earn enough money.',
+                complete: hasWaterArenaPayout,
                 Icon: Trophy,
             },
         ]
@@ -4404,6 +4517,12 @@ export default function ExperiencePage() {
         activeSceneQuest?.quest.id === 'water_arena_run' &&
         !unrealBridge.hasArenaAccess &&
         unrealBridge.arenaKeyPieces.length > 0;
+    const shouldShowArenaCodePrompt =
+        activeSceneQuest?.quest.id === 'water_arena_run' &&
+        !unrealBridge.hasArenaAccess &&
+        unrealBridge.arenaKeyPieces.length >= 2 &&
+        !isArenaPasswordOpen &&
+        !isWaterDispenserOpen;
     const compactWaterQuestMilestones = waterQuestMilestones.length > 0
         ? [waterQuestMilestones.find((milestone) => !milestone.complete) ?? waterQuestMilestones[waterQuestMilestones.length - 1]]
         : [];
@@ -4434,15 +4553,27 @@ export default function ExperiencePage() {
             };
         }
 
-        if (walletBalanceCents >= GAME_RULES.water.bottlePriceCoins) {
+        if (hasWaterArenaPayout && walletBalanceCents >= GAME_RULES.water.bottlePriceCoins) {
             return {
                 kicker: 'Mission director',
                 title: 'Buy the EVIAN bottle',
-                body: 'You have enough coins. Return to the dispenser and buy the EVIAN bottle.',
+                body: 'Zombie Hall paid out enough coins. Return to the dispenser and buy the EVIAN bottle.',
                 destination: 'Water dispenser',
                 action: 'Buy water',
                 signal: 'reward',
                 progress: 88,
+            };
+        }
+
+        if (walletBalanceCents >= GAME_RULES.water.bottlePriceCoins && !hasWaterArenaPayout) {
+            return {
+                kicker: 'Mission director',
+                title: 'Zombie Hall payout needed',
+                body: 'The dispenser needs the arena payout trail. Unlock Zombie Hall, finish the 5-zombie mission, then buy water.',
+                destination: 'Zombie Hall',
+                action: unrealBridge.arenaKeyPieces.length >= 2 ? 'Enter Zombie Hall code' : 'Find supplier code',
+                signal: 'locked',
+                progress: 58,
             };
         }
 
@@ -4507,6 +4638,7 @@ export default function ExperiencePage() {
         activeSceneQuest?.quest.id,
         unrealBridge.arenaKeyPieces.length,
         unrealBridge.hasArenaAccess,
+        hasWaterArenaPayout,
         unrealBridge.waterPurchased,
         unrealBridge.wheelCoupon,
         unrealBridge.wheelSpinsRemaining,
@@ -4754,6 +4886,20 @@ export default function ExperiencePage() {
                 </div>
             )}
 
+            {showExperienceHud && isMissionStatementVisible && !frontendCinematic && (
+                <div className="pointer-events-none absolute left-1/2 top-24 z-[91] -translate-x-1/2 px-3 sm:top-28">
+                    <OpeningMissionStatement
+                        onDismiss={() => {
+                            setIsMissionStatementVisible(false);
+                            if (missionStatementTimerRef.current !== null) {
+                                window.clearTimeout(missionStatementTimerRef.current);
+                                missionStatementTimerRef.current = null;
+                            }
+                        }}
+                    />
+                </div>
+            )}
+
             {shouldShowQuestDirector && questDirectorState && (
                 <div className="pointer-events-none absolute bottom-24 right-3 z-[82] sm:bottom-6 sm:right-5">
                     <QuestDirectorOverlay
@@ -4763,6 +4909,12 @@ export default function ExperiencePage() {
                         coupon={unrealBridge.wheelCoupon}
                         onOpenPassword={() => setIsArenaPasswordOpen(true)}
                     />
+                </div>
+            )}
+
+            {showExperienceHud && shouldShowArenaCodePrompt && !frontendCinematic && (
+                <div className="pointer-events-none absolute bottom-24 left-1/2 z-[83] -translate-x-1/2 px-3 sm:bottom-6">
+                    <ZombieHallCodePrompt onOpenPassword={() => setIsArenaPasswordOpen(true)} />
                 </div>
             )}
 
@@ -5494,6 +5646,7 @@ export default function ExperiencePage() {
                         <WaterDispenserOverlay
                             walletBalanceCents={walletBalanceCents}
                             hasArenaAccess={unrealBridge.hasArenaAccess}
+                            hasArenaPayout={hasWaterArenaPayout}
                             waterPurchased={unrealBridge.waterPurchased}
                             onClose={() => setIsWaterDispenserOpen(false)}
                             onAttempt={handleWaterPurchaseAttempt}
