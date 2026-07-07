@@ -2,7 +2,7 @@
 
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { Activity, ArrowRight, CheckCircle2, ChevronDown, Coins, Droplets, Gamepad2, Gift, KeyRound, ListChecks, LockKeyhole, MapPin, Monitor, Package, Play, RotateCw, Send, ShieldCheck, ShoppingCart, Sparkles, Ticket, Trophy, Volume2, WalletCards, X, Zap, Menu } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
@@ -1013,6 +1013,33 @@ const WATER_PRODUCTS = WATER_PRODUCT_SEED.map((product, index) => ({
     priceCoins: index === 0 ? GAME_RULES.water.bottlePriceCoins : GAME_RULES.water.bottlePriceCoins + Math.ceil((index + 1) * 7 / 10) * 10,
 }));
 
+const SUPPLIER_EVIDENCE = [
+    {
+        id: 'youbo',
+        name: 'Zhejiang Youbo',
+        piece: GAME_RULES.keys.firstHalf,
+        address: 'Zhejiang Province, China, Jiaxing district, Youbo representation desk.',
+        hint: 'Inspect REID bathroom products or ask in pavilion chat.',
+    },
+    {
+        id: 'doublelin',
+        name: 'Zhejiang Double Lin',
+        piece: GAME_RULES.keys.secondHalf,
+        address: 'Zhejiang Province, China, Jiaxing district, Double Lin representation desk.',
+        hint: 'Inspect brass valve products or ask in pavilion chat.',
+    },
+] as const;
+
+type QuestDirectorState = {
+    kicker: string;
+    title: string;
+    body: string;
+    destination: string;
+    action: string;
+    signal: 'locked' | 'search' | 'ready' | 'reward' | 'complete';
+    progress: number;
+};
+
 type ArcadeGameId = 'pulse-runner' | 'signal-match' | 'vault-drop';
 
 type ArcadeCopy = {
@@ -1206,6 +1233,230 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
     },
 };
 
+function SupplierEvidenceBoard({ pieces, compact = false }: { pieces: string[]; compact?: boolean }) {
+    const foundPieces = SUPPLIER_EVIDENCE.filter((supplier) => pieces.includes(supplier.piece));
+    const isComplete = foundPieces.length === SUPPLIER_EVIDENCE.length;
+
+    return (
+        <div className={compact ? 'grid gap-2' : 'grid gap-3'}>
+            <div className="flex items-center justify-between gap-3">
+                <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100">Supplier evidence</p>
+                    {!compact && <p className="mt-1 text-xs leading-5 text-slate-400">Each pavilion hides one half of the Zombie Hall code.</p>}
+                </div>
+                <span className={`rounded-full border px-3 py-1.5 font-mono text-[10px] font-black uppercase tracking-[0.14em] ${
+                    isComplete ? 'border-emerald-300/34 bg-emerald-300/10 text-emerald-100' : 'border-white/10 bg-white/[0.04] text-slate-300'
+                }`}>
+                    {foundPieces.length}/{SUPPLIER_EVIDENCE.length}
+                </span>
+            </div>
+
+            <div className={compact ? 'grid gap-2' : 'grid gap-3 md:grid-cols-2'}>
+                {SUPPLIER_EVIDENCE.map((supplier, index) => {
+                    const isFound = pieces.includes(supplier.piece);
+                    return (
+                        <div key={supplier.id} className={`relative overflow-hidden rounded-xl border p-3 ${
+                            isFound
+                                ? 'border-emerald-300/28 bg-emerald-300/[0.07]'
+                                : 'border-white/10 bg-white/[0.035]'
+                        }`}>
+                            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.05),transparent_42%)]" />
+                            <div className="relative flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">Evidence {index + 1}</p>
+                                    <p className="mt-1 truncate text-sm font-black text-white">{supplier.name}</p>
+                                    {!compact && <p className="mt-2 text-xs leading-5 text-slate-400">{supplier.address}</p>}
+                                    <p className="mt-2 text-[11px] font-semibold text-cyan-100/85">{supplier.hint}</p>
+                                </div>
+                                <span className={`grid h-12 w-14 shrink-0 place-items-center rounded-xl border font-mono text-base font-black ${
+                                    isFound ? 'border-emerald-300/45 bg-black/30 text-emerald-100 shadow-[0_0_24px_rgba(110,231,183,0.16)]' : 'border-white/10 bg-black/30 text-white/28'
+                                }`}>
+                                    {isFound ? supplier.piece : '??'}
+                                </span>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            <div className={`relative overflow-hidden rounded-xl border p-3 ${
+                isComplete ? 'border-cyan-200/28 bg-cyan-300/[0.08]' : 'border-white/10 bg-black/25'
+            }`}>
+                <div className="flex items-center justify-between gap-3">
+                    <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Combined code</span>
+                    <span className={`font-mono text-sm font-black ${isComplete ? 'text-cyan-100' : 'text-white/30'}`}>
+                        {isComplete ? `${GAME_RULES.keys.firstHalf} + ${GAME_RULES.keys.secondHalf} = ${GAME_RULES.keys.arenaPassword}` : 'Recover both fragments'}
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function QuestDirectorOverlay({
+    state,
+    pieces,
+    waterKey,
+    coupon,
+    onOpenPassword,
+}: {
+    state: QuestDirectorState;
+    pieces: string[];
+    waterKey: string | null;
+    coupon: string | null;
+    onOpenPassword: () => void;
+}) {
+    const signalClass = {
+        locked: 'border-rose-300/28 bg-rose-300/[0.08] text-rose-100',
+        search: 'border-cyan-300/24 bg-cyan-300/[0.07] text-cyan-100',
+        ready: 'border-amber-300/28 bg-amber-300/[0.08] text-amber-100',
+        reward: 'border-emerald-300/28 bg-emerald-300/[0.08] text-emerald-100',
+        complete: 'border-fuchsia-300/28 bg-fuchsia-300/[0.08] text-fuchsia-100',
+    }[state.signal];
+    const canOpenCode = state.signal === 'ready' || state.signal === 'locked';
+
+    return (
+        <div className="pointer-events-auto w-[min(92vw,27rem)] overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#031018]/76 text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-md">
+            <div className="relative border-b border-white/10 p-3">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(102,217,203,0.22),transparent_38%),linear-gradient(135deg,rgba(255,255,255,0.055),transparent_42%)]" />
+                <div className="relative flex items-start gap-3">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-cyan-300/24 bg-cyan-300/10 text-cyan-100 shadow-[0_0_30px_rgba(102,217,203,0.18)]">
+                        <Activity className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-100">{state.kicker}</p>
+                            <span className={`rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] ${signalClass}`}>
+                                {state.signal}
+                            </span>
+                        </div>
+                        <h3 className="mt-1 truncate text-lg font-black leading-tight">{state.title}</h3>
+                        <p className="mt-1 text-xs leading-5 text-slate-300">{state.body}</p>
+                    </div>
+                </div>
+                <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div className="h-full rounded-full bg-[linear-gradient(90deg,#66d9cb,#f5c766,#a78bfa)] shadow-[0_0_18px_rgba(102,217,203,0.42)] transition-all duration-700" style={{ width: `${state.progress}%` }} />
+                </div>
+            </div>
+
+            <div className="grid gap-2 p-3">
+                <div className="grid grid-cols-[2.25rem_1fr_auto] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2">
+                    <span className="grid h-9 w-9 place-items-center rounded-lg border border-cyan-300/18 bg-black/28 text-cyan-100">
+                        <MapPin className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                        <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">Destination</span>
+                        <span className="block truncate text-sm font-black text-white">{state.destination}</span>
+                    </span>
+                    <span className="font-mono text-[10px] font-black text-cyan-100">{state.progress}%</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                    <div className={`rounded-xl border px-2 py-2 ${pieces.length >= 2 ? 'border-emerald-300/24 bg-emerald-300/[0.07]' : 'border-white/10 bg-white/[0.035]'}`}>
+                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">Fragments</p>
+                        <p className="mt-1 font-mono text-sm font-black">{pieces.length}/2</p>
+                    </div>
+                    <div className={`rounded-xl border px-2 py-2 ${waterKey ? 'border-emerald-300/24 bg-emerald-300/[0.07]' : 'border-white/10 bg-white/[0.035]'}`}>
+                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">Water key</p>
+                        <p className="mt-1 truncate font-mono text-sm font-black">{waterKey ? 'ready' : 'locked'}</p>
+                    </div>
+                    <div className={`rounded-xl border px-2 py-2 ${coupon ? 'border-amber-300/24 bg-amber-300/[0.07]' : 'border-white/10 bg-white/[0.035]'}`}>
+                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">Wheel</p>
+                        <p className="mt-1 truncate font-mono text-sm font-black">{coupon ? 'coupon' : 'pending'}</p>
+                    </div>
+                </div>
+
+                {canOpenCode && (
+                    <button
+                        type="button"
+                        onClick={onOpenPassword}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#f5c766,#66d9cb)] px-3 py-2.5 text-xs font-black uppercase tracking-[0.13em] text-slate-950 shadow-[0_18px_44px_rgba(245,199,102,0.16)] transition hover:scale-[1.01]"
+                    >
+                        <KeyRound className="h-4 w-4" />
+                        {state.action}
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function WaterPurchaseCeremony({ walletBalanceCents }: { walletBalanceCents: number }) {
+    const balanceAfter = Math.max(0, walletBalanceCents - GAME_RULES.water.bottlePriceCoins);
+
+    return (
+        <div className="pointer-events-auto absolute inset-0 z-[118] grid place-items-center bg-[#02050b]/86 p-4 text-white backdrop-blur-md">
+            <section className="sfera-reward-pop relative w-[min(100%,46rem)] overflow-hidden rounded-2xl border border-cyan-200/24 bg-[#071018]/96 p-6 text-center shadow-[0_44px_150px_rgba(0,0,0,0.72)]">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_22%,rgba(102,217,203,0.26),transparent_34%),radial-gradient(circle_at_70%_80%,rgba(245,199,102,0.16),transparent_34%)]" />
+                <div className="relative mx-auto grid h-56 w-56 place-items-center">
+                    <div className="absolute inset-0 rounded-full border border-cyan-200/16 bg-cyan-200/[0.04] shadow-[0_0_90px_rgba(102,217,203,0.22)]" />
+                    <div className="absolute inset-8 animate-spin rounded-full border border-dashed border-cyan-200/30" />
+                    <Image src="/evian/evian-50cl.png" alt="EVIAN bottle" width={92} height={220} className="relative max-h-52 w-auto drop-shadow-[0_34px_55px_rgba(0,0,0,0.7)]" priority />
+                </div>
+                <div className="relative mt-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100">Purchase authorized</p>
+                    <h2 className="mt-2 text-4xl font-black leading-tight">EVIAN secured</h2>
+                    <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-300">Coins confirmed, first buyer status recorded, and your Wheel of Fortune coupon is now active in Sfera Hall.</p>
+                </div>
+                <div className="relative mt-5 grid gap-2 sm:grid-cols-3">
+                    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
+                        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">Paid</p>
+                        <p className="mt-1 font-mono text-lg font-black text-cyan-100">{GAME_RULES.water.bottlePriceCoins}</p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
+                        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">Balance after</p>
+                        <p className="mt-1 font-mono text-lg font-black text-white">{formatMoney(balanceAfter)}</p>
+                    </div>
+                    <div className="rounded-xl border border-amber-300/22 bg-amber-300/[0.07] px-3 py-3">
+                        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-amber-200">Next</p>
+                        <p className="mt-1 text-sm font-black text-white">Spin the wheel</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    );
+}
+
+function CutsceneTimeline({ active }: { active: 'opening' | 'role' | 'hall' | 'water' }) {
+    const steps = [
+        { id: 'opening', label: 'Opening film' },
+        { id: 'role', label: 'Role select' },
+        { id: 'hall', label: 'Hall arrival' },
+        { id: 'water', label: 'Water win' },
+    ] as const;
+    const activeIndex = steps.findIndex((step) => step.id === active);
+
+    return (
+        <div className="pointer-events-none absolute inset-x-4 bottom-5 z-20 flex justify-center">
+            <div className="flex max-w-full items-center gap-2 overflow-hidden rounded-full border border-white/12 bg-black/48 px-3 py-2 shadow-[0_14px_50px_rgba(0,0,0,0.35)] backdrop-blur-md">
+                {steps.map((step, index) => {
+                    const isDone = index < activeIndex;
+                    const isActive = index === activeIndex;
+                    return (
+                        <div key={step.id} className="flex min-w-0 items-center gap-2">
+                            <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[9px] font-black ${
+                                isDone
+                                    ? 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100'
+                                    : isActive
+                                        ? 'border-cyan-300/45 bg-cyan-300/14 text-cyan-100 shadow-[0_0_18px_rgba(102,217,203,0.28)]'
+                                        : 'border-white/10 bg-white/[0.04] text-white/30'
+                            }`}>
+                                {isDone ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}
+                            </span>
+                            <span className={`hidden truncate text-[9px] font-black uppercase tracking-[0.14em] sm:block ${
+                                isActive ? 'text-cyan-100' : isDone ? 'text-emerald-100/80' : 'text-slate-500'
+                            }`}>
+                                {step.label}
+                            </span>
+                            {index < steps.length - 1 && <span className="h-px w-5 bg-white/12" />}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
 function ArenaPasswordOverlay({
     pieces,
     onClose,
@@ -1216,20 +1467,56 @@ function ArenaPasswordOverlay({
     onSubmit: (password: string) => void;
 }) {
     const [password, setPassword] = useState('');
+    const [terminalState, setTerminalState] = useState<'idle' | 'denied' | 'accepted'>('idle');
+    const unlockTimerRef = useRef<number | null>(null);
     const normalized = password.trim().toUpperCase().replace(/\s+/g, '');
     const expected = GAME_RULES.keys.arenaPassword;
-    const requiredPieces = [GAME_RULES.keys.firstHalf, GAME_RULES.keys.secondHalf];
-    const foundPieces = requiredPieces.filter((piece) => pieces.includes(piece));
     const matchedCount = normalized
         .split('')
         .filter((char, index) => expected[index] === char).length;
     const progress = Math.min(100, Math.round((matchedCount / expected.length) * 100));
     const isComplete = normalized === expected;
     const inputCells = Array.from({ length: expected.length }, (_, index) => normalized[index] ?? '');
+    const terminalLabel = terminalState === 'accepted'
+        ? 'Clearance granted. Opening Zombie Hall...'
+        : terminalState === 'denied'
+            ? 'Code rejected. Recheck supplier fragments.'
+            : 'Awaiting supplier code';
+
+    useEffect(() => {
+        return () => {
+            if (unlockTimerRef.current !== null) {
+                window.clearTimeout(unlockTimerRef.current);
+            }
+        };
+    }, []);
+
+    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (terminalState === 'accepted') return;
+
+        if (isComplete) {
+            setTerminalState('accepted');
+            unlockTimerRef.current = window.setTimeout(() => {
+                onSubmit(password);
+            }, 1250);
+            return;
+        }
+
+        setTerminalState('denied');
+        onSubmit(password);
+        window.setTimeout(() => setTerminalState('idle'), 900);
+    };
 
     return (
-        <div className="absolute inset-0 z-[96] grid place-items-center bg-[#01040a]/84 p-4 text-white backdrop-blur-md pointer-events-auto" role="dialog" aria-modal="true" aria-label="Zombie Hall access code">
-            <section className="sfera-reward-pop relative grid max-h-[calc(100vh-2rem)] w-[min(100%,58rem)] overflow-hidden rounded-2xl border border-cyan-200/22 bg-[#050914]/96 shadow-[0_44px_150px_rgba(0,0,0,0.72)] lg:grid-cols-[0.9fr_1.1fr]">
+        <div className={`absolute inset-0 z-[96] grid place-items-center bg-[#01040a]/84 p-4 text-white backdrop-blur-md pointer-events-auto ${terminalState === 'denied' ? 'animate-pulse' : ''}`} role="dialog" aria-modal="true" aria-label="Zombie Hall access code">
+            <section className={`sfera-reward-pop relative grid max-h-[calc(100vh-2rem)] w-[min(100%,62rem)] overflow-hidden rounded-2xl border bg-[#050914]/96 shadow-[0_44px_150px_rgba(0,0,0,0.72)] transition ${
+                terminalState === 'accepted'
+                    ? 'border-emerald-300/38'
+                    : terminalState === 'denied'
+                        ? 'border-rose-300/38'
+                        : 'border-cyan-200/22'
+            } lg:grid-cols-[1fr_1.08fr]`}>
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(102,217,203,0.24),transparent_32%),radial-gradient(circle_at_90%_18%,rgba(244,63,94,0.18),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.05),transparent_42%)]" />
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/80 to-transparent" />
                 <button type="button" onClick={onClose} className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/35 text-slate-300 transition hover:text-white" aria-label="Close">
@@ -1248,46 +1535,8 @@ function ArenaPasswordOverlay({
                         </div>
                     </div>
 
-                    <div className="mt-6 grid gap-3">
-                        {requiredPieces.map((piece, index) => {
-                            const isFound = pieces.includes(piece);
-                            return (
-                                <div key={piece} className={`relative overflow-hidden rounded-xl border p-3 transition ${
-                                    isFound
-                                        ? 'border-emerald-300/34 bg-emerald-300/[0.08] shadow-[0_0_26px_rgba(110,231,183,0.1)]'
-                                        : 'border-white/10 bg-white/[0.04]'
-                                }`}>
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div className="flex min-w-0 items-center gap-3">
-                                            <span className={`grid h-9 w-9 place-items-center rounded-lg border ${
-                                                isFound ? 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100' : 'border-white/10 bg-black/25 text-white/36'
-                                            }`}>
-                                                {isFound ? <CheckCircle2 className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
-                                            </span>
-                                            <div className="min-w-0">
-                                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Supplier fragment {index + 1}</p>
-                                                <p className="mt-0.5 text-sm font-black text-white">{isFound ? 'Recovered from pavilion chat' : 'Still hidden in a pavilion'}</p>
-                                            </div>
-                                        </div>
-                                        <span className={`rounded-lg border px-3 py-2 font-mono text-sm font-black ${
-                                            isFound ? 'border-emerald-300/40 bg-black/25 text-emerald-100' : 'border-white/10 bg-black/25 text-white/30'
-                                        }`}>
-                                            {isFound ? piece : '??'}
-                                        </span>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    <div className="mt-5 rounded-xl border border-cyan-300/18 bg-cyan-300/[0.06] p-3">
-                        <div className="flex items-center justify-between gap-3">
-                            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100">Fragments recovered</span>
-                            <span className="font-mono text-sm font-black text-white">{foundPieces.length}/{requiredPieces.length}</span>
-                        </div>
-                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-                            <div className="h-full rounded-full bg-[linear-gradient(90deg,#66d9cb,#f5c766)] shadow-[0_0_20px_rgba(102,217,203,0.42)] transition-all duration-500" style={{ width: `${(foundPieces.length / requiredPieces.length) * 100}%` }} />
-                        </div>
+                    <div className="mt-6">
+                        <SupplierEvidenceBoard pieces={pieces} />
                     </div>
                 </div>
 
@@ -1296,16 +1545,13 @@ function ArenaPasswordOverlay({
                         <div className="flex items-center justify-between gap-3">
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-100">Access console</p>
-                                <p className="mt-1 text-sm text-slate-300">Type the combined code. The bar turns green when it is correct.</p>
+                                <p className={`mt-1 text-sm ${terminalState === 'denied' ? 'text-rose-100' : terminalState === 'accepted' ? 'text-emerald-100' : 'text-slate-300'}`}>{terminalLabel}</p>
                             </div>
                             <ShieldCheck className={`h-6 w-6 ${isComplete ? 'text-emerald-200' : 'text-cyan-100'}`} />
                         </div>
                         <form
                             className="mt-4"
-                            onSubmit={(event) => {
-                                event.preventDefault();
-                                onSubmit(password);
-                            }}
+                            onSubmit={handleSubmit}
                         >
                             <div className="grid grid-cols-4 gap-2">
                                 {inputCells.map((char, index) => {
@@ -1330,18 +1576,31 @@ function ArenaPasswordOverlay({
                                 autoFocus
                                 maxLength={8}
                                 placeholder="ENTER CODE"
-                                className="mt-3 w-full rounded-xl border border-cyan-300/22 bg-black/45 px-4 py-4 font-mono text-xl font-black uppercase tracking-[0.28em] text-white outline-none transition placeholder:text-white/22 focus:border-cyan-200/70 focus:bg-black/62"
+                                disabled={terminalState === 'accepted'}
+                                className="mt-3 w-full rounded-xl border border-cyan-300/22 bg-black/45 px-4 py-4 font-mono text-xl font-black uppercase tracking-[0.28em] text-white outline-none transition placeholder:text-white/22 focus:border-cyan-200/70 focus:bg-black/62 disabled:opacity-60"
                             />
                             <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
                                 <div className={`h-full rounded-full transition-all duration-300 ${isComplete ? 'bg-emerald-300 shadow-[0_0_24px_rgba(110,231,183,0.7)]' : 'bg-cyan-300/80'}`} style={{ width: `${progress}%` }} />
                             </div>
-                            <button type="submit" className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:scale-[1.01]">
+                            <button type="submit" disabled={terminalState === 'accepted'} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:scale-[1.01] disabled:cursor-wait disabled:opacity-70">
                                 <KeyRound className="h-4 w-4" />
-                                Unlock Zombie Hall
+                                {terminalState === 'accepted' ? 'Opening hall' : 'Unlock Zombie Hall'}
                                 <ArrowRight className="h-4 w-4" />
                             </button>
                         </form>
                     </div>
+
+                    {terminalState === 'accepted' && (
+                        <div className="mt-4 overflow-hidden rounded-xl border border-emerald-300/24 bg-emerald-300/[0.08] p-3">
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100">Gate sequence</span>
+                                <span className="font-mono text-xs font-black text-emerald-100">G SENT</span>
+                            </div>
+                            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                                <div className="h-full w-full animate-pulse rounded-full bg-emerald-300 shadow-[0_0_20px_rgba(110,231,183,0.55)]" />
+                            </div>
+                        </div>
+                    )}
 
                     <p className="mt-4 text-center text-xs leading-5 text-slate-400">
                         Tip: if a fragment is missing, return to Sfera Hall and inspect supplier products or open supplier chat.
@@ -1549,7 +1808,7 @@ function WheelOverlay({
             setIsSpinning(false);
             setHasSpun(true);
             onSpin();
-        }, 1800);
+        }, 2400);
     };
 
     return (
@@ -1561,16 +1820,22 @@ function WheelOverlay({
                 </button>
 
                 <div className="relative grid place-items-center p-5 lg:p-7">
-                    <div className="pointer-events-none absolute left-1/2 top-5 z-10 h-0 w-0 -translate-x-1/2 border-x-[18px] border-t-[34px] border-x-transparent border-t-amber-200 drop-shadow-[0_0_18px_rgba(245,199,102,0.65)]" />
+                    <div className={`pointer-events-none absolute left-1/2 top-5 z-10 h-0 w-0 -translate-x-1/2 border-x-[18px] border-t-[34px] border-x-transparent border-t-amber-200 drop-shadow-[0_0_18px_rgba(245,199,102,0.65)] ${isSpinning ? 'animate-bounce' : ''}`} />
                     <div className="relative grid h-[min(74vw,30rem)] w-[min(74vw,30rem)] place-items-center">
                         <div className="absolute inset-0 rounded-full border border-amber-200/22 bg-amber-200/5 shadow-[0_0_100px_rgba(245,199,102,0.18)]" />
                         <div className="absolute inset-4 rounded-full border border-cyan-200/12" />
-                        <div className={`relative h-[88%] w-[88%] overflow-hidden rounded-full shadow-[0_0_80px_rgba(245,199,102,0.26)] transition-transform duration-700 ${isSpinning ? 'animate-spin' : ''}`}>
+                        <div className="pointer-events-none absolute inset-2 rounded-full border border-dashed border-amber-100/20" />
+                        <div className={`relative h-[88%] w-[88%] overflow-hidden rounded-full shadow-[0_0_80px_rgba(245,199,102,0.26)] transition-transform duration-1000 ${isSpinning ? 'animate-spin' : hasSpun ? 'rotate-6' : ''}`}>
                             <Image src="/wheeloffortune.jpg" alt="Wheel of Fortune" fill sizes="(max-width: 768px) 74vw, 30rem" className="object-cover" />
                         </div>
                         <div className="absolute grid h-20 w-20 place-items-center rounded-full border border-white/18 bg-black/70 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur">
                             <Sparkles className={`h-8 w-8 ${hasSpun ? 'text-emerald-200' : 'text-amber-100'}`} />
                         </div>
+                        {hasSpun && (
+                            <div className="pointer-events-none absolute -bottom-1 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100 shadow-[0_0_30px_rgba(110,231,183,0.2)]">
+                                Coupon stamped
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -1591,11 +1856,22 @@ function WheelOverlay({
                             <span className="font-mono text-sm font-black text-amber-100">{spinsRemaining} / {GAME_RULES.wheel.maxSpins}</span>
                         </div>
                     </div>
-                    {hasSpun && (
-                        <div className="mt-4 rounded-xl border border-emerald-300/24 bg-emerald-300/[0.08] p-3 text-sm font-bold text-emerald-100">
-                            Spin recorded. This coupon has been used.
-                        </div>
-                    )}
+                    <div className={`mt-4 rounded-xl border p-3 transition ${
+                        isSpinning
+                            ? 'border-amber-300/30 bg-amber-300/[0.09] text-amber-100'
+                            : hasSpun
+                                ? 'border-emerald-300/24 bg-emerald-300/[0.08] text-emerald-100'
+                                : 'border-white/10 bg-white/[0.04] text-slate-300'
+                    }`}>
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em]">{isSpinning ? 'Pointer tracking' : hasSpun ? 'Prize reveal' : 'Wheel status'}</p>
+                        <p className="mt-1 text-sm font-bold">
+                            {isSpinning
+                                ? 'Hold tight. The wheel is choosing the first-buyer prize.'
+                                : hasSpun
+                                    ? 'Spin recorded. First buyer coupon has been used.'
+                                    : 'One attempt available after buying water.'}
+                        </p>
+                    </div>
                     <button type="button" onClick={spin} disabled={spinsRemaining <= 0 || isSpinning || !coupon} className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#f5c766,#66d9cb)] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 shadow-[0_18px_48px_rgba(245,199,102,0.18)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45">
                         <RotateCw className="h-4 w-4" />
                         {spinsRemaining > 0 ? (isSpinning ? 'Spinning' : 'Spin once') : 'Already played'}
@@ -2346,6 +2622,7 @@ export default function ExperiencePage() {
     const [liveActivityToasts, setLiveActivityToasts] = useState<LiveActivityToast[]>([]);
     const liveActivityIndexRef = useRef(0);
     const liveActivityRemovalTimersRef = useRef<number[]>([]);
+    const lastQuestActivitySignatureRef = useRef('');
     const hasAppliedInitialModeRef = useRef(false);
     const isStreamAudioSuppressedRef = useRef(false);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
@@ -2533,8 +2810,10 @@ export default function ExperiencePage() {
     const sferaHallCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const [isWaterWinCutsceneVisible, setIsWaterWinCutsceneVisible] = useState(false);
     const [hasStartedWaterWinCutsceneSound, setHasStartedWaterWinCutsceneSound] = useState(false);
+    const [waterPurchaseCeremonyBalance, setWaterPurchaseCeremonyBalance] = useState<number | null>(null);
     const waterWinCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const fastViewCutsceneExitTimerRef = useRef<number | null>(null);
+    const waterPurchaseCeremonyTimerRef = useRef<number | null>(null);
     const fastViewCutscenePlaylist = FASTVIEW_START_CUTSCENE_PLAYLIST[language] ?? FASTVIEW_START_CUTSCENE_PLAYLIST.en;
     const fastViewCutsceneSrc = fastViewCutscenePlaylist[fastViewCutsceneIndex] ?? fastViewCutscenePlaylist[0];
     const fastViewCutsceneStepLabel = `${Math.min(fastViewCutsceneIndex + 1, fastViewCutscenePlaylist.length)}/${fastViewCutscenePlaylist.length}`;
@@ -2679,7 +2958,16 @@ export default function ExperiencePage() {
             priceCoins: GAME_RULES.water.bottlePriceCoins,
         });
         setIsWaterDispenserOpen(false);
-        setIsWaterWinCutsceneVisible(true);
+        setWaterPurchaseCeremonyBalance(unrealBridge.walletBalanceCents);
+        if (waterPurchaseCeremonyTimerRef.current !== null) {
+            window.clearTimeout(waterPurchaseCeremonyTimerRef.current);
+        }
+        waterPurchaseCeremonyTimerRef.current = window.setTimeout(() => {
+            setWaterPurchaseCeremonyBalance(null);
+            setHasStartedWaterWinCutsceneSound(false);
+            setIsWaterWinCutsceneVisible(true);
+            waterPurchaseCeremonyTimerRef.current = null;
+        }, 2600);
         playSferaUiSound('reward');
     }, [unrealBridge]);
 
@@ -2766,6 +3054,9 @@ export default function ExperiencePage() {
         return () => {
             if (fastViewCutsceneExitTimerRef.current !== null) {
                 window.clearTimeout(fastViewCutsceneExitTimerRef.current);
+            }
+            if (waterPurchaseCeremonyTimerRef.current !== null) {
+                window.clearTimeout(waterPurchaseCeremonyTimerRef.current);
             }
         };
     }, []);
@@ -3331,6 +3622,37 @@ export default function ExperiencePage() {
             liveActivityRemovalTimersRef.current = [];
         };
     }, [language, shouldRunLiveActivity]);
+
+    useEffect(() => {
+        if (!shouldRunLiveActivity) return;
+        const latestActivity = unrealBridge.recentActivity[0];
+        if (!latestActivity) return;
+
+        const signature = `${latestActivity}:${unrealBridge.recentActivity.length}`;
+        if (lastQuestActivitySignatureRef.current === signature) return;
+        lastQuestActivitySignatureRef.current = signature;
+
+        const lower = latestActivity.toLowerCase();
+        const kind: LiveActivityKind = lower.includes('water') || lower.includes('wheel')
+            ? 'market'
+            : lower.includes('key') || lower.includes('password') || lower.includes('zombie')
+                ? 'booking'
+                : lower.includes('pavilion') || lower.includes('supplier')
+                    ? 'catalogue'
+                    : 'message';
+        const id = Date.now();
+
+        setLiveActivityToasts((previous) => [{ id, kind, message: latestActivity }, ...previous].slice(0, 3));
+
+        const removalTimer = window.setTimeout(() => {
+            setLiveActivityToasts((previous) => previous.filter((toast) => toast.id !== id));
+            liveActivityRemovalTimersRef.current = liveActivityRemovalTimersRef.current.filter(
+                (timerId) => timerId !== removalTimer
+            );
+        }, LIVE_ACTIVITY_VISIBLE_MS);
+
+        liveActivityRemovalTimersRef.current.push(removalTimer);
+    }, [shouldRunLiveActivity, unrealBridge.recentActivity]);
 
     const handleReloadPage = () => {
         window.location.reload();
@@ -4017,6 +4339,141 @@ export default function ExperiencePage() {
         activeSceneQuest?.quest.id === 'water_arena_run' &&
         !unrealBridge.hasArenaAccess &&
         unrealBridge.arenaKeyPieces.length > 0;
+    const questDirectorState = useMemo<QuestDirectorState | null>(() => {
+        if (activeSceneQuest?.quest.id !== 'water_arena_run') return null;
+
+        if (unrealBridge.waterPurchased && unrealBridge.wheelCoupon && unrealBridge.wheelSpinsRemaining > 0) {
+            return {
+                kicker: 'Mission director',
+                title: 'Wheel coupon is live',
+                body: 'Water is bought. Return to Sfera Hall and use the first-buyer Wheel of Fortune attempt.',
+                destination: 'Sfera Hall wheel',
+                action: 'Find the wheel',
+                signal: 'complete',
+                progress: 100,
+            };
+        }
+
+        if (unrealBridge.waterPurchased) {
+            return {
+                kicker: 'Mission director',
+                title: 'Hydration run complete',
+                body: 'The EVIAN purchase is recorded and the reward trail is complete.',
+                destination: 'Sfera Hall',
+                action: 'Review rewards',
+                signal: 'complete',
+                progress: 100,
+            };
+        }
+
+        if (unrealBridge.waterKey && walletBalanceCents >= GAME_RULES.water.bottlePriceCoins) {
+            return {
+                kicker: 'Mission director',
+                title: 'Buy the EVIAN bottle',
+                body: 'The dispenser authorization key and enough coins are ready. Complete the purchase.',
+                destination: 'Water dispenser',
+                action: 'Buy water',
+                signal: 'reward',
+                progress: 88,
+            };
+        }
+
+        if (unrealBridge.waterKey) {
+            return {
+                kicker: 'Mission director',
+                title: 'Earn the last coins',
+                body: `Water code ${unrealBridge.waterKey} is ready. Build your balance to ${GAME_RULES.water.bottlePriceCoins} coins.`,
+                destination: 'Arcade cabinets or arena reward',
+                action: 'Earn coins',
+                signal: 'reward',
+                progress: 76,
+            };
+        }
+
+        if (unrealBridge.hasArenaAccess) {
+            return {
+                kicker: 'Mission director',
+                title: 'Clear Zombie Hall',
+                body: 'The gate accepted the supplier code. Win the arena to receive the water authorization key.',
+                destination: 'Zombie Hall',
+                action: 'Enter arena',
+                signal: 'ready',
+                progress: 62,
+            };
+        }
+
+        if (unrealBridge.arenaKeyPieces.length >= 2) {
+            return {
+                kicker: 'Mission director',
+                title: 'Code ready for Zombie Hall',
+                body: `Combine ${GAME_RULES.keys.firstHalf} and ${GAME_RULES.keys.secondHalf}, then unlock the hall gate.`,
+                destination: 'Zombie Hall terminal',
+                action: 'Enter Zombie Hall code',
+                signal: 'ready',
+                progress: 48,
+            };
+        }
+
+        if (unrealBridge.arenaKeyPieces.length > 0) {
+            return {
+                kicker: 'Mission director',
+                title: 'Find the second fragment',
+                body: 'One supplier fragment is recovered. The missing half is still hidden in another pavilion.',
+                destination: 'Supplier pavilions',
+                action: 'Open supplier chat',
+                signal: 'search',
+                progress: 34,
+            };
+        }
+
+        if (waterQuestObjectives?.try_buy_water?.completed) {
+            return {
+                kicker: 'Mission director',
+                title: 'Dispenser refused purchase',
+                body: 'The water machine is locked. Go to Sfera Hall suppliers and recover both code fragments.',
+                destination: 'Youbo and Double Lin pavilions',
+                action: 'Search suppliers',
+                signal: 'search',
+                progress: 22,
+            };
+        }
+
+        return {
+            kicker: 'Mission director',
+            title: 'Start at the water machine',
+            body: 'Try the EVIAN dispenser first. The failed purchase reveals why the supplier code matters.',
+            destination: 'Water dispenser',
+            action: 'Try to buy water',
+            signal: 'locked',
+            progress: 10,
+        };
+    }, [
+        activeSceneQuest?.quest.id,
+        unrealBridge.arenaKeyPieces.length,
+        unrealBridge.hasArenaAccess,
+        unrealBridge.waterKey,
+        unrealBridge.waterPurchased,
+        unrealBridge.wheelCoupon,
+        unrealBridge.wheelSpinsRemaining,
+        walletBalanceCents,
+        waterQuestObjectives?.try_buy_water?.completed,
+    ]);
+    const shouldShowQuestDirector =
+        Boolean(questDirectorState) &&
+        showExperienceHud &&
+        !activeProduct &&
+        !activePavilion &&
+        !isCatalogueOpen &&
+        !isChatPanelOpen &&
+        !isMenuOpen &&
+        !isRewardTerminalOpen &&
+        !isArcadeOpen &&
+        !isWaterDispenserOpen &&
+        !isArenaPasswordOpen &&
+        !isWheelOpen &&
+        waterPurchaseCeremonyBalance === null &&
+        !isSferaHallCutsceneVisible &&
+        !isWaterWinCutsceneVisible;
 
     useEffect(() => {
         if (!hasStartedExperience || !isGamerScene || !latestPlayerReward) return;
@@ -4129,6 +4586,7 @@ export default function ExperiencePage() {
                             </div>
                         </div>
                     )}
+                    <CutsceneTimeline active="opening" />
                 </div>
             )}
 
@@ -4170,7 +4628,12 @@ export default function ExperiencePage() {
                         startLabel={!hasStartedSferaHallCutsceneSound ? cutsceneCopy.startWithSound : undefined}
                         onStart={!hasStartedSferaHallCutsceneSound ? handleStartSferaHallCutsceneWithSound : undefined}
                     />
+                    <CutsceneTimeline active="hall" />
                 </div>
+            )}
+
+            {waterPurchaseCeremonyBalance !== null && showExperienceHud && (
+                <WaterPurchaseCeremony walletBalanceCents={waterPurchaseCeremonyBalance} />
             )}
 
             {isWaterWinCutsceneVisible && showExperienceHud && (
@@ -4212,6 +4675,7 @@ export default function ExperiencePage() {
                         startLabel={!hasStartedWaterWinCutsceneSound ? cutsceneCopy.startWithSound : undefined}
                         onStart={!hasStartedWaterWinCutsceneSound ? handleStartWaterWinCutsceneWithSound : undefined}
                     />
+                    <CutsceneTimeline active="water" />
                 </div>
             )}
 
@@ -4230,6 +4694,18 @@ export default function ExperiencePage() {
                             <p className="mt-1 text-lg font-semibold text-white">{frontendCinematic.destinationLabel}</p>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {shouldShowQuestDirector && questDirectorState && (
+                <div className="pointer-events-none absolute left-1/2 top-[5.75rem] z-[82] -translate-x-1/2 px-3 sm:top-24">
+                    <QuestDirectorOverlay
+                        state={questDirectorState}
+                        pieces={unrealBridge.arenaKeyPieces}
+                        waterKey={unrealBridge.waterKey}
+                        coupon={unrealBridge.wheelCoupon}
+                        onOpenPassword={() => setIsArenaPasswordOpen(true)}
+                    />
                 </div>
             )}
 
