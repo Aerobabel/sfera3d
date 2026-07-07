@@ -2689,6 +2689,26 @@ export default function ExperiencePage() {
         playSferaUiSound('reward');
     }, [unrealBridge]);
 
+    const openArenaPasswordGate = useCallback(() => {
+        releaseAllInputs();
+        setIsRewardTerminalOpen(false);
+        setIsArcadeOpen(false);
+        setIsWaterDispenserOpen(false);
+        setIsWheelOpen(false);
+        setIsPlayerModePromptDismissed(true);
+        setIsArenaPasswordOpen(true);
+        unrealBridge.handleUnrealResponse(JSON.stringify({
+            event: 'game_access_denied',
+            game: 'ZombieArena',
+            reason: 'arena_key_required',
+        }));
+        sendUnrealUiInteraction({
+            type: 'arena_access_denied',
+            destination: 'ZombieArena',
+            reason: 'supplier_code_required',
+        });
+    }, [unrealBridge]);
+
     const isWaterQuestActive = useMemo(
         () => unrealBridge.questProgress.some((progress) => progress.questId === 'water_arena_run' && progress.status === 'active'),
         [unrealBridge.questProgress]
@@ -2702,6 +2722,20 @@ export default function ExperiencePage() {
         ],
         [isArcadeOpen, shouldBlockManualArenaUnlockKey]
     );
+
+    const handleBlockedStreamKeyboardInput = useCallback((event: KeyboardEvent) => {
+        if (!shouldBlockManualArenaUnlockKey || event.type !== 'keydown') return;
+
+        const isArenaUnlockKey =
+            event.code === 'KeyG' ||
+            event.key.toLowerCase() === 'g' ||
+            String(event.keyCode) === '71';
+
+        if (!isArenaUnlockKey) return;
+
+        event.preventDefault();
+        openArenaPasswordGate();
+    }, [openArenaPasswordGate, shouldBlockManualArenaUnlockKey]);
 
 
     useEffect(() => {
@@ -3146,11 +3180,7 @@ export default function ExperiencePage() {
                 if (!unrealBridge.hasArenaAccess) {
                     event.preventDefault();
                     event.stopImmediatePropagation();
-                    setIsRewardTerminalOpen(false);
-                    setIsArcadeOpen(false);
-                    setIsWaterDispenserOpen(false);
-                    setIsWheelOpen(false);
-                    setIsArenaPasswordOpen(true);
+                    openArenaPasswordGate();
                 }
                 return;
             }
@@ -3160,7 +3190,7 @@ export default function ExperiencePage() {
 
         document.addEventListener('keydown', handleModeHotkey, true);
         return () => document.removeEventListener('keydown', handleModeHotkey, true);
-    }, [activePavilion, activeProduct, isArcadeOpen, isArenaPasswordOpen, isCatalogueOpen, isChatFocused, isMenuOpen, isRewardTerminalOpen, isWaterDispenserOpen, isWaterQuestActive, isWheelOpen, hasStartedExperience, toggleUnrealMode, unrealBridge.hasArenaAccess]);
+    }, [activePavilion, activeProduct, isArcadeOpen, isArenaPasswordOpen, isCatalogueOpen, isChatFocused, isMenuOpen, isRewardTerminalOpen, isWaterDispenserOpen, isWaterQuestActive, isWheelOpen, hasStartedExperience, openArenaPasswordGate, toggleUnrealMode, unrealBridge.hasArenaAccess]);
 
     const usingMobileJoysticks = isMobile && isLandscape && mobileInputMode === 'joystick';
     const streamPixelPreviewUrl = useMemo(
@@ -4019,6 +4049,7 @@ export default function ExperiencePage() {
                         isMobileDevice={isMobile}
                         keyboardInputEnabled={!isChatFocused && !isArcadeOpen && !isWaterDispenserOpen && !isArenaPasswordOpen && !isWheelOpen}
                         blockedKeyboardCodes={blockedUnrealKeyboardCodes}
+                        onBlockedKeyboardInput={handleBlockedStreamKeyboardInput}
                         mouseSensitivity={mouseSensitivity}
                     />
                 ) : (
@@ -4032,6 +4063,7 @@ export default function ExperiencePage() {
                             isMobileDevice={isMobile}
                             keyboardInputEnabled={!isChatFocused && !isArcadeOpen && !isWaterDispenserOpen && !isArenaPasswordOpen && !isWheelOpen}
                             blockedKeyboardCodes={blockedUnrealKeyboardCodes}
+                            onBlockedKeyboardInput={handleBlockedStreamKeyboardInput}
                             mouseSensitivity={mouseSensitivity}
                         />
                     </>

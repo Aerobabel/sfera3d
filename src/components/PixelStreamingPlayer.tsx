@@ -12,6 +12,7 @@ interface PixelStreamingPlayerProps {
     isMobileDevice?: boolean;
     keyboardInputEnabled?: boolean;
     blockedKeyboardCodes?: string[];
+    onBlockedKeyboardInput?: (event: KeyboardEvent) => void;
     desktopMouseMode?: 'locked' | 'hovering';
     mouseSensitivity?: number;
 }
@@ -221,6 +222,7 @@ export default function PixelStreamingPlayer({
     isMobileDevice = false,
     keyboardInputEnabled = true,
     blockedKeyboardCodes = [],
+    onBlockedKeyboardInput,
     desktopMouseMode: preferredDesktopMouseMode,
     mouseSensitivity = 0.85
 }: PixelStreamingPlayerProps) {
@@ -282,6 +284,7 @@ export default function PixelStreamingPlayer({
     const connectionGenerationRef = useRef(0);
     const keyboardInputEnabledRef = useRef(keyboardInputEnabled);
     const blockedKeyboardCodesRef = useRef<Set<string>>(new Set());
+    const onBlockedKeyboardInputRef = useRef(onBlockedKeyboardInput);
     const onPixelStreamingResponseRef = useRef(onPixelStreamingResponse);
     const onVideoInitializedRef = useRef(onVideoInitialized);
     const mouseSensitivityRef = useRef(mouseSensitivity);
@@ -355,6 +358,10 @@ export default function PixelStreamingPlayer({
     }, [onPixelStreamingResponse]);
 
     useEffect(() => {
+        onBlockedKeyboardInputRef.current = onBlockedKeyboardInput;
+    }, [onBlockedKeyboardInput]);
+
+    useEffect(() => {
         onVideoInitializedRef.current = onVideoInitialized;
     }, [onVideoInitialized]);
 
@@ -386,6 +393,7 @@ export default function PixelStreamingPlayer({
                 blockedCodes.has(eventKey.toLowerCase()) ||
                 blockedCodes.has(keyCodeString)
             ) {
+                onBlockedKeyboardInputRef.current?.(event);
                 event.stopImmediatePropagation();
             }
         };
