@@ -52,7 +52,7 @@ import {
 } from '@/lib/quests';
 import { GAME_RULES } from '@/lib/unreal/gameRules';
 import type { AppLanguage } from '@/lib/i18n';
-import type { UnrealEventBridgeState } from '@/lib/unreal/types';
+import type { UnrealEventBridgeState, WalletTransaction } from '@/lib/unreal/types';
 
 type DashboardProps = {
     bridge?: UnrealEventBridgeState;
@@ -262,7 +262,7 @@ const PLAYER_WHEEL_COPY = {
     en: {
         firstBuyerBonus: 'First buyer bonus',
         title: 'Wheel of Fortune',
-        body: 'Buy EVIAN in the scene to unlock a single Sfera Hall wheel attempt. The prize pool is focused: phone only.',
+        body: 'Buy EVIAN in the scene to unlock one Sfera Hall wheel attempt. The prize is revealed after the spin.',
         locked: 'Locked until water purchase',
         unlock: 'Buy water to unlock',
         ready: '1 phone-prize spin ready',
@@ -272,13 +272,14 @@ const PLAYER_WHEEL_COPY = {
         pending: 'Pending',
         attempts: 'Attempts',
         prizePhone: 'Prize: phone',
+        prizeHidden: 'Prize hidden',
         spinOnly: 'Spin only at Sfera Hall',
-        prizePath: 'Prize path: buy EVIAN, receive one wheel coupon, win a phone.',
+        prizePath: 'Prize path: buy EVIAN, receive one wheel coupon, reveal the prize at the wheel.',
     },
     ru: {
         firstBuyerBonus: 'Бонус первого покупателя',
         title: 'Колесо фортуны',
-        body: 'Купите EVIAN в сцене, чтобы открыть одну попытку колеса в Sfera Hall. Призовой фонд только телефон.',
+        body: 'Купите EVIAN в сцене, чтобы открыть одну попытку колеса в Sfera Hall. Приз откроется после прокрутки.',
         locked: 'Закрыто до покупки воды',
         unlock: 'Купите воду, чтобы открыть',
         ready: '1 попытка на телефон готова',
@@ -288,13 +289,14 @@ const PLAYER_WHEEL_COPY = {
         pending: 'Ожидается',
         attempts: 'Попытки',
         prizePhone: 'Приз: телефон',
+        prizeHidden: 'Приз скрыт',
         spinOnly: 'Крутить только в Sfera Hall',
-        prizePath: 'Путь к призу: купите EVIAN, получите один купон колеса, выиграйте телефон.',
+        prizePath: 'Путь к призу: купите EVIAN, получите один купон колеса, откройте приз у колеса.',
     },
     zh: {
         firstBuyerBonus: '首位买家奖励',
         title: '幸运转盘',
-        body: '在场景中购买 EVIAN 后，可解锁一次 Sfera Hall 转盘机会。奖池只包含手机。',
+        body: '在场景中购买 EVIAN 后，可解锁一次 Sfera Hall 转盘机会。奖品会在转动后揭晓。',
         locked: '购买水后解锁',
         unlock: '购买水以解锁',
         ready: '1 次手机奖品机会已就绪',
@@ -304,10 +306,55 @@ const PLAYER_WHEEL_COPY = {
         pending: '待解锁',
         attempts: '次数',
         prizePhone: '奖品：手机',
+        prizeHidden: '奖品隐藏',
         spinOnly: '只能在 Sfera Hall 转动',
-        prizePath: '奖品路径：购买 EVIAN，获得一张转盘券，赢取手机。',
+        prizePath: '奖品路径：购买 EVIAN，获得一张转盘券，到转盘揭晓奖品。',
     },
 } as const;
+
+const normalizeDashboardRewards = (questRewards: UnrealEventBridgeState['questRewards']) =>
+    questRewards.filter((reward) => reward.questId !== 'player_arena_trial');
+
+const normalizeDashboardQuestProgress = (
+    questProgress: UnrealEventBridgeState['questProgress'],
+    fallbackProgress: UnrealEventBridgeState['questProgress']
+) => {
+    const currentQuestIds = new Set(fallbackProgress.map((progress) => progress.questId));
+    const normalizedProgress = questProgress.filter((progress) => currentQuestIds.has(progress.questId));
+    const normalizedIds = new Set(normalizedProgress.map((progress) => progress.questId));
+    const missingProgress = fallbackProgress.filter((progress) => !normalizedIds.has(progress.questId));
+
+    return [...normalizedProgress, ...missingProgress];
+};
+
+const createDashboardQuestTransaction = (
+    reward: UnrealEventBridgeState['questRewards'][number]
+): WalletTransaction | null => {
+    const quest = getQuestDefinition(reward.questId);
+    if (!quest || reward.kind !== 'coins' || typeof quest.reward.value !== 'number') return null;
+
+    return {
+        id: `${reward.questId}:${reward.kind}`,
+        kind: 'quest_reward',
+        label: quest.reward.label.en,
+        amountCents: quest.reward.value,
+        createdAt: reward.earnedAt,
+    };
+};
+
+const normalizeDashboardWallet = (
+    questRewards: UnrealEventBridgeState['questRewards'],
+    walletTransactions: UnrealEventBridgeState['walletTransactions']
+) => {
+    const questTransactions = questRewards
+        .map(createDashboardQuestTransaction)
+        .filter((transaction): transaction is WalletTransaction => Boolean(transaction));
+    const nonQuestTransactions = walletTransactions.filter((transaction) => transaction.kind !== 'quest_reward');
+    const transactions = [...questTransactions, ...nonQuestTransactions].slice(0, 12);
+    const balance = Math.max(0, transactions.reduce((total, transaction) => total + transaction.amountCents, 0));
+
+    return { walletBalanceCents: balance, walletTransactions: transactions };
+};
 
 const readPersistedPlayerBridge = (): UnrealEventBridgeState | null => {
     if (typeof window === 'undefined') return null;
@@ -317,17 +364,25 @@ const readPersistedPlayerBridge = (): UnrealEventBridgeState | null => {
         if (!raw) return null;
         const parsed = JSON.parse(raw) as Partial<UnrealEventBridgeState>;
         if (!parsed || typeof parsed !== 'object') return null;
-        const questRewards = Array.isArray(parsed.questRewards) ? parsed.questRewards : fallback.questRewards;
+        const questRewards = normalizeDashboardRewards(Array.isArray(parsed.questRewards) ? parsed.questRewards : fallback.questRewards);
+        const questProgress = normalizeDashboardQuestProgress(
+            Array.isArray(parsed.questProgress) ? parsed.questProgress : fallback.questProgress,
+            fallback.questProgress
+        );
         const hasArenaPayout = questRewards.some((reward) => reward.questId === 'water_arena_run' && reward.kind === 'coins');
         const waterPurchased = Boolean(parsed.waterPurchased) && hasArenaPayout;
+        const wallet = normalizeDashboardWallet(
+            questRewards,
+            Array.isArray(parsed.walletTransactions) ? parsed.walletTransactions : fallback.walletTransactions
+        );
 
         return {
             ...fallback,
             currentMode: parsed.currentMode ?? fallback.currentMode,
-            questProgress: Array.isArray(parsed.questProgress) ? parsed.questProgress : fallback.questProgress,
+            questProgress,
             questRewards,
-            walletBalanceCents: typeof parsed.walletBalanceCents === 'number' ? parsed.walletBalanceCents : fallback.walletBalanceCents,
-            walletTransactions: Array.isArray(parsed.walletTransactions) ? parsed.walletTransactions : fallback.walletTransactions,
+            walletBalanceCents: wallet.walletBalanceCents,
+            walletTransactions: wallet.walletTransactions,
             recentActivity: Array.isArray(parsed.recentActivity) ? parsed.recentActivity : fallback.recentActivity,
             arenaKeyPieces: Array.isArray(parsed.arenaKeyPieces) ? parsed.arenaKeyPieces : fallback.arenaKeyPieces,
             hasArenaAccess: typeof parsed.hasArenaAccess === 'boolean' ? parsed.hasArenaAccess : fallback.hasArenaAccess,
@@ -1116,8 +1171,96 @@ const localizeDashboardLocation = (
     return dashboardLocationLabels[language][value] ?? value;
 };
 
-const localizeDashboardActivity = (value: string, language: AppLanguage) =>
-    dashboardActivityLabels[language][value] ?? value;
+const localizeDashboardActivity = (value: string, language: AppLanguage) => {
+    const direct = dashboardActivityLabels[language][value];
+    if (direct) return direct;
+
+    if (language === 'ru') {
+        const labels: Record<string, string> = {
+            'Mode changed to Player Mode': 'Включен режим игрока',
+            'Mode changed to Shopper Mode': 'Включен режим покупателя',
+            'Zombie Hall locked: supplier code required': 'Зомби-холл закрыт: нужен код поставщиков',
+            'Zombie Arena locked: key required': 'Zombie Arena закрыта: нужен ключ',
+            'Zombie Hall cleared: arena payout earned for water': 'Зомби-холл очищен: выплата на воду получена',
+            'Zombie killed': 'Зомби уничтожен',
+            'You were overwhelmed': 'Вас окружили',
+            'Reward ATM opened': 'Открыт банкомат наград',
+            'Left Reward ATM': 'Банкомат наград закрыт',
+            'Water dispenser opened': 'Открыт автомат с водой',
+            'Left water dispenser': 'Автомат с водой закрыт',
+            'Water purchased: wheel coupon unlocked': 'Вода куплена: купон колеса открыт',
+            'Heyy, stay focused haha. Doggy is mad.': 'Эй, не отвлекайтесь, ха-ха. Собака злится.',
+            'Doggy is calm again': 'Собака снова спокойна',
+            'Arena password accepted': 'Код арены принят',
+            'Arena password rejected': 'Код арены отклонен',
+            'Wheel of Fortune opened': 'Колесо фортуны открыто',
+            'Left Wheel of Fortune': 'Колесо фортуны закрыто',
+            'Wheel of Fortune spin used': 'Попытка колеса фортуны использована',
+            'Sfera Arcade opened': 'Аркады Sfera открыты',
+            'Left Sfera Arcade': 'Аркады Sfera закрыты',
+            'Quest complete: Buy Water': 'Задание выполнено: купить воду',
+        };
+        const mapped = labels[value];
+        if (mapped) return mapped;
+    }
+
+    if (language === 'zh') {
+        const labels: Record<string, string> = {
+            'Mode changed to Player Mode': '已切换到玩家模式',
+            'Mode changed to Shopper Mode': '已切换到买家模式',
+            'Zombie Hall locked: supplier code required': 'Zombie Hall 已锁定：需要供应商代码',
+            'Zombie Arena locked: key required': 'Zombie Arena 已锁定：需要钥匙',
+            'Zombie Hall cleared: arena payout earned for water': 'Zombie Hall 已清理：已获得买水奖励',
+            'Zombie killed': '已清理一个僵尸',
+            'You were overwhelmed': '你被击败了',
+            'Reward ATM opened': '奖励 ATM 已打开',
+            'Left Reward ATM': '奖励 ATM 已关闭',
+            'Water dispenser opened': '售水机已打开',
+            'Left water dispenser': '售水机已关闭',
+            'Water purchased: wheel coupon unlocked': '水已购买：幸运轮券已解锁',
+            'Heyy, stay focused haha. Doggy is mad.': '嘿，集中一点哈哈，小狗生气了。',
+            'Doggy is calm again': '小狗又冷静了',
+            'Arena password accepted': '竞技场代码已通过',
+            'Arena password rejected': '竞技场代码被拒绝',
+            'Wheel of Fortune opened': '幸运轮已打开',
+            'Left Wheel of Fortune': '幸运轮已关闭',
+            'Wheel of Fortune spin used': '幸运轮机会已使用',
+            'Sfera Arcade opened': 'Sfera 街机已打开',
+            'Left Sfera Arcade': 'Sfera 街机已关闭',
+            'Quest complete: Buy Water': '任务完成：购买水',
+        };
+        const mapped = labels[value];
+        if (mapped) return mapped;
+    }
+
+    const arenaKeyMatch = value.match(/^Arena key piece found: (.+)$/);
+    if (arenaKeyMatch) {
+        if (language === 'ru') return `Фрагмент кода арены найден: ${arenaKeyMatch[1]}`;
+        if (language === 'zh') return `已找到竞技场代码片段：${arenaKeyMatch[1]}`;
+        return value;
+    }
+
+    const comboMatch = value.match(/^Zombie killed.*?(\d+)x combo$/);
+    if (comboMatch) {
+        if (language === 'ru') return `Зомби уничтожен: комбо ${comboMatch[1]}x`;
+        if (language === 'zh') return `已清理一个僵尸：${comboMatch[1]}x 连击`;
+        return value;
+    }
+
+    if (value.startsWith('Zombie Arena cleared: enough coins earned for') || value.startsWith('Zombie Arena cleared: water payout ready for')) {
+        if (language === 'ru') return `Zombie Arena очищена: монеты на ${GAME_RULES.water.bottleName} получены`;
+        if (language === 'zh') return `Zombie Arena 已清理：已获得购买 ${GAME_RULES.water.bottleName} 的金币`;
+        return value;
+    }
+
+    const arcadeRewardMatch = value.match(/^\+([\d,]+) arcade reward at (.+)$/);
+    if (arcadeRewardMatch) {
+        if (language === 'ru') return `+${arcadeRewardMatch[1]} монет в аркаде ${arcadeRewardMatch[2]}`;
+        if (language === 'zh') return `+${arcadeRewardMatch[1]} 枚币，来自 ${arcadeRewardMatch[2]}`;
+    }
+
+    return value;
+};
 
 const questDashboardCopy: Record<AppLanguage, {
     activeQuests: string;
@@ -1145,7 +1288,7 @@ const questDashboardCopy: Record<AppLanguage, {
         activeQuests: 'Active quests',
         rewardWallet: 'Reward wallet',
         walletBalance: 'Wallet balance',
-        recentWinnings: 'Recent winnings',
+        recentWinnings: 'Balance',
         noWalletTransactions: 'Arcade prizes will appear here after you play.',
         rewardTerminal: 'Reward ATM',
         terminalSubtitle: 'Cash-out is visible as a roadmap feature, not an active promise.',
@@ -1167,7 +1310,7 @@ const questDashboardCopy: Record<AppLanguage, {
         activeQuests: 'Активные квесты',
         rewardWallet: 'Кошелек наград',
         walletBalance: 'Баланс кошелька',
-        recentWinnings: 'Последние выигрыши',
+        recentWinnings: 'Баланс',
         noWalletTransactions: 'Аркадные призы появятся здесь после игры.',
         rewardTerminal: 'Банкомат наград',
         terminalSubtitle: 'Вывод показан как будущая функция, а не как активное обещание.',
@@ -1189,7 +1332,7 @@ const questDashboardCopy: Record<AppLanguage, {
         activeQuests: '进行中的任务',
         rewardWallet: '奖励钱包',
         walletBalance: '钱包余额',
-        recentWinnings: '最近奖金',
+        recentWinnings: '余额',
         noWalletTransactions: '游玩街机后，奖金会显示在这里。',
         rewardTerminal: '奖励 ATM',
         terminalSubtitle: '提现作为路线图功能展示，并非当前承诺。',
@@ -1218,8 +1361,10 @@ const questStatusLabel = (
     return copy.active;
 };
 
-const formatMoney = (amountCents: number) =>
-    `${amountCents.toLocaleString('en-US')} coins`;
+const formatMoney = (amountCents: number, language: AppLanguage) => {
+    const unit = language === 'ru' ? 'монет' : language === 'zh' ? '枚币' : 'coins';
+    return `${amountCents.toLocaleString('en-US')} ${unit}`;
+};
 
 function DashboardBackNav() {
     const { language } = useLanguage();
@@ -1726,7 +1871,7 @@ function RewardPanel({
                 <div className="flex items-center justify-between gap-3">
                     <div>
                         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100">{copy.walletBalance}</p>
-                        <p className="mt-1 text-3xl font-black text-white">{formatMoney(walletBalanceCents)}</p>
+                        <p className="mt-1 text-3xl font-black text-white">{formatMoney(walletBalanceCents, language)}</p>
                     </div>
                     <WalletCards className="h-6 w-6 text-emerald-100" />
                 </div>
@@ -1740,7 +1885,7 @@ function RewardPanel({
                         {visibleTransactions.map((transaction) => (
                             <div key={transaction.id} className="flex items-center justify-between gap-3 rounded-lg border border-emerald-300/12 bg-emerald-300/[0.05] px-2.5 py-2">
                                 <span className="min-w-0 truncate text-sm font-bold text-white">{transaction.label}</span>
-                                <span className="font-mono text-sm font-black text-emerald-100">+{formatMoney(transaction.amountCents)}</span>
+                                <span className="font-mono text-sm font-black text-emerald-100">+{formatMoney(transaction.amountCents, language)}</span>
                             </div>
                         ))}
                     </div>
@@ -1785,6 +1930,7 @@ function WheelFortuneDashboardCard({ bridge, language }: { bridge: UnrealEventBr
         : hasAttempt
             ? copy.ready
             : copy.recorded;
+    const prizeLabel = bridge.waterPurchased && hasCoupon && !hasAttempt ? copy.prizePhone : copy.prizeHidden;
 
     return (
         <section className={`${panel} relative overflow-hidden p-3 xl:col-span-2`}>
@@ -1826,7 +1972,7 @@ function WheelFortuneDashboardCard({ bridge, language }: { bridge: UnrealEventBr
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/18 bg-emerald-300/[0.07] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100">
                             <Gift className="h-3.5 w-3.5" />
-                            {copy.prizePhone}
+                            {prizeLabel}
                         </span>
                         <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/18 bg-amber-300/[0.07] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-amber-100">
                             <LockKeyhole className="h-3.5 w-3.5" />
@@ -1848,6 +1994,7 @@ function WheelFortuneDashboardBanner({ bridge, language }: { bridge: UnrealEvent
         : hasAttempt
             ? copy.ready
             : copy.recorded;
+    const prizeLabel = bridge.waterPurchased && hasCoupon && !hasAttempt ? copy.prizePhone : copy.prizeHidden;
 
     return (
         <section className={`${panel} relative overflow-hidden p-3`}>
@@ -1863,7 +2010,7 @@ function WheelFortuneDashboardBanner({ bridge, language }: { bridge: UnrealEvent
                 </div>
                 <span className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-emerald-300/18 bg-emerald-300/[0.07] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100">
                     <Gift className="h-3.5 w-3.5" />
-                    {copy.prizePhone}
+                    {prizeLabel}
                 </span>
             </div>
         </section>
@@ -1898,7 +2045,7 @@ function RewardTerminalPanel({
                     <div className="flex items-center justify-between gap-3">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100">{copy.walletBalance}</p>
-                            <p className="mt-1 text-2xl font-black text-white">{formatMoney(walletBalanceCents)}</p>
+                            <p className="mt-1 text-2xl font-black text-white">{formatMoney(walletBalanceCents, language)}</p>
                         </div>
                         <Coins className="h-5 w-5 text-emerald-100" />
                     </div>

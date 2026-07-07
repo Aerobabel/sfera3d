@@ -60,6 +60,19 @@ const getAudienceMetadata = (audience: AppAudience, email: string) => {
   };
 };
 
+const isInvalidOtpError = (message: string) => {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("token has expired") ||
+    lower.includes("token is expired") ||
+    lower.includes("expired or invalid") ||
+    lower.includes("invalid token") ||
+    lower.includes("otp") && lower.includes("invalid") ||
+    lower.includes("email link is invalid") ||
+    lower.includes("verification") && lower.includes("invalid")
+  );
+};
+
 const copy = {
   en: {
     visitorTab: "Visitor Access",
@@ -92,6 +105,7 @@ const copy = {
       "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
     defaultError: "Authentication failed. Please try again.",
     invalidCredentials: "This email does not exist, or the password is incorrect.",
+    invalidOtp: "This code is invalid or expired. Use the newest code from your email, or request a new one.",
     networkError: "Couldn't reach the authentication service. Check your connection and try again.",
     signupCodeSent: "Account created. Check your inbox for the 6-digit confirmation code and enter it below.",
     rateLimited: "A code was sent to your inbox recently. Enter it below — no need to request a new one.",
@@ -136,6 +150,7 @@ const copy = {
       "Supabase не настроен. Добавьте NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_ANON_KEY.",
     defaultError: "Ошибка авторизации. Повторите попытку.",
     invalidCredentials: "Такой email отсутствует, либо пароль введён неверно.",
+    invalidOtp: "Этот код неверный или устарел. Используйте самый новый код из email или запросите новый.",
     networkError: "Не удалось связаться с сервисом авторизации. Проверьте подключение и попробуйте снова.",
     signupCodeSent: "Аккаунт создан. Проверьте почту — там 6-значный код подтверждения. Введите его ниже.",
     rateLimited: "Код уже был отправлен недавно. Введите его ниже — повторная отправка не нужна.",
@@ -177,6 +192,7 @@ const copy = {
       "Supabase 未配置。请添加 NEXT_PUBLIC_SUPABASE_URL 和 NEXT_PUBLIC_SUPABASE_ANON_KEY。",
     defaultError: "认证失败，请重试。",
     invalidCredentials: "该邮箱不存在，或密码输入错误。",
+    invalidOtp: "验证码无效或已过期。请使用邮箱中最新的验证码，或重新请求一个。",
     networkError: "无法连接到认证服务。请检查网络后重试。",
     signupCodeSent: "账号已创建。请查收邮箱中的 6 位确认码并在下方输入。",
     rateLimited: "验证码刚才已发送，请直接在下方输入，无需重新请求。",
@@ -588,6 +604,8 @@ function LoginPageContent() {
       let friendly = rawMessage || t.defaultError;
       if (lower.includes('invalid login credentials') || lower.includes('invalid credentials')) {
         friendly = t.invalidCredentials;
+      } else if (authMethod === "otp" && isInvalidOtpError(rawMessage)) {
+        friendly = t.invalidOtp;
       } else if (
         lower.includes('failed to fetch') ||
         lower.includes('networkerror') ||
@@ -809,6 +827,8 @@ function LoginPageContent() {
                       let friendly = rawMessage || t.defaultError;
                       if (lower.includes('invalid login credentials') || lower.includes('invalid credentials')) {
                         friendly = t.invalidCredentials;
+                      } else if (isInvalidOtpError(rawMessage)) {
+                        friendly = t.invalidOtp;
                       } else if (
                         lower.includes('failed to fetch') ||
                         lower.includes('networkerror') ||

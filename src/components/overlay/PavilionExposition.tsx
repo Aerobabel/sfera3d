@@ -33,6 +33,7 @@ import type { PavilionMessage } from '@/lib/pavilionChat';
 import TranslatableText from '@/components/chat/TranslatableText';
 import type { AppLanguage } from '@/lib/i18n';
 import type { QuestEventInput } from '@/lib/quests';
+import { GAME_RULES } from '@/lib/unreal/gameRules';
 
 type Tab = 'products' | 'contact' | 'chat' | 'meeting';
 
@@ -93,6 +94,15 @@ const groupBySeries = (products: PavilionProduct[]) => {
         return na - nb;
     });
 };
+
+const getPavilionArenaKeyPiece = (pavilionId: string) => {
+    if (pavilionId === 'youbo') return GAME_RULES.keys.firstHalf;
+    if (pavilionId === 'doublelin') return GAME_RULES.keys.secondHalf;
+    return null;
+};
+
+const getArenaKeyLabel = (language: AppLanguage) =>
+    language === 'ru' ? 'Код арены' : language === 'zh' ? '竞技场代码' : 'Arena code';
 
 const generateSlots = (baseDay: Date): Date[] => {
     const day = new Date(baseDay.getFullYear(), baseDay.getMonth(), baseDay.getDate());
@@ -401,6 +411,8 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
     const copy = COPY[language];
     const [tab, setTab] = useState<Tab>('products');
     const [selectedProduct, setSelectedProduct] = useState<PavilionProduct | null>(null);
+    const arenaKeyPiece = getPavilionArenaKeyPiece(pavilion.id);
+    const arenaKeyLabel = getArenaKeyLabel(language);
 
     // --- Catalogue filter state ---
     const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -800,6 +812,12 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                                             <h4 className="font-display text-[clamp(2rem,3.5vw,3rem)] font-semibold leading-[1] tracking-tight text-white">
                                                 {signatureProduct.code}
                                             </h4>
+                                            {arenaKeyPiece && (
+                                                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-2 font-mono text-sm font-black uppercase tracking-[0.18em] text-cyan-100">
+                                                    <span>{arenaKeyLabel}</span>
+                                                    <span className="text-white">{arenaKeyPiece}</span>
+                                                </div>
+                                            )}
                                             <p className="text-base text-white/85 leading-[1.7] font-medium">{copy.signatureBlurb}</p>
                                             <div className="grid gap-3 pt-2 sm:flex">
                                                 <button
@@ -1101,6 +1119,12 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                                     <div className="min-w-0">
                                         <div className="text-[10px] uppercase tracking-[0.3em] text-cyan-300/80 font-bold">{pavilion.name}</div>
                                         <h3 className="mt-2 break-words text-2xl font-black tracking-[0.08em] text-white sm:text-3xl">{selectedProduct.code}</h3>
+                                        {arenaKeyPiece && (
+                                            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1.5 font-mono text-xs font-black uppercase tracking-[0.18em] text-cyan-100">
+                                                <span>{arenaKeyLabel}</span>
+                                                <span className="text-white">{arenaKeyPiece}</span>
+                                            </div>
+                                        )}
                                         {(() => {
                                             const youbo = getYouboSpec(selectedProduct.id);
                                             if (youbo) {

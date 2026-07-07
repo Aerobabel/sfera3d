@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { applyQuestEvent, createInitialQuestProgress, getQuestDefinition } from '@/lib/quests';
 import { GAME_RULES } from '@/lib/unreal/gameRules';
-import type { ArenaMoment, UnrealEventBridgeState, UnrealPixelStreamingEvent } from '@/lib/unreal/types';
+import type { ArenaMoment, UnrealEventBridgeState, UnrealPixelStreamingEvent, WalletTransaction } from '@/lib/unreal/types';
 
 const ACCESS_DENIED_PLAYER_MODE_NEEDED = 'Switch to Player Mode to enter game zones.';
 const ACCESS_DENIED_ARENA_KEY_NEEDED = 'Zombie Hall locked. Find the supplier key fragments in Sfera Hall first.';
@@ -32,7 +32,7 @@ const resolveGameTitle = (value: unknown) =>
     typeof value === 'string' && value.trim().length > 0 ? value.trim().slice(0, 80) : 'Sfera Arcade';
 
 const formatWalletAmount = (amountCents: number) =>
-    `${amountCents.toLocaleString('en-US')} coins`;
+    amountCents.toLocaleString('en-US');
 
 const INITIAL_STATE: UnrealEventBridgeState = {
     currentMode: 'shopper',
@@ -89,6 +89,50 @@ type PersistedBridgeState = Pick<
 const hasWaterArenaPayout = (questRewards: UnrealEventBridgeState['questRewards']) =>
     questRewards.some((reward) => reward.questId === 'water_arena_run' && reward.kind === 'coins');
 
+const normalizePersistedRewards = (questRewards: UnrealEventBridgeState['questRewards']) =>
+    questRewards.filter((reward) => reward.questId !== 'player_arena_trial');
+
+const normalizePersistedQuestProgress = (questProgress: UnrealEventBridgeState['questProgress']) => {
+    const currentQuestIds = new Set(INITIAL_STATE.questProgress.map((progress) => progress.questId));
+    const normalizedProgress = questProgress.filter((progress) => currentQuestIds.has(progress.questId));
+    const normalizedIds = new Set(normalizedProgress.map((progress) => progress.questId));
+    const missingProgress = INITIAL_STATE.questProgress.filter((progress) => !normalizedIds.has(progress.questId));
+
+    return [...normalizedProgress, ...missingProgress];
+};
+
+const createPersistedQuestRewardTransaction = (
+    reward: UnrealEventBridgeState['questRewards'][number]
+): WalletTransaction | null => {
+    const quest = getQuestDefinition(reward.questId);
+    if (!quest || reward.kind !== 'coins' || typeof quest.reward.value !== 'number') return null;
+
+    return {
+        id: `${reward.questId}:${reward.kind}`,
+        kind: 'quest_reward',
+        label: quest.reward.label.en,
+        amountCents: quest.reward.value,
+        createdAt: reward.earnedAt,
+    };
+};
+
+const normalizePersistedWallet = (
+    questRewards: UnrealEventBridgeState['questRewards'],
+    walletTransactions: UnrealEventBridgeState['walletTransactions']
+) => {
+    const questTransactions = questRewards
+        .map(createPersistedQuestRewardTransaction)
+        .filter((transaction): transaction is WalletTransaction => Boolean(transaction));
+    const nonQuestTransactions = walletTransactions.filter((transaction) => transaction.kind !== 'quest_reward');
+    const transactions = [...questTransactions, ...nonQuestTransactions].slice(0, 12);
+    const balance = Math.max(
+        0,
+        transactions.reduce((total, transaction) => total + transaction.amountCents, 0)
+    );
+
+    return { walletBalanceCents: balance, walletTransactions: transactions };
+};
+
 const isPersistedBridgeState = (value: unknown): value is Partial<PersistedBridgeState> => {
     if (!value || typeof value !== 'object') return false;
     const candidate = value as Partial<PersistedBridgeState>;
@@ -123,17 +167,22 @@ const readPersistedBridgeState = (): UnrealEventBridgeState => {
         const hasVerifiedArenaAccess =
             Boolean(parsed.hasArenaAccess) &&
             ARENA_KEY_PIECES.every((piece) => arenaKeyPieces.includes(piece));
-        const questRewards = parsed.questRewards ?? INITIAL_STATE.questRewards;
+        const questRewards = normalizePersistedRewards(parsed.questRewards ?? INITIAL_STATE.questRewards);
+        const questProgress = normalizePersistedQuestProgress(parsed.questProgress ?? INITIAL_STATE.questProgress);
         const hasArenaPayout = hasWaterArenaPayout(questRewards);
         const waterPurchased = Boolean(parsed.waterPurchased) && hasArenaPayout;
+        const wallet = normalizePersistedWallet(
+            questRewards,
+            parsed.walletTransactions ?? INITIAL_STATE.walletTransactions
+        );
 
         return {
             ...INITIAL_STATE,
             currentMode: parsed.currentMode ?? INITIAL_STATE.currentMode,
-            questProgress: parsed.questProgress ?? INITIAL_STATE.questProgress,
+            questProgress,
             questRewards,
-            walletBalanceCents: parsed.walletBalanceCents ?? INITIAL_STATE.walletBalanceCents,
-            walletTransactions: parsed.walletTransactions ?? INITIAL_STATE.walletTransactions,
+            walletBalanceCents: wallet.walletBalanceCents,
+            walletTransactions: wallet.walletTransactions,
             recentActivity: parsed.recentActivity ?? INITIAL_STATE.recentActivity,
             arenaKeyPieces,
             hasArenaAccess: hasVerifiedArenaAccess,
@@ -397,7 +446,7 @@ export const useUnrealEventBridge = () => {
                           : {
                               kind: 'kill' as const,
                               title: '+1 zombie cleared',
-                              description: `+${pointsEarned} points and +${GAME_RULES.zombieArena.coinsPerKill} coins preview.`,
+                              description: `+${pointsEarned} arena points. Clear all 5 zombies for the water payout.`,
                           };
 
                     return withQuestUpdate({
@@ -411,7 +460,7 @@ export const useUnrealEventBridge = () => {
                         zombieThreatLevel: resolveThreatLevel(zombieKills),
                         zombieRank,
                         arenaMoments: withArenaMoment(previous.arenaMoments, moment),
-                        recentActivity: withActivity(previous.recentActivity, arenaCleared ? 'Zombie Hall cleared: 160 coins earned for water' : comboBonusUnlocked ? `Zombie killed — ${zombieCombo}x combo` : 'Zombie killed'),
+                        recentActivity: withActivity(previous.recentActivity, arenaCleared ? 'Zombie Hall cleared: arena payout earned for water' : comboBonusUnlocked ? `Zombie killed — ${zombieCombo}x combo` : 'Zombie killed'),
                     }, unrealEvent);
                 }
                 case 'player_hit': {
@@ -528,7 +577,7 @@ export const useUnrealEventBridge = () => {
                 case 'arena_completed':
                     return withQuestUpdate({
                         ...nextBase,
-                        recentActivity: withActivity(previous.recentActivity, `Zombie Arena cleared: enough coins earned for ${GAME_RULES.water.bottleName}`),
+                        recentActivity: withActivity(previous.recentActivity, `Zombie Arena cleared: water payout ready for ${GAME_RULES.water.bottleName}`),
                     }, unrealEvent);
                 case 'wheel':
                     return withQuestUpdate({
@@ -583,7 +632,7 @@ export const useUnrealEventBridge = () => {
                         ...nextBase,
                         walletBalanceCents: previous.walletBalanceCents + amountCents,
                         walletTransactions: [transaction, ...previous.walletTransactions].slice(0, 12),
-                        recentActivity: withActivity(previous.recentActivity, `${formatWalletAmount(amountCents)} won at ${gameTitle}`),
+                        recentActivity: withActivity(previous.recentActivity, `+${formatWalletAmount(amountCents)} arcade reward at ${gameTitle}`),
                     }, unrealEvent);
                 }
                 default:

@@ -202,6 +202,128 @@ const LIVE_ACTIVITY_NOW_LABEL: Record<AppLanguage, string> = {
     zh: '刚刚',
 };
 
+const LIVE_ACTIVITY_MESSAGE_LABELS: Record<AppLanguage, Record<string, string>> = {
+    en: {
+        'Mode changed to Player Mode': 'Mode changed to Player Mode',
+        'Mode changed to Shopper Mode': 'Mode changed to Shopper Mode',
+        'Entered Sfera Hall': 'Entered Sfera Hall',
+        'Zombie Hall locked: supplier code required': 'Zombie Hall locked: supplier code required',
+        'Entered Zombie Arena': 'Entered Zombie Arena',
+        'Zombie Arena locked: key required': 'Zombie Arena locked: key required',
+        'Game access denied: Player Mode needed': 'Game access denied: Player Mode needed',
+        'Zombie Hall cleared: arena payout earned for water': 'Zombie Hall cleared: arena payout earned for water',
+        'Zombie killed': 'Zombie killed',
+        'You were overwhelmed': 'You were overwhelmed',
+        'Returned to city': 'Returned to city',
+        'Reward ATM opened': 'Reward ATM opened',
+        'Left Reward ATM': 'Left Reward ATM',
+        'Water dispenser opened': 'Water dispenser opened',
+        'Left water dispenser': 'Left water dispenser',
+        'Water purchased: wheel coupon unlocked': 'Water purchased: wheel coupon unlocked',
+        'Heyy, stay focused haha. Doggy is mad.': 'Heyy, stay focused haha. Doggy is mad.',
+        'Doggy is calm again': 'Doggy is calm again',
+        'Arena password accepted': 'Arena password accepted',
+        'Arena password rejected': 'Arena password rejected',
+        'Wheel of Fortune opened': 'Wheel of Fortune opened',
+        'Left Wheel of Fortune': 'Left Wheel of Fortune',
+        'Wheel of Fortune spin used': 'Wheel of Fortune spin used',
+        'Sfera Arcade opened': 'Sfera Arcade opened',
+        'Left Sfera Arcade': 'Left Sfera Arcade',
+        'Quest complete: Buy Water': 'Quest complete: Buy Water',
+    },
+    ru: {
+        'Mode changed to Player Mode': 'Включен режим игрока',
+        'Mode changed to Shopper Mode': 'Включен режим покупателя',
+        'Entered Sfera Hall': 'Вход в Sfera Hall',
+        'Zombie Hall locked: supplier code required': 'Зомби-холл закрыт: нужен код поставщиков',
+        'Entered Zombie Arena': 'Вход в Zombie Arena',
+        'Zombie Arena locked: key required': 'Zombie Arena закрыта: нужен ключ',
+        'Game access denied: Player Mode needed': 'Доступ к игре закрыт: нужен режим игрока',
+        'Zombie Hall cleared: arena payout earned for water': 'Зомби-холл очищен: выплата на воду получена',
+        'Zombie killed': 'Зомби уничтожен',
+        'You were overwhelmed': 'Вас окружили',
+        'Returned to city': 'Возврат в город',
+        'Reward ATM opened': 'Открыт банкомат наград',
+        'Left Reward ATM': 'Банкомат наград закрыт',
+        'Water dispenser opened': 'Открыт автомат с водой',
+        'Left water dispenser': 'Автомат с водой закрыт',
+        'Water purchased: wheel coupon unlocked': 'Вода куплена: купон колеса открыт',
+        'Heyy, stay focused haha. Doggy is mad.': 'Эй, не отвлекайтесь, ха-ха. Собака злится.',
+        'Doggy is calm again': 'Собака снова спокойна',
+        'Arena password accepted': 'Код арены принят',
+        'Arena password rejected': 'Код арены отклонен',
+        'Wheel of Fortune opened': 'Колесо фортуны открыто',
+        'Left Wheel of Fortune': 'Колесо фортуны закрыто',
+        'Wheel of Fortune spin used': 'Попытка колеса фортуны использована',
+        'Sfera Arcade opened': 'Аркады Sfera открыты',
+        'Left Sfera Arcade': 'Аркады Sfera закрыты',
+        'Quest complete: Buy Water': 'Задание выполнено: купить воду',
+    },
+    zh: {
+        'Mode changed to Player Mode': '已切换到玩家模式',
+        'Mode changed to Shopper Mode': '已切换到买家模式',
+        'Entered Sfera Hall': '进入 Sfera Hall',
+        'Zombie Hall locked: supplier code required': 'Zombie Hall 已锁定：需要供应商代码',
+        'Entered Zombie Arena': '进入 Zombie Arena',
+        'Zombie Arena locked: key required': 'Zombie Arena 已锁定：需要钥匙',
+        'Game access denied: Player Mode needed': '无法进入游戏：需要玩家模式',
+        'Zombie Hall cleared: arena payout earned for water': 'Zombie Hall 已清理：已获得买水奖励',
+        'Zombie killed': '已清理一个僵尸',
+        'You were overwhelmed': '你被击败了',
+        'Returned to city': '返回城市',
+        'Reward ATM opened': '奖励 ATM 已打开',
+        'Left Reward ATM': '奖励 ATM 已关闭',
+        'Water dispenser opened': '售水机已打开',
+        'Left water dispenser': '售水机已关闭',
+        'Water purchased: wheel coupon unlocked': '水已购买：幸运轮券已解锁',
+        'Heyy, stay focused haha. Doggy is mad.': '嘿，集中一点哈哈，小狗生气了。',
+        'Doggy is calm again': '小狗又冷静了',
+        'Arena password accepted': '竞技场代码已通过',
+        'Arena password rejected': '竞技场代码被拒绝',
+        'Wheel of Fortune opened': '幸运轮已打开',
+        'Left Wheel of Fortune': '幸运轮已关闭',
+        'Wheel of Fortune spin used': '幸运轮机会已使用',
+        'Sfera Arcade opened': 'Sfera 街机已打开',
+        'Left Sfera Arcade': 'Sfera 街机已关闭',
+        'Quest complete: Buy Water': '任务完成：购买水',
+    },
+};
+
+const localizeLiveActivityMessage = (value: string, language: AppLanguage) => {
+    const labels = LIVE_ACTIVITY_MESSAGE_LABELS[language];
+    const direct = labels[value];
+    if (direct) return direct;
+
+    const arenaKeyMatch = value.match(/^Arena key piece found: (.+)$/);
+    if (arenaKeyMatch) {
+        if (language === 'ru') return `Фрагмент кода арены найден: ${arenaKeyMatch[1]}`;
+        if (language === 'zh') return `已找到竞技场代码片段：${arenaKeyMatch[1]}`;
+        return value;
+    }
+
+    const comboMatch = value.match(/^Zombie killed.*?(\d+)x combo$/);
+    if (comboMatch) {
+        if (language === 'ru') return `Зомби уничтожен: комбо ${comboMatch[1]}x`;
+        if (language === 'zh') return `已清理一个僵尸：${comboMatch[1]}x 连击`;
+        return value;
+    }
+
+    if (value.startsWith('Zombie Arena cleared: enough coins earned for') || value.startsWith('Zombie Arena cleared: water payout ready for')) {
+        if (language === 'ru') return `Zombie Arena очищена: монеты на ${GAME_RULES.water.bottleName} получены`;
+        if (language === 'zh') return `Zombie Arena 已清理：已获得购买 ${GAME_RULES.water.bottleName} 的金币`;
+        return value;
+    }
+
+    const arcadeRewardMatch = value.match(/^\+([\d,]+) arcade reward at (.+)$/);
+    if (arcadeRewardMatch) {
+        if (language === 'ru') return `+${arcadeRewardMatch[1]} монет в аркаде ${arcadeRewardMatch[2]}`;
+        if (language === 'zh') return `+${arcadeRewardMatch[1]} 枚币，来自 ${arcadeRewardMatch[2]}`;
+        return value;
+    }
+
+    return value;
+};
+
 const CUTSCENE_COPY: Record<AppLanguage, { skip: string; startWithSound: string; pressAnyKey: string; soundHint: string; closeMenu: string }> = {
     en: {
         skip: 'Skip',
@@ -310,10 +432,10 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         giftCodeMessage: 'Steam or other game-store codes can be issued after partner/code inventory is connected.',
         unavailable: 'Unavailable',
         walletBalance: 'Wallet balance',
-        recentWinnings: 'Recent winnings',
-        noWinnings: 'Arcade prizes and quest money will appear here.',
+        recentWinnings: 'Balance',
+        noWinnings: 'Arcade prizes and quest coins will appear here.',
         guideTitle: 'What to do now',
-        guideBody: 'Your goal is simple and weirdly urgent: buy water. Start at the dispenser, learn you need 160 coins, get the Zombie Hall code from suppliers, clear 5 zombies, then come back and buy EVIAN.',
+        guideBody: 'Your goal is simple and weirdly urgent: buy water. Start at the dispenser, learn why the machine refuses the purchase, get the Zombie Hall code from suppliers, clear 5 zombies, then come back and buy EVIAN.',
         guideSteps: ['Try the water dispenser', 'Find the Zombie Hall code', 'Clear 5 zombies for coins', 'Buy EVIAN water'],
         arenaTrainingTitle: 'Zombie Arena controls',
         arenaTrainingSteps: ['WASD to move', 'Mouse to aim', 'P to fire', 'Leave through the return portal'],
@@ -363,10 +485,10 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         giftCodeMessage: 'Коды Steam или других игровых площадок можно будет выдавать после подключения партнерской программы или склада кодов.',
         unavailable: 'Недоступно',
         walletBalance: 'Баланс кошелька',
-        recentWinnings: 'Последние выигрыши',
-        noWinnings: 'Выигрыши из аркады и денежные награды появятся здесь.',
+        recentWinnings: 'Баланс',
+        noWinnings: 'Выигрыши из аркады и монеты за задания появятся здесь.',
         guideTitle: 'Что делать сейчас',
-        guideBody: 'Цель простая: купить воду. Начните у автомата, узнайте цену 160 монет, получите код Зомби-холла у поставщиков, уничтожьте 5 зомби и купите EVIAN.',
+        guideBody: 'Цель простая: купить воду. Начните у автомата, узнайте, почему он отказывает в покупке, получите код Зомби-холла у поставщиков, уничтожьте 5 зомби и купите EVIAN.',
         guideSteps: ['Попробовать автомат с водой', 'Найти код Зомби-холла', 'Получить монеты за 5 зомби', 'Купить воду EVIAN'],
         arenaTrainingTitle: 'Управление на арене',
         arenaTrainingSteps: ['WASD: движение', 'Мышь: прицел', 'P: стрельба', 'Выход: портал возврата'],
@@ -416,10 +538,10 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         giftCodeMessage: '接入合作伙伴或礼品码库存后，可发放 Steam 或其他游戏平台代码。',
         unavailable: '不可用',
         walletBalance: '钱包余额',
-        recentWinnings: '最近奖金',
+        recentWinnings: '余额',
         noWinnings: '街机奖金和任务现金会显示在这里。',
         guideTitle: '现在要做什么',
-        guideBody: '目标很简单：买水。从售卖机开始，确认需要 160 枚币，向供应商获取僵尸大厅代码，清理 5 个僵尸，然后购买 EVIAN。',
+        guideBody: '目标很简单：买水。从售卖机开始，了解机器为什么拒绝购买，向供应商获取僵尸大厅代码，清理 5 个僵尸，然后购买 EVIAN。',
         guideSteps: ['尝试饮水售卖机', '找到僵尸大厅代码', '清理 5 个僵尸赚金币', '购买 EVIAN 水'],
         arenaTrainingTitle: '僵尸竞技场操作',
         arenaTrainingSteps: ['WASD 移动', '鼠标瞄准', 'P 射击', '传送门返回'],
@@ -841,7 +963,7 @@ const WATER_FLOW_COPY = {
         hydrationTerminal: '3DSFERA hydration terminal',
         buyEvian: 'Buy EVIAN',
         dispenserBody: 'The machine accepts coins only. The water money comes from the Zombie Hall payout, so unlock the hall and win the arena first.',
-        cheapestItem: 'Cheapest item',
+        cheapestItem: 'Quest item',
         coins: 'coins',
         railDispenser: 'Dispenser found',
         railCode: 'Zombie Hall code',
@@ -869,28 +991,33 @@ const WATER_FLOW_COPY = {
         evianCatalogue: 'EVIAN catalogue',
         visibleProducts: '30 visible products',
         officialBottleImagery: 'Official bottle imagery',
-        cheapestWater: 'Cheapest water',
+        cheapestWater: 'Quest item',
         machinePrice: 'Machine price',
         questItem: 'Quest item',
+        comingSoon: 'Coming soon',
+        selectedProduct: 'Selected product',
+        productUnavailable: 'This product is coming soon. The quest purchase is EVIAN 0.5L.',
+        purchaseBlocked: 'Purchase blocked. Follow the quest steps on the left, then return to this button.',
         lockNeedCode: 'You need the Zombie Hall payout. Get the supplier code, unlock the hall, win the arena, then return with enough money.',
         lockNeedPayout: 'The dispenser is waiting for the Zombie Hall payout. Enter the hall and finish the 5-zombie arena mission.',
         enoughReady: 'Enough money ready. Buy the EVIAN bottle.',
         needMoreCoins: (amount: number) => `You need ${amount} more coins. Clear all 5 zombies to finish the arena reward.`,
         wheelTitle: 'Wheel of Fortune',
         wheelAria: 'Wheel of Fortune',
-        wheelBody: 'Your water purchase created one coupon. Go to the wheel in Sfera Hall, spin once, and the prize pool is a phone.',
+        wheelBody: 'Your water purchase created one coupon. Go to the wheel in Sfera Hall and spin once. The prize is revealed only after the wheel stops.',
         coupon: 'Coupon',
         required: 'Required',
         attempts: 'Attempts',
         prize: 'Prize',
         phonePrize: 'PHONE',
-        phonePrizeStamped: 'Phone prize stamped',
+        phonePrizeStamped: 'Prize revealed',
+        prizeHidden: 'Hidden until spin',
         pointerTracking: 'Pointer tracking',
         prizeReveal: 'Prize reveal',
         wheelStatus: 'Wheel status',
-        spinningBody: 'Hold tight. The wheel is locking onto the phone prize.',
+        spinningBody: 'Hold tight. The wheel is choosing the result.',
         spunBody: 'Spin recorded. Phone prize result saved and the coupon has been used.',
-        readyBody: 'One attempt available after buying water. Prize: phone.',
+        readyBody: 'One attempt available after buying water. The prize is hidden until the spin finishes.',
         spinning: 'Spinning',
         spinOnce: 'Spin once',
         alreadyPlayed: 'Already played',
@@ -922,7 +1049,7 @@ const WATER_FLOW_COPY = {
             Reward: 'Reward',
         },
         productTags: {
-            'Cheapest water': 'Cheapest water',
+            'Cheapest water': 'Quest item',
             'On the go': 'On the go',
             'Share size': 'Share size',
             'Fast cap': 'Fast cap',
@@ -955,7 +1082,10 @@ const WATER_FLOW_COPY = {
             payoutNeededTitle: 'Zombie Hall payout needed',
             payoutNeededBody: 'The dispenser needs the arena payout trail. Unlock Zombie Hall, finish the 5-zombie mission, then buy water.',
             clearHallTitle: 'Clear Zombie Hall',
-            clearHallBody: (coins: number) => `The gate accepted the supplier code. Clear 5 zombies to earn ${coins} coins.`,
+            clearHallBody: (coins: number) => {
+                void coins;
+                return 'The gate accepted the supplier code. Clear 5 zombies to earn the arena payout.';
+            },
             codeReadyTitle: 'Code ready for Zombie Hall',
             codeReadyBody: (first: string, second: string) => `Combine ${first} and ${second}, then unlock the hall gate.`,
             findSecondTitle: 'Find the second fragment',
@@ -1028,7 +1158,7 @@ const WATER_FLOW_COPY = {
         hydrationTerminal: 'Терминал воды 3DSFERA',
         buyEvian: 'Купить EVIAN',
         dispenserBody: 'Автомат принимает только монеты. Деньги на воду выдаются за Зомби-холл, поэтому сначала откройте холл и победите на арене.',
-        cheapestItem: 'Самый дешевый товар',
+        cheapestItem: 'Товар для задания',
         coins: 'монет',
         railDispenser: 'Автомат найден',
         railCode: 'Код Зомби-холла',
@@ -1041,7 +1171,7 @@ const WATER_FLOW_COPY = {
         useSupplierCode: 'Введите код поставщиков у входа в холл.',
         payoutTitle: '5 зомби и монеты',
         payoutReceived: 'Выплата Зомби-холла для EVIAN получена.',
-        clearZombiesForMoney: 'Уничтожьте 5 зомби, чтобы заработать деньги.',
+        clearZombiesForMoney: 'Уничтожьте 5 зомби, чтобы заработать монеты.',
         ready: 'готово',
         locked: 'закрыто',
         balance: 'Баланс',
@@ -1056,28 +1186,33 @@ const WATER_FLOW_COPY = {
         evianCatalogue: 'Каталог EVIAN',
         visibleProducts: '30 товаров',
         officialBottleImagery: 'Официальные изображения бутылок',
-        cheapestWater: 'Самая дешевая вода',
+        cheapestWater: 'Товар для задания',
         machinePrice: 'Цена в автомате',
         questItem: 'Товар задания',
+        comingSoon: 'Скоро в продаже',
+        selectedProduct: 'Выбранный товар',
+        productUnavailable: 'Этот товар скоро появится в продаже. Для задания нужен EVIAN 0,5 л.',
+        purchaseBlocked: 'Покупка пока заблокирована. Выполните шаги задания слева и вернитесь к этой кнопке.',
         lockNeedCode: 'Нужна выплата Зомби-холла. Получите код поставщиков, откройте холл, победите на арене и вернитесь с деньгами.',
         lockNeedPayout: 'Автомат ждет выплату из Зомби-холла. Войдите в холл и завершите миссию на 5 зомби.',
         enoughReady: 'Денег хватает. Купите бутылку EVIAN.',
         needMoreCoins: (amount: number) => `Нужно еще ${amount} монет. Уничтожьте 5 зомби, чтобы получить выплату арены.`,
         wheelTitle: 'Колесо фортуны',
         wheelAria: 'Колесо фортуны',
-        wheelBody: 'Покупка воды дала один купон. Подойдите к колесу в Sfera Hall, крутите один раз. Призовой фонд - телефон.',
+        wheelBody: 'Покупка воды дала один купон. Подойдите к колесу в Sfera Hall и крутите один раз. Приз откроется только после остановки колеса.',
         coupon: 'Купон',
         required: 'Нужен',
         attempts: 'Попытки',
         prize: 'Приз',
         phonePrize: 'ТЕЛЕФОН',
-        phonePrizeStamped: 'Приз телефон зафиксирован',
+        phonePrizeStamped: 'Приз открыт',
+        prizeHidden: 'Скрыто до прокрутки',
         pointerTracking: 'Указатель движется',
         prizeReveal: 'Показ приза',
         wheelStatus: 'Статус колеса',
-        spinningBody: 'Секунду. Колесо фиксирует приз телефон.',
+        spinningBody: 'Секунду. Колесо выбирает результат.',
         spunBody: 'Прокрутка записана. Результат с телефоном сохранен, купон использован.',
-        readyBody: 'Одна попытка доступна после покупки воды. Приз: телефон.',
+        readyBody: 'Одна попытка доступна после покупки воды. Приз скрыт до завершения прокрутки.',
         spinning: 'Крутится',
         spinOnce: 'Крутить один раз',
         alreadyPlayed: 'Уже сыграно',
@@ -1109,7 +1244,7 @@ const WATER_FLOW_COPY = {
             Reward: 'Награда',
         },
         productTags: {
-            'Cheapest water': 'Самая дешевая вода',
+            'Cheapest water': 'Товар для задания',
             'On the go': 'В дорогу',
             'Share size': 'Для компании',
             'Fast cap': 'Спорт-крышка',
@@ -1142,7 +1277,10 @@ const WATER_FLOW_COPY = {
             payoutNeededTitle: 'Нужна выплата Зомби-холла',
             payoutNeededBody: 'Автомату нужна выплата арены. Откройте Зомби-холл, завершите миссию на 5 зомби и купите воду.',
             clearHallTitle: 'Очистить Зомби-холл',
-            clearHallBody: (coins: number) => `Ворота приняли код поставщика. Уничтожьте 5 зомби и получите ${coins} монет.`,
+            clearHallBody: (coins: number) => {
+                void coins;
+                return 'Ворота приняли код поставщика. Уничтожьте 5 зомби и получите выплату арены.';
+            },
             codeReadyTitle: 'Код Зомби-холла готов',
             codeReadyBody: (first: string, second: string) => `Соедините ${first} и ${second}, затем откройте ворота холла.`,
             findSecondTitle: 'Найти второй фрагмент',
@@ -1215,7 +1353,7 @@ const WATER_FLOW_COPY = {
         hydrationTerminal: '3DSFERA 补水终端',
         buyEvian: '购买 EVIAN',
         dispenserBody: '机器只收金币。买水的钱来自僵尸大厅奖励，所以请先解锁大厅并赢下竞技场。',
-        cheapestItem: '最低价商品',
+        cheapestItem: '任务商品',
         coins: '枚币',
         railDispenser: '已找到售卖机',
         railCode: '僵尸大厅代码',
@@ -1243,28 +1381,33 @@ const WATER_FLOW_COPY = {
         evianCatalogue: 'EVIAN 商品目录',
         visibleProducts: '30 件可见商品',
         officialBottleImagery: '官方瓶装图片',
-        cheapestWater: '最低价水',
+        cheapestWater: '任务商品',
         machinePrice: '机器价格',
         questItem: '任务商品',
+        comingSoon: '即将上架',
+        selectedProduct: '已选商品',
+        productUnavailable: '该商品即将上架。任务购买商品为 EVIAN 0.5L。',
+        purchaseBlocked: '购买暂时被锁定。请完成左侧任务步骤后再回到此按钮。',
         lockNeedCode: '需要僵尸大厅奖励。获取供应商代码，解锁大厅，赢下竞技场，然后带着足够金币回来。',
         lockNeedPayout: '售卖机正在等待僵尸大厅奖励。进入大厅并完成 5 个僵尸任务。',
         enoughReady: '金币足够。购买 EVIAN 瓶装水。',
         needMoreCoins: (amount: number) => `还需要 ${amount} 枚币。清理 5 个僵尸以完成竞技场奖励。`,
         wheelTitle: '幸运转盘',
         wheelAria: '幸运转盘',
-        wheelBody: '购买水后获得一张券。前往 Sfera Hall 的转盘，只能转一次，奖池为手机。',
+        wheelBody: '购买水后获得一张券。前往 Sfera Hall 的转盘，只能转一次。奖品会在转盘停止后揭晓。',
         coupon: '券',
         required: '需要',
         attempts: '次数',
         prize: '奖品',
         phonePrize: '手机',
-        phonePrizeStamped: '手机奖品已记录',
+        phonePrizeStamped: '奖品已揭晓',
+        prizeHidden: '转动后揭晓',
         pointerTracking: '指针追踪',
         prizeReveal: '奖品揭晓',
         wheelStatus: '转盘状态',
-        spinningBody: '请稍等，转盘正在锁定手机奖品。',
+        spinningBody: '请稍等。转盘正在选择结果。',
         spunBody: '转盘结果已记录。手机奖品结果已保存，券已使用。',
-        readyBody: '购买水后可使用一次机会。奖品：手机。',
+        readyBody: '购买水后可使用一次机会。奖品会在转动结束后揭晓。',
         spinning: '转动中',
         spinOnce: '转一次',
         alreadyPlayed: '已使用',
@@ -1296,7 +1439,7 @@ const WATER_FLOW_COPY = {
             Reward: '奖励',
         },
         productTags: {
-            'Cheapest water': '最低价水',
+            'Cheapest water': '任务商品',
             'On the go': '随身带',
             'Share size': '分享装',
             'Fast cap': '运动瓶盖',
@@ -1329,7 +1472,10 @@ const WATER_FLOW_COPY = {
             payoutNeededTitle: '需要僵尸大厅奖励',
             payoutNeededBody: '售卖机需要竞技场奖励记录。解锁僵尸大厅，完成 5 个僵尸任务，然后买水。',
             clearHallTitle: '清理僵尸大厅',
-            clearHallBody: (coins: number) => `大门已接受供应商代码。清理 5 个僵尸可获得 ${coins} 枚币。`,
+            clearHallBody: (coins: number) => {
+                void coins;
+                return '大门已接受供应商代码。清理 5 个僵尸即可获得竞技场奖励。';
+            },
             codeReadyTitle: '僵尸大厅代码已就绪',
             codeReadyBody: (first: string, second: string) => `组合 ${first} 和 ${second}，然后解锁大厅大门。`,
             findSecondTitle: '寻找第二个碎片',
@@ -1526,8 +1672,8 @@ const resolveFrontendCinematic = (event: unknown, language: AppLanguage): Omit<F
     return null;
 };
 
-const formatMoney = (amountCents: number) =>
-    `${amountCents.toLocaleString('en-US')} coins`;
+const formatMoney = (amountCents: number, unit = 'coins') =>
+    `${amountCents.toLocaleString('en-US')} ${unit}`;
 
 const EVIAN_IMAGE_BY_SIZE = {
     '0.33L': '/evian/evian-330ml.png',
@@ -1614,6 +1760,7 @@ type ArcadeCopy = {
     eyebrow: string;
     subtitle: string;
     wallet: string;
+    coinUnit: string;
     cashAdded: string;
     chooseGame: string;
     close: string;
@@ -1677,6 +1824,7 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
         eyebrow: 'Prize cabinets',
         subtitle: 'Quick skill games with small wallet credits. Frontend arcade wins are capped for the session.',
         wallet: 'Wallet',
+        coinUnit: 'coins',
         cashAdded: 'Credit added',
         chooseGame: 'Choose a cabinet',
         close: 'Close arcade',
@@ -1717,8 +1865,9 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
     ru: {
         title: 'Sfera Arcade',
         eyebrow: 'Игровые автоматы',
-        subtitle: 'Короткие игры на реакцию и память. Выигрывайте деньги сессии, и они сразу появляются в кошельке.',
+        subtitle: 'Короткие игры на реакцию и память. Выигрывайте монеты сессии, и они сразу появляются в кошельке.',
         wallet: 'Кошелек',
+        coinUnit: 'монет',
         cashAdded: 'Начислено',
         chooseGame: 'Выберите автомат',
         close: 'Закрыть аркаду',
@@ -1761,6 +1910,7 @@ const ARCADE_COPY: Record<AppLanguage, ArcadeCopy> = {
         eyebrow: '奖金机台',
         subtitle: '快速技巧小游戏。赢取会话奖金，并立即进入钱包。',
         wallet: '钱包',
+        coinUnit: '枚币',
         cashAdded: '已入账',
         chooseGame: '选择机台',
         close: '关闭街机',
@@ -2032,7 +2182,7 @@ function WaterPurchaseCeremony({ copy, walletBalanceCents }: { copy: WaterFlowCo
                     </div>
                     <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
                         <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">{copy.balanceAfter}</p>
-                        <p className="mt-1 font-mono text-lg font-black text-white">{formatMoney(balanceAfter)}</p>
+                        <p className="mt-1 font-mono text-lg font-black text-white">{formatMoney(balanceAfter, copy.coins)}</p>
                     </div>
                     <div className="rounded-xl border border-amber-300/22 bg-amber-300/[0.07] px-3 py-3">
                         <p className="text-[9px] font-black uppercase tracking-[0.16em] text-amber-200">{copy.next}</p>
@@ -2310,21 +2460,29 @@ function WaterDispenserOverlay({
     onBuy: () => void;
     onOpenPassword: () => void;
 }) {
+    const [selectedProductId, setSelectedProductId] = useState(WATER_PRODUCTS[0]?.id ?? '');
+    const [purchaseNotice, setPurchaseNotice] = useState<string | null>(null);
+    const selectedProductIndex = Math.max(0, WATER_PRODUCTS.findIndex((product) => product.id === selectedProductId));
+    const selectedProduct = WATER_PRODUCTS[selectedProductIndex] ?? WATER_PRODUCTS[0];
+    const isQuestProductSelected = selectedProductIndex === 0;
     const canAfford = walletBalanceCents >= GAME_RULES.water.bottlePriceCoins;
-    const canBuy = hasArenaPayout && canAfford && !waterPurchased;
+    const canBuy = isQuestProductSelected && hasArenaPayout && canAfford && !waterPurchased;
     const questRail = [
         { label: copy.railDispenser, complete: true },
         { label: copy.railCode, complete: hasArenaAccess },
         { label: copy.railPayout, complete: hasArenaPayout },
         { label: copy.railCoins, complete: canAfford },
     ];
-    const lockHint = !hasArenaAccess
+    const lockHint = !isQuestProductSelected
+        ? copy.productUnavailable
+        : !hasArenaAccess
         ? copy.lockNeedCode
         : !hasArenaPayout
             ? copy.lockNeedPayout
             : !canAfford
             ? copy.needMoreCoins(GAME_RULES.water.bottlePriceCoins - walletBalanceCents)
             : copy.enoughReady;
+    const selectedProductTier = localizeWaterProductLabel(copy.productTiers, selectedProduct.tier);
 
     return (
         <div className="absolute inset-0 z-[94] grid place-items-center bg-[#01040a]/78 p-3 text-white backdrop-blur-md pointer-events-auto sm:p-4" role="dialog" aria-modal="true" aria-label={copy.dispenserAria}>
@@ -2352,12 +2510,19 @@ function WaterDispenserOverlay({
                             <div className="absolute inset-0 bg-[url('/evian/evian-teaser.jpg')] bg-cover bg-center opacity-[0.18]" />
                             <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.76),rgba(2,6,23,0.16),rgba(2,6,23,0.76))]" />
                             <div className="relative flex items-end justify-center gap-5 py-5">
-                                <div className="h-48 w-24 bg-contain bg-center bg-no-repeat drop-shadow-[0_28px_45px_rgba(0,0,0,0.65)]" style={{ backgroundImage: "url('/evian/evian-50cl.png')" }} />
+                                <div className="h-48 w-24 bg-contain bg-center bg-no-repeat drop-shadow-[0_28px_45px_rgba(0,0,0,0.65)]" style={{ backgroundImage: `url('${selectedProduct.image}')` }} />
                                 <div className="mb-4 hidden rounded-2xl border border-white/10 bg-black/38 p-4 backdrop-blur sm:block">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100">{copy.cheapestItem}</p>
-                                    <p className="mt-1 text-xl font-black text-white">{GAME_RULES.water.bottleName}</p>
-                                    <p className="mt-1 font-mono text-3xl font-black text-cyan-100">{GAME_RULES.water.bottlePriceCoins}</p>
-                                    <p className="text-xs text-slate-400">{copy.coins}</p>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100">{isQuestProductSelected ? copy.questItem : copy.selectedProduct}</p>
+                                    <p className="mt-1 text-xl font-black text-white">{selectedProduct.name}</p>
+                                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{selectedProduct.size} / {selectedProductTier}</p>
+                                    {isQuestProductSelected ? (
+                                        <>
+                                            <p className="mt-1 font-mono text-3xl font-black text-cyan-100">{GAME_RULES.water.bottlePriceCoins}</p>
+                                            <p className="text-xs text-slate-400">{copy.coins}</p>
+                                        </>
+                                    ) : (
+                                        <p className="mt-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-slate-200">{copy.comingSoon}</p>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -2381,7 +2546,7 @@ function WaterDispenserOverlay({
                         <div className="mt-4 grid gap-2 rounded-xl border border-white/10 bg-black/24 p-3 sm:grid-cols-3">
                             <div>
                                 <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{copy.balance}</p>
-                                <p className="mt-1 font-mono text-lg font-black text-white">{formatMoney(walletBalanceCents)}</p>
+                                <p className="mt-1 font-mono text-lg font-black text-white">{formatMoney(walletBalanceCents, copy.coins)}</p>
                             </div>
                             <div>
                                 <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{copy.needed}</p>
@@ -2399,9 +2564,21 @@ function WaterDispenserOverlay({
                                 {copy.openCodeConsole}
                             </button>
                         )}
+                        {(purchaseNotice || (!canBuy && !waterPurchased)) && (
+                            <p className="mt-3 rounded-xl border border-amber-300/18 bg-amber-300/[0.075] px-3 py-2 text-xs leading-5 text-amber-100/95">
+                                {purchaseNotice ?? lockHint}
+                            </p>
+                        )}
                         <button
                             type="button"
                             onClick={() => {
+                                if (!isQuestProductSelected) {
+                                    setPurchaseNotice(copy.productUnavailable);
+                                    return;
+                                }
+                                if (!canBuy) {
+                                    setPurchaseNotice(copy.purchaseBlocked);
+                                }
                                 onAttempt();
                                 if (canBuy) onBuy();
                             }}
@@ -2409,16 +2586,11 @@ function WaterDispenserOverlay({
                             className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.13em] text-slate-950 shadow-[0_18px_48px_rgba(102,217,203,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45"
                         >
                             <ShoppingCart className="h-4 w-4" />
-                            {waterPurchased ? copy.waterBought : canBuy ? copy.buyBottle : hasArenaPayout ? copy.tryToBuy : copy.payoutNeeded}
+                            {waterPurchased ? copy.waterBought : !isQuestProductSelected ? copy.comingSoon : canBuy ? copy.buyBottle : copy.tryToBuy}
                         </button>
-                        {!canBuy && !waterPurchased && (
-                            <p className="mt-3 text-xs leading-5 text-amber-100/90">
-                                {lockHint}
-                            </p>
-                        )}
                     </div>
                 </div>
-                <div className="min-h-0 overflow-y-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.035),transparent)] p-4 lg:p-5">
+                <div className="min-h-0 touch-pan-y overflow-y-auto overscroll-contain bg-[linear-gradient(180deg,rgba(255,255,255,0.035),transparent)] p-4 lg:p-5" onWheel={(event) => event.stopPropagation()}>
                     <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100">{copy.evianCatalogue}</p>
@@ -2434,11 +2606,18 @@ function WaterDispenserOverlay({
                             const productTag = localizeWaterProductLabel(copy.productTags, product.tag);
                             const productTier = localizeWaterProductLabel(copy.productTiers, product.tier);
 
+                            const isSelected = selectedProduct.id === product.id;
+
                             return (
-                                <div key={product.id} className={`group relative min-h-[10.5rem] overflow-hidden rounded-xl border p-3 transition hover:-translate-y-0.5 ${
-                                    index === 0
-                                        ? 'border-cyan-300/38 bg-cyan-300/[0.085] shadow-[0_0_34px_rgba(102,217,203,0.12)]'
-                                        : 'border-white/10 bg-white/[0.035] hover:border-cyan-200/24 hover:bg-cyan-300/[0.045]'
+                                <button key={product.id} type="button" onClick={() => {
+                                    setSelectedProductId(product.id);
+                                    setPurchaseNotice(index === 0 ? null : copy.productUnavailable);
+                                }} className={`group relative min-h-[10.5rem] overflow-hidden rounded-xl border p-3 text-left transition hover:-translate-y-0.5 ${
+                                    isSelected
+                                        ? 'border-cyan-200/55 bg-cyan-300/[0.105] shadow-[0_0_38px_rgba(102,217,203,0.18)]'
+                                        : index === 0
+                                            ? 'border-cyan-300/38 bg-cyan-300/[0.085] shadow-[0_0_34px_rgba(102,217,203,0.12)]'
+                                            : 'border-white/10 bg-white/[0.035] hover:border-cyan-200/24 hover:bg-cyan-300/[0.045]'
                                 }`}>
                                     <div className="absolute right-2 top-2 h-28 w-20 bg-contain bg-center bg-no-repeat opacity-90 transition group-hover:scale-105" style={{ backgroundImage: `url('${product.image}')` }} />
                                     <div className="relative flex min-h-[8.8rem] flex-col justify-between pr-16">
@@ -2446,15 +2625,15 @@ function WaterDispenserOverlay({
                                             <span className={`inline-flex rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] ${
                                                 index === 0 ? 'border-cyan-200/40 bg-cyan-200/12 text-cyan-100' : 'border-white/10 bg-black/24 text-slate-300'
                                             }`}>
-                                                {index === 0 ? copy.cheapestWater : productTag}
+                                                {index === 0 ? copy.questItem : productTag}
                                             </span>
                                             <p className="mt-3 text-sm font-black leading-tight text-white">{product.name}</p>
                                             <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{product.size} / {productTier}</p>
                                         </div>
                                         <div className="flex items-end justify-between gap-2">
                                             <div>
-                                                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-500">{copy.machinePrice}</p>
-                                                <p className="font-mono text-lg font-black text-cyan-100">{product.priceCoins}</p>
+                                                    <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-500">{index === 0 ? copy.machinePrice : copy.comingSoon}</p>
+                                                    <p className="font-mono text-lg font-black text-cyan-100">{index === 0 ? product.priceCoins : '-'}</p>
                                             </div>
                                             {index === 0 && (
                                                 <span className="rounded-full border border-emerald-300/28 bg-emerald-300/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-emerald-100">
@@ -2463,7 +2642,7 @@ function WaterDispenserOverlay({
                                             )}
                                         </div>
                                     </div>
-                                </div>
+                                </button>
                             );
                         })}
                     </div>
@@ -2565,7 +2744,7 @@ function WheelOverlay({
                         </div>
                         <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-300/18 bg-amber-300/[0.06] px-3 py-3">
                             <span className="text-xs font-black uppercase tracking-[0.14em] text-amber-100">{copy.prize}</span>
-                            <span className="font-mono text-sm font-black text-white">{copy.phonePrize}</span>
+                            <span className="font-mono text-sm font-black text-white">{hasSpun ? copy.phonePrize : copy.prizeHidden}</span>
                         </div>
                     </div>
                     <div className={`mt-4 rounded-xl border p-3 transition ${
@@ -2942,7 +3121,7 @@ function ArcadeOverlay({
                         <div className="flex items-center justify-between gap-3">
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100">{copy.wallet}</p>
-                                <p className="mt-1 text-3xl font-black text-white">{formatMoney(walletBalanceCents)}</p>
+                                <p className="mt-1 text-3xl font-black text-white">{formatMoney(walletBalanceCents, copy.coinUnit)}</p>
                             </div>
                             <WalletCards className="h-7 w-7 text-emerald-100" />
                         </div>
@@ -3012,7 +3191,7 @@ function ArcadeOverlay({
                                     <div className="rounded-2xl border border-cyan-300/15 bg-[#031018] p-3 shadow-[inset_0_0_70px_rgba(34,211,238,0.08)]">
                                         <div className="mb-3 flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
                                             <span>{snakeRunning ? 'Live run' : snakeGameOver ? 'Run ended' : 'Ready'}</span>
-                                            <span>{snakeScore} coins</span>
+                                            <span>{snakeScore} {copy.coinUnit}</span>
                                         </div>
                                         <div className="mx-auto grid aspect-square max-w-[24rem] grid-cols-[repeat(14,minmax(0,1fr))] gap-1 rounded-xl border border-white/10 bg-black/35 p-2">
                                             {Array.from({ length: SNAKE_GRID_SIZE * SNAKE_GRID_SIZE }, (_, index) => {
@@ -3139,7 +3318,7 @@ function ArcadeOverlay({
                                     <div>
                                         <p className="font-black text-white">{result.label}</p>
                                         <p className="mt-1 text-sm text-slate-300">
-                                            {result.amountCents > 0 ? `${copy.cashAdded}: ${formatMoney(result.amountCents)}` : activeCopy.mechanic}
+                                            {result.amountCents > 0 ? `${copy.cashAdded}: ${formatMoney(result.amountCents, copy.coinUnit)}` : activeCopy.mechanic}
                                         </p>
                                     </div>
                                     <Coins className={result.amountCents > 0 ? 'h-6 w-6 text-emerald-100' : 'h-6 w-6 text-slate-500'} />
@@ -3157,7 +3336,7 @@ function ArcadeOverlay({
                                 {visibleTransactions.map((transaction) => (
                                     <div key={transaction.id} className="flex items-center justify-between gap-3 rounded-xl border border-emerald-300/14 bg-emerald-300/[0.055] px-3 py-2">
                                         <span className="min-w-0 truncate text-sm font-bold text-white">{transaction.label}</span>
-                                        <span className="font-mono text-sm font-black text-emerald-100">+{formatMoney(transaction.amountCents)}</span>
+                                        <span className="font-mono text-sm font-black text-emerald-100">+{formatMoney(transaction.amountCents, copy.coinUnit)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -4427,7 +4606,11 @@ export default function ExperiencePage() {
                     : 'message';
         const id = Date.now();
 
-        setLiveActivityToasts((previous) => [{ id, kind, message: latestActivity }, ...previous].slice(0, 3));
+        setLiveActivityToasts((previous) => [{
+            id,
+            kind,
+            message: localizeLiveActivityMessage(latestActivity, language),
+        }, ...previous].slice(0, 3));
 
         const removalTimer = window.setTimeout(() => {
             setLiveActivityToasts((previous) => previous.filter((toast) => toast.id !== id));
@@ -4437,7 +4620,7 @@ export default function ExperiencePage() {
         }, LIVE_ACTIVITY_VISIBLE_MS);
 
         liveActivityRemovalTimersRef.current.push(removalTimer);
-    }, [shouldRunLiveActivity, unrealBridge.recentActivity]);
+    }, [language, shouldRunLiveActivity, unrealBridge.recentActivity]);
 
     const handleReloadPage = () => {
         window.location.reload();
@@ -5062,11 +5245,10 @@ export default function ExperiencePage() {
     };
 
     const activeSceneQuest = useMemo(() => {
-        for (const progress of unrealBridge.questProgress) {
-            const quest = getQuestDefinition(progress.questId);
-            if (quest?.role === 'player' && progress.status === 'active') {
-                return { progress, quest };
-            }
+        const progress = unrealBridge.questProgress.find((candidate) => candidate.questId === 'water_arena_run');
+        const quest = progress ? getQuestDefinition(progress.questId) : null;
+        if (quest?.role === 'player' && progress?.status === 'active') {
+            return { progress, quest };
         }
 
         return null;
@@ -5851,7 +6033,18 @@ export default function ExperiencePage() {
                                     <div className="border-b border-cyan-300/10 bg-cyan-300/[0.055] px-3 py-2.5">
                                         <div className="flex items-center justify-between gap-3">
                                             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-100">{sceneHud.guideTitle}</p>
-                                            <span className="rounded-full border border-cyan-300/18 px-2 py-1 font-mono text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100">{activeSceneQuestPercent}%</span>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsQuestChecklistOpen((current) => !current)}
+                                                    className="pointer-events-auto grid h-8 w-8 place-items-center rounded-lg border border-cyan-300/18 bg-black/24 text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-300/10"
+                                                    aria-label={isQuestChecklistOpen ? sceneHud.questDetailsClose : sceneHud.questDetailsOpen}
+                                                    title={isQuestChecklistOpen ? sceneHud.questDetailsClose : sceneHud.questDetailsOpen}
+                                                >
+                                                    <ChevronDown className={`h-4 w-4 transition ${isQuestChecklistOpen ? 'rotate-180' : ''}`} />
+                                                </button>
+                                                <span className="rounded-full border border-cyan-300/18 px-2 py-1 font-mono text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100">{activeSceneQuestPercent}%</span>
+                                            </div>
                                         </div>
                                         <p className="mt-1 text-xs leading-5 text-slate-300">{sceneHud.guideBody}</p>
                                         <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
@@ -5894,8 +6087,31 @@ export default function ExperiencePage() {
                                                 className="pointer-events-auto mt-1 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#f5c766,#66d9cb)] px-3 py-3 text-xs font-black uppercase tracking-[0.13em] text-slate-950 shadow-[0_18px_44px_rgba(245,199,102,0.18)] transition hover:scale-[1.01]"
                                             >
                                                 <KeyRound className="h-4 w-4" />
-                                                Enter Zombie Hall code
+                                                {waterFlowCopy.mission.enterCode}
                                             </button>
+                                        )}
+                                        {isQuestChecklistOpen && (
+                                            <div className="mt-1 grid gap-1.5 rounded-lg border border-white/10 bg-black/22 p-2">
+                                                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-cyan-100/85">
+                                                    <ListChecks className="h-3.5 w-3.5" />
+                                                    {sceneHud.questDetailsOpen}
+                                                </div>
+                                                {Object.entries(activeSceneQuest.progress.objectives).map(([objectiveId, objective], index) => (
+                                                    <div key={objectiveId} className="grid grid-cols-[1.5rem_1fr_auto] items-center gap-2 text-xs">
+                                                        <span className={`grid h-5 w-5 place-items-center rounded-full border text-[10px] font-black ${
+                                                            objective.completed
+                                                                ? 'border-[#66d9cb]/70 bg-[#66d9cb]/20 text-[#9ff4ec]'
+                                                                : 'border-white/15 bg-white/[0.035] text-white/45'
+                                                        }`}>
+                                                            {objective.completed ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}
+                                                        </span>
+                                                        <span className={`min-w-0 truncate ${objective.completed ? 'text-white/70 line-through decoration-white/30' : 'text-slate-200'}`}>
+                                                            {getQuestObjectiveText(activeSceneQuest.quest, objectiveId, language)}
+                                                        </span>
+                                                        <span className="font-mono text-[11px] text-white/38">{objective.current}/{objective.target}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         )}
                                         {waterQuestMilestones.length > 0 && (
                                             <div className="rounded-xl border border-amber-300/16 bg-amber-300/[0.06] px-3 py-2 text-[10px] leading-5 text-amber-50">
@@ -5998,7 +6214,7 @@ export default function ExperiencePage() {
                                     </span>
                                 </button>
                             )}
-                            {hasWalletActivity && (
+                            {hasWalletActivity && !latestPlayerReward && (
                                 <button
                                     type="button"
                                     onClick={() => setIsRewardTerminalOpen(true)}
@@ -6009,7 +6225,7 @@ export default function ExperiencePage() {
                                     </span>
                                     <span className="min-w-0 flex-1">
                                         <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-cyan-100">{sceneHud.walletBalance}</span>
-                                        <span className="mt-0.5 block truncate text-lg font-black text-white">{formatMoney(walletBalanceCents)}</span>
+                                        <span className="mt-0.5 block truncate text-lg font-black text-white">{formatMoney(walletBalanceCents, sceneHud.coins)}</span>
                                     </span>
                                     <span className="shrink-0 rounded-full border border-cyan-300/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100">
                                         {sceneHud.openTerminal}
@@ -6197,7 +6413,7 @@ export default function ExperiencePage() {
                                         <div className="flex items-center justify-between gap-3">
                                             <div>
                                                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100">{sceneHud.walletBalance}</p>
-                                                <p className="mt-1 text-4xl font-black text-white">{formatMoney(walletBalanceCents)}</p>
+                                                <p className="mt-1 text-4xl font-black text-white">{formatMoney(walletBalanceCents, sceneHud.coins)}</p>
                                             </div>
                                             <Coins className="h-7 w-7 text-emerald-100" />
                                         </div>
@@ -6220,7 +6436,7 @@ export default function ExperiencePage() {
                                                 {recentWalletTransactions.map((transaction) => (
                                                     <div key={transaction.id} className="flex items-center justify-between gap-3 rounded-lg border border-emerald-300/12 bg-emerald-300/[0.05] px-2.5 py-2">
                                                         <span className="min-w-0 truncate text-sm font-bold text-white">{transaction.label}</span>
-                                                        <span className="font-mono text-sm font-black text-emerald-100">+{formatMoney(transaction.amountCents)}</span>
+                                                        <span className="font-mono text-sm font-black text-emerald-100">+{formatMoney(transaction.amountCents, sceneHud.coins)}</span>
                                                     </div>
                                                 ))}
                                             </div>

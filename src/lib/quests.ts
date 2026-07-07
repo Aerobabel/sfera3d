@@ -77,9 +77,9 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
             zh: '购买水',
         },
         description: {
-            en: 'Start at the water dispenser, learn that EVIAN 0.5L costs 160 coins, collect the Zombie Hall code from suppliers, clear 5 zombies, then return with enough money to buy water.',
-            ru: 'Начните у автомата с водой, узнайте, что EVIAN 0,5 л стоит 160 монет, соберите код Зомби-холла у поставщиков, уничтожьте 5 зомби и вернитесь с деньгами за водой.',
-            zh: '从饮水售卖机开始，确认 EVIAN 0.5L 需要 160 枚币，向供应商收集僵尸大厅代码，清理 5 个僵尸，然后带着足够金币回来买水。',
+            en: 'Start at the water dispenser, learn why the purchase is blocked, collect the Zombie Hall code from suppliers, clear 5 zombies, then return with enough coins to buy water.',
+            ru: 'Начните у автомата с водой, узнайте, почему покупка заблокирована, соберите код Зомби-холла у поставщиков, уничтожьте 5 зомби и вернитесь с монетами за водой.',
+            zh: '从饮水售卖机开始，了解购买为什么被锁定，向供应商收集僵尸大厅代码，清理 5 个僵尸，然后带着足够金币回来买水。',
         },
         objectives: [
             {
@@ -149,9 +149,9 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
             kind: 'coins',
             value: 160,
             label: {
-                en: '160 coins for EVIAN 0.5L',
-                ru: '160 монет на EVIAN 0,5 л',
-                zh: '160 枚币用于 EVIAN 0.5L',
+                en: 'Arena payout for EVIAN 0.5L',
+                ru: 'Выплата арены на EVIAN 0,5 л',
+                zh: 'EVIAN 0.5L 竞技场奖励',
             },
         },
     },
@@ -408,6 +408,10 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
     },
 ];
 
+const RETIRED_QUEST_IDS = new Set(['player_arena_trial']);
+
+const ACTIVE_QUEST_DEFINITIONS = QUEST_DEFINITIONS.filter((quest) => !RETIRED_QUEST_IDS.has(quest.id));
+
 export const getQuestDefinition = (questId: string) =>
     QUEST_DEFINITIONS.find((quest) => quest.id === questId) ?? null;
 
@@ -436,7 +440,7 @@ export const getQuestRewardText = (
 };
 
 export const createInitialQuestProgress = (): QuestProgress[] =>
-    QUEST_DEFINITIONS.map((quest) => ({
+    ACTIVE_QUEST_DEFINITIONS.map((quest) => ({
         questId: quest.id,
         role: quest.role,
         status: 'active',
@@ -486,6 +490,7 @@ export const applyQuestEvent = (
 
         const quest = getQuestDefinition(progress.questId);
         if (!quest) return progress;
+        if (RETIRED_QUEST_IDS.has(quest.id)) return progress;
 
         let didChange = false;
         const objectives = { ...progress.objectives };
@@ -557,5 +562,5 @@ export const getRoleQuestProgress = (
 ) =>
     questProgress.filter((progress) => {
         const quest = getQuestDefinition(progress.questId);
-        return quest?.role === role;
+        return quest?.role === role && !RETIRED_QUEST_IDS.has(progress.questId);
     });
