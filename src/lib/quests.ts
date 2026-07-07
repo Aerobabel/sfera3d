@@ -73,13 +73,13 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
         sponsor: '3DSFERA Water Quest',
         title: {
             en: 'Buy Water',
-            ru: 'Buy Water',
-            zh: 'Buy Water',
+            ru: 'Купить воду',
+            zh: '购买水',
         },
         description: {
             en: 'Start at the water dispenser, learn that EVIAN 0.5L costs 160 coins, collect the Zombie Hall code from suppliers, clear 5 zombies, then return with enough money to buy water.',
-            ru: 'Start at the water dispenser, collect the Zombie Hall code from suppliers, clear 5 zombies, then return with enough money to buy water.',
-            zh: 'Start at the water dispenser, collect the Zombie Hall code from suppliers, clear 5 zombies, then return with enough money to buy water.',
+            ru: 'Начните у автомата с водой, узнайте, что EVIAN 0,5 л стоит 160 монет, соберите код Зомби-холла у поставщиков, уничтожьте 5 зомби и вернитесь с деньгами за водой.',
+            zh: '从饮水售卖机开始，确认 EVIAN 0.5L 需要 160 枚币，向供应商收集僵尸大厅代码，清理 5 个僵尸，然后带着足够金币回来买水。',
         },
         objectives: [
             {
@@ -88,8 +88,8 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
                 count: 1,
                 label: {
                     en: 'Find the water dispenser',
-                    ru: 'Find the water dispenser',
-                    zh: 'Find the water dispenser',
+                    ru: 'Найти автомат с водой',
+                    zh: '找到饮水售卖机',
                 },
             },
             {
@@ -98,8 +98,8 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
                 count: 1,
                 label: {
                     en: 'Try to buy water',
-                    ru: 'Try to buy water',
-                    zh: 'Try to buy water',
+                    ru: 'Попробовать купить воду',
+                    zh: '尝试购买水',
                 },
             },
             {
@@ -108,8 +108,8 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
                 count: 2,
                 label: {
                     en: 'Collect both supplier key halves',
-                    ru: 'Collect both supplier key halves',
-                    zh: 'Collect both supplier key halves',
+                    ru: 'Собрать обе половины кода у поставщиков',
+                    zh: '收集两个供应商代码碎片',
                 },
             },
             {
@@ -119,8 +119,8 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
                 match: { success: true },
                 label: {
                     en: 'Enter the arena password',
-                    ru: 'Enter the arena password',
-                    zh: 'Enter the arena password',
+                    ru: 'Ввести пароль арены',
+                    zh: '输入竞技场密码',
                 },
             },
             {
@@ -130,8 +130,8 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
                 match: { game: 'ZombieArena' },
                 label: {
                     en: 'Enter Zombie Arena',
-                    ru: 'Enter Zombie Arena',
-                    zh: 'Enter Zombie Arena',
+                    ru: 'Войти в Зомби-арену',
+                    zh: '进入僵尸竞技场',
                 },
             },
             {
@@ -140,8 +140,8 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
                 count: 5,
                 label: {
                     en: 'Clear 5 zombies and earn enough coins',
-                    ru: 'Clear 5 zombies and earn enough coins',
-                    zh: 'Clear 5 zombies and earn enough coins',
+                    ru: 'Уничтожить 5 зомби и заработать монеты',
+                    zh: '清理 5 个僵尸并赚到足够金币',
                 },
             },
         ],
@@ -150,8 +150,8 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
             value: 160,
             label: {
                 en: '160 coins for EVIAN 0.5L',
-                ru: '160 coins for EVIAN 0.5L',
-                zh: '160 coins for EVIAN 0.5L',
+                ru: '160 монет на EVIAN 0,5 л',
+                zh: '160 枚币用于 EVIAN 0.5L',
             },
         },
     },
