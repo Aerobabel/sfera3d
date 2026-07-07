@@ -3367,12 +3367,18 @@ export default function ExperiencePage() {
             unrealBridge.lastUnrealEvent.portal === 'SferaHall';
 
         if (isSferaHallPortal && !canPlaySferaHallCutsceneRef.current) {
+            setFrontendCinematic(null);
             return;
         }
 
         if (isSferaHallPortal) {
             setHasStartedSferaHallCutsceneSound(false);
             setIsSferaHallCutsceneVisible(true);
+
+            if (isFastViewRoute) {
+                setFrontendCinematic(null);
+                return;
+            }
         }
 
         const id = Date.now();
@@ -3390,7 +3396,7 @@ export default function ExperiencePage() {
         }, duration);
 
         return () => window.clearTimeout(timer);
-    }, [language, unrealBridge.lastUnrealEvent]);
+    }, [isFastViewRoute, language, unrealBridge.lastUnrealEvent]);
 
 
     useEffect(() => {
@@ -5264,6 +5270,10 @@ export default function ExperiencePage() {
         waterPurchaseCeremonyBalance === null &&
         !isSferaHallCutsceneVisible &&
         !isWaterWinCutsceneVisible;
+    const shouldShowFrontendCinematic =
+        Boolean(frontendCinematic) &&
+        showExperienceHud &&
+        !(isFastViewRoute && frontendCinematic?.destinationLabel === 'Sfera Hall');
 
     useEffect(() => {
         if (!hasStartedExperience || !isGamerScene || !latestPlayerReward) return;
@@ -5471,7 +5481,7 @@ export default function ExperiencePage() {
                 </div>
             )}
 
-            {frontendCinematic && showExperienceHud && (
+            {frontendCinematic && shouldShowFrontendCinematic && (
                 <div className="pointer-events-none absolute inset-0 z-[90] flex items-center justify-center bg-[radial-gradient(circle_at_center,rgba(102,217,203,0.18),rgba(2,6,23,0.76)_52%,rgba(2,6,23,0.92))] px-6 backdrop-blur-sm">
                     <div className="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-[#66d9cb]/30 bg-slate-950/82 p-6 text-center text-white shadow-[0_30px_120px_rgba(0,0,0,0.55)]">
                         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-[#66d9cb] to-transparent animate-[shimmer_1.4s_linear_infinite]" />
