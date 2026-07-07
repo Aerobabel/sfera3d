@@ -77,9 +77,9 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
             zh: 'Buy Water',
         },
         description: {
-            en: 'Start at the water dispenser, learn that EVIAN 0.5L costs 160 coins, collect the arena key from suppliers, clear Zombie Arena, then return with the water code and buy water.',
-            ru: 'Start at the water dispenser, collect the arena key from suppliers, clear Zombie Arena, then return with the water code and buy water.',
-            zh: 'Start at the water dispenser, collect the arena key from suppliers, clear Zombie Arena, then return with the water code and buy water.',
+            en: 'Start at the water dispenser, learn that EVIAN 0.5L costs 160 coins, collect the Zombie Hall code from suppliers, clear 5 zombies, then return with enough money to buy water.',
+            ru: 'Start at the water dispenser, collect the Zombie Hall code from suppliers, clear 5 zombies, then return with enough money to buy water.',
+            zh: 'Start at the water dispenser, collect the Zombie Hall code from suppliers, clear 5 zombies, then return with enough money to buy water.',
         },
         objectives: [
             {
@@ -139,19 +139,19 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
                 event: 'zombie_killed',
                 count: 5,
                 label: {
-                    en: 'Clear 5 zombies and earn the water code',
-                    ru: 'Clear 5 zombies and earn the water code',
-                    zh: 'Clear 5 zombies and earn the water code',
+                    en: 'Clear 5 zombies and earn enough coins',
+                    ru: 'Clear 5 zombies and earn enough coins',
+                    zh: 'Clear 5 zombies and earn enough coins',
                 },
             },
         ],
         reward: {
             kind: 'coins',
-            value: 150,
+            value: 160,
             label: {
-                en: '150 coins and water code EVIAN-KEY-160',
-                ru: '150 coins and water code EVIAN-KEY-160',
-                zh: '150 coins and water code EVIAN-KEY-160',
+                en: '160 coins for EVIAN 0.5L',
+                ru: '160 coins for EVIAN 0.5L',
+                zh: '160 coins for EVIAN 0.5L',
             },
         },
     },

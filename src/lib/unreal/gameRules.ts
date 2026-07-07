@@ -14,7 +14,7 @@ export const GAME_RULES = {
             { minScore: 120, label: 'Zombie Hunter' },
             { minScore: 250, label: 'Sfera Champion' },
         ],
-        completionRewardCoins: 150,
+        completionRewardCoins: 160,
         arcadeKeyReward: 'WHEEL-7',
         waterKeyReward: 'EVIAN-KEY-160',
     },

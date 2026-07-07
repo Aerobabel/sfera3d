@@ -3,7 +3,7 @@
 import PixelStreamingPlayer from "@/components/PixelStreamingPlayer";
 import StreamPixelPlayer from "@/components/StreamPixelPlayer";
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
-import { Activity, ArrowRight, CheckCircle2, ChevronDown, Coins, Droplets, Gamepad2, Gift, KeyRound, ListChecks, LockKeyhole, MapPin, Monitor, Package, Play, RotateCw, Send, ShieldCheck, ShoppingCart, Sparkles, Ticket, Trophy, Volume2, WalletCards, X, Zap, Menu } from "lucide-react";
+import { Activity, ArrowRight, CheckCircle2, ChevronDown, Coins, Droplets, Gamepad2, Gift, KeyRound, ListChecks, LockKeyhole, Monitor, Package, Play, RotateCw, Send, ShieldCheck, ShoppingCart, Sparkles, Ticket, Trophy, Volume2, WalletCards, X, Zap, Menu } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -313,8 +313,8 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         recentWinnings: 'Recent winnings',
         noWinnings: 'Arcade prizes and quest money will appear here.',
         guideTitle: 'What to do now',
-        guideBody: 'Your goal is simple and weirdly urgent: buy water. Start at the locked dispenser, get the code fragments from suppliers, open Zombie Hall, win the water code and coins, then come back for EVIAN.',
-        guideSteps: ['Try the locked water dispenser', 'Find the Zombie Hall code', 'Win Zombie Hall for the water code', 'Buy EVIAN water'],
+        guideBody: 'Your goal is simple and weirdly urgent: buy water. Start at the dispenser, learn you need 160 coins, get the Zombie Hall code from suppliers, clear 5 zombies, then come back and buy EVIAN.',
+        guideSteps: ['Try the water dispenser', 'Find the Zombie Hall code', 'Clear 5 zombies for coins', 'Buy EVIAN water'],
         arenaTrainingTitle: 'Zombie Arena controls',
         arenaTrainingSteps: ['WASD to move', 'Mouse to aim', 'P to fire', 'Leave through the return portal'],
         questDetailsOpen: 'Show full checklist',
@@ -1296,13 +1296,13 @@ function SupplierEvidenceBoard({ pieces, compact = false }: { pieces: string[]; 
 function QuestDirectorOverlay({
     state,
     pieces,
-    waterKey,
+    walletBalanceCents,
     coupon,
     onOpenPassword,
 }: {
     state: QuestDirectorState;
     pieces: string[];
-    waterKey: string | null;
+    walletBalanceCents: number;
     coupon: string | null;
     onOpenPassword: () => void;
 }) {
@@ -1313,14 +1313,15 @@ function QuestDirectorOverlay({
         reward: 'border-emerald-300/28 bg-emerald-300/[0.08] text-emerald-100',
         complete: 'border-fuchsia-300/28 bg-fuchsia-300/[0.08] text-fuchsia-100',
     }[state.signal];
-    const canOpenCode = state.signal === 'ready' || state.signal === 'locked';
+    const canOpenCode = state.action === 'Enter Zombie Hall code';
+    const canAffordWater = walletBalanceCents >= GAME_RULES.water.bottlePriceCoins;
 
     return (
-        <div className="pointer-events-auto w-[min(92vw,27rem)] overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#031018]/76 text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-md">
-            <div className="relative border-b border-white/10 p-3">
+        <div className="pointer-events-auto w-[min(92vw,21rem)] overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#031018]/72 text-white shadow-[0_18px_58px_rgba(0,0,0,0.34)] backdrop-blur-md">
+            <div className="relative p-3">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(102,217,203,0.22),transparent_38%),linear-gradient(135deg,rgba(255,255,255,0.055),transparent_42%)]" />
                 <div className="relative flex items-start gap-3">
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-cyan-300/24 bg-cyan-300/10 text-cyan-100 shadow-[0_0_30px_rgba(102,217,203,0.18)]">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-cyan-300/24 bg-cyan-300/10 text-cyan-100 shadow-[0_0_30px_rgba(102,217,203,0.18)]">
                         <Activity className="h-5 w-5" />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -1330,8 +1331,8 @@ function QuestDirectorOverlay({
                                 {state.signal}
                             </span>
                         </div>
-                        <h3 className="mt-1 truncate text-lg font-black leading-tight">{state.title}</h3>
-                        <p className="mt-1 text-xs leading-5 text-slate-300">{state.body}</p>
+                        <h3 className="mt-1 truncate text-base font-black leading-tight">{state.title}</h3>
+                        <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-slate-300">{state.body}</p>
                     </div>
                 </div>
                 <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
@@ -1339,30 +1340,19 @@ function QuestDirectorOverlay({
                 </div>
             </div>
 
-            <div className="grid gap-2 p-3">
-                <div className="grid grid-cols-[2.25rem_1fr_auto] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2">
-                    <span className="grid h-9 w-9 place-items-center rounded-lg border border-cyan-300/18 bg-black/28 text-cyan-100">
-                        <MapPin className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0">
-                        <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">Destination</span>
-                        <span className="block truncate text-sm font-black text-white">{state.destination}</span>
-                    </span>
-                    <span className="font-mono text-[10px] font-black text-cyan-100">{state.progress}%</span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2">
+            <div className="grid gap-2 border-t border-white/10 p-2.5">
+                <div className="grid grid-cols-3 gap-1.5">
                     <div className={`rounded-xl border px-2 py-2 ${pieces.length >= 2 ? 'border-emerald-300/24 bg-emerald-300/[0.07]' : 'border-white/10 bg-white/[0.035]'}`}>
                         <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">Fragments</p>
                         <p className="mt-1 font-mono text-sm font-black">{pieces.length}/2</p>
                     </div>
-                    <div className={`rounded-xl border px-2 py-2 ${waterKey ? 'border-emerald-300/24 bg-emerald-300/[0.07]' : 'border-white/10 bg-white/[0.035]'}`}>
-                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">Water key</p>
-                        <p className="mt-1 truncate font-mono text-sm font-black">{waterKey ? 'ready' : 'locked'}</p>
+                    <div className={`rounded-xl border px-2 py-2 ${canAffordWater ? 'border-emerald-300/24 bg-emerald-300/[0.07]' : 'border-white/10 bg-white/[0.035]'}`}>
+                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">Coins</p>
+                        <p className="mt-1 truncate font-mono text-sm font-black">{Math.min(walletBalanceCents, GAME_RULES.water.bottlePriceCoins)}/{GAME_RULES.water.bottlePriceCoins}</p>
                     </div>
                     <div className={`rounded-xl border px-2 py-2 ${coupon ? 'border-amber-300/24 bg-amber-300/[0.07]' : 'border-white/10 bg-white/[0.035]'}`}>
-                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">Wheel</p>
-                        <p className="mt-1 truncate font-mono text-sm font-black">{coupon ? 'coupon' : 'pending'}</p>
+                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">Prize</p>
+                        <p className="mt-1 truncate font-mono text-sm font-black">{coupon ? 'phone' : 'pending'}</p>
                     </div>
                 </div>
 
@@ -1471,11 +1461,13 @@ function ArenaPasswordOverlay({
     const unlockTimerRef = useRef<number | null>(null);
     const normalized = password.trim().toUpperCase().replace(/\s+/g, '');
     const expected = GAME_RULES.keys.arenaPassword;
+    const hasAllFragments = SUPPLIER_EVIDENCE.every((supplier) => pieces.includes(supplier.piece));
     const matchedCount = normalized
         .split('')
         .filter((char, index) => expected[index] === char).length;
     const progress = Math.min(100, Math.round((matchedCount / expected.length) * 100));
     const isComplete = normalized === expected;
+    const canUnlock = isComplete && hasAllFragments;
     const inputCells = Array.from({ length: expected.length }, (_, index) => normalized[index] ?? '');
     const terminalLabel = terminalState === 'accepted'
         ? 'Clearance granted. Opening Zombie Hall...'
@@ -1495,7 +1487,7 @@ function ArenaPasswordOverlay({
         event.preventDefault();
         if (terminalState === 'accepted') return;
 
-        if (isComplete) {
+        if (canUnlock) {
             setTerminalState('accepted');
             unlockTimerRef.current = window.setTimeout(() => {
                 onSubmit(password);
@@ -1584,7 +1576,7 @@ function ArenaPasswordOverlay({
                             </div>
                             <button type="submit" disabled={terminalState === 'accepted'} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition hover:scale-[1.01] disabled:cursor-wait disabled:opacity-70">
                                 <KeyRound className="h-4 w-4" />
-                                {terminalState === 'accepted' ? 'Opening hall' : 'Unlock Zombie Hall'}
+                                {terminalState === 'accepted' ? 'Opening hall' : hasAllFragments ? 'Unlock Zombie Hall' : 'Recover both fragments'}
                                 <ArrowRight className="h-4 w-4" />
                             </button>
                         </form>
@@ -1614,7 +1606,6 @@ function ArenaPasswordOverlay({
 function WaterDispenserOverlay({
     walletBalanceCents,
     hasArenaAccess,
-    waterKey,
     waterPurchased,
     onClose,
     onAttempt,
@@ -1623,7 +1614,6 @@ function WaterDispenserOverlay({
 }: {
     walletBalanceCents: number;
     hasArenaAccess: boolean;
-    waterKey: string | null;
     waterPurchased: boolean;
     onClose: () => void;
     onAttempt: () => void;
@@ -1631,19 +1621,18 @@ function WaterDispenserOverlay({
     onOpenPassword: () => void;
 }) {
     const canAfford = walletBalanceCents >= GAME_RULES.water.bottlePriceCoins;
-    const hasWaterKey = Boolean(waterKey);
-    const canBuy = hasWaterKey && canAfford && !waterPurchased;
+    const canBuy = canAfford && !waterPurchased;
     const questRail = [
         { label: 'Dispenser found', complete: true },
         { label: 'Zombie Hall code', complete: hasArenaAccess },
-        { label: 'Water code won', complete: hasWaterKey },
+        { label: '5 zombies cleared', complete: canAfford },
         { label: 'Enough coins', complete: canAfford },
     ];
     const lockHint = !hasArenaAccess
-        ? 'The dispenser stays locked. Get the code fragments from suppliers, then enter that code at Zombie Hall.'
-        : !hasWaterKey
-            ? 'Zombie Hall is open now. Win the fight to receive the water code for this dispenser.'
-            : `Need ${GAME_RULES.water.bottlePriceCoins - walletBalanceCents} more coins.`;
+        ? 'You need 160 coins. Get the supplier code, clear Zombie Hall, then return with enough money.'
+        : !canAfford
+            ? `You need ${GAME_RULES.water.bottlePriceCoins - walletBalanceCents} more coins. Clear all 5 zombies to finish the arena reward.`
+            : 'Enough money ready. Buy the EVIAN bottle.';
 
     return (
         <div className="absolute inset-0 z-[94] grid place-items-center bg-[#01040a]/78 p-3 text-white backdrop-blur-md pointer-events-auto sm:p-4" role="dialog" aria-modal="true" aria-label="Water dispenser">
@@ -1662,7 +1651,7 @@ function WaterDispenserOverlay({
                             <div className="min-w-0">
                                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100">3DSFERA hydration terminal</p>
                                 <h2 className="mt-1 text-4xl font-black leading-none tracking-tight">Buy EVIAN</h2>
-                                <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">The machine has stock, but the first purchase is gated by a water code earned in Zombie Hall.</p>
+                                <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">The machine accepts coins only. You start short, so clear the supplier-code Zombie Hall route to earn the 160 coins.</p>
                             </div>
                         </div>
 
@@ -1703,8 +1692,8 @@ function WaterDispenserOverlay({
                                 <p className="mt-1 font-mono text-lg font-black text-white">{formatMoney(walletBalanceCents)}</p>
                             </div>
                             <div>
-                                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">Water code</p>
-                                <p className={hasWaterKey ? 'mt-1 truncate font-mono text-sm font-black text-emerald-100' : 'mt-1 font-bold text-amber-100'}>{hasWaterKey ? waterKey : 'Win Zombie Hall'}</p>
+                                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">Needed</p>
+                                <p className={canAfford ? 'mt-1 truncate font-mono text-sm font-black text-emerald-100' : 'mt-1 font-bold text-amber-100'}>{canAfford ? 'Paid in coins' : `${GAME_RULES.water.bottlePriceCoins} coins`}</p>
                             </div>
                             <div>
                                 <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">First buyer bonus</p>
@@ -1842,7 +1831,7 @@ function WheelOverlay({
                 <div className="relative flex flex-col justify-center border-t border-white/10 p-5 text-left lg:border-l lg:border-t-0 lg:p-7">
                     <p className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-100">First buyer bonus</p>
                     <h2 className="mt-2 text-4xl font-black leading-tight">Wheel of Fortune</h2>
-                    <p className="mt-3 text-sm leading-6 text-slate-300">Your water purchase created one coupon. Go to the wheel in Sfera Hall, spin once, and the attempt is consumed.</p>
+                    <p className="mt-3 text-sm leading-6 text-slate-300">Your water purchase created one coupon. Go to the wheel in Sfera Hall, spin once, and the prize pool is a phone.</p>
                     <div className="mt-5 grid gap-2">
                         <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/18 bg-cyan-300/[0.06] px-3 py-3">
                             <span className="inline-flex min-w-0 items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-100">
@@ -1855,6 +1844,10 @@ function WheelOverlay({
                             <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-300">Attempts</span>
                             <span className="font-mono text-sm font-black text-amber-100">{spinsRemaining} / {GAME_RULES.wheel.maxSpins}</span>
                         </div>
+                        <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-300/18 bg-amber-300/[0.06] px-3 py-3">
+                            <span className="text-xs font-black uppercase tracking-[0.14em] text-amber-100">Prize</span>
+                            <span className="font-mono text-sm font-black text-white">PHONE</span>
+                        </div>
                     </div>
                     <div className={`mt-4 rounded-xl border p-3 transition ${
                         isSpinning
@@ -1866,10 +1859,10 @@ function WheelOverlay({
                         <p className="text-[10px] font-black uppercase tracking-[0.18em]">{isSpinning ? 'Pointer tracking' : hasSpun ? 'Prize reveal' : 'Wheel status'}</p>
                         <p className="mt-1 text-sm font-bold">
                             {isSpinning
-                                ? 'Hold tight. The wheel is choosing the first-buyer prize.'
+                                ? 'Hold tight. The wheel is locking onto the phone prize.'
                                 : hasSpun
-                                    ? 'Spin recorded. First buyer coupon has been used.'
-                                    : 'One attempt available after buying water.'}
+                                    ? 'Spin recorded. Phone prize result saved and the coupon has been used.'
+                                    : 'One attempt available after buying water. Prize: phone.'}
                         </p>
                     </div>
                     <button type="button" onClick={spin} disabled={spinsRemaining <= 0 || isSpinning || !coupon} className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#f5c766,#66d9cb)] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 shadow-[0_18px_48px_rgba(245,199,102,0.18)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45">
@@ -2620,9 +2613,11 @@ export default function ExperiencePage() {
     const [hasStartedSferaHallCutsceneSound, setHasStartedSferaHallCutsceneSound] = useState(false);
     const [dashboardOverlay, setDashboardOverlay] = useState<SceneDashboardOverlay | null>(null);
     const [liveActivityToasts, setLiveActivityToasts] = useState<LiveActivityToast[]>([]);
+    const [dogReactionToast, setDogReactionToast] = useState<{ id: number; mood: 'mad' | 'calm' } | null>(null);
     const liveActivityIndexRef = useRef(0);
     const liveActivityRemovalTimersRef = useRef<number[]>([]);
     const lastQuestActivitySignatureRef = useRef('');
+    const dogReactionTimerRef = useRef<number | null>(null);
     const hasAppliedInitialModeRef = useRef(false);
     const isStreamAudioSuppressedRef = useRef(false);
     const chatFeedRef = useRef<HTMLDivElement | null>(null);
@@ -2852,6 +2847,23 @@ export default function ExperiencePage() {
     }, [hasStartedExperience, unrealBridge.lastUnrealEvent]);
 
     useEffect(() => {
+        if (!hasStartedExperience || !unrealBridge.lastUnrealEvent) return;
+        if (unrealBridge.lastUnrealEvent.event !== 'dog_mad' && unrealBridge.lastUnrealEvent.event !== 'dog_calm') return;
+
+        const mood = unrealBridge.lastUnrealEvent.event === 'dog_mad' ? 'mad' : 'calm';
+        setDogReactionToast({ id: Date.now(), mood });
+        playSferaUiSound(mood === 'mad' ? 'warning' : 'progress');
+
+        if (dogReactionTimerRef.current !== null) {
+            window.clearTimeout(dogReactionTimerRef.current);
+        }
+        dogReactionTimerRef.current = window.setTimeout(() => {
+            setDogReactionToast(null);
+            dogReactionTimerRef.current = null;
+        }, 4200);
+    }, [hasStartedExperience, unrealBridge.lastUnrealEvent]);
+
+    useEffect(() => {
         if (!hasStartedExperience || !unrealBridge.lastCompletedQuestId) return;
         playSferaUiSound('reward');
     }, [hasStartedExperience, unrealBridge.lastCompletedQuestId]);
@@ -2922,7 +2934,8 @@ export default function ExperiencePage() {
 
     const handleArenaPasswordSubmit = useCallback((password: string) => {
         const normalized = password.trim().toUpperCase().replace(/\s+/g, '');
-        const success = normalized === GAME_RULES.keys.arenaPassword;
+        const hasAllFragments = SUPPLIER_EVIDENCE.every((supplier) => unrealBridge.arenaKeyPieces.includes(supplier.piece));
+        const success = normalized === GAME_RULES.keys.arenaPassword && hasAllFragments;
         unrealBridge.handleUnrealResponse(JSON.stringify({
             event: 'arena_password_submitted',
             password: normalized,
@@ -3057,6 +3070,9 @@ export default function ExperiencePage() {
             }
             if (waterPurchaseCeremonyTimerRef.current !== null) {
                 window.clearTimeout(waterPurchaseCeremonyTimerRef.current);
+            }
+            if (dogReactionTimerRef.current !== null) {
+                window.clearTimeout(dogReactionTimerRef.current);
             }
         };
     }, []);
@@ -4328,9 +4344,9 @@ export default function ExperiencePage() {
                 Icon: LockKeyhole,
             },
             {
-                title: 'Water code and coins',
-                body: unrealBridge.waterKey ? `Water code ${unrealBridge.waterKey} earned.` : 'Win the fight to unlock the dispenser.',
-                complete: Boolean(unrealBridge.waterKey),
+                title: '5 zombies and coins',
+                body: walletBalanceCents >= GAME_RULES.water.bottlePriceCoins ? '160 coins ready for EVIAN.' : 'Clear 5 zombies to earn enough money.',
+                complete: walletBalanceCents >= GAME_RULES.water.bottlePriceCoins,
                 Icon: Trophy,
             },
         ]
@@ -4339,6 +4355,9 @@ export default function ExperiencePage() {
         activeSceneQuest?.quest.id === 'water_arena_run' &&
         !unrealBridge.hasArenaAccess &&
         unrealBridge.arenaKeyPieces.length > 0;
+    const compactWaterQuestMilestones = waterQuestMilestones.length > 0
+        ? [waterQuestMilestones.find((milestone) => !milestone.complete) ?? waterQuestMilestones[waterQuestMilestones.length - 1]]
+        : [];
     const questDirectorState = useMemo<QuestDirectorState | null>(() => {
         if (activeSceneQuest?.quest.id !== 'water_arena_run') return null;
 
@@ -4366,11 +4385,11 @@ export default function ExperiencePage() {
             };
         }
 
-        if (unrealBridge.waterKey && walletBalanceCents >= GAME_RULES.water.bottlePriceCoins) {
+        if (walletBalanceCents >= GAME_RULES.water.bottlePriceCoins) {
             return {
                 kicker: 'Mission director',
                 title: 'Buy the EVIAN bottle',
-                body: 'The dispenser authorization key and enough coins are ready. Complete the purchase.',
+                body: 'You have enough coins. Return to the dispenser and buy the EVIAN bottle.',
                 destination: 'Water dispenser',
                 action: 'Buy water',
                 signal: 'reward',
@@ -4378,23 +4397,11 @@ export default function ExperiencePage() {
             };
         }
 
-        if (unrealBridge.waterKey) {
-            return {
-                kicker: 'Mission director',
-                title: 'Earn the last coins',
-                body: `Water code ${unrealBridge.waterKey} is ready. Build your balance to ${GAME_RULES.water.bottlePriceCoins} coins.`,
-                destination: 'Arcade cabinets or arena reward',
-                action: 'Earn coins',
-                signal: 'reward',
-                progress: 76,
-            };
-        }
-
         if (unrealBridge.hasArenaAccess) {
             return {
                 kicker: 'Mission director',
                 title: 'Clear Zombie Hall',
-                body: 'The gate accepted the supplier code. Win the arena to receive the water authorization key.',
+                body: `The gate accepted the supplier code. Clear 5 zombies to earn ${GAME_RULES.water.bottlePriceCoins} coins.`,
                 destination: 'Zombie Hall',
                 action: 'Enter arena',
                 signal: 'ready',
@@ -4451,7 +4458,6 @@ export default function ExperiencePage() {
         activeSceneQuest?.quest.id,
         unrealBridge.arenaKeyPieces.length,
         unrealBridge.hasArenaAccess,
-        unrealBridge.waterKey,
         unrealBridge.waterPurchased,
         unrealBridge.wheelCoupon,
         unrealBridge.wheelSpinsRemaining,
@@ -4698,11 +4704,11 @@ export default function ExperiencePage() {
             )}
 
             {shouldShowQuestDirector && questDirectorState && (
-                <div className="pointer-events-none absolute left-1/2 top-[5.75rem] z-[82] -translate-x-1/2 px-3 sm:top-24">
+                <div className="pointer-events-none absolute bottom-24 right-3 z-[82] sm:bottom-6 sm:right-5">
                     <QuestDirectorOverlay
                         state={questDirectorState}
                         pieces={unrealBridge.arenaKeyPieces}
-                        waterKey={unrealBridge.waterKey}
+                        walletBalanceCents={walletBalanceCents}
                         coupon={unrealBridge.wheelCoupon}
                         onOpenPassword={() => setIsArenaPasswordOpen(true)}
                     />
@@ -4867,11 +4873,17 @@ export default function ExperiencePage() {
                 </div>
             )}
 
-            {showExperienceHud && unrealBridge.lastDogMood === 'mad' && (
-                <div className="pointer-events-none absolute left-1/2 top-28 z-[45] w-[min(92vw,26rem)] -translate-x-1/2">
-                    <div className="sfera-reward-pop rounded-2xl border border-amber-300/30 bg-[#160f05]/86 p-3 text-center text-white shadow-[0_22px_70px_rgba(0,0,0,0.42)] backdrop-blur-md">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-100">Focus check</p>
-                        <p className="mt-1 text-sm font-black">heyy be focused hahah, doggy is mad</p>
+            {showExperienceHud && dogReactionToast && (
+                <div className="pointer-events-none absolute left-1/2 top-28 z-[92] w-[min(92vw,24rem)] -translate-x-1/2">
+                    <div className={`sfera-reward-pop rounded-2xl border p-3 text-center text-white shadow-[0_22px_70px_rgba(0,0,0,0.42)] backdrop-blur-md ${
+                        dogReactionToast.mood === 'mad'
+                            ? 'border-amber-300/34 bg-[#160f05]/88'
+                            : 'border-emerald-300/28 bg-[#06160d]/88'
+                    }`}>
+                        <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${dogReactionToast.mood === 'mad' ? 'text-amber-100' : 'text-emerald-100'}`}>Focus check</p>
+                        <p className="mt-1 text-sm font-black">
+                            {dogReactionToast.mood === 'mad' ? 'heyy be focused hahah, doggy is mad' : 'doggy is calm again. carry on.'}
+                        </p>
                     </div>
                 </div>
             )}
@@ -5029,7 +5041,7 @@ export default function ExperiencePage() {
                                         </div>
                                     </div>
                                     <div className="grid gap-2 p-3">
-                                        {(waterQuestMilestones.length > 0 ? waterQuestMilestones : sceneHud.guideSteps.map((step, index) => ({
+                                        {(waterQuestMilestones.length > 0 ? compactWaterQuestMilestones : sceneHud.guideSteps.map((step, index) => ({
                                             title: step,
                                             body: index === 0 ? 'Start here and follow the prompts.' : 'Continue the sequence.',
                                             complete: index < Math.floor(activeSceneQuestPercent / 25),
@@ -5431,7 +5443,6 @@ export default function ExperiencePage() {
                         <WaterDispenserOverlay
                             walletBalanceCents={walletBalanceCents}
                             hasArenaAccess={unrealBridge.hasArenaAccess}
-                            waterKey={unrealBridge.waterKey}
                             waterPurchased={unrealBridge.waterPurchased}
                             onClose={() => setIsWaterDispenserOpen(false)}
                             onAttempt={handleWaterPurchaseAttempt}

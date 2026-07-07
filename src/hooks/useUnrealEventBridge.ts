@@ -116,6 +116,10 @@ const readPersistedBridgeState = (): UnrealEventBridgeState => {
 
         const parsed = JSON.parse(raw) as unknown;
         if (!isPersistedBridgeState(parsed)) return INITIAL_STATE;
+        const arenaKeyPieces = parsed.arenaKeyPieces ?? INITIAL_STATE.arenaKeyPieces;
+        const hasVerifiedArenaAccess =
+            Boolean(parsed.hasArenaAccess) &&
+            ARENA_KEY_PIECES.every((piece) => arenaKeyPieces.includes(piece));
 
         return {
             ...INITIAL_STATE,
@@ -125,8 +129,8 @@ const readPersistedBridgeState = (): UnrealEventBridgeState => {
             walletBalanceCents: parsed.walletBalanceCents ?? INITIAL_STATE.walletBalanceCents,
             walletTransactions: parsed.walletTransactions ?? INITIAL_STATE.walletTransactions,
             recentActivity: parsed.recentActivity ?? INITIAL_STATE.recentActivity,
-            arenaKeyPieces: parsed.arenaKeyPieces ?? INITIAL_STATE.arenaKeyPieces,
-            hasArenaAccess: parsed.hasArenaAccess ?? INITIAL_STATE.hasArenaAccess,
+            arenaKeyPieces,
+            hasArenaAccess: hasVerifiedArenaAccess,
             arcadeKey: parsed.arcadeKey ?? INITIAL_STATE.arcadeKey,
             waterKey: parsed.waterKey ?? INITIAL_STATE.waterKey,
             waterPurchased: parsed.waterPurchased ?? INITIAL_STATE.waterPurchased,
@@ -231,7 +235,6 @@ const withQuestUpdate = (
     let walletBalanceCents = nextState.walletBalanceCents;
     let walletTransactions = nextState.walletTransactions;
     const arcadeKey = nextState.arcadeKey;
-    let waterKey = nextState.waterKey;
 
     for (const questId of questUpdate.completedQuestIds) {
         const quest = getQuestDefinition(questId);
@@ -244,10 +247,6 @@ const withQuestUpdate = (
                 ...walletTransactions,
             ].slice(0, 12);
         }
-
-        if (questId === 'water_arena_run') {
-            waterKey = GAME_RULES.zombieArena.waterKeyReward;
-        }
     }
 
     return {
@@ -259,7 +258,6 @@ const withQuestUpdate = (
         walletBalanceCents,
         walletTransactions,
         arcadeKey,
-        waterKey,
     };
 };
 
@@ -312,7 +310,7 @@ export const useUnrealEventBridge = () => {
                     if (unrealEvent.game !== 'ZombieArena') {
                         return withQuestUpdate(nextBase, unrealEvent);
                     }
-                    if (!previous.hasArenaAccess) {
+                    if (!previous.hasArenaAccess || !hasAllArenaKeyPieces(previous.arenaKeyPieces)) {
                         const deniedEvent = {
                             event: 'game_access_denied',
                             game: 'ZombieArena',
@@ -371,7 +369,14 @@ export const useUnrealEventBridge = () => {
                     const zombieScore = previous.zombieScore + pointsEarned;
                     const zombieRank = resolveZombieRank(zombieScore);
                     const rankedUp = zombieRank !== previous.zombieRank;
-                    const moment = rankedUp
+                    const arenaCleared = zombieKills >= 5;
+                    const moment = arenaCleared
+                        ? {
+                            kind: 'game_over' as const,
+                            title: 'Zombie Hall cleared',
+                            description: `5 zombies down. Arena reward is enough to buy ${GAME_RULES.water.bottleName}.`,
+                        }
+                        : rankedUp
                         ? {
                             kind: 'rank' as const,
                             title: `Rank up: ${zombieRank}`,
@@ -395,11 +400,12 @@ export const useUnrealEventBridge = () => {
                         zombieCombo,
                         maxZombieCombo: Math.max(previous.maxZombieCombo, zombieCombo),
                         zombieScore,
+                        zombieGameOver: arenaCleared,
                         zombieCoins: previous.zombieCoins + GAME_RULES.zombieArena.coinsPerKill,
                         zombieThreatLevel: resolveThreatLevel(zombieKills),
                         zombieRank,
                         arenaMoments: withArenaMoment(previous.arenaMoments, moment),
-                        recentActivity: withActivity(previous.recentActivity, comboBonusUnlocked ? `Zombie killed — ${zombieCombo}x combo` : 'Zombie killed'),
+                        recentActivity: withActivity(previous.recentActivity, arenaCleared ? 'Zombie Hall cleared: 160 coins earned for water' : comboBonusUnlocked ? `Zombie killed — ${zombieCombo}x combo` : 'Zombie killed'),
                     }, unrealEvent);
                 }
                 case 'player_hit': {
@@ -452,7 +458,7 @@ export const useUnrealEventBridge = () => {
                         recentActivity: withActivity(previous.recentActivity, 'Left water dispenser'),
                     }, unrealEvent);
                 case 'water_purchased': {
-                    if (previous.waterPurchased || !previous.waterKey || previous.walletBalanceCents < GAME_RULES.water.bottlePriceCoins) {
+                    if (previous.waterPurchased || previous.walletBalanceCents < GAME_RULES.water.bottlePriceCoins) {
                         return withQuestUpdate(nextBase, unrealEvent);
                     }
 
@@ -491,7 +497,6 @@ export const useUnrealEventBridge = () => {
                     return withQuestUpdate({
                         ...nextBase,
                         arenaKeyPieces,
-                        hasArenaAccess: hasAllArenaKeyPieces(arenaKeyPieces),
                         recentActivity: withActivity(previous.recentActivity, `Arena key piece found: ${piece}`),
                     }, unrealEvent);
                 }
@@ -499,7 +504,8 @@ export const useUnrealEventBridge = () => {
                     const password = typeof unrealEvent.password === 'string'
                         ? unrealEvent.password.trim().toUpperCase().replace(/\s+/g, '')
                         : '';
-                    const success = password === GAME_RULES.keys.arenaPassword || unrealEvent.success === true;
+                    const hasFragments = hasAllArenaKeyPieces(previous.arenaKeyPieces);
+                    const success = hasFragments && (password === GAME_RULES.keys.arenaPassword || unrealEvent.success === true);
 
                     return withQuestUpdate({
                         ...nextBase,
@@ -511,8 +517,7 @@ export const useUnrealEventBridge = () => {
                 case 'arena_completed':
                     return withQuestUpdate({
                         ...nextBase,
-                        waterKey: GAME_RULES.zombieArena.waterKeyReward,
-                        recentActivity: withActivity(previous.recentActivity, `Zombie Arena cleared: water code ${GAME_RULES.zombieArena.waterKeyReward} earned`),
+                        recentActivity: withActivity(previous.recentActivity, `Zombie Arena cleared: enough coins earned for ${GAME_RULES.water.bottleName}`),
                     }, unrealEvent);
                 case 'wheel':
                     return withQuestUpdate({
