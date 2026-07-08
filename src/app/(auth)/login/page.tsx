@@ -114,6 +114,14 @@ const copy = {
     switchToSignIn: "Sign in",
     switchToSignUp: "Create account",
     otpDelivered: "We sent a sign-in email.",
+    forgotPassword: "Forgot password?",
+    resetPasswordSent: "Password reset email sent. Open the link, choose a new password, then continue.",
+    enterEmailForReset: "Enter your email first, then request a password reset.",
+    newPassword: "New password",
+    updatePassword: "Update password",
+    passwordUpdated: "Password updated. Sign in with the new password.",
+    passwordResetHint: "Choose a new password for this account.",
+    backToSignIn: "Back to sign in",
     newSupplier: "New supplier?",
     apply: "Apply for access",
   },
@@ -159,6 +167,14 @@ const copy = {
     switchToSignIn: "Войти",
     switchToSignUp: "Создать аккаунт",
     otpDelivered: "Мы отправили письмо для входа.",
+    forgotPassword: "Забыли пароль?",
+    resetPasswordSent: "Письмо для сброса пароля отправлено. Откройте ссылку, задайте новый пароль и продолжайте.",
+    enterEmailForReset: "Сначала введите email, затем запросите сброс пароля.",
+    newPassword: "Новый пароль",
+    updatePassword: "Обновить пароль",
+    passwordUpdated: "Пароль обновлен. Войдите с новым паролем.",
+    passwordResetHint: "Задайте новый пароль для этого аккаунта.",
+    backToSignIn: "Назад ко входу",
     newSupplier: "Новый поставщик?",
     apply: "Подать заявку",
   },
@@ -201,6 +217,14 @@ const copy = {
     switchToSignIn: "登录",
     switchToSignUp: "创建账号",
     otpDelivered: "登录邮件已发送。",
+    forgotPassword: "忘记密码？",
+    resetPasswordSent: "密码重置邮件已发送。请打开链接，设置新密码后继续。",
+    enterEmailForReset: "请先输入邮箱，然后请求重置密码。",
+    newPassword: "新密码",
+    updatePassword: "更新密码",
+    passwordUpdated: "密码已更新。请使用新密码登录。",
+    passwordResetHint: "为此账号设置新密码。",
+    backToSignIn: "返回登录",
     newSupplier: "新供应商？",
     apply: "申请访问权限",
   },
@@ -244,6 +268,14 @@ const isOtpRateLimitError = (error: unknown) => {
   );
 };
 
+const isPasswordRecoveryUrl = () => {
+  if (typeof window === "undefined") return false;
+
+  const query = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return query.get("mode") === "recovery" || hash.get("type") === "recovery";
+};
+
 function LoginPageContent() {
   const { language } = useLanguage();
   const t = copy[language];
@@ -265,9 +297,11 @@ function LoginPageContent() {
   const [otpCode, setOtpCode] = useState("");
   const [isSignUpMode, setIsSignUpMode] = useState(requestedAudience === "user" && !isPlayerLoginRequest);
   const [otpRequested, setOtpRequested] = useState(false);
+  const [isPasswordResetMode, setIsPasswordResetMode] = useState(false);
   const [isBootstrappingAuth, setIsBootstrappingAuth] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResendingOtp, setIsResendingOtp] = useState(false);
+  const [isSendingPasswordReset, setIsSendingPasswordReset] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
@@ -277,6 +311,7 @@ function LoginPageContent() {
     setAuthMethod("password");
     setOtpRequested(false);
     setOtpCode("");
+    setIsPasswordResetMode(false);
     setErrorMessage(null);
     setInfoMessage(null);
   }, [isPlayerLoginRequest, requestedAudience]);
@@ -293,6 +328,17 @@ function LoginPageContent() {
     const url = new URL("/login", origin);
     url.searchParams.set("role", isPlayerLoginRequest ? "player" : audience);
     url.searchParams.set("next", redirectPath);
+    return url.toString();
+  }, [audience, isPlayerLoginRequest, redirectPath]);
+
+  const buildPasswordRecoveryRedirectTo = useCallback(() => {
+    const origin = getAuthRedirectOrigin();
+    if (!origin) return undefined;
+
+    const url = new URL("/login", origin);
+    url.searchParams.set("role", isPlayerLoginRequest ? "player" : audience);
+    url.searchParams.set("next", redirectPath);
+    url.searchParams.set("mode", "recovery");
     return url.toString();
   }, [audience, isPlayerLoginRequest, redirectPath]);
 
@@ -341,6 +387,15 @@ function LoginPageContent() {
         if (!isMounted) return;
 
         if (session) {
+          if (isPasswordRecoveryUrl()) {
+            setAuthMethod("password");
+            setIsSignUpMode(false);
+            setIsPasswordResetMode(true);
+            setPassword("");
+            setIsBootstrappingAuth(false);
+            return;
+          }
+
           const sessionRole = getUserRole(session.user);
           const isSupplierLoginRequest = requestedAudience === "supplier";
 
@@ -367,7 +422,16 @@ function LoginPageContent() {
           return;
         }
 
-        const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, nextSession) => {
+          if (event === "PASSWORD_RECOVERY") {
+            setAuthMethod("password");
+            setIsSignUpMode(false);
+            setIsPasswordResetMode(true);
+            setPassword("");
+            setIsBootstrappingAuth(false);
+            return;
+          }
+
           if (!nextSession) return;
 
           const nextSessionRole = getUserRole(nextSession.user);
@@ -410,8 +474,9 @@ function LoginPageContent() {
 
   const passwordSubmitLabel = useMemo(() => {
     if (isSubmitting) return t.loading;
+    if (isPasswordResetMode) return t.updatePassword;
     return isSignUpMode ? t.signUp : t.signIn;
-  }, [isSignUpMode, isSubmitting, t.loading, t.signIn, t.signUp]);
+  }, [isPasswordResetMode, isSignUpMode, isSubmitting, t.loading, t.signIn, t.signUp, t.updatePassword]);
 
   const syncAndRedirect = useCallback(
     async (session: Session | null) => {
@@ -510,6 +575,49 @@ function LoginPageContent() {
     throw lastError ?? new Error(t.defaultError);
   }, [audience, email, otpCode, syncAndRedirect, t.defaultError]);
 
+  const requestPasswordReset = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !trimmedEmail.includes("@")) {
+      setErrorMessage(t.enterEmailForReset);
+      return;
+    }
+
+    setIsSendingPasswordReset(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+        redirectTo: buildPasswordRecoveryRedirectTo(),
+      });
+
+      if (error) throw error;
+      setInfoMessage(t.resetPasswordSent);
+    } catch (error: unknown) {
+      const rawMessage = error instanceof Error ? error.message : "";
+      setErrorMessage(rawMessage || t.defaultError);
+    } finally {
+      setIsSendingPasswordReset(false);
+    }
+  };
+
+  const updateRecoveredPassword = async () => {
+    const supabase = getSupabaseBrowserClient();
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session) {
+      await syncAndRedirect(session);
+      return;
+    }
+
+    setPassword("");
+    setIsPasswordResetMode(false);
+    setInfoMessage(t.passwordUpdated);
+  };
+
   const handlePasswordSubmit = async () => {
     const supabase = getSupabaseBrowserClient();
 
@@ -607,7 +715,9 @@ function LoginPageContent() {
     setIsSubmitting(true);
 
     try {
-      if (authMethod === "otp") {
+      if (isPasswordResetMode) {
+        await updateRecoveredPassword();
+      } else if (authMethod === "otp") {
         if (otpRequested) {
           await verifyOtp();
         } else {
@@ -643,7 +753,9 @@ function LoginPageContent() {
   };
 
   const hintText =
-    isPlayerLoginRequest && authMethod === "password"
+    isPasswordResetMode
+      ? t.passwordResetHint
+      : isPlayerLoginRequest && authMethod === "password"
       ? t.playerPasswordHint
       : authMethod === "otp"
       ? audience === "supplier"
@@ -666,6 +778,8 @@ function LoginPageContent() {
     setIsSignUpMode(nextAudience === "user" && !isPlayerLoginRequest);
     setOtpRequested(false);
     setOtpCode("");
+    setIsPasswordResetMode(false);
+    setPassword("");
     resetMessages();
   };
 
@@ -714,40 +828,42 @@ function LoginPageContent() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-black/20 p-1">
-          <button
-            type="button"
-            onClick={() => {
-              setAuthMethod("password");
-              setOtpRequested(false);
-              setOtpCode("");
-              resetMessages();
-            }}
-            className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
-              authMethod === "password"
-                ? "bg-white/12 text-white"
-                : "text-gray-300 hover:bg-white/10"
-            }`}
-          >
-            {t.passwordMethod}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setAuthMethod("otp");
-              setOtpRequested(false);
-              setOtpCode("");
-              resetMessages();
-            }}
-            className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
-              authMethod === "otp"
-                ? "bg-white/12 text-white"
-                : "text-gray-300 hover:bg-white/10"
-            }`}
-          >
-            {t.otpMethod}
-          </button>
-        </div>
+        {!isPasswordResetMode && (
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-black/20 p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMethod("password");
+                setOtpRequested(false);
+                setOtpCode("");
+                resetMessages();
+              }}
+              className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                authMethod === "password"
+                  ? "bg-white/12 text-white"
+                  : "text-gray-300 hover:bg-white/10"
+              }`}
+            >
+              {t.passwordMethod}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMethod("otp");
+                setOtpRequested(false);
+                setOtpCode("");
+                resetMessages();
+              }}
+              className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                authMethod === "otp"
+                  ? "bg-white/12 text-white"
+                  : "text-gray-300 hover:bg-white/10"
+              }`}
+            >
+              {t.otpMethod}
+            </button>
+          </div>
+        )}
 
         {hintText && (
           <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/8 px-3 py-2 text-sm text-cyan-100">
@@ -757,6 +873,7 @@ function LoginPageContent() {
 
         <form className="space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-4">
+            {!isPasswordResetMode && (
             <div>
               <label htmlFor="email-address" className="mb-1 block text-sm font-medium text-gray-300">
                 {t.email}
@@ -773,17 +890,18 @@ function LoginPageContent() {
                 placeholder="name@example.com"
               />
             </div>
+            )}
 
             {authMethod === "password" ? (
               <div>
                 <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-300">
-                  {t.password}
+                  {isPasswordResetMode ? t.newPassword : t.password}
                 </label>
                 <input
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete={isSignUpMode ? "new-password" : "current-password"}
+                  autoComplete={isPasswordResetMode || isSignUpMode ? "new-password" : "current-password"}
                   required
                   minLength={6}
                   value={password}
@@ -835,6 +953,34 @@ function LoginPageContent() {
               {authMethod === "otp" ? otpSubmitLabel : passwordSubmitLabel}
             </button>
 
+            {authMethod === "password" && !isSignUpMode && !isPasswordResetMode && (
+              <button
+                type="button"
+                disabled={isSendingPasswordReset}
+                onClick={() => {
+                  resetMessages();
+                  void requestPasswordReset();
+                }}
+                className="flex w-full justify-center rounded-lg border border-white/15 px-3 py-3 text-sm font-semibold text-gray-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isSendingPasswordReset ? t.loading : t.forgotPassword}
+              </button>
+            )}
+
+            {isPasswordResetMode && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPasswordResetMode(false);
+                  setPassword("");
+                  resetMessages();
+                }}
+                className="flex w-full justify-center rounded-lg border border-white/15 px-3 py-3 text-sm font-semibold text-gray-200 transition hover:bg-white/10"
+              >
+                {t.backToSignIn}
+              </button>
+            )}
+
             {authMethod === "otp" && otpRequested && (
               <button
                 type="button"
@@ -873,7 +1019,7 @@ function LoginPageContent() {
           </div>
         </form>
 
-        {authMethod === "password" && (
+        {authMethod === "password" && !isPasswordResetMode && (
           <div className="text-center text-xs text-gray-500">
             {isSignUpMode ? t.modeSignIn : t.modeSignUp}{" "}
             <button
