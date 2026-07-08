@@ -3675,6 +3675,12 @@ export default function ExperiencePage() {
         };
     }, []);
 
+    useEffect(() => {
+        if (isViewerSessionLoading || viewerEmail) return;
+        const currentPath = `${window.location.pathname}${window.location.search}`;
+        window.location.replace(`/login?role=player&next=${encodeURIComponent(currentPath)}`);
+    }, [isViewerSessionLoading, viewerEmail]);
+
     // Product Interaction State
     const [activeProduct, setActiveProduct] = useState<Product | null>(null);
     const [activeSupplier, setActiveSupplier] = useState<Supplier | undefined>(undefined);

@@ -108,7 +108,7 @@ const copy = {
     invalidOtp: "This code is invalid or expired. Use the newest code from your email, or request a new one.",
     networkError: "Couldn't reach the authentication service. Check your connection and try again.",
     signupCodeSent: "Account created. Check your inbox for the 6-digit confirmation code and enter it below.",
-    rateLimited: "A code was sent to your inbox recently. Enter it below — no need to request a new one.",
+    rateLimited: "The email provider is temporarily blocking another code request. Wait about a minute, then press Resend code again. Also check spam.",
     modeSignIn: "Already have an account?",
     modeSignUp: "Need an account?",
     switchToSignIn: "Sign in",
@@ -153,7 +153,7 @@ const copy = {
     invalidOtp: "Этот код неверный или устарел. Используйте самый новый код из email или запросите новый.",
     networkError: "Не удалось связаться с сервисом авторизации. Проверьте подключение и попробуйте снова.",
     signupCodeSent: "Аккаунт создан. Проверьте почту — там 6-значный код подтверждения. Введите его ниже.",
-    rateLimited: "Код уже был отправлен недавно. Введите его ниже — повторная отправка не нужна.",
+    rateLimited: "Почтовый сервис временно блокирует повторный код. Подождите около минуты, затем нажмите «Отправить снова». Проверьте также спам.",
     modeSignIn: "Уже есть аккаунт?",
     modeSignUp: "Нужен аккаунт?",
     switchToSignIn: "Войти",
@@ -195,7 +195,7 @@ const copy = {
     invalidOtp: "验证码无效或已过期。请使用邮箱中最新的验证码，或重新请求一个。",
     networkError: "无法连接到认证服务。请检查网络后重试。",
     signupCodeSent: "账号已创建。请查收邮箱中的 6 位确认码并在下方输入。",
-    rateLimited: "验证码刚才已发送，请直接在下方输入，无需重新请求。",
+    rateLimited: "邮件服务暂时阻止再次发送验证码。请等待约一分钟后重新发送，也请检查垃圾邮件。",
     modeSignIn: "已有账号？",
     modeSignUp: "需要新账号？",
     switchToSignIn: "登录",
@@ -472,11 +472,9 @@ function LoginPageContent() {
     if (error) {
       // Supabase rate-limits OTP sends (e.g. "For security purposes, you
       // can only request this after N seconds" or "email rate limit
-      // exceeded"). A code was almost certainly already delivered — flip
-      // into entry mode with a friendly notice instead of surfacing a
-      // scary red error.
+      // exceeded"). Do not claim delivery here; the previous email may
+      // have been delayed or blocked by the provider.
       if (isOtpRateLimitError(error)) {
-        setOtpRequested(true);
         setInfoMessage(t.rateLimited);
         return;
       }
@@ -516,6 +514,30 @@ function LoginPageContent() {
     const supabase = getSupabaseBrowserClient();
 
     if (isSignUpMode) {
+      if (audience === "user") {
+        const response = await fetch("/api/auth/player-signup", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        });
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+
+        if (!response.ok) {
+          throw new Error(payload?.error ?? t.defaultError);
+        }
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+        await syncAndRedirect(data.session);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
