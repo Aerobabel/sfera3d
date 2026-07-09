@@ -11,6 +11,7 @@ const MAX_RECENT_ACTIVITY = 8;
 const MAX_ARENA_MOMENTS = 5;
 const PERSISTED_STATE_KEY = '3dsfera:player-progress:v2';
 const ARENA_KEY_PIECES = [GAME_RULES.keys.firstHalf, GAME_RULES.keys.secondHalf] as const;
+const WATER_ARENA_QUEST_ID = 'water_arena_run';
 
 const resolveZombieRank = (score: number) => {
     const rank = [...GAME_RULES.zombieArena.ranks]
@@ -87,7 +88,13 @@ type PersistedBridgeState = Pick<
 >;
 
 const hasWaterArenaPayout = (questRewards: UnrealEventBridgeState['questRewards']) =>
-    questRewards.some((reward) => reward.questId === 'water_arena_run' && reward.kind === 'coins');
+    questRewards.some((reward) => reward.questId === WATER_ARENA_QUEST_ID && reward.kind === 'coins');
+
+const hasClearedWaterArena = (questProgress: UnrealEventBridgeState['questProgress']) => {
+    const progress = questProgress.find((candidate) => candidate.questId === WATER_ARENA_QUEST_ID);
+    const clearZombies = progress?.objectives.clear_zombies;
+    return Boolean(clearZombies && clearZombies.current >= clearZombies.target);
+};
 
 const normalizePersistedRewards = (questRewards: UnrealEventBridgeState['questRewards']) =>
     questRewards.filter((reward) => reward.questId !== 'player_arena_trial' && reward.questId !== 'city_token_hunt');
@@ -176,7 +183,7 @@ const readPersistedBridgeState = (): UnrealEventBridgeState => {
             parsed.walletTransactions ?? INITIAL_STATE.walletTransactions
         );
 
-        return {
+        const restoredState: UnrealEventBridgeState = {
             ...INITIAL_STATE,
             currentMode: parsed.currentMode ?? INITIAL_STATE.currentMode,
             questProgress,
@@ -193,6 +200,10 @@ const readPersistedBridgeState = (): UnrealEventBridgeState => {
             wheelSpinsRemaining: waterPurchased ? parsed.wheelSpinsRemaining ?? INITIAL_STATE.wheelSpinsRemaining : INITIAL_STATE.wheelSpinsRemaining,
             lastDogMood: parsed.lastDogMood ?? INITIAL_STATE.lastDogMood,
         };
+
+        return hasClearedWaterArena(restoredState.questProgress)
+            ? grantWaterArenaPayout(restoredState)
+            : restoredState;
     } catch {
         return INITIAL_STATE;
     }
@@ -258,17 +269,70 @@ const normalizeKeyPiece = (value: unknown) => {
 const hasAllArenaKeyPieces = (pieces: string[]) =>
     ARENA_KEY_PIECES.every((piece) => pieces.includes(piece));
 
-const createWalletTransaction = (
+function createWalletTransaction(
     kind: 'arcade_win' | 'quest_reward' | 'water_purchase',
     label: string,
     amountCents: number
-) => ({
-    id: `${kind}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    kind,
-    label,
-    amountCents,
-    createdAt: Date.now(),
-});
+) {
+    return {
+        id: `${kind}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        kind,
+        label,
+        amountCents,
+        createdAt: Date.now(),
+    };
+}
+
+function grantWaterArenaPayout(state: UnrealEventBridgeState): UnrealEventBridgeState {
+    if (hasWaterArenaPayout(state.questRewards)) return state;
+
+    const quest = getQuestDefinition(WATER_ARENA_QUEST_ID);
+    if (!quest || quest.reward.kind !== 'coins' || typeof quest.reward.value !== 'number') return state;
+
+    const earnedAt = Date.now();
+    const questProgress = state.questProgress.map((progress) => {
+        if (progress.questId !== WATER_ARENA_QUEST_ID) return progress;
+
+        return {
+            ...progress,
+            status: 'completed' as const,
+            completedAt: progress.completedAt ?? earnedAt,
+            objectives: Object.fromEntries(
+                Object.entries(progress.objectives).map(([objectiveId, objective]) => [
+                    objectiveId,
+                    {
+                        ...objective,
+                        current: objective.target,
+                        completed: true,
+                    },
+                ])
+            ),
+        };
+    });
+
+    return {
+        ...state,
+        questProgress,
+        questRewards: [
+            ...state.questRewards,
+            {
+                id: `${quest.id}:${quest.reward.kind}`,
+                questId: quest.id,
+                kind: quest.reward.kind,
+                value: quest.reward.value,
+                status: 'earned',
+                earnedAt,
+            },
+        ],
+        lastCompletedQuestId: WATER_ARENA_QUEST_ID,
+        walletBalanceCents: state.walletBalanceCents + quest.reward.value,
+        walletTransactions: [
+            createWalletTransaction('quest_reward', quest.reward.label.en, quest.reward.value),
+            ...state.walletTransactions,
+        ].slice(0, 12),
+        recentActivity: withActivity(state.recentActivity, questCompletionActivity(WATER_ARENA_QUEST_ID)),
+    };
+}
 
 const withQuestUpdate = (
     nextState: UnrealEventBridgeState,
@@ -449,7 +513,7 @@ export const useUnrealEventBridge = () => {
                               description: `+${pointsEarned} arena points. Clear all 5 zombies for the water payout.`,
                           };
 
-                    return withQuestUpdate({
+                    const updatedState = withQuestUpdate({
                         ...nextBase,
                         zombieKills,
                         zombieCombo,
@@ -462,6 +526,8 @@ export const useUnrealEventBridge = () => {
                         arenaMoments: withArenaMoment(previous.arenaMoments, moment),
                         recentActivity: withActivity(previous.recentActivity, arenaCleared ? 'Zombie Hall cleared: arena payout earned for water' : comboBonusUnlocked ? `Zombie killed — ${zombieCombo}x combo` : 'Zombie killed'),
                     }, unrealEvent);
+
+                    return arenaCleared ? grantWaterArenaPayout(updatedState) : updatedState;
                 }
                 case 'player_hit': {
                     const zombieHealth = Math.max(0, previous.zombieHealth - GAME_RULES.zombieArena.playerHitDamage);
@@ -577,10 +643,10 @@ export const useUnrealEventBridge = () => {
                     }, unrealEvent);
                 }
                 case 'arena_completed':
-                    return withQuestUpdate({
+                    return grantWaterArenaPayout(withQuestUpdate({
                         ...nextBase,
                         recentActivity: withActivity(previous.recentActivity, `Zombie Arena cleared: water payout ready for ${GAME_RULES.water.bottleName}`),
-                    }, unrealEvent);
+                    }, unrealEvent));
                 case 'wheel':
                     return withQuestUpdate({
                         ...nextBase,

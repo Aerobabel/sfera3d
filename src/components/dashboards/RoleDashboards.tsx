@@ -258,6 +258,7 @@ const fallback: UnrealEventBridgeState = {
 };
 
 const PLAYER_PROGRESS_STORAGE_KEY = '3dsfera:player-progress:v2';
+const WATER_ARENA_QUEST_ID = 'water_arena_run';
 const PLAYER_WHEEL_COPY = {
     en: {
         firstBuyerBonus: 'First buyer bonus',
@@ -315,6 +316,35 @@ const PLAYER_WHEEL_COPY = {
 const normalizeDashboardRewards = (questRewards: UnrealEventBridgeState['questRewards']) =>
     questRewards.filter((reward) => reward.questId !== 'player_arena_trial' && reward.questId !== 'city_token_hunt');
 
+const hasDashboardWaterArenaClear = (questProgress: UnrealEventBridgeState['questProgress']) => {
+    const progress = questProgress.find((candidate) => candidate.questId === WATER_ARENA_QUEST_ID);
+    const clearZombies = progress?.objectives.clear_zombies;
+    return Boolean(clearZombies && clearZombies.current >= clearZombies.target);
+};
+
+const ensureDashboardWaterArenaReward = (
+    questProgress: UnrealEventBridgeState['questProgress'],
+    questRewards: UnrealEventBridgeState['questRewards']
+) => {
+    const hasReward = questRewards.some((reward) => reward.questId === WATER_ARENA_QUEST_ID && reward.kind === 'coins');
+    if (hasReward || !hasDashboardWaterArenaClear(questProgress)) return questRewards;
+
+    const quest = getQuestDefinition(WATER_ARENA_QUEST_ID);
+    if (!quest || quest.reward.kind !== 'coins') return questRewards;
+
+    return [
+        ...questRewards,
+        {
+            id: `${quest.id}:${quest.reward.kind}`,
+            questId: quest.id,
+            kind: quest.reward.kind,
+            value: quest.reward.value,
+            status: 'earned' as const,
+            earnedAt: Date.now(),
+        },
+    ];
+};
+
 const normalizeDashboardQuestProgress = (
     questProgress: UnrealEventBridgeState['questProgress'],
     fallbackProgress: UnrealEventBridgeState['questProgress']
@@ -364,10 +394,13 @@ const readPersistedPlayerBridge = (): UnrealEventBridgeState | null => {
         if (!raw) return null;
         const parsed = JSON.parse(raw) as Partial<UnrealEventBridgeState>;
         if (!parsed || typeof parsed !== 'object') return null;
-        const questRewards = normalizeDashboardRewards(Array.isArray(parsed.questRewards) ? parsed.questRewards : fallback.questRewards);
         const questProgress = normalizeDashboardQuestProgress(
             Array.isArray(parsed.questProgress) ? parsed.questProgress : fallback.questProgress,
             fallback.questProgress
+        );
+        const questRewards = ensureDashboardWaterArenaReward(
+            questProgress,
+            normalizeDashboardRewards(Array.isArray(parsed.questRewards) ? parsed.questRewards : fallback.questRewards)
         );
         const hasArenaPayout = questRewards.some((reward) => reward.questId === 'water_arena_run' && reward.kind === 'coins');
         const waterPurchased = Boolean(parsed.waterPurchased) && hasArenaPayout;
