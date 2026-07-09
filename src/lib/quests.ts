@@ -149,9 +149,9 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
             kind: 'coins',
             value: 160,
             label: {
-                en: 'Arena payout for EVIAN 0.5L',
-                ru: 'Выплата арены на EVIAN 0,5 л',
-                zh: 'EVIAN 0.5L 竞技场奖励',
+                en: 'Reward: 160 coins',
+                ru: 'Награда: 160 монет',
+                zh: '奖励：160 金币',
             },
         },
     },

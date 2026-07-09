@@ -413,6 +413,9 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
     const [selectedProduct, setSelectedProduct] = useState<PavilionProduct | null>(null);
     const arenaKeyPiece = getPavilionArenaKeyPiece(pavilion.id);
     const arenaKeyLabel = getArenaKeyLabel(language);
+    const arenaKeyProductId = arenaKeyPiece
+        ? pavilion.products[pavilion.products.length - 1]?.id ?? null
+        : null;
 
     // --- Catalogue filter state ---
     const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -426,7 +429,6 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
     const signatureProduct = pavilion.products[0] ?? null;
     const arenaKeyHint = useMemo<ChatEntry | null>(() => {
         if (pavilion.id !== 'youbo' && pavilion.id !== 'doublelin') return null;
-        const piece = pavilion.id === 'youbo' ? 'J2' : 'B3';
         const other = pavilion.id === 'youbo' ? 'Double Lin' : 'Youbo';
         const address = pavilion.id === 'youbo'
             ? 'Legal office: Zhejiang Province, China, Jiaxing district, Youbo representation desk.'
@@ -435,7 +437,7 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
         return {
             id: `arena-key-hint-${pavilion.id}`,
             role: 'pavilion',
-            text: `Hello, otherworld traveler. I checked the private catalogue drawer for you. One arena fragment is registered here: ${piece}. ${address} The other half is not in my pavilion - continue to ${other} and inspect their goods or chat with them.`,
+            text: `Hello, otherworld traveler. I checked the private catalogue drawer for you. One arena fragment is hidden in a product card here. ${address} The other half is not in my pavilion - continue to ${other} and inspect their goods too.`,
             timestamp: Date.now(),
         };
     }, [pavilion.id]);
@@ -506,8 +508,9 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
             event: 'pavilion_product_viewed',
             productId: product.id,
             productCode: product.code,
+            ...(arenaKeyPiece && arenaKeyProductId === product.id ? { arenaKeyPiece } : {}),
         });
-    }, [emitQuestEvent]);
+    }, [arenaKeyPiece, arenaKeyProductId, emitQuestEvent]);
 
     const handleRequestQuote = useCallback((product: PavilionProduct) => {
         setSelectedProduct(null);
@@ -812,12 +815,6 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                                             <h4 className="font-display text-[clamp(2rem,3.5vw,3rem)] font-semibold leading-[1] tracking-tight text-white">
                                                 {signatureProduct.code}
                                             </h4>
-                                            {arenaKeyPiece && (
-                                                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-2 font-mono text-sm font-black uppercase tracking-[0.18em] text-cyan-100">
-                                                    <span>{arenaKeyLabel}</span>
-                                                    <span className="text-white">{arenaKeyPiece}</span>
-                                                </div>
-                                            )}
                                             <p className="text-base text-white/85 leading-[1.7] font-medium">{copy.signatureBlurb}</p>
                                             <div className="grid gap-3 pt-2 sm:flex">
                                                 <button
@@ -1119,7 +1116,7 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                                     <div className="min-w-0">
                                         <div className="text-[10px] uppercase tracking-[0.3em] text-cyan-300/80 font-bold">{pavilion.name}</div>
                                         <h3 className="mt-2 break-words text-2xl font-black tracking-[0.08em] text-white sm:text-3xl">{selectedProduct.code}</h3>
-                                        {arenaKeyPiece && (
+                                        {arenaKeyPiece && arenaKeyProductId === selectedProduct.id && (
                                             <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1.5 font-mono text-xs font-black uppercase tracking-[0.18em] text-cyan-100">
                                                 <span>{arenaKeyLabel}</span>
                                                 <span className="text-white">{arenaKeyPiece}</span>

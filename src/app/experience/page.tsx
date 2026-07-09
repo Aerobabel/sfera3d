@@ -668,7 +668,7 @@ const EXPERIENCE_COPY: Record<
             `Focused on ${name}. Price ${price}, ${availability}, supplied by ${supplier}.`,
         focusedPrompt: 'Ask for specs or compatibility details.',
         statusOnline: 'System Online',
-        instruction: 'Long press T to speak with avatars, press F to open doors, X to exit inspection mode.',
+        instruction: 'Long press T to speak with avatars, press F to open doors, X to exit inspection mode. Press ESC to switch to cursor control.',
         zombieInstruction: 'Zombie Arena: move with WASD, aim with mouse, press P to fire, use the return portal to leave.',
         chatToggleShow: 'Chat',
         chatToggleHide: 'Hide Chat',
@@ -704,7 +704,7 @@ const EXPERIENCE_COPY: Record<
             `В фокусе: ${name}. Цена ${price}, ${availability}, поставщик: ${supplier}.`,
         focusedPrompt: 'Спросите характеристики или совместимость.',
         statusOnline: 'Система онлайн',
-        instruction: 'Удерживайте T для разговора с аватарами, F для открытия дверей, X для выхода из режима осмотра.',
+        instruction: 'Удерживайте T для разговора с аватарами, F для открытия дверей, X для выхода из режима осмотра. Чтобы переключить управление на курсор, нажмите ESC.',
         zombieInstruction: 'Zombie Arena: WASD \u0434\u043B\u044F \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F, \u043C\u044B\u0448\u044C\u044E \u0446\u0435\u043B\u044C\u0442\u0435\u0441\u044C, P \u0434\u043B\u044F \u0441\u0442\u0440\u0435\u043B\u044C\u0431\u044B, \u0432\u044B\u0445\u043E\u0434 \u0447\u0435\u0440\u0435\u0437 \u043F\u043E\u0440\u0442\u0430\u043B.',
         chatToggleShow: 'Чат',
         chatToggleHide: 'Скрыть чат',
@@ -740,7 +740,7 @@ const EXPERIENCE_COPY: Record<
             `当前聚焦：${name}。价格 ${price}，${availability}，供应商：${supplier}。`,
         focusedPrompt: '可继续询问规格参数或兼容性。',
         statusOnline: '系统在线',
-        instruction: '长按 T 与角色对话，按 F 开门，按 X 退出检视模式。',
+        instruction: '长按 T 与角色对话，按 F 开门，按 X 退出检视模式。按 ESC 切换到光标控制。',
         zombieInstruction: 'Zombie Arena: WASD \u79FB\u52A8, \u9F20\u6807\u7784\u51C6, \u6309 P \u5C04\u51FB, \u4F7F\u7528\u4F20\u9001\u95E8\u79BB\u5F00.',
         chatToggleShow: '聊天',
         chatToggleHide: '隐藏聊天',
@@ -908,6 +908,7 @@ const FASTVIEW_START_CUTSCENE_PLAYLIST: Record<AppLanguage, string[]> = {
     zh: ['/cutscenes/gameagain.MOV'],
 };
 const WATER_WIN_CUTSCENE_SRC = '/cutscenes/wincut.MOV';
+const TOTAL_CUTSCENE_STEPS = 3;
 const FASTVIEW_CUTSCENE_FADE_MS = 700;
 const WATER_FLOW_COPY = {
     en: {
@@ -962,7 +963,7 @@ const WATER_FLOW_COPY = {
         dispenserAria: 'Water dispenser',
         hydrationTerminal: '3DSFERA hydration terminal',
         buyEvian: 'Buy EVIAN',
-        dispenserBody: 'The machine accepts coins only. The water money comes from the Zombie Hall payout, so unlock the hall and win the arena first.',
+        dispenserBody: 'The machine accepts coins only. You can earn them now as the quest reward.',
         cheapestItem: 'Quest item',
         coins: 'coins',
         railDispenser: 'Dispenser found',
@@ -999,7 +1000,7 @@ const WATER_FLOW_COPY = {
         productUnavailable: 'This product is coming soon. The quest purchase is EVIAN 0.5L.',
         purchaseBlocked: 'Purchase blocked. Follow the quest steps on the left, then return to this button.',
         lockNeedCode: 'You need the Zombie Hall payout. Get the supplier code, unlock the hall, win the arena, then return with enough money.',
-        lockNeedPayout: 'The dispenser is waiting for the Zombie Hall payout. Enter the hall and finish the 5-zombie arena mission.',
+        lockNeedPayout: 'Not enough coins for the purchase. Finish the Zombie Hall quest to receive the reward.',
         enoughReady: 'Enough money ready. Buy the EVIAN bottle.',
         needMoreCoins: (amount: number) => `You need ${amount} more coins. Clear all 5 zombies to finish the arena reward.`,
         wheelTitle: 'Wheel of Fortune',
@@ -1023,7 +1024,7 @@ const WATER_FLOW_COPY = {
         alreadyPlayed: 'Already played',
         closeWheel: 'Close wheel',
         evianBottleAlt: 'EVIAN bottle',
-        missingFragmentTip: 'Tip: if a fragment is missing, return to Sfera Hall and inspect supplier products or open supplier chat.',
+        missingFragmentTip: 'Tip: if a fragment is missing, return to Sfera Hall and inspect supplier product cards.',
         wheelUnlockedToast: 'Wheel unlocked',
         wheelReturnToast: 'Go back to Sfera Hall for 1 spin',
         attemptUnit: 'try',
@@ -1157,7 +1158,7 @@ const WATER_FLOW_COPY = {
         dispenserAria: 'Автомат с водой',
         hydrationTerminal: 'Терминал воды 3DSFERA',
         buyEvian: 'Купить EVIAN',
-        dispenserBody: 'Автомат принимает только монеты. Деньги на воду выдаются за Зомби-холл, поэтому сначала откройте холл и победите на арене.',
+        dispenserBody: 'Автомат принимает только монеты. Сейчас их можно заработать как награду за квест.',
         cheapestItem: 'Товар для задания',
         coins: 'монет',
         railDispenser: 'Автомат найден',
@@ -1194,7 +1195,7 @@ const WATER_FLOW_COPY = {
         productUnavailable: 'Этот товар скоро появится в продаже. Для задания нужен EVIAN 0,5 л.',
         purchaseBlocked: 'Покупка пока заблокирована. Выполните шаги задания слева и вернитесь к этой кнопке.',
         lockNeedCode: 'Нужна выплата Зомби-холла. Получите код поставщиков, откройте холл, победите на арене и вернитесь с деньгами.',
-        lockNeedPayout: 'Автомат ждет выплату из Зомби-холла. Войдите в холл и завершите миссию на 5 зомби.',
+        lockNeedPayout: 'Не хватает монет для покупки. Завершите задание в Zombie Hall, чтобы получить награду.',
         enoughReady: 'Денег хватает. Купите бутылку EVIAN.',
         needMoreCoins: (amount: number) => `Нужно еще ${amount} монет. Уничтожьте 5 зомби, чтобы получить выплату арены.`,
         wheelTitle: 'Колесо фортуны',
@@ -1218,7 +1219,7 @@ const WATER_FLOW_COPY = {
         alreadyPlayed: 'Уже сыграно',
         closeWheel: 'Закрыть колесо',
         evianBottleAlt: 'Бутылка EVIAN',
-        missingFragmentTip: 'Подсказка: если фрагмента не хватает, вернитесь в Sfera Hall, осмотрите товары поставщиков или откройте чат.',
+        missingFragmentTip: 'Подсказка: если фрагмента не хватает, вернитесь в Sfera Hall и осмотрите карточки товаров поставщиков.',
         wheelUnlockedToast: 'Колесо открыто',
         wheelReturnToast: 'Вернитесь в Sfera Hall для 1 попытки',
         attemptUnit: 'попытка',
@@ -1352,7 +1353,7 @@ const WATER_FLOW_COPY = {
         dispenserAria: '饮水售卖机',
         hydrationTerminal: '3DSFERA 补水终端',
         buyEvian: '购买 EVIAN',
-        dispenserBody: '机器只收金币。买水的钱来自僵尸大厅奖励，所以请先解锁大厅并赢下竞技场。',
+        dispenserBody: '机器只收金币。现在可以通过任务奖励获得金币。',
         cheapestItem: '任务商品',
         coins: '枚币',
         railDispenser: '已找到售卖机',
@@ -1389,7 +1390,7 @@ const WATER_FLOW_COPY = {
         productUnavailable: '该商品即将上架。任务购买商品为 EVIAN 0.5L。',
         purchaseBlocked: '购买暂时被锁定。请完成左侧任务步骤后再回到此按钮。',
         lockNeedCode: '需要僵尸大厅奖励。获取供应商代码，解锁大厅，赢下竞技场，然后带着足够金币回来。',
-        lockNeedPayout: '售卖机正在等待僵尸大厅奖励。进入大厅并完成 5 个僵尸任务。',
+        lockNeedPayout: '金币不足，无法购买。完成 Zombie Hall 任务即可获得奖励。',
         enoughReady: '金币足够。购买 EVIAN 瓶装水。',
         needMoreCoins: (amount: number) => `还需要 ${amount} 枚币。清理 5 个僵尸以完成竞技场奖励。`,
         wheelTitle: '幸运转盘',
@@ -1413,7 +1414,7 @@ const WATER_FLOW_COPY = {
         alreadyPlayed: '已使用',
         closeWheel: '关闭转盘',
         evianBottleAlt: 'EVIAN 瓶装水',
-        missingFragmentTip: '提示：如果缺少碎片，请回到 Sfera Hall，检查供应商商品或打开供应商聊天。',
+        missingFragmentTip: '提示：如果缺少碎片，请回到 Sfera Hall 并检查供应商商品卡片。',
         wheelUnlockedToast: '转盘已解锁',
         wheelReturnToast: '回到 Sfera Hall 可转动 1 次',
         attemptUnit: '次',
@@ -1657,9 +1658,7 @@ const resolveFrontendCinematic = (event: unknown, language: AppLanguage): Omit<F
     const payload = event as Record<string, unknown>;
     const copy = FRONTEND_CINEMATIC_COPY[language];
 
-    if (payload.event === 'portal_entered' && payload.portal === 'SferaHall') {
-        return { ...copy.sferaHall, destinationKicker: copy.destinationKicker };
-    }
+    if (payload.event === 'portal_entered' && payload.portal === 'SferaHall') return null;
 
     if (payload.event === 'game_entered' && payload.game === 'ZombieArena') {
         return { ...copy.zombieArena, destinationKicker: copy.destinationKicker };
@@ -2194,10 +2193,9 @@ function WaterPurchaseCeremony({ copy, walletBalanceCents }: { copy: WaterFlowCo
     );
 }
 
-function CutsceneTimeline({ active, copy }: { active: 'opening' | 'role' | 'hall' | 'water'; copy: WaterFlowCopy }) {
+function CutsceneTimeline({ active, copy }: { active: 'opening' | 'hall' | 'water'; copy: WaterFlowCopy }) {
     const steps = [
         { id: 'opening', label: copy.cutscene.openingFilm },
-        { id: 'role', label: copy.cutscene.roleSelect },
         { id: 'hall', label: copy.cutscene.hallArrival },
         { id: 'water', label: copy.cutscene.waterWin },
     ] as const;
@@ -2635,11 +2633,6 @@ function WaterDispenserOverlay({
                                                     <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-500">{index === 0 ? copy.machinePrice : copy.comingSoon}</p>
                                                     <p className="font-mono text-lg font-black text-cyan-100">{index === 0 ? product.priceCoins : '-'}</p>
                                             </div>
-                                            {index === 0 && (
-                                                <span className="rounded-full border border-emerald-300/28 bg-emerald-300/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-emerald-100">
-                                                    {copy.questItem}
-                                                </span>
-                                            )}
                                         </div>
                                     </div>
                                 </button>
@@ -3456,12 +3449,13 @@ export default function ExperiencePage() {
     const emitQuestEvent = useCallback((event: QuestEventInput) => {
         unrealBridge.handleUnrealResponse(JSON.stringify(event));
         if (
-            (event.event === 'supplier_chat_opened' || event.event === 'pavilion_product_viewed') &&
+            event.event === 'pavilion_product_viewed' &&
             (event.pavilionId === 'youbo' || event.pavilionId === 'doublelin')
         ) {
             const piece = event.pavilionId === 'youbo'
                 ? GAME_RULES.keys.firstHalf
                 : GAME_RULES.keys.secondHalf;
+            if (event.arenaKeyPiece !== piece) return;
             unrealBridge.handleUnrealResponse(JSON.stringify({
                 event: 'arena_key_piece_found',
                 piece,
@@ -3732,7 +3726,12 @@ export default function ExperiencePage() {
     const waterPurchaseCeremonyTimerRef = useRef<number | null>(null);
     const fastViewCutscenePlaylist = FASTVIEW_START_CUTSCENE_PLAYLIST[language] ?? FASTVIEW_START_CUTSCENE_PLAYLIST.en;
     const fastViewCutsceneSrc = fastViewCutscenePlaylist[fastViewCutsceneIndex] ?? fastViewCutscenePlaylist[0];
-    const fastViewCutsceneStepLabel = `${Math.min(fastViewCutsceneIndex + 1, fastViewCutscenePlaylist.length)}/${fastViewCutscenePlaylist.length}`;
+    const formatCutsceneStepLabel = (step: number) => {
+        if (language === 'ru') return `Ролик ${step}/${TOTAL_CUTSCENE_STEPS}`;
+        if (language === 'zh') return `影片 ${step}/${TOTAL_CUTSCENE_STEPS}`;
+        return `Cutscene ${step}/${TOTAL_CUTSCENE_STEPS}`;
+    };
+    const fastViewCutsceneStepLabel = formatCutsceneStepLabel(1);
 
     useEffect(() => {
         if (!hasStartedExperience || !unrealBridge.lastUnrealEvent) return;
@@ -3901,7 +3900,7 @@ export default function ExperiencePage() {
             setHasStartedWaterWinCutsceneSound(false);
             setIsWaterWinCutsceneVisible(true);
             waterPurchaseCeremonyTimerRef.current = null;
-        }, 2600);
+        }, 3800);
         playSferaUiSound('reward');
     }, [unrealBridge]);
 
@@ -5543,7 +5542,7 @@ export default function ExperiencePage() {
 
                     <CutsceneSiteHeader
                         statusOnline={ui.statusOnline}
-                        instruction={`${sceneInstruction} · Cutscene ${fastViewCutsceneStepLabel}`}
+                        instruction={`${sceneInstruction} · ${fastViewCutsceneStepLabel}`}
                         skipLabel={cutsceneCopy.skip}
                         onSkip={handleSkipFastViewCutscene}
                     />
@@ -5610,7 +5609,7 @@ export default function ExperiencePage() {
                     )}
                     <CutsceneSiteHeader
                         statusOnline={ui.statusOnline}
-                        instruction={sceneInstruction}
+                        instruction={`${sceneInstruction} · ${formatCutsceneStepLabel(2)}`}
                         skipLabel={cutsceneCopy.skip}
                         onSkip={() => handleCloseSferaHallCutscene(true)}
                         startLabel={!hasStartedSferaHallCutsceneSound ? cutsceneCopy.startWithSound : undefined}
@@ -5657,7 +5656,7 @@ export default function ExperiencePage() {
                     )}
                     <CutsceneSiteHeader
                         statusOnline={ui.statusOnline}
-                        instruction="Water secured. Wheel coupon unlocked in Sfera Hall."
+                        instruction={`${waterFlowCopy.purchaseAuthorized}. ${waterFlowCopy.wheelReturnToast}. · ${formatCutsceneStepLabel(3)}`}
                         skipLabel={cutsceneCopy.skip}
                         onSkip={() => {
                             fadeOutCutsceneAudio(waterWinCutsceneVideoRef.current, closeWaterWinCutscene);
