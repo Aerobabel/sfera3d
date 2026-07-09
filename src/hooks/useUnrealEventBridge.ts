@@ -90,7 +90,7 @@ const hasWaterArenaPayout = (questRewards: UnrealEventBridgeState['questRewards'
     questRewards.some((reward) => reward.questId === 'water_arena_run' && reward.kind === 'coins');
 
 const normalizePersistedRewards = (questRewards: UnrealEventBridgeState['questRewards']) =>
-    questRewards.filter((reward) => reward.questId !== 'player_arena_trial');
+    questRewards.filter((reward) => reward.questId !== 'player_arena_trial' && reward.questId !== 'city_token_hunt');
 
 const normalizePersistedQuestProgress = (questProgress: UnrealEventBridgeState['questProgress']) => {
     const currentQuestIds = new Set(INITIAL_STATE.questProgress.map((progress) => progress.questId));
@@ -455,7 +455,7 @@ export const useUnrealEventBridge = () => {
                         zombieCombo,
                         maxZombieCombo: Math.max(previous.maxZombieCombo, zombieCombo),
                         zombieScore,
-                        zombieGameOver: arenaCleared,
+                        zombieGameOver: false,
                         zombieCoins: previous.zombieCoins + GAME_RULES.zombieArena.coinsPerKill,
                         zombieThreatLevel: resolveThreatLevel(zombieKills),
                         zombieRank,
@@ -489,7 +489,9 @@ export const useUnrealEventBridge = () => {
                         currentLocation: 'city',
                         currentGame: null,
                         isInGame: false,
+                        zombieGameOver: false,
                         zombieCombo: 0,
+                        accessDeniedMessage: null,
                         recentActivity: withActivity(previous.recentActivity, 'Returned to city'),
                     }, unrealEvent);
                 case 'terminal_nearby':

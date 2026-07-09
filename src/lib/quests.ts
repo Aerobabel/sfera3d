@@ -408,7 +408,7 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
     },
 ];
 
-const RETIRED_QUEST_IDS = new Set(['player_arena_trial']);
+const RETIRED_QUEST_IDS = new Set(['player_arena_trial', 'city_token_hunt']);
 
 const ACTIVE_QUEST_DEFINITIONS = QUEST_DEFINITIONS.filter((quest) => !RETIRED_QUEST_IDS.has(quest.id));
 

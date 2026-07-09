@@ -1005,7 +1005,7 @@ const WATER_FLOW_COPY = {
         needMoreCoins: (amount: number) => `You need ${amount} more coins. Clear all 5 zombies to finish the arena reward.`,
         wheelTitle: 'Wheel of Fortune',
         wheelAria: 'Wheel of Fortune',
-        wheelBody: 'Your water purchase created one coupon. Go to the wheel in Sfera Hall and spin once. The prize is revealed only after the wheel stops.',
+        wheelBody: 'Try your luck with the Wheel of Fortune. Coupons are awarded for quest completion. All prizes are delivered to your account with the nearest order.',
         coupon: 'Coupon',
         required: 'Required',
         attempts: 'Attempts',
@@ -1200,7 +1200,7 @@ const WATER_FLOW_COPY = {
         needMoreCoins: (amount: number) => `Нужно еще ${amount} монет. Уничтожьте 5 зомби, чтобы получить выплату арены.`,
         wheelTitle: 'Колесо фортуны',
         wheelAria: 'Колесо фортуны',
-        wheelBody: 'Покупка воды дала один купон. Подойдите к колесу в Sfera Hall и крутите один раз. Приз откроется только после остановки колеса.',
+        wheelBody: 'Испытайте свою удачу в нашем Колесе фортуны. Купоны на попытки выдаются за выполнение квестов. Все призы будут доставлены по указанному вами адресу в личном кабинете вместе с ближайшим заказом.',
         coupon: 'Купон',
         required: 'Нужен',
         attempts: 'Попытки',
@@ -1395,7 +1395,7 @@ const WATER_FLOW_COPY = {
         needMoreCoins: (amount: number) => `还需要 ${amount} 枚币。清理 5 个僵尸以完成竞技场奖励。`,
         wheelTitle: '幸运转盘',
         wheelAria: '幸运转盘',
-        wheelBody: '购买水后获得一张券。前往 Sfera Hall 的转盘，只能转一次。奖品会在转盘停止后揭晓。',
+        wheelBody: '试试你的运气。完成任务可获得转盘券，所有奖品会随最近订单配送到你的账户地址。',
         coupon: '券',
         required: '需要',
         attempts: '次数',
@@ -2660,11 +2660,14 @@ function WheelOverlay({
 }) {
     const [isSpinning, setIsSpinning] = useState(false);
     const [hasSpun, setHasSpun] = useState(false);
+    const [wheelRotation, setWheelRotation] = useState(0);
     const wheelTicks = Array.from({ length: 18 }, (_, index) => index);
+    const phonePrizeRotation = 2850;
 
     const spin = () => {
-        if (spinsRemaining <= 0 || isSpinning) return;
+        if (spinsRemaining <= 0 || isSpinning || hasSpun) return;
         setIsSpinning(true);
+        setWheelRotation((current) => current + phonePrizeRotation);
         window.setTimeout(() => {
             setIsSpinning(false);
             setHasSpun(true);
@@ -2693,7 +2696,10 @@ function WheelOverlay({
                                 style={{ transform: `rotate(${tick * 20}deg) translateY(calc(-1 * min(34vw, 13.8rem)))` }}
                             />
                         ))}
-                        <div className={`relative h-[88%] w-[88%] overflow-hidden rounded-full shadow-[0_0_80px_rgba(245,199,102,0.26)] transition-transform duration-1000 ${isSpinning ? 'animate-spin' : hasSpun ? 'rotate-6' : ''}`}>
+                        <div
+                            className="relative h-[88%] w-[88%] overflow-hidden rounded-full shadow-[0_0_80px_rgba(245,199,102,0.26)] transition-transform duration-[2400ms] ease-[cubic-bezier(0.16,0.84,0.22,1)] will-change-transform"
+                            style={{ transform: `rotate(${wheelRotation}deg)` }}
+                        >
                             <Image src="/wheeloffortune.jpg" alt={copy.wheelTitle} fill sizes="(max-width: 768px) 74vw, 30rem" className="object-cover" />
                             <div className={`pointer-events-none absolute inset-0 bg-[conic-gradient(from_90deg,rgba(255,255,255,0.18),transparent_16%,rgba(255,255,255,0.12)_22%,transparent_42%,rgba(255,255,255,0.16)_58%,transparent_76%)] mix-blend-screen ${isSpinning ? 'opacity-90' : 'opacity-35'}`} />
                         </div>
@@ -2756,9 +2762,9 @@ function WheelOverlay({
                                     : copy.readyBody}
                         </p>
                     </div>
-                    <button type="button" onClick={spin} disabled={spinsRemaining <= 0 || isSpinning || !coupon} className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#f5c766,#66d9cb)] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 shadow-[0_18px_48px_rgba(245,199,102,0.18)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45">
+                    <button type="button" onClick={spin} disabled={spinsRemaining <= 0 || isSpinning || hasSpun || !coupon} className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#f5c766,#66d9cb)] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 shadow-[0_18px_48px_rgba(245,199,102,0.18)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45">
                         <RotateCw className="h-4 w-4" />
-                        {spinsRemaining > 0 ? (isSpinning ? copy.spinning : copy.spinOnce) : copy.alreadyPlayed}
+                        {spinsRemaining > 0 && !hasSpun ? (isSpinning ? copy.spinning : copy.spinOnce) : copy.alreadyPlayed}
                     </button>
                     <button type="button" onClick={onClose} className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.08]">
                         {copy.closeWheel}

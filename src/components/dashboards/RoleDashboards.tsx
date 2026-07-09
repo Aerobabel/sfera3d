@@ -262,7 +262,7 @@ const PLAYER_WHEEL_COPY = {
     en: {
         firstBuyerBonus: 'First buyer bonus',
         title: 'Wheel of Fortune',
-        body: 'Buy EVIAN in the scene to unlock one Sfera Hall wheel attempt. The prize is revealed after the spin.',
+        body: 'Try your luck with the Wheel of Fortune. Coupons are awarded for quest completion. All prizes are delivered to your account with the nearest order.',
         locked: 'Locked until water purchase',
         unlock: 'Buy water to unlock',
         ready: '1 phone-prize spin ready',
@@ -274,12 +274,12 @@ const PLAYER_WHEEL_COPY = {
         prizePhone: 'Prize: phone',
         prizeHidden: 'Prize hidden',
         spinOnly: 'Spin only at Sfera Hall',
-        prizePath: 'Prize path: buy EVIAN, receive one wheel coupon, reveal the prize at the wheel.',
+        prizePath: 'Prize path: complete quests, receive one wheel coupon, reveal the prize at the Sfera Hall wheel.',
     },
     ru: {
         firstBuyerBonus: 'Бонус первого покупателя',
         title: 'Колесо фортуны',
-        body: 'Купите EVIAN в сцене, чтобы открыть одну попытку колеса в Sfera Hall. Приз откроется после прокрутки.',
+        body: 'Испытайте свою удачу в нашем Колесе фортуны. Купоны на попытки выдаются за выполнение квестов. Все призы будут доставлены по указанному вами адресу в личном кабинете вместе с ближайшим заказом.',
         locked: 'Закрыто до покупки воды',
         unlock: 'Купите воду, чтобы открыть',
         ready: '1 попытка на телефон готова',
@@ -291,12 +291,12 @@ const PLAYER_WHEEL_COPY = {
         prizePhone: 'Приз: телефон',
         prizeHidden: 'Приз скрыт',
         spinOnly: 'Крутить только в Sfera Hall',
-        prizePath: 'Путь к призу: купите EVIAN, получите один купон колеса, откройте приз у колеса.',
+        prizePath: 'Путь к призу: выполните квест, получите купон колеса и откройте приз у колеса в Sfera Hall.',
     },
     zh: {
         firstBuyerBonus: '首位买家奖励',
         title: '幸运转盘',
-        body: '在场景中购买 EVIAN 后，可解锁一次 Sfera Hall 转盘机会。奖品会在转动后揭晓。',
+        body: '试试你的运气。完成任务可获得转盘券，所有奖品会随最近订单配送到你的账户地址。',
         locked: '购买水后解锁',
         unlock: '购买水以解锁',
         ready: '1 次手机奖品机会已就绪',
@@ -308,12 +308,12 @@ const PLAYER_WHEEL_COPY = {
         prizePhone: '奖品：手机',
         prizeHidden: '奖品隐藏',
         spinOnly: '只能在 Sfera Hall 转动',
-        prizePath: '奖品路径：购买 EVIAN，获得一张转盘券，到转盘揭晓奖品。',
+        prizePath: '奖品路径：完成任务，获得一张转盘券，到 Sfera Hall 转盘揭晓奖品。',
     },
 } as const;
 
 const normalizeDashboardRewards = (questRewards: UnrealEventBridgeState['questRewards']) =>
-    questRewards.filter((reward) => reward.questId !== 'player_arena_trial');
+    questRewards.filter((reward) => reward.questId !== 'player_arena_trial' && reward.questId !== 'city_token_hunt');
 
 const normalizeDashboardQuestProgress = (
     questProgress: UnrealEventBridgeState['questProgress'],
@@ -483,8 +483,8 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             deliveryPhonePlaceholder: '+1 555 010 2048',
             deliveryAddressPlaceholder: 'Street, city, region, postal code',
             acceptDelivery: 'Accept delivery',
-            deliveryReady: 'Delivery details ready',
-            deliveryAccepted: 'Delivery accepted. The reward team can prepare shipment.',
+            deliveryReady: 'Delivery submitted',
+            deliveryAccepted: 'You will receive an email or SMS notification.',
             messagesTitle: 'Player messages',
             messages: [
                 'Arena host opened the weekly survival tournament.',
@@ -700,8 +700,8 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             deliveryPhonePlaceholder: '+7 900 000 00 00',
             deliveryAddressPlaceholder: 'Улица, город, регион, индекс',
             acceptDelivery: 'Принять доставку',
-            deliveryReady: 'Данные доставки готовы',
-            deliveryAccepted: 'Доставка принята. Команда наград может подготовить отправку.',
+            deliveryReady: 'Доставка оформлена',
+            deliveryAccepted: 'Вам придёт уведомление на почту или смс.',
             messagesTitle: 'Сообщения игрока',
             messages: [
                 'Организатор арены открыл еженедельный турнир.',
@@ -917,8 +917,8 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             deliveryPhonePlaceholder: '+86 138 0000 0000',
             deliveryAddressPlaceholder: '街道、城市、省份、邮编',
             acceptDelivery: '接受配送',
-            deliveryReady: '配送信息已准备',
-            deliveryAccepted: '配送已确认。奖励团队可以准备发货。',
+            deliveryReady: '配送已提交',
+            deliveryAccepted: '你将收到邮件或短信通知。',
             messagesTitle: '玩家消息',
             messages: [
                 '竞技场主办方开启了每周生存赛。',
@@ -1526,9 +1526,9 @@ function HeaderSearch({ label, shortcut }: { label: string; shortcut: string }) 
     );
 }
 
-function StatusPill({ children, tone = 'cyan' }: { children: ReactNode; tone?: Tone }) {
+function StatusPill({ children, tone = 'cyan', className = '' }: { children: ReactNode; tone?: Tone; className?: string }) {
     return (
-        <span className={`inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[11px] font-black uppercase tracking-[0.12em] ${toneStyles[tone].icon}`}>
+        <span className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md border px-2.5 py-1.5 text-[11px] font-black uppercase tracking-[0.12em] ${toneStyles[tone].icon} ${className}`}>
             <span className={`h-2 w-2 rounded-full ${toneStyles[tone].bar}`} />
             {children}
         </span>
@@ -1658,14 +1658,14 @@ function QuestPanel({
                         return (
                             <article key={item.questId} className={`${compactPanel} min-w-0 p-3`}>
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 sm:pr-2">
                                         <p className={`text-[10px] font-black uppercase tracking-[0.18em] ${toneStyles[statusTone].accent}`}>
                                             {questText.sponsor ?? '3DSFERA'}
                                         </p>
                                         <h3 className="mt-1 text-base font-black leading-tight text-white">{questText.title}</h3>
                                         <p className="mt-1.5 text-xs leading-5 text-slate-400">{questText.description}</p>
                                     </div>
-                                    <StatusPill tone={statusTone}>{questStatusLabel(item, copy)}</StatusPill>
+                                    <StatusPill tone={statusTone} className="self-start sm:mr-1">{questStatusLabel(item, copy)}</StatusPill>
                                 </div>
                                 <div className="mt-3">
                                     <div className="flex items-center justify-between text-xs font-bold text-slate-400">
@@ -1722,14 +1722,12 @@ function PlayerStartGuidePanel({ copy }: { copy: DashboardText['player'] }) {
 
 function PlayerValueStrip({
     copy,
-    coins,
     questProgress,
     rewards,
     currentLocation,
     currentGame,
 }: {
     copy: DashboardText['player'];
-    coins: number;
     questProgress: number;
     rewards: number;
     currentLocation: string;
@@ -1762,20 +1760,7 @@ function PlayerValueStrip({
 
     return (
         <section className={`${panel} overflow-hidden`}>
-            <div className="grid gap-0 lg:grid-cols-[1.35fr_repeat(3,minmax(0,1fr))]">
-                <div className="border-b border-amber-300/15 bg-[linear-gradient(135deg,rgba(250,204,21,0.18),rgba(8,13,20,0.92)_58%)] p-4 lg:border-b-0 lg:border-r">
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-100/85">{copy.coins}</p>
-                            <p className="mt-2 text-4xl font-black leading-none text-white sm:text-5xl">{coins.toLocaleString()}</p>
-                            <p className="mt-2 text-sm leading-5 text-amber-50/70">{copy.coinsHelper}</p>
-                        </div>
-                        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${toneStyles.amber.icon}`}>
-                            <Coins className="h-5 w-5" />
-                        </span>
-                    </div>
-                </div>
-
+            <div className="grid gap-0 lg:grid-cols-3">
                 {stats.map((stat) => {
                     const Icon = stat.icon;
                     return (
@@ -2371,7 +2356,6 @@ export function GamerDashboard({ bridge: bridgeProp, embedded = false }: Dashboa
     const [workspaceTab, setWorkspaceTab] = useState<PlayerWorkspaceTab>('quests');
     const bridge = usePersistedPlayerBridge(bridgeProp);
     const copy = dashboardCopy[language];
-    const coinsPreview = bridge.zombieCoins || Math.floor(bridge.zombieScore / GAME_RULES.zombieArena.zombieKillPoints) * GAME_RULES.zombieArena.coinsPerKill;
     const playerQuestProgress = getRoleQuestProgress(bridge.questProgress, 'player');
     const questProgress = clampPercent(
         playerQuestProgress.length > 0
@@ -2394,13 +2378,12 @@ export function GamerDashboard({ bridge: bridgeProp, embedded = false }: Dashboa
     const eventItems = recentActivity.length > 0
         ? recentActivity
         : [`${copy.player.currentLocation}: ${currentLocation}`, `${copy.player.currentGame}: ${currentGame}`, ...copy.player.recentFallback];
-    const rewardItems = [`${copy.player.coins}: ${coinsPreview.toLocaleString()}`, ...copy.player.rewardQueue];
+    const rewardItems = copy.player.rewardQueue;
 
     return (
         <DashboardFrame mode="player" sidebar={<PlayerSidebar copy={copy} />} embedded={embedded}>
             {!embedded && <DashboardBackNav />}
-            <header className="mb-4 flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
-                <HeaderSearch label={copy.search.player} shortcut={copy.search.shortcut} />
+            <header className="mb-4 flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-end">
                 <div className="flex flex-wrap items-center gap-3">
                     <StatusPill tone="sky">{copy.player.mode}</StatusPill>
                     <span className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-slate-300">
@@ -2414,7 +2397,6 @@ export function GamerDashboard({ bridge: bridgeProp, embedded = false }: Dashboa
                 <main className="min-w-0 space-y-4">
                     <PlayerValueStrip
                         copy={copy.player}
-                        coins={coinsPreview}
                         questProgress={questProgress}
                         rewards={earnedRewards}
                         currentLocation={currentLocation}
