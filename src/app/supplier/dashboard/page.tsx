@@ -19,6 +19,7 @@ import { clearServerAuthSession } from '@/lib/auth/browser';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { PavilionMessage, PavilionThreadSummary } from '@/lib/pavilionChat';
 import { getPavilionById } from '@/lib/pavilions';
+import TranslatableText from '@/components/chat/TranslatableText';
 
 type InboxResponse = {
   success?: boolean;
@@ -633,7 +634,7 @@ export default function SupplierDashboard() {
                                   </div>
 
                                   <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-relaxed text-slate-100">
-                                    <p>{msg.body}</p>
+                                    <TranslatableText text={msg.body} hideAction={isMine} />
                                   </div>
                                 </article>
                               </div>
