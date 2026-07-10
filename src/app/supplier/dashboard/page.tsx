@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   MessageSquare,
   LayoutDashboard,
@@ -17,13 +17,25 @@ import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import { clearServerAuthSession } from '@/lib/auth/browser';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import {
-  SupplierChatApiMessage,
-  SupplierChatApiResponse,
-  readSupplierChatApiResponse,
-} from '@/lib/supplierChat';
+import type { PavilionMessage, PavilionThreadSummary } from '@/lib/pavilionChat';
+import { getPavilionById } from '@/lib/pavilions';
 
-type SupplierMessage = SupplierChatApiMessage;
+type InboxResponse = {
+  success?: boolean;
+  error?: string;
+  pavilionId?: string | null;
+  pavilionIds?: string[];
+  threads?: PavilionThreadSummary[];
+};
+
+type ThreadResponse = {
+  success?: boolean;
+  error?: string;
+  messages?: PavilionMessage[];
+};
+
+const getThreadKey = (thread: Pick<PavilionThreadSummary, 'pavilionId' | 'counterpartyUserId'>) =>
+  `${thread.pavilionId}:${thread.counterpartyUserId}`;
 
 const supplierNameFromEmail = (email: string | null | undefined) => {
   if (!email) return 'Supplier';
@@ -58,9 +70,6 @@ const pavilionNameFromMetadata = (metadata: Record<string, unknown>) => {
   const title = titleFromSlug(normalized);
   return title ? `${title} Pavilion` : null;
 };
-
-const supplierIdFromMetadata = (metadata: Record<string, unknown>) =>
-  readStringMetadata(metadata, 'supplier_id') || 'sup_nonagon';
 
 export default function SupplierDashboard() {
   const { language } = useLanguage();
@@ -162,7 +171,9 @@ export default function SupplierDashboard() {
     },
   }[language];
 
-  const [messages, setMessages] = useState<SupplierMessage[]>([]);
+  const [threads, setThreads] = useState<PavilionThreadSummary[]>([]);
+  const [messages, setMessages] = useState<PavilionMessage[]>([]);
+  const [selectedThreadKey, setSelectedThreadKey] = useState<string | null>(null);
   const [supplierName, setSupplierName] = useState('Supplier');
   const [supplierPavilionName, setSupplierPavilionName] = useState<string | null>(null);
   const [supplierEmail, setSupplierEmail] = useState<string | null>(null);
@@ -170,37 +181,44 @@ export default function SupplierDashboard() {
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [supplierId, setSupplierId] = useState('sup_nonagon');
-
   const latestBuyerMessageId = useMemo(() => {
-    const buyerMessages = messages.filter((message) => message.senderRole === 'buyer');
-    return buyerMessages.length ? buyerMessages[buyerMessages.length - 1].id : null;
-  }, [messages]);
+    const buyerThreads = threads.filter((thread) => thread.lastMessage.senderKind === 'visitor');
+    return buyerThreads.length ? buyerThreads[0].lastMessage.id : null;
+  }, [threads]);
 
   const activeBuyerCount = useMemo(() => {
-    return new Set(messages.filter((message) => message.senderRole === 'buyer').map((message) => message.senderName))
-      .size;
-  }, [messages]);
+    return new Set(threads.map((thread) => thread.counterpartyUserId)).size;
+  }, [threads]);
 
   const todayMessageCount = useMemo(() => {
     const now = new Date();
-    return messages.filter((message) => {
-      const created = new Date(message.createdAt);
+    return threads.reduce((count, thread) => {
+      const created = new Date(thread.lastMessage.createdAt);
       return (
         created.getFullYear() === now.getFullYear() &&
         created.getMonth() === now.getMonth() &&
         created.getDate() === now.getDate()
-      );
-    }).length;
-  }, [messages]);
+      ) ? count + thread.messageCount : count;
+    }, 0);
+  }, [threads]);
 
   const lastMessageTime = useMemo(() => {
-    if (!messages.length) return '--';
-    return new Date(messages[messages.length - 1].createdAt).toLocaleTimeString([], {
+    if (!threads.length) return '--';
+    return new Date(threads[0].lastMessage.createdAt).toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
     });
-  }, [messages]);
+  }, [threads]);
+
+  const selectedThread = useMemo(
+    () => threads.find((thread) => getThreadKey(thread) === selectedThreadKey) ?? null,
+    [threads, selectedThreadKey]
+  );
+
+  const selectedPavilion = useMemo(() => {
+    if (!selectedThread) return null;
+    return getPavilionById(selectedThread.pavilionId.replace(/^pav_/, ''));
+  }, [selectedThread]);
 
   useEffect(() => {
     let mounted = true;
@@ -224,12 +242,10 @@ export default function SupplierDashboard() {
         const displayNameFromMetadata =
           readStringMetadata(metadata, 'supplier_name') || supplierNameFromEmail(session.user.email);
         const supplierPavilionName = pavilionNameFromMetadata(metadata);
-        const resolvedSupplierId = supplierIdFromMetadata(metadata);
 
         if (mounted) {
           setSupplierName(displayNameFromMetadata || 'Supplier');
           setSupplierPavilionName(supplierPavilionName);
-          setSupplierId(resolvedSupplierId);
           setSupplierEmail(session.user.email ?? null);
           setAuthReady(true);
         }
@@ -271,19 +287,24 @@ export default function SupplierDashboard() {
 
     let isStopped = false;
 
-    const fetchMessages = async () => {
+    const fetchInbox = async () => {
       try {
-        const response = await fetch(`/api/supplier-chat?supplierId=${encodeURIComponent(supplierId)}&viewerLanguage=${encodeURIComponent(language)}`, {
+        const response = await fetch('/api/pavilion-inbox', {
           cache: 'no-store',
         });
-        const data = (await readSupplierChatApiResponse(response)) as SupplierChatApiResponse;
+        const data = (await response.json()) as InboxResponse;
 
         if (!response.ok || !data.success) {
           throw new Error(data.error || t.loadFailed);
         }
 
         if (!isStopped) {
-          setMessages(Array.isArray(data.messages) ? data.messages : []);
+          const nextThreads = Array.isArray(data.threads) ? data.threads : [];
+          setThreads(nextThreads);
+          setSelectedThreadKey((current) => {
+            if (current && nextThreads.some((thread) => getThreadKey(thread) === current)) return current;
+            return nextThreads[0] ? getThreadKey(nextThreads[0]) : null;
+          });
           setErrorMessage(null);
         }
       } catch (error: unknown) {
@@ -293,14 +314,43 @@ export default function SupplierDashboard() {
       }
     };
 
-    void fetchMessages();
-    const interval = window.setInterval(fetchMessages, 3000);
+    void fetchInbox();
+    const interval = window.setInterval(fetchInbox, 3000);
 
     return () => {
       isStopped = true;
       window.clearInterval(interval);
     };
-  }, [authReady, language, supplierId, t.loadFailed]);
+  }, [authReady, t.loadFailed]);
+
+  const loadSelectedThread = useCallback(async () => {
+    if (!selectedThread) {
+      setMessages([]);
+      return;
+    }
+
+    try {
+      const shortPavilionId = selectedThread.pavilionId.replace(/^pav_/, '');
+      const response = await fetch(
+        `/api/pavilion-chat?pavilionId=${encodeURIComponent(shortPavilionId)}&counterpartyUserId=${encodeURIComponent(selectedThread.counterpartyUserId)}`,
+        { cache: 'no-store' }
+      );
+      const data = (await response.json()) as ThreadResponse;
+      if (!response.ok || !data.success) throw new Error(data.error || t.loadFailed);
+      setMessages(data.messages ?? []);
+      setErrorMessage(null);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : t.loadFailed;
+      setErrorMessage(message);
+    }
+  }, [selectedThread, t.loadFailed]);
+
+  useEffect(() => {
+    if (!authReady) return;
+    void loadSelectedThread();
+    const interval = window.setInterval(() => void loadSelectedThread(), 3000);
+    return () => window.clearInterval(interval);
+  }, [authReady, loadSelectedThread]);
 
   const handleSignOut = async () => {
     try {
@@ -321,26 +371,24 @@ export default function SupplierDashboard() {
 
   const sendReply = async () => {
     const trimmed = replyText.trim();
-    if (!trimmed || isSending) return;
+    if (!trimmed || !selectedThread || isSending) return;
 
     setIsSending(true);
 
     try {
-      const response = await fetch('/api/supplier-chat', {
+      const response = await fetch('/api/pavilion-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          supplierId,
-          senderRole: 'supplier',
-          senderName: supplierName,
-          text: trimmed,
-          senderLanguage: language,
+          pavilionId: selectedThread.pavilionId.replace(/^pav_/, ''),
+          counterpartyUserId: selectedThread.counterpartyUserId,
+          body: trimmed,
         }),
       });
 
-      const data = await readSupplierChatApiResponse(response);
+      const data = (await response.json()) as { success?: boolean; error?: string };
       if (!response.ok || !data.success) {
         throw new Error(data.error || t.loadFailed);
       }
@@ -348,13 +396,7 @@ export default function SupplierDashboard() {
       setReplyText('');
       setErrorMessage(null);
 
-      const refresh = await fetch(`/api/supplier-chat?supplierId=${encodeURIComponent(supplierId)}&viewerLanguage=${encodeURIComponent(language)}`, {
-        cache: 'no-store',
-      });
-      const refreshData = await readSupplierChatApiResponse(refresh);
-      if (refresh.ok && refreshData.success && Array.isArray(refreshData.messages)) {
-        setMessages(refreshData.messages);
-      }
+      await loadSelectedThread();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t.loadFailed;
       setErrorMessage(message);
@@ -487,12 +529,12 @@ export default function SupplierDashboard() {
                 <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
                   <p className="text-sm font-semibold text-slate-200">{t.messageQueue}</p>
                   <span className="rounded-full border border-[#66d9cb]/35 bg-[#66d9cb]/10 px-3 py-1 text-xs font-semibold text-[#7cefe2]">
-                    {messages.length}
+                    {threads.length}
                   </span>
                 </div>
 
-                <div className="flex h-[min(58vh,700px)] flex-col overflow-y-auto p-4 sm:p-6">
-                  {messages.length === 0 ? (
+                <div className="grid h-[min(58vh,700px)] min-h-[460px] grid-cols-1 overflow-hidden lg:grid-cols-[300px_minmax(0,1fr)]">
+                  {threads.length === 0 ? (
                     <div className="my-auto rounded-2xl border border-dashed border-white/20 bg-white/[0.03] px-6 py-12 text-center">
                       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-300">
                         <MessageSquare size={24} />
@@ -501,61 +543,105 @@ export default function SupplierDashboard() {
                       <p className="mt-2 text-sm text-slate-400">{t.waiting}</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {messages.map((msg) => (
-                        <div
-                          key={msg.id}
-                          className={`flex ${msg.senderRole === 'supplier' ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <article
-                            className={`w-full max-w-3xl rounded-2xl border p-4 sm:p-5 ${msg.senderRole === 'supplier'
-                              ? 'border-[#66d9cb]/30 bg-[linear-gradient(150deg,rgba(19,56,61,0.45),rgba(16,34,48,0.55))]'
-                              : 'border-white/12 bg-white/[0.04]'
-                              }`}
-                          >
-                            <div className="mb-3 flex items-start justify-between gap-3">
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white ${msg.senderRole === 'supplier'
-                                    ? 'bg-[linear-gradient(135deg,#66d9cb,#2da7d8)]'
-                                    : 'bg-[linear-gradient(135deg,#8c7bff,#cf5cf0)]'
+                    <>
+                      <aside className="overflow-y-auto border-b border-white/10 bg-black/10 lg:border-b-0 lg:border-r">
+                        {threads.map((thread) => {
+                          const key = getThreadKey(thread);
+                          const isActive = key === selectedThreadKey;
+                          const pavilion = getPavilionById(thread.pavilionId.replace(/^pav_/, ''));
+                          const name = thread.counterpartyDisplayName || thread.counterpartyEmail || 'Guest';
+                          const lastSender = thread.lastMessage.senderKind === 'pavilion' ? 'Supplier' : 'Visitor';
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => setSelectedThreadKey(key)}
+                              className={`w-full border-b border-white/8 px-4 py-3 text-left transition ${isActive ? 'bg-[#66d9cb]/12' : 'hover:bg-white/[0.04]'}`}
+                            >
+                              <div className="mb-1 flex items-center justify-between gap-2">
+                                <span className="truncate text-[10px] font-black uppercase tracking-[0.16em] text-[#66d9cb]">
+                                  {pavilion?.name || thread.pavilionId}
+                                </span>
+                                <span className="shrink-0 text-[10px] text-slate-500">
+                                  {thread.messageCount}
+                                </span>
+                              </div>
+                              <p className="truncate text-sm font-semibold text-white">{name}</p>
+                              <p className="mt-1 line-clamp-2 text-xs text-slate-400">
+                                <span className={thread.lastMessage.senderKind === 'pavilion' ? 'text-[#66d9cb]' : 'text-violet-300'}>
+                                  {lastSender}:
+                                </span>{' '}
+                                {thread.lastMessage.body}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </aside>
+
+                      <div className="flex min-h-0 flex-col">
+                        <div className="border-b border-white/10 px-5 py-3">
+                          <p className="text-sm font-semibold text-white">
+                            {selectedThread?.counterpartyDisplayName || selectedThread?.counterpartyEmail || 'Guest'}
+                          </p>
+                          <p className="mt-1 text-[11px] text-slate-400">
+                            {selectedPavilion?.name || selectedThread?.pavilionId || 'Pavilion'}
+                          </p>
+                        </div>
+                        <div className="flex-1 space-y-4 overflow-y-auto p-3 sm:p-6">
+                          {messages.map((msg) => {
+                            const isMine = msg.senderKind === 'pavilion';
+                            const senderName = isMine
+                              ? supplierName
+                              : selectedThread?.counterpartyDisplayName || selectedThread?.counterpartyEmail || 'Guest';
+                            return (
+                              <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                                <article
+                                  className={`w-full max-w-3xl rounded-2xl border p-4 sm:p-5 ${isMine
+                                    ? 'border-[#66d9cb]/30 bg-[linear-gradient(150deg,rgba(19,56,61,0.45),rgba(16,34,48,0.55))]'
+                                    : 'border-white/12 bg-white/[0.04]'
                                     }`}
                                 >
-                                  {msg.senderName.substring(0, 2).toUpperCase()}
-                                </div>
-                                <div>
-                                  <p className="text-sm font-semibold text-white">{msg.senderName}</p>
-                                  <p className="text-[11px] text-emerald-300">{t.onlineNow}</p>
-                                </div>
-                              </div>
-                              <span className="text-[11px] text-slate-400 [font-family:var(--font-dashboard-mono)]">
-                                {new Date(msg.createdAt).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                            </div>
+                                  <div className="mb-3 flex items-start justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                      <div
+                                        className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white ${isMine
+                                          ? 'bg-[linear-gradient(135deg,#66d9cb,#2da7d8)]'
+                                          : 'bg-[linear-gradient(135deg,#8c7bff,#cf5cf0)]'
+                                          }`}
+                                      >
+                                        {senderName.substring(0, 2).toUpperCase()}
+                                      </div>
+                                      <div>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <p className="text-sm font-semibold text-white">{senderName}</p>
+                                          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] ${isMine
+                                            ? 'border-[#66d9cb]/30 bg-[#66d9cb]/10 text-[#7af0e2]'
+                                            : 'border-violet-300/25 bg-violet-300/10 text-violet-200'
+                                            }`}>
+                                            {isMine ? 'Supplier' : 'Visitor'}
+                                          </span>
+                                        </div>
+                                        <p className="text-[11px] text-emerald-300">{t.onlineNow}</p>
+                                      </div>
+                                    </div>
+                                    <span className="text-[11px] text-slate-400 [font-family:var(--font-dashboard-mono)]">
+                                      {new Date(msg.createdAt).toLocaleTimeString([], {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })}
+                                    </span>
+                                  </div>
 
-                            <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-relaxed text-slate-100">
-                              {msg.isTranslated && (
-                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8ce7dc]">
-                                  {t.translatedLabel}
-                                </p>
-                              )}
-                              <p>{msg.text}</p>
-                              {msg.originalText && msg.originalText !== msg.text && (
-                                <div className="mt-3 border-t border-white/10 pt-3 text-xs text-slate-400">
-                                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                                    {t.originalLabel}
-                                  </p>
-                                  <p>{msg.originalText}</p>
-                                </div>
-                              )}
-                            </div>
-                          </article>
+                                  <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-relaxed text-slate-100">
+                                    <p>{msg.body}</p>
+                                  </div>
+                                </article>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    </>
                   )}
                 </div>
               </section>
@@ -603,11 +689,12 @@ export default function SupplierDashboard() {
                     }
                   }}
                   placeholder={t.replyPlaceholder}
+                  disabled={!selectedThread || isSending}
                   className="min-w-[220px] flex-1 rounded-xl border border-white/15 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-[#66d9cb]/60 focus:ring-2 focus:ring-[#66d9cb]/25"
                 />
                 <button
                   onClick={() => void sendReply()}
-                  disabled={!replyText.trim() || isSending}
+                  disabled={!replyText.trim() || !selectedThread || isSending}
                   className="inline-flex items-center gap-2 rounded-xl bg-[#66d9cb] px-5 py-3 text-sm font-semibold text-[#031413] transition hover:bg-[#88eade] disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   <Send size={14} /> {t.send}
