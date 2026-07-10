@@ -19,46 +19,6 @@ import {
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type AuthMethod = "password" | "otp";
-type OtpVerificationType = "email" | "signup";
-
-const nameFromEmail = (email: string) => {
-  const localPart = email.split("@")[0] ?? "Guest";
-  return localPart
-    .split(/[._-]+/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-};
-
-const slugFromEmail = (email: string, fallback: string) => {
-  const localPart = (email.split("@")[0] ?? "").toLowerCase();
-  const slug = localPart.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  return slug || fallback;
-};
-
-const getSupplierMetadata = (email: string) => {
-  const supplierName = nameFromEmail(email) || "Supplier";
-  const supplierSlug = slugFromEmail(email, "supplier");
-
-  return {
-    supplier_id: `sup_${supplierSlug}`,
-    supplier_name: supplierName,
-    pavilion_id: `pav_${supplierSlug}`,
-    pavilion_name: `${supplierName} Pavilion`,
-    role: "supplier",
-  } as const;
-};
-
-const getAudienceMetadata = (audience: AppAudience, email: string) => {
-  if (audience === "supplier") {
-    return getSupplierMetadata(email);
-  }
-
-  return {
-    role: "buyer",
-    full_name: nameFromEmail(email),
-  };
-};
 
 const isInvalidOtpError = (message: string) => {
   const lower = message.toLowerCase();
@@ -87,32 +47,23 @@ const copy = {
     passwordMethod: "Password",
     otpMethod: "Email code or link",
     signIn: "Sign in",
-    signUp: "Create account",
     sendOtp: "Send code",
     resendOtp: "Resend code",
     verifyOtp: "Verify code",
     loading: "Processing...",
-    passwordSignUpVisitor: "Create a visitor account with email and password.",
-    playerPasswordHint: "Use your player email and password to enter the scene. New players can create an account from this same form.",
-    passwordSignUpSupplier: "Create a supplier account for your pavilion.",
-    otpHintVisitor: "Email OTP can sign in existing visitors or create a new visitor account automatically.",
+    playerPasswordHint: "Use your player email and password to enter the scene. New player accounts are created by the Sfera team.",
+    otpHintVisitor: "Email OTP works only for existing visitor accounts.",
     otpHintSupplier: "Email OTP works only for existing supplier accounts.",
     otpSent:
       "Check your inbox. Enter the code here, or use the magic link if your Supabase email template sends one.",
     otpCodeHint: "Enter the code from your email. If a magic link was sent instead, open it and this page will continue automatically.",
-    checkEmail: "Account created. If email confirmation is enabled, confirm your inbox first.",
     missingConfig:
       "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
     defaultError: "Authentication failed. Please try again.",
     invalidCredentials: "This email does not exist, or the password is incorrect.",
     invalidOtp: "This code is invalid or expired. Use the newest code from your email, or request a new one.",
     networkError: "Couldn't reach the authentication service. Check your connection and try again.",
-    signupCodeSent: "Account created. Check your inbox for the 6-digit confirmation code and enter it below.",
     rateLimited: "The email provider is temporarily blocking another code request. Wait about a minute, then press Resend code again. Also check spam.",
-    modeSignIn: "Already have an account?",
-    modeSignUp: "Need an account?",
-    switchToSignIn: "Sign in",
-    switchToSignUp: "Create account",
     otpDelivered: "We sent a sign-in email.",
     forgotPassword: "Forgot password?",
     resetPasswordSent: "Password reset email sent. Open the link, choose a new password, then continue.",
@@ -138,34 +89,25 @@ const copy = {
     passwordMethod: "Пароль",
     otpMethod: "Код или ссылка по email",
     signIn: "Войти",
-    signUp: "Создать аккаунт",
     sendOtp: "Отправить код",
     resendOtp: "Отправить снова",
     verifyOtp: "Подтвердить код",
     loading: "Обработка...",
-    passwordSignUpVisitor: "Создайте аккаунт посетителя по email и паролю.",
-    playerPasswordHint: "Используйте email и пароль игрока, чтобы войти в сцену. Новые игроки могут создать аккаунт в этой же форме.",
-    passwordSignUpSupplier: "Создайте аккаунт поставщика для своего павильона.",
+    playerPasswordHint: "Используйте email и пароль игрока, чтобы войти в сцену. Новые аккаунты игроков создает команда Sfera.",
     otpHintVisitor:
-      "Вход по email-коду подходит для посетителей и может автоматически создать новый аккаунт.",
+      "Вход по email-коду доступен только для существующих аккаунтов посетителей.",
     otpHintSupplier: "Вход по email-коду доступен только для существующих аккаунтов поставщиков.",
     otpSent:
       "Проверьте почту. Введите код здесь или используйте magic link, если именно его отправляет шаблон Supabase.",
     otpCodeHint:
       "Введите код из письма. Если пришла только magic link-ссылка, откройте ее и страница продолжит вход автоматически.",
-    checkEmail: "Аккаунт создан. Если подтверждение email включено, сначала подтвердите почту.",
     missingConfig:
       "Supabase не настроен. Добавьте NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_ANON_KEY.",
     defaultError: "Ошибка авторизации. Повторите попытку.",
     invalidCredentials: "Такой email отсутствует, либо пароль введён неверно.",
     invalidOtp: "Этот код неверный или устарел. Используйте самый новый код из email или запросите новый.",
     networkError: "Не удалось связаться с сервисом авторизации. Проверьте подключение и попробуйте снова.",
-    signupCodeSent: "Аккаунт создан. Проверьте почту — там 6-значный код подтверждения. Введите его ниже.",
     rateLimited: "Почтовый сервис временно блокирует повторный код. Подождите около минуты, затем нажмите «Отправить снова». Проверьте также спам.",
-    modeSignIn: "Уже есть аккаунт?",
-    modeSignUp: "Нужен аккаунт?",
-    switchToSignIn: "Войти",
-    switchToSignUp: "Создать аккаунт",
     otpDelivered: "Мы отправили письмо для входа.",
     forgotPassword: "Забыли пароль?",
     resetPasswordSent: "Письмо для сброса пароля отправлено. Откройте ссылку, задайте новый пароль и продолжайте.",
@@ -191,31 +133,22 @@ const copy = {
     passwordMethod: "密码",
     otpMethod: "邮箱验证码或链接",
     signIn: "登录",
-    signUp: "创建账号",
     sendOtp: "发送验证码",
     resendOtp: "重新发送",
     verifyOtp: "验证验证码",
     loading: "处理中...",
-    passwordSignUpVisitor: "使用邮箱和密码创建访客账号。",
-    playerPasswordHint: "使用玩家邮箱和密码进入场景。新玩家也可以在此表单创建账号。",
-    passwordSignUpSupplier: "为您的展馆创建供应商账号。",
-    otpHintVisitor: "邮箱 OTP 适用于访客登录，也可以自动创建新访客账号。",
+    playerPasswordHint: "使用玩家邮箱和密码进入场景。新玩家账号由 Sfera 团队创建。",
+    otpHintVisitor: "邮箱 OTP 仅适用于现有访客账号。",
     otpHintSupplier: "邮箱 OTP 仅适用于现有供应商账号。",
     otpSent: "请检查收件箱。在这里输入验证码，或直接使用邮件中的 magic link。",
     otpCodeHint: "输入邮件中的验证码。如果邮件只包含 magic link，打开链接后此页会自动继续登录。",
-    checkEmail: "账号已创建。如启用了邮箱确认，请先完成邮箱验证。",
     missingConfig:
       "Supabase 未配置。请添加 NEXT_PUBLIC_SUPABASE_URL 和 NEXT_PUBLIC_SUPABASE_ANON_KEY。",
     defaultError: "认证失败，请重试。",
     invalidCredentials: "该邮箱不存在，或密码输入错误。",
     invalidOtp: "验证码无效或已过期。请使用邮箱中最新的验证码，或重新请求一个。",
     networkError: "无法连接到认证服务。请检查网络后重试。",
-    signupCodeSent: "账号已创建。请查收邮箱中的 6 位确认码并在下方输入。",
     rateLimited: "邮件服务暂时阻止再次发送验证码。请等待约一分钟后重新发送，也请检查垃圾邮件。",
-    modeSignIn: "已有账号？",
-    modeSignUp: "需要新账号？",
-    switchToSignIn: "登录",
-    switchToSignUp: "创建账号",
     otpDelivered: "登录邮件已发送。",
     forgotPassword: "忘记密码？",
     resetPasswordSent: "密码重置邮件已发送。请打开链接，设置新密码后继续。",
@@ -295,7 +228,6 @@ function LoginPageContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otpCode, setOtpCode] = useState("");
-  const [isSignUpMode, setIsSignUpMode] = useState(requestedAudience === "user" && !isPlayerLoginRequest);
   const [otpRequested, setOtpRequested] = useState(false);
   const [isPasswordResetMode, setIsPasswordResetMode] = useState(false);
   const [isBootstrappingAuth, setIsBootstrappingAuth] = useState(true);
@@ -307,7 +239,6 @@ function LoginPageContent() {
 
   useEffect(() => {
     setAudience(requestedAudience);
-    setIsSignUpMode(requestedAudience === "user" && !isPlayerLoginRequest);
     setAuthMethod("password");
     setOtpRequested(false);
     setOtpCode("");
@@ -389,7 +320,6 @@ function LoginPageContent() {
         if (session) {
           if (isPasswordRecoveryUrl()) {
             setAuthMethod("password");
-            setIsSignUpMode(false);
             setIsPasswordResetMode(true);
             setPassword("");
             setIsBootstrappingAuth(false);
@@ -425,7 +355,6 @@ function LoginPageContent() {
         const { data: authListener } = supabase.auth.onAuthStateChange((event, nextSession) => {
           if (event === "PASSWORD_RECOVERY") {
             setAuthMethod("password");
-            setIsSignUpMode(false);
             setIsPasswordResetMode(true);
             setPassword("");
             setIsBootstrappingAuth(false);
@@ -475,8 +404,8 @@ function LoginPageContent() {
   const passwordSubmitLabel = useMemo(() => {
     if (isSubmitting) return t.loading;
     if (isPasswordResetMode) return t.updatePassword;
-    return isSignUpMode ? t.signUp : t.signIn;
-  }, [isPasswordResetMode, isSignUpMode, isSubmitting, t.loading, t.signIn, t.signUp, t.updatePassword]);
+    return t.signIn;
+  }, [isPasswordResetMode, isSubmitting, t.loading, t.signIn, t.updatePassword]);
 
   const syncAndRedirect = useCallback(
     async (session: Session | null) => {
@@ -528,9 +457,8 @@ function LoginPageContent() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        shouldCreateUser: audience === "user",
+        shouldCreateUser: false,
         emailRedirectTo: buildEmailRedirectTo(),
-        data: audience === "user" ? getAudienceMetadata(audience, email) : undefined,
       },
     });
 
@@ -548,32 +476,23 @@ function LoginPageContent() {
 
     setOtpRequested(true);
     setInfoMessage(otpRequested ? t.otpSent : `${t.otpDelivered} ${t.otpSent}`);
-  }, [audience, buildEmailRedirectTo, email, otpRequested, t.otpDelivered, t.otpSent, t.rateLimited]);
+  }, [buildEmailRedirectTo, email, otpRequested, t.otpDelivered, t.otpSent, t.rateLimited]);
 
   const verifyOtp = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
-    const attemptTypes: OtpVerificationType[] =
-      audience === "user" ? ["email", "signup"] : ["email"];
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token: otpCode,
+      type: "email",
+    });
 
-    let lastError: Error | null = null;
-
-    for (const type of attemptTypes) {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token: otpCode,
-        type,
-      });
-
-      if (!error && data.session) {
-        await syncAndRedirect(data.session);
-        return;
-      }
-
-      lastError = error ?? new Error(t.defaultError);
+    if (!error && data.session) {
+      await syncAndRedirect(data.session);
+      return;
     }
 
-    throw lastError ?? new Error(t.defaultError);
-  }, [audience, email, otpCode, syncAndRedirect, t.defaultError]);
+    throw error ?? new Error(t.defaultError);
+  }, [email, otpCode, syncAndRedirect, t.defaultError]);
 
   const requestPasswordReset = async () => {
     const trimmedEmail = email.trim();
@@ -620,72 +539,6 @@ function LoginPageContent() {
 
   const handlePasswordSubmit = async () => {
     const supabase = getSupabaseBrowserClient();
-
-    if (isSignUpMode) {
-      if (audience === "user") {
-        const response = await fetch("/api/auth/player-signup", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        });
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-
-        if (!response.ok) {
-          throw new Error(payload?.error ?? t.defaultError);
-        }
-
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) throw error;
-        await syncAndRedirect(data.session);
-        return;
-      }
-
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: getAudienceMetadata(audience, email),
-          emailRedirectTo: buildEmailRedirectTo(),
-        },
-      });
-
-      if (error) throw error;
-
-      if (data.session) {
-        await syncAndRedirect(data.session);
-        return;
-      }
-
-      // No session returned means Supabase requires email confirmation.
-      // Explicitly resend the signup confirmation here as well: some
-      // deployments deliver the 6-digit code reliably through the resend
-      // endpoint even when the initial signup email is delayed.
-      const { error: resendError } = await supabase.auth.resend({
-        type: "signup",
-        email,
-        options: {
-          emailRedirectTo: buildEmailRedirectTo(),
-        },
-      });
-
-      if (resendError && !isOtpRateLimitError(resendError)) {
-        throw resendError;
-      }
-
-      // Flip the UI into OTP verification mode so they have a field to
-      // enter the code immediately, instead of just displaying a "check
-      // your email" message with no action.
-      setAuthMethod("otp");
-      setOtpRequested(true);
-      setInfoMessage(resendError ? t.rateLimited : t.signupCodeSent);
-      return;
-    }
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -756,16 +609,12 @@ function LoginPageContent() {
     isPasswordResetMode
       ? t.passwordResetHint
       : isPlayerLoginRequest && authMethod === "password"
-      ? t.playerPasswordHint
+        ? t.playerPasswordHint
       : authMethod === "otp"
       ? audience === "supplier"
         ? t.otpHintSupplier
         : t.otpHintVisitor
-      : isSignUpMode
-        ? audience === "supplier"
-          ? t.passwordSignUpSupplier
-          : t.passwordSignUpVisitor
-        : null;
+      : null;
 
   const subtitle =
     isPlayerLoginRequest
@@ -775,7 +624,6 @@ function LoginPageContent() {
   const handleAudienceChange = (nextAudience: AppAudience) => {
     setAudience(nextAudience);
     setAuthMethod("password");
-    setIsSignUpMode(nextAudience === "user" && !isPlayerLoginRequest);
     setOtpRequested(false);
     setOtpCode("");
     setIsPasswordResetMode(false);
@@ -901,7 +749,7 @@ function LoginPageContent() {
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete={isPasswordResetMode || isSignUpMode ? "new-password" : "current-password"}
+                  autoComplete={isPasswordResetMode ? "new-password" : "current-password"}
                   required
                   minLength={6}
                   value={password}
@@ -953,7 +801,7 @@ function LoginPageContent() {
               {authMethod === "otp" ? otpSubmitLabel : passwordSubmitLabel}
             </button>
 
-            {authMethod === "password" && !isSignUpMode && !isPasswordResetMode && (
+            {authMethod === "password" && !isPasswordResetMode && (
               <button
                 type="button"
                 disabled={isSendingPasswordReset}
@@ -1018,24 +866,6 @@ function LoginPageContent() {
             )}
           </div>
         </form>
-
-        {authMethod === "password" && !isPasswordResetMode && (
-          <div className="text-center text-xs text-gray-500">
-            {isSignUpMode ? t.modeSignIn : t.modeSignUp}{" "}
-            <button
-              type="button"
-              onClick={() => {
-                setOtpRequested(false);
-                setOtpCode("");
-                resetMessages();
-                setIsSignUpMode((previous) => !previous);
-              }}
-              className="text-gray-300 hover:underline"
-            >
-              {isSignUpMode ? t.switchToSignIn : t.switchToSignUp}
-            </button>
-          </div>
-        )}
 
         <div className="text-center text-xs text-gray-500">
           {t.newSupplier}{" "}
