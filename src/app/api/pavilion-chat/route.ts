@@ -3,7 +3,7 @@ import { authenticateAppRequest } from '@/lib/auth/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { isPavilionId, getPavilionById } from '@/lib/pavilions';
 import {
-    getPavilionStaffFor,
+    getPavilionStaffPavilionIds,
     type PavilionMessage,
     type PavilionMessageSenderKind,
 } from '@/lib/pavilionChat';
@@ -53,10 +53,10 @@ export async function GET(request: Request) {
     const requestedCounterparty = (url.searchParams.get('counterpartyUserId') ?? '').trim();
     if (!isPavilionId(pavilionId)) return jsonError(400, 'Unknown pavilion.');
 
-    const staffFor = getPavilionStaffFor(user.user);
+    const staffFor = getPavilionStaffPavilionIds(user.user);
     // Only pavilion staff for THIS pavilion can read arbitrary threads.
     // Everyone else can only read their own thread.
-    const isStaffOfThisPavilion = staffFor === `pav_${pavilionId}`;
+    const isStaffOfThisPavilion = staffFor.includes(`pav_${pavilionId}`);
     if (user.role === 'supplier' && !isStaffOfThisPavilion) {
         return jsonError(403, SUPPLIER_VISITOR_CHAT_ERROR);
     }
@@ -105,8 +105,8 @@ export async function POST(request: Request) {
     if (!body) return jsonError(400, 'Message body is required.');
     if (body.length > 4000) return jsonError(400, 'Message too long.');
 
-    const staffFor = getPavilionStaffFor(user.user);
-    const isStaffOfThisPavilion = staffFor === `pav_${pavilionId}`;
+    const staffFor = getPavilionStaffPavilionIds(user.user);
+    const isStaffOfThisPavilion = staffFor.includes(`pav_${pavilionId}`);
 
     if (user.role === 'supplier' && !isStaffOfThisPavilion) {
         return jsonError(403, SUPPLIER_VISITOR_CHAT_ERROR);
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     // pavilion's chat as a visitor — it would create a thread where the
     // "visitor" is the pavilion itself, which is nonsensical.
     // They can still REPLY to existing visitor threads (sender_kind='pavilion').
-    if (staffFor === `pav_${pavilionId}` && !payload.counterpartyUserId) {
+    if (isStaffOfThisPavilion && !payload.counterpartyUserId) {
         return jsonError(400, 'Pavilion staff cannot open a new thread in their own pavilion. Use the inbox to reply to a visitor.');
     }
 

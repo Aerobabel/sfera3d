@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticateAppRequest } from '@/lib/auth/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
-import { getPavilionStaffFor, type PavilionMessage, type PavilionThreadSummary } from '@/lib/pavilionChat';
+import { getPavilionStaffPavilionIds, type PavilionMessage, type PavilionThreadSummary } from '@/lib/pavilionChat';
 
 type MessageRow = {
     id: string;
@@ -12,6 +12,13 @@ type MessageRow = {
     sender_display_name: string | null;
     body: string;
     created_at: string;
+};
+
+type InboxResponse = {
+    success: true;
+    pavilionId: string | null;
+    pavilionIds: string[];
+    threads: PavilionThreadSummary[];
 };
 
 const jsonError = (status: number, error: string) =>
@@ -26,15 +33,15 @@ export async function GET(request: Request) {
     const user = await authenticateAppRequest(request);
     if (!user) return jsonError(401, 'Unauthorized. Sign in and retry.');
 
-    const staffFor = getPavilionStaffFor(user.user);
-    if (!staffFor) return jsonError(403, 'Not a pavilion staff account.');
+    const staffFor = getPavilionStaffPavilionIds(user.user);
+    if (staffFor.length === 0) return jsonError(403, 'Not a pavilion staff account.');
 
     try {
         const supabase = getSupabaseAdminClient();
         const { data, error } = await supabase
             .from('pavilion_messages')
             .select('id,pavilion_id,counterparty_user_id,sender_kind,sender_user_id,sender_display_name,body,created_at')
-            .eq('pavilion_id', staffFor)
+            .in('pavilion_id', staffFor)
             .order('created_at', { ascending: false })
             .limit(2000);
         if (error) return jsonError(500, error.message);
@@ -46,7 +53,7 @@ export async function GET(request: Request) {
         // that thread's most recent message.
         const threadMap = new Map<string, PavilionThreadSummary>();
         for (const row of rows) {
-            const key = row.counterparty_user_id;
+            const key = `${row.pavilion_id}:${row.counterparty_user_id}`;
             if (!threadMap.has(key)) {
                 const lastMessage: PavilionMessage = {
                     id: row.id,
@@ -96,7 +103,13 @@ export async function GET(request: Request) {
         const threads = Array.from(threadMap.values()).sort(
             (a, b) => b.lastMessage.createdAt - a.lastMessage.createdAt
         );
-        return NextResponse.json({ success: true, pavilionId: staffFor, threads });
+        const response: InboxResponse = {
+            success: true,
+            pavilionId: staffFor[0] ?? null,
+            pavilionIds: staffFor,
+            threads,
+        };
+        return NextResponse.json(response);
     } catch (err) {
         const msg = err instanceof Error ? err.message : 'Failed to load inbox.';
         return jsonError(500, msg);

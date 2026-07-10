@@ -44,20 +44,45 @@ export type PavilionThreadSummary = {
 const STAFF_METADATA_KEYS = ['pavilion_staff_for', 'pavilion_id'];
 const KNOWN_PAVILION_SUPPLIER_IDS = new Set(PAVILION_IDS.map((id) => `pav_${id}`));
 
-export const getPavilionStaffFor = (
+const normalizeStaffPavilionId = (value: string): string | null => {
+    const trimmed = value.trim().toLowerCase();
+    if (!trimmed) return null;
+    return KNOWN_PAVILION_SUPPLIER_IDS.has(trimmed) ? trimmed : null;
+};
+
+const collectStaffPavilionIds = (raw: unknown): string[] => {
+    if (typeof raw === 'string') {
+        return raw
+            .split(',')
+            .map(normalizeStaffPavilionId)
+            .filter((value): value is string => Boolean(value));
+    }
+
+    if (Array.isArray(raw)) {
+        return raw.flatMap((item) => collectStaffPavilionIds(item));
+    }
+
+    return [];
+};
+
+export const getPavilionStaffPavilionIds = (
     user: Pick<User, 'user_metadata' | 'email'> | null | undefined
-): string | null => {
-    if (!user) return null;
+): string[] => {
+    if (!user) return [];
+
+    const pavilionIds: string[] = [];
+    const addPavilionIds = (values: string[]) => {
+        for (const value of values) {
+            if (!pavilionIds.includes(value)) pavilionIds.push(value);
+        }
+    };
 
     // 1+2: metadata keys.
     const metadata = user.user_metadata;
     if (metadata && typeof metadata === 'object') {
         const record = metadata as Record<string, unknown>;
         for (const key of STAFF_METADATA_KEYS) {
-            const raw = record[key];
-            if (typeof raw !== 'string') continue;
-            const trimmed = raw.trim().toLowerCase();
-            if (KNOWN_PAVILION_SUPPLIER_IDS.has(trimmed)) return trimmed;
+            addPavilionIds(collectStaffPavilionIds(record[key]));
         }
     }
 
@@ -65,12 +90,16 @@ export const getPavilionStaffFor = (
     const email = user.email?.trim().toLowerCase() ?? '';
     if (email) {
         const localPart = email.split('@')[0] ?? '';
-        const candidate = `pav_${localPart}`;
-        if (KNOWN_PAVILION_SUPPLIER_IDS.has(candidate)) return candidate;
+        const candidate = normalizeStaffPavilionId(`pav_${localPart}`);
+        if (candidate) addPavilionIds([candidate]);
     }
 
-    return null;
+    return pavilionIds;
 };
+
+export const getPavilionStaffFor = (
+    user: Pick<User, 'user_metadata' | 'email'> | null | undefined
+): string | null => getPavilionStaffPavilionIds(user)[0] ?? null;
 
 export const getDisplayNameFromUser = (user: Pick<User, 'user_metadata' | 'email'> | null | undefined): string | null => {
     if (!user) return null;

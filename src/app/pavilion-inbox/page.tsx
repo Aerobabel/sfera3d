@@ -2,7 +2,8 @@
 
 // Pavilion-staff inbox: lists every thread that visitors (or other pavilions'
 // staff) have started with MY pavilion, and lets me reply inline. Identity
-// comes from auth metadata — `user_metadata.pavilion_staff_for = 'pav_<id>'`.
+// comes from auth metadata: `pavilion_staff_for = 'pav_<id>'` or
+// `pavilion_staff_for = ['pav_youbo', 'pav_doublelin']`.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -49,7 +50,7 @@ const COPY: Record<AppLanguage, Copy> = {
         back: 'Back to pavilion',
         notAuthorizedTitle: 'Pavilion Inbox',
         notAuthorizedBody: 'Sign in required.',
-        metadataHint: 'Pavilion staff accounts need the email local-part to match a pavilion (e.g. doublelin@…), or user_metadata.pavilion_staff_for = "pav_<id>" set in Supabase.',
+        metadataHint: 'Pavilion staff accounts need the email local-part to match a pavilion (e.g. doublelin@…), or user_metadata.pavilion_staff_for = "pav_<id>" / ["pav_youbo","pav_doublelin"] set in Supabase.',
         signIn: 'Sign in',
         home: 'Home',
         threadsLabel: (count) => `Threads · ${count}`,
@@ -75,7 +76,7 @@ const COPY: Record<AppLanguage, Copy> = {
         back: 'В павильон',
         notAuthorizedTitle: 'Ящик павильона',
         notAuthorizedBody: 'Требуется вход.',
-        metadataHint: 'Для аккаунта персонала павильона префикс email должен совпадать с ID павильона (например, doublelin@…) или в user_metadata должен быть указан pavilion_staff_for = "pav_<id>".',
+        metadataHint: 'Для аккаунта персонала павильона префикс email должен совпадать с ID павильона (например, doublelin@…) или в user_metadata должен быть указан pavilion_staff_for = "pav_<id>" / ["pav_youbo","pav_doublelin"].',
         signIn: 'Войти',
         home: 'Главная',
         threadsLabel: (count) => `Диалоги · ${count}`,
@@ -101,7 +102,7 @@ const COPY: Record<AppLanguage, Copy> = {
         back: '返回展馆',
         notAuthorizedTitle: '展馆收件箱',
         notAuthorizedBody: '请先登录。',
-        metadataHint: '展馆员工账号需满足：邮箱前缀与展馆 ID 匹配（如 doublelin@…），或在 user_metadata 中设置 pavilion_staff_for = "pav_<id>"。',
+        metadataHint: '展馆员工账号需满足：邮箱前缀与展馆 ID 匹配（如 doublelin@…），或在 user_metadata 中设置 pavilion_staff_for = "pav_<id>" / ["pav_youbo","pav_doublelin"]。',
         signIn: '登录',
         home: '首页',
         threadsLabel: (count) => `对话 · ${count}`,
@@ -127,6 +128,7 @@ type InboxResponse = {
     success?: boolean;
     error?: string;
     pavilionId?: string;
+    pavilionIds?: string[];
     threads?: PavilionThreadSummary[];
 };
 
@@ -150,7 +152,9 @@ export default function PavilionInboxPage() {
     const copy = COPY[language];
     const [threads, setThreads] = useState<PavilionThreadSummary[]>([]);
     const [pavilionId, setPavilionId] = useState<string | null>(null);
+    const [pavilionIds, setPavilionIds] = useState<string[]>([]);
     const [selectedCounterparty, setSelectedCounterparty] = useState<string | null>(null);
+    const [selectedPavilionId, setSelectedPavilionId] = useState<string | null>(null);
     const [messages, setMessages] = useState<PavilionMessage[]>([]);
     const [input, setInput] = useState('');
     const [isLoadingInbox, setIsLoadingInbox] = useState(true);
@@ -164,6 +168,18 @@ export default function PavilionInboxPage() {
         if (!pavilionId) return null;
         return getPavilionById(pavilionId.replace(/^pav_/, ''));
     }, [pavilionId]);
+    const assignedPavilions = useMemo(
+        () => pavilionIds
+            .map((id) => getPavilionById(id.replace(/^pav_/, '')))
+            .filter((value): value is Pavilion => Boolean(value)),
+        [pavilionIds]
+    );
+    const inboxTitle = assignedPavilions.length > 1
+        ? assignedPavilions.map((item) => item.name).join(' / ')
+        : pavilion?.name ?? copy.loading;
+    const inboxSubtitle = assignedPavilions.length > 1
+        ? assignedPavilions.map((item) => item.tagline).join(' · ')
+        : pavilion?.tagline ?? null;
 
     const loadInbox = useCallback(async () => {
         try {
@@ -176,6 +192,7 @@ export default function PavilionInboxPage() {
             setError(null);
             setThreads(body.threads ?? []);
             setPavilionId(body.pavilionId ?? null);
+            setPavilionIds(body.pavilionIds ?? (body.pavilionId ? [body.pavilionId] : []));
         } catch (err) {
             setError(err instanceof Error ? err.message : copy.connectionIssue);
         } finally {
@@ -183,11 +200,10 @@ export default function PavilionInboxPage() {
         }
     }, [copy.signInRequired, copy.notStaffAccount, copy.connectionIssue]);
 
-    const loadThread = useCallback(async (counterpartyUserId: string) => {
-        if (!pavilionId) return;
+    const loadThread = useCallback(async (counterpartyUserId: string, threadPavilionId: string) => {
         setIsLoadingThread(true);
         try {
-            const short = pavilionId.replace(/^pav_/, '');
+            const short = threadPavilionId.replace(/^pav_/, '');
             const res = await fetch(
                 `/api/pavilion-chat?pavilionId=${encodeURIComponent(short)}&counterpartyUserId=${encodeURIComponent(counterpartyUserId)}`,
                 { cache: 'no-store' }
@@ -200,7 +216,7 @@ export default function PavilionInboxPage() {
         } finally {
             setIsLoadingThread(false);
         }
-    }, [pavilionId, copy.connectionIssue]);
+    }, [copy.connectionIssue]);
 
     // Initial load + polling for inbox list.
     useEffect(() => {
@@ -211,11 +227,11 @@ export default function PavilionInboxPage() {
 
     // Poll the selected thread while it's open.
     useEffect(() => {
-        if (!selectedCounterparty) return;
-        void loadThread(selectedCounterparty);
-        const id = window.setInterval(() => void loadThread(selectedCounterparty), POLL_INTERVAL_MS);
+        if (!selectedCounterparty || !selectedPavilionId) return;
+        void loadThread(selectedCounterparty, selectedPavilionId);
+        const id = window.setInterval(() => void loadThread(selectedCounterparty, selectedPavilionId), POLL_INTERVAL_MS);
         return () => window.clearInterval(id);
-    }, [selectedCounterparty, loadThread]);
+    }, [selectedCounterparty, selectedPavilionId, loadThread]);
 
     // Autoscroll to bottom on new messages.
     useEffect(() => {
@@ -225,15 +241,15 @@ export default function PavilionInboxPage() {
 
     const handleSend = useCallback(async () => {
         const text = input.trim();
-        if (!text || !selectedCounterparty || !pavilionId || isSending) return;
+        if (!text || !selectedCounterparty || !selectedPavilionId || isSending) return;
         setIsSending(true);
         setInput('');
-        const short = pavilionId.replace(/^pav_/, '');
+        const short = selectedPavilionId.replace(/^pav_/, '');
         // Optimistic append — real id arrives after poll.
         const optimisticId = `local-${Date.now()}`;
         setMessages((prev) => [...prev, {
             id: optimisticId,
-            pavilionId,
+            pavilionId: selectedPavilionId,
             counterpartyUserId: selectedCounterparty,
             senderKind: 'pavilion',
             senderUserId: 'me',
@@ -253,18 +269,18 @@ export default function PavilionInboxPage() {
             });
             const body = (await res.json()) as { success?: boolean; error?: string };
             if (!res.ok || !body.success) throw new Error(body.error || 'Failed to send.');
-            await loadThread(selectedCounterparty);
+            await loadThread(selectedCounterparty, selectedPavilionId);
             await loadInbox();
         } catch (err) {
             setError(err instanceof Error ? err.message : copy.connectionIssue);
         } finally {
             setIsSending(false);
         }
-    }, [input, selectedCounterparty, pavilionId, isSending, loadThread, loadInbox, copy.connectionIssue, copy.you]);
+    }, [input, selectedCounterparty, selectedPavilionId, isSending, loadThread, loadInbox, copy.connectionIssue, copy.you]);
 
     const selectedThread = useMemo(
-        () => threads.find((t) => t.counterpartyUserId === selectedCounterparty) ?? null,
-        [threads, selectedCounterparty]
+        () => threads.find((t) => t.counterpartyUserId === selectedCounterparty && t.pavilionId === selectedPavilionId) ?? null,
+        [threads, selectedCounterparty, selectedPavilionId]
     );
 
     if (notAuthorized) {
@@ -300,10 +316,10 @@ export default function PavilionInboxPage() {
                     <div>
                         <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#66d9cb]">{copy.title}</div>
                         <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-                            {pavilion ? pavilion.name : copy.loading}
+                            {inboxTitle}
                         </h1>
-                        {pavilion && (
-                            <p className="mt-1 text-sm text-slate-400">{pavilion.tagline}</p>
+                        {inboxSubtitle && (
+                            <p className="mt-1 text-sm text-slate-400">{inboxSubtitle}</p>
                         )}
                     </div>
                     <Link href="/fastview" className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold uppercase tracking-[0.2em]">
@@ -331,14 +347,23 @@ export default function PavilionInboxPage() {
                                 <div className="p-6 text-center text-xs text-slate-500">{copy.noMessages}</div>
                             )}
                             {threads.map((thread) => {
-                                const isActive = thread.counterpartyUserId === selectedCounterparty;
+                                const threadPavilion = getPavilionById(thread.pavilionId.replace(/^pav_/, ''));
+                                const isActive = thread.counterpartyUserId === selectedCounterparty && thread.pavilionId === selectedPavilionId;
                                 const name = thread.counterpartyDisplayName || thread.counterpartyEmail || copy.visitor;
                                 return (
                                     <button
-                                        key={thread.counterpartyUserId}
-                                        onClick={() => setSelectedCounterparty(thread.counterpartyUserId)}
+                                        key={`${thread.pavilionId}:${thread.counterpartyUserId}`}
+                                        onClick={() => {
+                                            setSelectedCounterparty(thread.counterpartyUserId);
+                                            setSelectedPavilionId(thread.pavilionId);
+                                        }}
                                         className={`w-full text-left px-4 py-3 border-b border-white/5 transition ${isActive ? 'bg-cyan-500/10' : 'hover:bg-white/5'}`}
                                     >
+                                        {threadPavilion && assignedPavilions.length > 1 && (
+                                            <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#66d9cb]">
+                                                {threadPavilion.name}
+                                            </div>
+                                        )}
                                         <div className="flex items-baseline justify-between gap-2">
                                             <span className={`text-sm font-semibold truncate ${isActive ? 'text-cyan-200' : 'text-white'}`}>
                                                 {name}
@@ -380,7 +405,10 @@ export default function PavilionInboxPage() {
                                         )}
                                     </div>
                                     <button
-                                        onClick={() => setSelectedCounterparty(null)}
+                                        onClick={() => {
+                                            setSelectedCounterparty(null);
+                                            setSelectedPavilionId(null);
+                                        }}
                                         className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 lg:hidden"
                                         aria-label={copy.closeThread}
                                     >
