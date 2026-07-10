@@ -61,6 +61,33 @@ const STALE_MOUSE_DELTA_THRESHOLD = 1200;
 const STREAM_INPUT_RESET_EVENT = 'sfera:stream-input-reset';
 const STARTUP_WATCHDOG_MS = 12000;
 const MAX_STARTUP_RETRIES = 2;
+const FIRE_KEY_CODE = 80;
+
+const dispatchSyntheticKeyPress = (keyCode: number, key: string, code: string) => {
+    const keyboardEventInit: KeyboardEventInit = {
+        key,
+        code,
+        bubbles: true,
+        cancelable: true,
+    };
+
+    document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
+    document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
+};
+
+const sendStreamPixelKeyPress = (stream: StreamPixelStream | null, keyCode: number, key: string, code: string) => {
+    const handlers = stream?.toStreamerHandlers;
+    const keyDownHandler = handlers?.get('KeyDown');
+    const keyUpHandler = handlers?.get('KeyUp');
+
+    if (keyDownHandler && keyUpHandler) {
+        keyDownHandler([keyCode, 0]);
+        keyUpHandler([keyCode]);
+        return;
+    }
+
+    dispatchSyntheticKeyPress(keyCode, key, code);
+};
 
 const diagnoseStream = (controller: StreamPixelController | null, stream: StreamPixelStream | null) => {
     const handlerKeys = stream?.toStreamerHandlers
@@ -188,6 +215,22 @@ export default function StreamPixelPlayer({
         keyboardInputEnabledRef.current = keyboardInputEnabled;
         streamRef.current?.config?.setFlagEnabled?.('KeyboardInput', keyboardInputEnabled);
     }, [keyboardInputEnabled]);
+
+    useEffect(() => {
+        const wrapperElement = wrapperRef.current;
+        if (!wrapperElement) return;
+
+        const handleLeftMouseFire = (event: PointerEvent) => {
+            if (event.button !== 0 || event.pointerType !== 'mouse') return;
+
+            sendStreamPixelKeyPress(streamRef.current, FIRE_KEY_CODE, 'p', 'KeyP');
+        };
+
+        wrapperElement.addEventListener('pointerdown', handleLeftMouseFire, true);
+        return () => {
+            wrapperElement.removeEventListener('pointerdown', handleLeftMouseFire, true);
+        };
+    }, []);
 
     useEffect(() => {
         const nextBlockedCodes = new Set<string>();

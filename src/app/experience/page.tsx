@@ -438,7 +438,7 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         guideBody: 'Your goal is simple and weirdly urgent: buy water. Start at the dispenser, learn why the machine refuses the purchase, get the Zombie Hall code from suppliers, clear 5 zombies, then come back and buy EVIAN.',
         guideSteps: ['Try the water dispenser', 'Find the Zombie Hall code', 'Clear 5 zombies for coins', 'Buy EVIAN water'],
         arenaTrainingTitle: 'Zombie Arena controls',
-        arenaTrainingSteps: ['WASD to move', 'Mouse to aim', 'P to fire', 'Leave through the return portal'],
+        arenaTrainingSteps: ['WASD to move', 'Mouse to aim', 'LMB/P to fire', 'Leave through the return portal'],
         questDetailsOpen: 'Show full checklist',
         questDetailsClose: 'Hide checklist',
         questHint: 'Follow the next objective. Open the full checklist if you lose the thread.',
@@ -491,7 +491,7 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         guideBody: 'Цель простая: купить воду. Начните у автомата, узнайте, почему он отказывает в покупке, получите код Зомби-холла у поставщиков, уничтожьте 5 зомби и купите EVIAN.',
         guideSteps: ['Попробовать автомат с водой', 'Найти код Зомби-холла', 'Получить монеты за 5 зомби', 'Купить воду EVIAN'],
         arenaTrainingTitle: 'Управление на арене',
-        arenaTrainingSteps: ['WASD: движение', 'Мышь: прицел', 'P: стрельба', 'Выход: портал возврата'],
+        arenaTrainingSteps: ['WASD: движение', 'Мышь: прицел', 'LMB/P: стрельба', 'Выход: портал возврата'],
         questDetailsOpen: 'Весь список',
         questDetailsClose: 'Скрыть список',
         questHint: 'Идите по следующей цели. Если сбились, откройте весь список.',
@@ -544,7 +544,7 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         guideBody: '目标很简单：买水。从售卖机开始，了解机器为什么拒绝购买，向供应商获取僵尸大厅代码，清理 5 个僵尸，然后购买 EVIAN。',
         guideSteps: ['尝试饮水售卖机', '找到僵尸大厅代码', '清理 5 个僵尸赚金币', '购买 EVIAN 水'],
         arenaTrainingTitle: '僵尸竞技场操作',
-        arenaTrainingSteps: ['WASD 移动', '鼠标瞄准', 'P 射击', '传送门返回'],
+        arenaTrainingSteps: ['WASD 移动', '鼠标瞄准', 'LMB/P 射击', '传送门返回'],
         questDetailsOpen: '显示完整清单',
         questDetailsClose: '收起清单',
         questHint: '按下一个目标推进。迷路时打开完整清单。',
@@ -669,7 +669,7 @@ const EXPERIENCE_COPY: Record<
         focusedPrompt: 'Ask for specs or compatibility details.',
         statusOnline: 'System Online',
         instruction: 'Long press T to speak with avatars, press F to open doors, X to exit inspection mode. Press ESC to switch to cursor control.',
-        zombieInstruction: 'Zombie Arena: move with WASD, aim with mouse, press P to fire, use the return portal to leave.',
+        zombieInstruction: 'Zombie Arena: move with WASD, aim with mouse, left-click/LMB or press P to fire, use the return portal to leave.',
         chatToggleShow: 'Chat',
         chatToggleHide: 'Hide Chat',
         menuNavigation: 'Navigation',
@@ -705,7 +705,7 @@ const EXPERIENCE_COPY: Record<
         focusedPrompt: 'Спросите характеристики или совместимость.',
         statusOnline: 'Система онлайн',
         instruction: 'Удерживайте T для разговора с аватарами, F для открытия дверей, X для выхода из режима осмотра. Чтобы переключить управление на курсор, нажмите ESC.',
-        zombieInstruction: 'Zombie Arena: WASD \u0434\u043B\u044F \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F, \u043C\u044B\u0448\u044C\u044E \u0446\u0435\u043B\u044C\u0442\u0435\u0441\u044C, P \u0434\u043B\u044F \u0441\u0442\u0440\u0435\u043B\u044C\u0431\u044B, \u0432\u044B\u0445\u043E\u0434 \u0447\u0435\u0440\u0435\u0437 \u043F\u043E\u0440\u0442\u0430\u043B.',
+        zombieInstruction: 'Zombie Arena: WASD \u0434\u043B\u044F \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F, \u043C\u044B\u0448\u044C\u044E \u0446\u0435\u043B\u044C\u0442\u0435\u0441\u044C, LMB/P \u0434\u043B\u044F \u0441\u0442\u0440\u0435\u043B\u044C\u0431\u044B, \u0432\u044B\u0445\u043E\u0434 \u0447\u0435\u0440\u0435\u0437 \u043F\u043E\u0440\u0442\u0430\u043B.',
         chatToggleShow: 'Чат',
         chatToggleHide: 'Скрыть чат',
         menuNavigation: 'Навигация',
@@ -741,7 +741,7 @@ const EXPERIENCE_COPY: Record<
         focusedPrompt: '可继续询问规格参数或兼容性。',
         statusOnline: '系统在线',
         instruction: '长按 T 与角色对话，按 F 开门，按 X 退出检视模式。按 ESC 切换到光标控制。',
-        zombieInstruction: 'Zombie Arena: WASD \u79FB\u52A8, \u9F20\u6807\u7784\u51C6, \u6309 P \u5C04\u51FB, \u4F7F\u7528\u4F20\u9001\u95E8\u79BB\u5F00.',
+        zombieInstruction: 'Zombie Arena: WASD \u79FB\u52A8, \u9F20\u6807\u7784\u51C6, \u6309 LMB/P \u5C04\u51FB, \u4F7F\u7528\u4F20\u9001\u95E8\u79BB\u5F00.',
         chatToggleShow: '聊天',
         chatToggleHide: '隐藏聊天',
         menuNavigation: '导航',
@@ -908,7 +908,6 @@ const FASTVIEW_START_CUTSCENE_PLAYLIST: Record<AppLanguage, string[]> = {
     zh: ['/cutscenes/gameagain.MOV'],
 };
 const WATER_WIN_CUTSCENE_SRC = '/cutscenes/wincut.MOV';
-const TOTAL_CUTSCENE_STEPS = 3;
 const FASTVIEW_CUTSCENE_FADE_MS = 700;
 const WATER_FLOW_COPY = {
     en: {
@@ -2193,45 +2192,6 @@ function WaterPurchaseCeremony({ copy, walletBalanceCents }: { copy: WaterFlowCo
     );
 }
 
-function CutsceneTimeline({ active, copy }: { active: 'opening' | 'hall' | 'water'; copy: WaterFlowCopy }) {
-    const steps = [
-        { id: 'opening', label: copy.cutscene.openingFilm },
-        { id: 'hall', label: copy.cutscene.hallArrival },
-        { id: 'water', label: copy.cutscene.waterWin },
-    ] as const;
-    const activeIndex = steps.findIndex((step) => step.id === active);
-
-    return (
-        <div className="pointer-events-none absolute inset-x-4 bottom-5 z-20 flex justify-center">
-            <div className="flex max-w-full items-center gap-2 overflow-hidden rounded-full border border-white/12 bg-black/48 px-3 py-2 shadow-[0_14px_50px_rgba(0,0,0,0.35)] backdrop-blur-md">
-                {steps.map((step, index) => {
-                    const isDone = index < activeIndex;
-                    const isActive = index === activeIndex;
-                    return (
-                        <div key={step.id} className="flex min-w-0 items-center gap-2">
-                            <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[9px] font-black ${
-                                isDone
-                                    ? 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100'
-                                    : isActive
-                                        ? 'border-cyan-300/45 bg-cyan-300/14 text-cyan-100 shadow-[0_0_18px_rgba(102,217,203,0.28)]'
-                                        : 'border-white/10 bg-white/[0.04] text-white/30'
-                            }`}>
-                                {isDone ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}
-                            </span>
-                            <span className={`hidden truncate text-[9px] font-black uppercase tracking-[0.14em] sm:block ${
-                                isActive ? 'text-cyan-100' : isDone ? 'text-emerald-100/80' : 'text-slate-500'
-                            }`}>
-                                {step.label}
-                            </span>
-                            {index < steps.length - 1 && <span className="h-px w-5 bg-white/12" />}
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-}
-
 function CutsceneCinematicOverlay({ tone, label, copy }: { tone: 'opening' | 'hall' | 'water'; label: string; copy: WaterFlowCopy }) {
     const toneClass = {
         opening: 'border-cyan-200/18 text-cyan-100',
@@ -3512,12 +3472,10 @@ export default function ExperiencePage() {
     const [hasStartedSferaHallCutsceneSound, setHasStartedSferaHallCutsceneSound] = useState(false);
     const [dashboardOverlay, setDashboardOverlay] = useState<SceneDashboardOverlay | null>(null);
     const [liveActivityToasts, setLiveActivityToasts] = useState<LiveActivityToast[]>([]);
-    const [dogReactionToast, setDogReactionToast] = useState<{ id: number; mood: 'mad' | 'calm' } | null>(null);
     const [isMissionStatementVisible, setIsMissionStatementVisible] = useState(false);
     const liveActivityIndexRef = useRef(0);
     const liveActivityRemovalTimersRef = useRef<number[]>([]);
     const lastQuestActivitySignatureRef = useRef('');
-    const dogReactionTimerRef = useRef<number | null>(null);
     const missionStatementTimerRef = useRef<number | null>(null);
     const hasShownMissionStatementRef = useRef(false);
     const hasAppliedInitialModeRef = useRef(false);
@@ -3732,12 +3690,6 @@ export default function ExperiencePage() {
     const waterPurchaseCeremonyTimerRef = useRef<number | null>(null);
     const fastViewCutscenePlaylist = FASTVIEW_START_CUTSCENE_PLAYLIST[language] ?? FASTVIEW_START_CUTSCENE_PLAYLIST.en;
     const fastViewCutsceneSrc = fastViewCutscenePlaylist[fastViewCutsceneIndex] ?? fastViewCutscenePlaylist[0];
-    const formatCutsceneStepLabel = (step: number) => {
-        if (language === 'ru') return `Ролик ${step}/${TOTAL_CUTSCENE_STEPS}`;
-        if (language === 'zh') return `影片 ${step}/${TOTAL_CUTSCENE_STEPS}`;
-        return `Cutscene ${step}/${TOTAL_CUTSCENE_STEPS}`;
-    };
-    const fastViewCutsceneStepLabel = formatCutsceneStepLabel(1);
 
     useEffect(() => {
         if (!hasStartedExperience || !unrealBridge.lastUnrealEvent) return;
@@ -3770,23 +3722,6 @@ export default function ExperiencePage() {
             default:
                 break;
         }
-    }, [hasStartedExperience, unrealBridge.lastUnrealEvent]);
-
-    useEffect(() => {
-        if (!hasStartedExperience || !unrealBridge.lastUnrealEvent) return;
-        if (unrealBridge.lastUnrealEvent.event !== 'dog_mad' && unrealBridge.lastUnrealEvent.event !== 'dog_calm') return;
-
-        const mood = unrealBridge.lastUnrealEvent.event === 'dog_mad' ? 'mad' : 'calm';
-        setDogReactionToast({ id: Date.now(), mood });
-        playSferaUiSound(mood === 'mad' ? 'warning' : 'progress');
-
-        if (dogReactionTimerRef.current !== null) {
-            window.clearTimeout(dogReactionTimerRef.current);
-        }
-        dogReactionTimerRef.current = window.setTimeout(() => {
-            setDogReactionToast(null);
-            dogReactionTimerRef.current = null;
-        }, 4200);
     }, [hasStartedExperience, unrealBridge.lastUnrealEvent]);
 
     useEffect(() => {
@@ -3996,9 +3931,6 @@ export default function ExperiencePage() {
             }
             if (waterPurchaseCeremonyTimerRef.current !== null) {
                 window.clearTimeout(waterPurchaseCeremonyTimerRef.current);
-            }
-            if (dogReactionTimerRef.current !== null) {
-                window.clearTimeout(dogReactionTimerRef.current);
             }
             if (missionStatementTimerRef.current !== null) {
                 window.clearTimeout(missionStatementTimerRef.current);
@@ -5204,8 +5136,6 @@ export default function ExperiencePage() {
             const rawEventMap: Record<string, QuestEventInput> = {
                 water_nearby: { event: 'water_nearby' },
                 water_left: { event: 'water_left' },
-                dog_mad: { event: 'dog_mad' },
-                dog_calm: { event: 'dog_calm' },
                 wheel: { event: 'wheel' },
                 wheel_left: { event: 'wheel_left' },
             };
@@ -5548,7 +5478,7 @@ export default function ExperiencePage() {
 
                     <CutsceneSiteHeader
                         statusOnline={ui.statusOnline}
-                        instruction={`${sceneInstruction} · ${fastViewCutsceneStepLabel}`}
+                        instruction={sceneInstruction}
                         skipLabel={cutsceneCopy.skip}
                         onSkip={handleSkipFastViewCutscene}
                     />
@@ -5579,7 +5509,6 @@ export default function ExperiencePage() {
                             </div>
                         </div>
                     )}
-                    <CutsceneTimeline active="opening" copy={waterFlowCopy} />
                 </div>
             )}
 
@@ -5615,13 +5544,12 @@ export default function ExperiencePage() {
                     )}
                     <CutsceneSiteHeader
                         statusOnline={ui.statusOnline}
-                        instruction={`${sceneInstruction} · ${formatCutsceneStepLabel(2)}`}
+                        instruction={sceneInstruction}
                         skipLabel={cutsceneCopy.skip}
                         onSkip={() => handleCloseSferaHallCutscene(true)}
                         startLabel={!hasStartedSferaHallCutsceneSound ? cutsceneCopy.startWithSound : undefined}
                         onStart={!hasStartedSferaHallCutsceneSound ? handleStartSferaHallCutsceneWithSound : undefined}
                     />
-                    <CutsceneTimeline active="hall" copy={waterFlowCopy} />
                 </div>
             )}
 
@@ -5662,7 +5590,7 @@ export default function ExperiencePage() {
                     )}
                     <CutsceneSiteHeader
                         statusOnline={ui.statusOnline}
-                        instruction={`${waterFlowCopy.purchaseAuthorized}. ${waterFlowCopy.wheelReturnToast}. · ${formatCutsceneStepLabel(3)}`}
+                        instruction={`${waterFlowCopy.purchaseAuthorized}. ${waterFlowCopy.wheelReturnToast}.`}
                         skipLabel={cutsceneCopy.skip}
                         onSkip={() => {
                             fadeOutCutsceneAudio(waterWinCutsceneVideoRef.current, closeWaterWinCutscene);
@@ -5670,7 +5598,6 @@ export default function ExperiencePage() {
                         startLabel={!hasStartedWaterWinCutsceneSound ? cutsceneCopy.startWithSound : undefined}
                         onStart={!hasStartedWaterWinCutsceneSound ? handleStartWaterWinCutsceneWithSound : undefined}
                     />
-                    <CutsceneTimeline active="water" copy={waterFlowCopy} />
                 </div>
             )}
 
@@ -5881,21 +5808,6 @@ export default function ExperiencePage() {
                             </div>
                         </div>
                     ))}
-                </div>
-            )}
-
-            {showExperienceHud && dogReactionToast && (
-                <div className="pointer-events-none absolute left-1/2 top-28 z-[92] w-[min(92vw,24rem)] -translate-x-1/2">
-                    <div className={`sfera-reward-pop rounded-2xl border p-3 text-center text-white shadow-[0_22px_70px_rgba(0,0,0,0.42)] backdrop-blur-md ${
-                        dogReactionToast.mood === 'mad'
-                            ? 'border-amber-300/34 bg-[#160f05]/88'
-                            : 'border-emerald-300/28 bg-[#06160d]/88'
-                    }`}>
-                        <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${dogReactionToast.mood === 'mad' ? 'text-amber-100' : 'text-emerald-100'}`}>Focus check</p>
-                        <p className="mt-1 text-sm font-black">
-                            {dogReactionToast.mood === 'mad' ? 'heyy be focused hahah, doggy is mad' : 'doggy is calm again. carry on.'}
-                        </p>
-                    </div>
                 </div>
             )}
 

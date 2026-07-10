@@ -155,10 +155,37 @@ type VideoFrameWatchVideo = HTMLVideoElement & {
     cancelVideoFrameCallback?: (handle: number) => void;
 };
 
-const COMMON_KEY_CODES_TO_RELEASE = [87, 65, 83, 68, 38, 37, 40, 39, 32, 16, 17, 18, 88, 70, 84];
+const FIRE_KEY_CODE = 80;
+const COMMON_KEY_CODES_TO_RELEASE = [87, 65, 83, 68, 38, 37, 40, 39, 32, 16, 17, 18, 88, 70, 84, FIRE_KEY_CODE];
 const NORMALIZED_CENTER = 32768;
 const POINTER_LOCK_GRACE_MS = 200;
 const MAX_MOUSE_DELTA = 120;
+
+const dispatchSyntheticKeyPress = (keyCode: number, key: string, code: string) => {
+    const keyboardEventInit: KeyboardEventInit = {
+        key,
+        code,
+        bubbles: true,
+        cancelable: true,
+    };
+
+    document.dispatchEvent(new KeyboardEvent('keydown', keyboardEventInit));
+    document.dispatchEvent(new KeyboardEvent('keyup', keyboardEventInit));
+};
+
+const sendPixelStreamingKeyPress = (ps: PixelStreaming | null, keyCode: number, key: string, code: string) => {
+    const handlers = ps?.toStreamerHandlers;
+    const keyDownHandler = handlers?.get('KeyDown');
+    const keyUpHandler = handlers?.get('KeyUp');
+
+    if (keyDownHandler && keyUpHandler) {
+        keyDownHandler([keyCode, 0]);
+        keyUpHandler([keyCode]);
+        return;
+    }
+
+    dispatchSyntheticKeyPress(keyCode, key, code);
+};
 
 const releaseCommonStuckInputs = (ps: PixelStreaming | null) => {
     if (!ps) return;
@@ -953,6 +980,22 @@ export default function PixelStreamingPlayer({
 
         ps.config.setFlagEnabled(Flags.KeyboardInput, keyboardInputEnabled);
     }, [keyboardInputEnabled]);
+
+    useEffect(() => {
+        const wrapperElement = wrapperRef.current;
+        if (!wrapperElement) return;
+
+        const handleLeftMouseFire = (event: PointerEvent) => {
+            if (event.button !== 0 || event.pointerType !== 'mouse') return;
+
+            sendPixelStreamingKeyPress(psRef.current, FIRE_KEY_CODE, 'p', 'KeyP');
+        };
+
+        wrapperElement.addEventListener('pointerdown', handleLeftMouseFire, true);
+        return () => {
+            wrapperElement.removeEventListener('pointerdown', handleLeftMouseFire, true);
+        };
+    }, []);
 
     return (
         <div className="relative w-full h-full bg-black group">

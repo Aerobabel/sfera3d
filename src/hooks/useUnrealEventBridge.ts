@@ -603,18 +603,6 @@ export const useUnrealEventBridge = () => {
                         recentActivity: withActivity(previous.recentActivity, 'Water purchased: wheel coupon unlocked'),
                     }, unrealEvent);
                 }
-                case 'dog_mad':
-                    return withQuestUpdate({
-                        ...nextBase,
-                        lastDogMood: 'mad',
-                        recentActivity: withActivity(previous.recentActivity, 'Heyy, stay focused haha. Doggy is mad.'),
-                    }, unrealEvent);
-                case 'dog_calm':
-                    return withQuestUpdate({
-                        ...nextBase,
-                        lastDogMood: 'calm',
-                        recentActivity: withActivity(previous.recentActivity, 'Doggy is calm again'),
-                    }, unrealEvent);
                 case 'arena_key_piece_found': {
                     const piece = normalizeKeyPiece(unrealEvent.piece);
                     if (!piece || previous.arenaKeyPieces.includes(piece)) {
