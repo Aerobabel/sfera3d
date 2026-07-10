@@ -43,6 +43,8 @@ export type PavilionThreadSummary = {
 // accidentally promoted to staff.
 const STAFF_METADATA_KEYS = ['pavilion_staff_for', 'pavilion_id'];
 const KNOWN_PAVILION_SUPPLIER_IDS = new Set(PAVILION_IDS.map((id) => `pav_${id}`));
+const CENTRAL_SUPPLIER_EMAIL_LOCAL_PARTS = new Set(['nonagon']);
+const ALL_PAVILION_SUPPLIER_IDS = PAVILION_IDS.map((id) => `pav_${id}`);
 
 const normalizeStaffPavilionId = (value: string): string | null => {
     const trimmed = value.trim().toLowerCase();
@@ -95,6 +97,21 @@ export const getPavilionStaffPavilionIds = (
     }
 
     return pavilionIds;
+};
+
+export const getSupplierStaffPavilionIds = (
+    user: Pick<User, 'user_metadata' | 'email'> | null | undefined,
+    role: string | null | undefined
+): string[] => {
+    const explicitPavilionIds = getPavilionStaffPavilionIds(user);
+    if (explicitPavilionIds.length > 0 || role !== 'supplier' || !user?.email) {
+        return explicitPavilionIds;
+    }
+
+    const localPart = user.email.trim().toLowerCase().split('@')[0] ?? '';
+    return CENTRAL_SUPPLIER_EMAIL_LOCAL_PARTS.has(localPart)
+        ? ALL_PAVILION_SUPPLIER_IDS
+        : explicitPavilionIds;
 };
 
 export const getPavilionStaffFor = (

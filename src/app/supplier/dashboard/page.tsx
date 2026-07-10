@@ -402,10 +402,10 @@ export default function SupplierDashboard() {
           <nav className="flex-1 px-4 pb-6">
             <div className="space-y-2 rounded-2xl border border-white/8 bg-white/[0.03] p-3">
               <Link
-                href="#"
+                href="/pavilion-inbox"
                 className="flex items-center gap-3 rounded-xl border border-[#66d9cb]/30 bg-[#66d9cb]/14 px-4 py-3 text-sm font-semibold text-[#7af0e2] transition hover:bg-[#66d9cb]/20"
               >
-                <MessageSquare size={18} /> {t.liveChat}
+                <MessageSquare size={18} /> Pavilion inbox
               </Link>
               <Link
                 href="#"
@@ -456,6 +456,12 @@ export default function SupplierDashboard() {
                 <h1 className="mt-1 text-xl font-semibold text-white sm:text-2xl">{t.inquiries}</h1>
               </div>
               <div className="flex items-center gap-2">
+                <Link
+                  href="/pavilion-inbox"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#66d9cb]/25 bg-[#66d9cb]/10 px-3 py-2 text-xs font-semibold text-[#7af0e2] transition hover:bg-[#66d9cb]/18"
+                >
+                  <MessageSquare size={16} /> Pavilion inbox
+                </Link>
                 <button className="rounded-full border border-white/15 bg-white/[0.04] p-2.5 text-slate-300 transition hover:bg-white/[0.12] hover:text-white">
                   <Search size={18} />
                 </button>

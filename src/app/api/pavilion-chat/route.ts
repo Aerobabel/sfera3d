@@ -3,7 +3,7 @@ import { authenticateAppRequest } from '@/lib/auth/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { isPavilionId, getPavilionById } from '@/lib/pavilions';
 import {
-    getPavilionStaffPavilionIds,
+    getSupplierStaffPavilionIds,
     type PavilionMessage,
     type PavilionMessageSenderKind,
 } from '@/lib/pavilionChat';
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     const requestedCounterparty = (url.searchParams.get('counterpartyUserId') ?? '').trim();
     if (!isPavilionId(pavilionId)) return jsonError(400, 'Unknown pavilion.');
 
-    const staffFor = getPavilionStaffPavilionIds(user.user);
+    const staffFor = getSupplierStaffPavilionIds(user.user, user.role);
     // Only pavilion staff for THIS pavilion can read arbitrary threads.
     // Everyone else can only read their own thread.
     const isStaffOfThisPavilion = staffFor.includes(`pav_${pavilionId}`);
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     if (!body) return jsonError(400, 'Message body is required.');
     if (body.length > 4000) return jsonError(400, 'Message too long.');
 
-    const staffFor = getPavilionStaffPavilionIds(user.user);
+    const staffFor = getSupplierStaffPavilionIds(user.user, user.role);
     const isStaffOfThisPavilion = staffFor.includes(`pav_${pavilionId}`);
 
     if (user.role === 'supplier' && !isStaffOfThisPavilion) {

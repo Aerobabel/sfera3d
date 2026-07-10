@@ -21,6 +21,8 @@ type CookieTarget = {
   };
 };
 
+const CENTRAL_SUPPLIER_EMAIL_LOCAL_PARTS = new Set(["nonagon"]);
+
 const REFRESH_TOKEN_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
 const baseCookieOptions = {
@@ -145,7 +147,11 @@ export const getUserMetadata = (
 };
 
 export const getUserRole = (
-  user: Pick<User, "user_metadata"> | { user_metadata?: unknown } | null | undefined
+  user:
+    | Pick<User, "email" | "user_metadata">
+    | { email?: string | null; user_metadata?: unknown }
+    | null
+    | undefined
 ): AppAuthRole => {
   const metadata = getUserMetadata(user);
   if (metadata.role === "supplier") {
@@ -160,6 +166,8 @@ export const getUserRole = (
 
   return supplierSignals.some(
     (value) => typeof value === "string" && value.trim().length > 0
+  ) || CENTRAL_SUPPLIER_EMAIL_LOCAL_PARTS.has(
+    (typeof user?.email === "string" ? user.email.trim().toLowerCase() : "").split("@")[0] ?? ""
   )
     ? "supplier"
     : "buyer";

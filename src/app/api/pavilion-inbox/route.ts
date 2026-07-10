@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticateAppRequest } from '@/lib/auth/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
-import { getPavilionStaffPavilionIds, type PavilionMessage, type PavilionThreadSummary } from '@/lib/pavilionChat';
+import { getSupplierStaffPavilionIds, type PavilionMessage, type PavilionThreadSummary } from '@/lib/pavilionChat';
 
 type MessageRow = {
     id: string;
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     const user = await authenticateAppRequest(request);
     if (!user) return jsonError(401, 'Unauthorized. Sign in and retry.');
 
-    const staffFor = getPavilionStaffPavilionIds(user.user);
+    const staffFor = getSupplierStaffPavilionIds(user.user, user.role);
     if (staffFor.length === 0) return jsonError(403, 'Not a pavilion staff account.');
 
     try {
