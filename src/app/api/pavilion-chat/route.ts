@@ -27,6 +27,9 @@ type MessageRow = {
 const jsonError = (status: number, error: string) =>
     NextResponse.json({ success: false, error }, { status });
 
+const SUPPLIER_VISITOR_CHAT_ERROR =
+    'Supplier accounts cannot use visitor pavilion chats. Use your supplier dashboard or pavilion inbox.';
+
 const toApiMessage = (row: MessageRow): PavilionMessage => ({
     id: row.id,
     pavilionId: row.pavilion_id,
@@ -54,6 +57,12 @@ export async function GET(request: Request) {
     // Only pavilion staff for THIS pavilion can read arbitrary threads.
     // Everyone else can only read their own thread.
     const isStaffOfThisPavilion = staffFor === `pav_${pavilionId}`;
+    if (user.role === 'supplier' && !isStaffOfThisPavilion) {
+        return jsonError(403, SUPPLIER_VISITOR_CHAT_ERROR);
+    }
+    if (isStaffOfThisPavilion && !requestedCounterparty) {
+        return jsonError(400, 'Pavilion staff must use the inbox to view visitor threads.');
+    }
     const counterpartyUserId = isStaffOfThisPavilion && requestedCounterparty
         ? requestedCounterparty
         : user.id;
@@ -98,6 +107,10 @@ export async function POST(request: Request) {
 
     const staffFor = getPavilionStaffFor(user.user);
     const isStaffOfThisPavilion = staffFor === `pav_${pavilionId}`;
+
+    if (user.role === 'supplier' && !isStaffOfThisPavilion) {
+        return jsonError(403, SUPPLIER_VISITOR_CHAT_ERROR);
+    }
 
     // Self-messaging guard: a pavilion's staff can't post into their own
     // pavilion's chat as a visitor — it would create a thread where the

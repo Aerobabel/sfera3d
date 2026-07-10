@@ -607,6 +607,12 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
             );
             if (res.status === 401) { setChatAuthError(copy.chatSigninHint); return; }
             const body = (await res.json()) as { success?: boolean; error?: string; messages?: PavilionMessage[] };
+            if (res.status === 400 || res.status === 403) {
+                const msg = body.error || 'Supplier accounts cannot use visitor pavilion chats.';
+                setChatAuthError(msg);
+                setChatEntries(arenaKeyHint ? [arenaKeyHint] : []);
+                return;
+            }
             if (!res.ok || !body.success) throw new Error(body.error || 'Unable to load messages.');
             setChatAuthError(null);
             const remoteEntries = (body.messages ?? []).map(toChatEntry);
@@ -636,6 +642,12 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
             });
             if (res.status === 401) { setChatAuthError(copy.chatSigninHint); return; }
             const body = (await res.json()) as { success?: boolean; error?: string };
+            if (res.status === 400 || res.status === 403) {
+                const msg = body.error || 'Supplier accounts cannot use visitor pavilion chats.';
+                setChatAuthError(msg);
+                setChatEntries((prev) => prev.filter((entry) => entry.id !== optimisticId));
+                return;
+            }
             if (!res.ok || !body.success) throw new Error(body.error || 'Unable to send message.');
             setChatAuthError(null);
             emitQuestEvent({ event: 'supplier_chat_opened' });
@@ -1009,12 +1021,16 @@ export default function PavilionExposition({ pavilion, onClose, onQuestEvent }: 
                             <div className="border-t border-white/5 bg-black/30 p-4">
                                 {chatAuthError && (
                                     <div className="mb-2 text-xs text-amber-300">
-                                        <a
-                                            href="/login?next=/fastview"
-                                            className="underline decoration-dotted underline-offset-2 hover:text-amber-200"
-                                        >
-                                            {chatAuthError}
-                                        </a>
+                                        {chatAuthError === copy.chatSigninHint ? (
+                                            <a
+                                                href="/login?next=/fastview"
+                                                className="underline decoration-dotted underline-offset-2 hover:text-amber-200"
+                                            >
+                                                {chatAuthError}
+                                            </a>
+                                        ) : (
+                                            <span>{chatAuthError}</span>
+                                        )}
                                     </div>
                                 )}
                                 <div className="flex items-center gap-2">
