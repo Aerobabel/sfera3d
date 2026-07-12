@@ -3735,6 +3735,8 @@ export default function ExperiencePage() {
 
     useEffect(() => {
         if (!isRewardTerminalOpen) return;
+        releaseAllInputs();
+        try { document.exitPointerLock?.(); } catch {}
         playSferaUiSound('open');
     }, [isRewardTerminalOpen]);
 
@@ -3854,6 +3856,18 @@ export default function ExperiencePage() {
         sendUnrealUiInteraction({ type: 'wheel_spun' });
         playSferaUiSound('reward');
         setIsPhoneRewardSequenceOpen(true);
+    }, [unrealBridge]);
+
+    const handleReturnToCity = useCallback(() => {
+        releaseAllInputs();
+        setIsRewardTerminalOpen(false);
+        setWorldPosition({ map: 'CityStreets', x: 16229, y: 11830, yaw: -69 });
+        unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'returned_to_city' }));
+        sendUnrealUiInteraction({
+            type: 'return_to_city',
+            event: 'returned_to_city',
+            destination: 'CityStreets',
+        });
     }, [unrealBridge]);
 
     const openArenaPasswordGate = useCallback(() => {
@@ -5210,6 +5224,31 @@ export default function ExperiencePage() {
     const activeSceneQuestNextObjective = activeSceneQuest
         ? Object.entries(activeSceneQuest.progress.objectives).find(([, objective]) => !objective.completed)
         : null;
+    const activeSceneQuestObjectiveLabel = activeSceneQuest && activeSceneQuestNextObjective
+        ? `${getQuestObjectiveText(activeSceneQuest.quest, activeSceneQuestNextObjective[0], language)} · ${activeSceneQuestNextObjective[1].current}/${activeSceneQuestNextObjective[1].target}`
+        : null;
+    const activeSceneQuestMapFocus = (() => {
+        const objectiveId = activeSceneQuestNextObjective?.[0];
+        if (!objectiveId) return null;
+
+        if (objectiveId === 'find_water_dispenser' || objectiveId === 'try_buy_water') {
+            return worldPosition.map === 'CityStreets' ? 'water' : 'hall-exit';
+        }
+        if (objectiveId === 'collect_supplier_key') {
+            if (worldPosition.map === 'CityStreets') return 'sfera';
+            if (worldPosition.map === 'Sfera') {
+                if (!unrealBridge.arenaKeyPieces.includes(GAME_RULES.keys.firstHalf)) return 'youbo';
+                if (!unrealBridge.arenaKeyPieces.includes(GAME_RULES.keys.secondHalf)) return 'double-lin';
+                return 'hall-exit';
+            }
+        }
+        if (objectiveId === 'unlock_arena' || objectiveId === 'enter_arena') {
+            if (worldPosition.map === 'CityStreets') return 'zombie-hall';
+            if (worldPosition.map === 'Sfera') return 'hall-exit';
+            return 'range-start';
+        }
+        return null;
+    })();
     const sceneLocationLabel = sceneHud.locations[unrealBridge.currentLocation] ?? unrealBridge.currentLocation;
     const zombieCoinsPreview = unrealBridge.zombieCoins || Math.floor(unrealBridge.zombieScore / GAME_RULES.zombieArena.zombieKillPoints) * GAME_RULES.zombieArena.coinsPerKill;
     const latestPlayerReward = useMemo(
@@ -5461,7 +5500,13 @@ export default function ExperiencePage() {
                 )}
             </div>
 
-            {showExperienceHud && <WorldGuideOverlay position={worldPosition} />}
+            {showExperienceHud && (
+                <WorldGuideOverlay
+                    position={worldPosition}
+                    questObjective={activeSceneQuestObjectiveLabel}
+                    focusLandmarkId={activeSceneQuestMapFocus}
+                />
+            )}
 
             {showFastViewCutscene && (
                 <div
@@ -5944,7 +5989,7 @@ export default function ExperiencePage() {
 
                                 {unrealBridge.currentLocation !== 'city' && (
                                     <div>
-                                        <button type="button" className="rounded-full border border-white/15 px-3 py-1 font-semibold text-white/90">{sceneHud.backToCity}</button>
+                                        <button type="button" onClick={handleReturnToCity} className="pointer-events-auto rounded-full border border-white/15 px-3 py-1 font-semibold text-white/90 transition hover:border-cyan-200/40 hover:bg-cyan-200/10">{sceneHud.backToCity}</button>
                                         <p className="mt-1 text-[10px] text-slate-400">{sceneHud.returnPortalHint}</p>
                                     </div>
                                 )}
@@ -6360,6 +6405,28 @@ export default function ExperiencePage() {
                                             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100">{sceneHud.questComplete}</p>
                                             <p className="mt-1 text-base font-black text-white">{getQuestRewardText(latestPlayerReward, latestPlayerReward.questId, language)}</p>
                                             <p className="mt-1 text-sm text-slate-400">{latestPlayerRewardQuestText?.title ?? latestPlayerReward.questId}</p>
+                                        </div>
+                                    )}
+
+                                    {latestPlayerReward?.questId === 'water_arena_run' && isZombieArenaActive && (
+                                        <div className="grid gap-2 sm:grid-cols-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsRewardTerminalOpen(false);
+                                                    setNeedsPointerResume(true);
+                                                }}
+                                                className="rounded-xl border border-white/15 bg-white/[0.055] px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:border-white/30 hover:bg-white/10"
+                                            >
+                                                {language === 'ru' ? 'Продолжить на арене' : language === 'zh' ? '继续竞技场' : 'Continue in arena'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleReturnToCity}
+                                                className="rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-slate-950 shadow-[0_16px_38px_rgba(102,217,203,.18)] transition hover:scale-[1.01]"
+                                            >
+                                                {language === 'ru' ? 'Выйти в город' : language === 'zh' ? '返回城市' : 'Exit to city'}
+                                            </button>
                                         </div>
                                     )}
 
