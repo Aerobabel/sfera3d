@@ -11,6 +11,7 @@ interface PixelStreamingPlayerProps {
     mobileInputMode?: 'joystick' | 'touch';
     isMobileDevice?: boolean;
     keyboardInputEnabled?: boolean;
+    fireInputEnabled?: boolean;
     blockedKeyboardCodes?: string[];
     onBlockedKeyboardInput?: (event: KeyboardEvent) => void;
     desktopMouseMode?: 'locked' | 'hovering';
@@ -248,6 +249,7 @@ export default function PixelStreamingPlayer({
     mobileInputMode = 'joystick',
     isMobileDevice = false,
     keyboardInputEnabled = true,
+    fireInputEnabled = true,
     blockedKeyboardCodes = [],
     onBlockedKeyboardInput,
     desktopMouseMode: preferredDesktopMouseMode,
@@ -310,6 +312,7 @@ export default function PixelStreamingPlayer({
     const psRef = useRef<PixelStreaming | null>(null);
     const connectionGenerationRef = useRef(0);
     const keyboardInputEnabledRef = useRef(keyboardInputEnabled);
+    const fireInputEnabledRef = useRef(fireInputEnabled);
     const blockedKeyboardCodesRef = useRef<Set<string>>(new Set());
     const onBlockedKeyboardInputRef = useRef(onBlockedKeyboardInput);
     const onPixelStreamingResponseRef = useRef(onPixelStreamingResponse);
@@ -370,6 +373,10 @@ export default function PixelStreamingPlayer({
     }, [keyboardInputEnabled]);
 
     useEffect(() => {
+        fireInputEnabledRef.current = fireInputEnabled;
+    }, [fireInputEnabled]);
+
+    useEffect(() => {
         const nextBlockedCodes = new Set<string>();
         for (const blockedCode of blockedKeyboardCodes) {
             const normalized = blockedCode.trim();
@@ -403,6 +410,11 @@ export default function PixelStreamingPlayer({
     useEffect(() => {
         // Capture phase runs before Pixel Streaming's own document listeners.
         const stopBlockedKeysFromReachingStreamer = (event: KeyboardEvent) => {
+            if (!fireInputEnabledRef.current && event.code === 'KeyP') {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                return;
+            }
             if (!keyboardInputEnabledRef.current) return;
             if (!event.isTrusted) return;
 
@@ -987,6 +999,7 @@ export default function PixelStreamingPlayer({
 
         const handleLeftMouseFire = (event: PointerEvent) => {
             if (event.button !== 0 || event.pointerType !== 'mouse') return;
+            if (!fireInputEnabledRef.current) return;
 
             sendPixelStreamingKeyPress(psRef.current, FIRE_KEY_CODE, 'p', 'KeyP');
         };

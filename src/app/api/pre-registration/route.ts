@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
 type PreRegistrationBody = {
@@ -18,6 +19,19 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const trim = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
 const jsonError = (status: number, error: string) =>
     NextResponse.json({ success: false, error }, { status });
+
+const getStorageClient = () => {
+    try {
+        return getSupabaseAdminClient();
+    } catch {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !anonKey) throw new Error('Supabase is not configured.');
+        return createClient(supabaseUrl, anonKey, {
+            auth: { autoRefreshToken: false, persistSession: false },
+        });
+    }
+};
 
 export async function POST(request: Request) {
     let payload: PreRegistrationBody;
@@ -50,7 +64,7 @@ export async function POST(request: Request) {
     if (payload.consent !== true) return jsonError(400, 'Consent is required.');
 
     try {
-        const supabase = getSupabaseAdminClient();
+        const supabase = getStorageClient();
         const { data, error } = await supabase
             .from('pre_registrations')
             .upsert({
@@ -68,12 +82,39 @@ export async function POST(request: Request) {
             .select('id, status, created_at')
             .single();
 
-        if (error) {
-            console.error('[pre-registration] Supabase write failed:', error.message);
+        if (!error) {
+            return NextResponse.json({ success: true, registration: data, storage: 'pre_registrations' });
+        }
+
+        // Deployments created before the pre_registrations migration already
+        // have this private contact-request table. Use it as a durable bridge
+        // so public requests are never lost while the migration rolls out.
+        console.warn('[pre-registration] Primary table unavailable, using contact queue:', error.message);
+        const { error: fallbackError } = await supabase
+            .from('pavilion_contact_requests')
+            .insert({
+                pavilion_id: 'pre-registration',
+                name: fullName,
+                company: company || null,
+                email,
+                phone: phone || null,
+                message: [
+                    `Account type: ${accountType}`,
+                    `Locale: ${locale}`,
+                    message ? `Message: ${message}` : 'Message: —',
+                ].join('\n'),
+            });
+
+        if (fallbackError) {
+            console.error('[pre-registration] Fallback write failed:', fallbackError.message);
             return jsonError(500, 'We could not save your request. Please try again.');
         }
 
-        return NextResponse.json({ success: true, registration: data });
+        return NextResponse.json({
+            success: true,
+            registration: { status: 'pending' },
+            storage: 'contact_queue_fallback',
+        });
     } catch (error) {
         console.error('[pre-registration] Request failed:', error);
         return jsonError(500, 'We could not save your request. Please try again.');

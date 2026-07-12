@@ -28,6 +28,11 @@ The setup includes the public pre-registration queue. Requests submitted at
 `pre_registrations` table through the server-side service role. Review pending
 rows in Supabase before creating user accounts.
 
+For deployments where the migration has not reached production yet, the API
+durably stores requests in the existing private `pavilion_contact_requests`
+queue with `pavilion_id = 'pre-registration'`. Once the dedicated table is
+available, new submissions use `pre_registrations` automatically.
+
 ### 4. Run the app
 
 ```bash

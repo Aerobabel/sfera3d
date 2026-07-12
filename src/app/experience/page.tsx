@@ -3413,6 +3413,7 @@ export default function ExperiencePage() {
     const isZombieArenaActive =
         unrealBridge.currentGame === 'ZombieArena' ||
         unrealBridge.currentLocation === 'zombieArena';
+    const isZombieArenaCleared = isZombieArenaActive && unrealBridge.zombieKills >= 5;
     const sceneInstruction = isZombieArenaActive ? ui.zombieInstruction : ui.instruction;
     const emitQuestEvent = useCallback((event: QuestEventInput) => {
         unrealBridge.handleUnrealResponse(JSON.stringify(event));
@@ -3858,17 +3859,9 @@ export default function ExperiencePage() {
         setIsPhoneRewardSequenceOpen(true);
     }, [unrealBridge]);
 
-    const handleReturnToCity = useCallback(() => {
-        releaseAllInputs();
-        setIsRewardTerminalOpen(false);
-        setWorldPosition({ map: 'CityStreets', x: 16229, y: 11830, yaw: -69 });
-        unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'returned_to_city' }));
-        sendUnrealUiInteraction({
-            type: 'return_to_city',
-            event: 'returned_to_city',
-            destination: 'CityStreets',
-        });
-    }, [unrealBridge]);
+    useEffect(() => {
+        if (isZombieArenaCleared) releaseAllInputs();
+    }, [isZombieArenaCleared]);
 
     const openArenaPasswordGate = useCallback(() => {
         releaseAllInputs();
@@ -5261,6 +5254,47 @@ export default function ExperiencePage() {
     const latestPlayerRewardQuestText = latestPlayerRewardQuest ? getQuestText(latestPlayerRewardQuest, language) : null;
     const walletBalanceCents = unrealBridge.walletBalanceCents;
     const hasWaterArenaPayout = unrealBridge.questRewards.some((reward) => reward.questId === 'water_arena_run' && reward.kind === 'coins');
+    const mapQuestGuidance = useMemo(() => {
+        const focusForExit = worldPosition.map === 'ZombieShooting'
+            ? 'range-exit'
+            : worldPosition.map === 'Sfera'
+              ? 'hall-exit'
+              : null;
+
+        if (unrealBridge.waterPurchased && unrealBridge.wheelSpinsRemaining > 0) {
+            return {
+                objective: waterFlowCopy.mission.findWheel,
+                focus: worldPosition.map === 'Sfera' ? 'wheel' : worldPosition.map === 'CityStreets' ? 'sfera' : focusForExit,
+            };
+        }
+        if (unrealBridge.waterPurchased) {
+            return {
+                objective: waterFlowCopy.mission.reviewRewards,
+                focus: null,
+            };
+        }
+        if (hasWaterArenaPayout) {
+            return {
+                objective: worldPosition.map === 'ZombieShooting'
+                    ? (language === 'ru' ? 'Выйдите через портал арены' : language === 'zh' ? '通过竞技场传送门离开' : 'Leave through the arena portal')
+                    : waterFlowCopy.mission.buyWater,
+                focus: worldPosition.map === 'CityStreets' ? 'water' : focusForExit,
+            };
+        }
+        return {
+            objective: activeSceneQuestObjectiveLabel,
+            focus: activeSceneQuestMapFocus,
+        };
+    }, [
+        activeSceneQuestMapFocus,
+        activeSceneQuestObjectiveLabel,
+        hasWaterArenaPayout,
+        language,
+        unrealBridge.waterPurchased,
+        unrealBridge.wheelSpinsRemaining,
+        waterFlowCopy.mission,
+        worldPosition.map,
+    ]);
     const recentWalletTransactions = unrealBridge.walletTransactions.slice(0, 5);
     const hasWalletActivity = walletBalanceCents > 0 || recentWalletTransactions.length > 0;
     const waterQuestObjectives = activeSceneQuest?.quest.id === 'water_arena_run'
@@ -5308,7 +5342,8 @@ export default function ExperiencePage() {
         ? [waterQuestMilestones.find((milestone) => !milestone.complete) ?? waterQuestMilestones[waterQuestMilestones.length - 1]]
         : [];
     const questDirectorState = useMemo<QuestDirectorState | null>(() => {
-        if (activeSceneQuest?.quest.id !== 'water_arena_run') return null;
+        const hasWaterJourney = activeSceneQuest?.quest.id === 'water_arena_run' || hasWaterArenaPayout || unrealBridge.waterPurchased;
+        if (!hasWaterJourney) return null;
 
         if (unrealBridge.waterPurchased && unrealBridge.wheelCoupon && unrealBridge.wheelSpinsRemaining > 0) {
             return {
@@ -5478,6 +5513,7 @@ export default function ExperiencePage() {
                         mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
                         isMobileDevice={isMobile}
                         keyboardInputEnabled={!isChatFocused && !isArcadeOpen && !isWaterDispenserOpen && !isArenaPasswordOpen && !isWheelOpen}
+                        fireInputEnabled={!isZombieArenaCleared}
                         blockedKeyboardCodes={blockedUnrealKeyboardCodes}
                         onBlockedKeyboardInput={handleBlockedStreamKeyboardInput}
                         mouseSensitivity={mouseSensitivity}
@@ -5492,6 +5528,7 @@ export default function ExperiencePage() {
                             mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
                             isMobileDevice={isMobile}
                             keyboardInputEnabled={!isChatFocused && !isArcadeOpen && !isWaterDispenserOpen && !isArenaPasswordOpen && !isWheelOpen}
+                            fireInputEnabled={!isZombieArenaCleared}
                             blockedKeyboardCodes={blockedUnrealKeyboardCodes}
                             onBlockedKeyboardInput={handleBlockedStreamKeyboardInput}
                             mouseSensitivity={mouseSensitivity}
@@ -5503,8 +5540,9 @@ export default function ExperiencePage() {
             {showExperienceHud && (
                 <WorldGuideOverlay
                     position={worldPosition}
-                    questObjective={activeSceneQuestObjectiveLabel}
-                    focusLandmarkId={activeSceneQuestMapFocus}
+                    questObjective={mapQuestGuidance.objective}
+                    focusLandmarkId={mapQuestGuidance.focus}
+                    shootingEnabled={!isZombieArenaCleared}
                 />
             )}
 
@@ -5988,10 +6026,7 @@ export default function ExperiencePage() {
                                 {unrealBridge.zombieGameOver && <p className="text-red-300">{sceneHud.overwhelmed}</p>}
 
                                 {unrealBridge.currentLocation !== 'city' && (
-                                    <div>
-                                        <button type="button" onClick={handleReturnToCity} className="pointer-events-auto rounded-full border border-white/15 px-3 py-1 font-semibold text-white/90 transition hover:border-cyan-200/40 hover:bg-cyan-200/10">{sceneHud.backToCity}</button>
-                                        <p className="mt-1 text-[10px] text-slate-400">{sceneHud.returnPortalHint}</p>
-                                    </div>
+                                    <p className="text-[10px] text-slate-400">{sceneHud.returnPortalHint}</p>
                                 )}
                             </div>
                             {isZombieArenaActive && (
@@ -6409,7 +6444,7 @@ export default function ExperiencePage() {
                                     )}
 
                                     {latestPlayerReward?.questId === 'water_arena_run' && isZombieArenaActive && (
-                                        <div className="grid gap-2 sm:grid-cols-2">
+                                        <div>
                                             <button
                                                 type="button"
                                                 onClick={() => {
@@ -6419,13 +6454,6 @@ export default function ExperiencePage() {
                                                 className="rounded-xl border border-white/15 bg-white/[0.055] px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:border-white/30 hover:bg-white/10"
                                             >
                                                 {language === 'ru' ? 'Продолжить на арене' : language === 'zh' ? '继续竞技场' : 'Continue in arena'}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={handleReturnToCity}
-                                                className="rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-slate-950 shadow-[0_16px_38px_rgba(102,217,203,.18)] transition hover:scale-[1.01]"
-                                            >
-                                                {language === 'ru' ? 'Выйти в город' : language === 'zh' ? '返回城市' : 'Exit to city'}
                                             </button>
                                         </div>
                                     )}
@@ -6506,7 +6534,13 @@ export default function ExperiencePage() {
                     )}
 
                     {isPhoneRewardSequenceOpen && (
-                        <RewardVideoSequence onClose={() => setIsPhoneRewardSequenceOpen(false)} />
+                        <RewardVideoSequence
+                            onClose={() => setIsPhoneRewardSequenceOpen(false)}
+                            onOpenDashboard={() => {
+                                setIsPhoneRewardSequenceOpen(false);
+                                setDashboardOverlay('player');
+                            }}
+                        />
                     )}
 
                     {isArcadeOpen && (

@@ -67,10 +67,12 @@ export default function WorldGuideOverlay({
     position,
     questObjective,
     focusLandmarkId,
+    shootingEnabled = true,
 }: {
     position: WorldPosition;
     questObjective?: string | null;
     focusLandmarkId?: string | null;
+    shootingEnabled?: boolean;
 }) {
     const points = LANDMARKS[position.map];
     const plotted = useMemo(
@@ -100,12 +102,19 @@ export default function WorldGuideOverlay({
                 <div className="absolute left-3 top-2 z-20 rounded-full border border-cyan-100/15 bg-[#03100e]/80 px-2 py-1 text-[8px] font-black uppercase tracking-[.17em] text-cyan-100 shadow-[0_6px_18px_rgba(0,0,0,.35)]">
                     {LABELS[position.map]}
                 </div>
-                <div className="absolute right-3 top-2 z-20 text-[8px] font-black text-white/45">N</div>
+                <div className="absolute right-3 top-2 z-20 text-[8px] font-black text-cyan-50/60">N</div>
+                <div className="absolute bottom-2 left-1/2 z-20 -translate-x-1/2 text-[7px] font-black text-white/25">S</div>
+                <div className="absolute left-2 top-1/2 z-20 -translate-y-1/2 text-[7px] font-black text-white/25">W</div>
+                <div className="absolute right-2 top-1/2 z-20 -translate-y-1/2 text-[7px] font-black text-white/25">E</div>
 
                 <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                    {questFocus && <line x1="50" y1="50" x2={questFocus.left} y2={questFocus.top} stroke="rgba(103,232,249,.78)" strokeWidth=".9" strokeDasharray="2.5 2" vectorEffect="non-scaling-stroke" />}
+                    <defs>
+                        <linearGradient id="radar-route" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="rgba(103,232,249,.18)" /><stop offset="1" stopColor="rgba(165,243,252,.95)" /></linearGradient>
+                    </defs>
+                    {questFocus && <><line x1="50" y1="50" x2={questFocus.left} y2={questFocus.top} stroke="rgba(0,0,0,.72)" strokeWidth="2.8" vectorEffect="non-scaling-stroke" /><line x1="50" y1="50" x2={questFocus.left} y2={questFocus.top} stroke="url(#radar-route)" strokeWidth="1.1" strokeDasharray="3 1.8" vectorEffect="non-scaling-stroke" /></>}
                     <circle cx="50" cy="50" r="24" fill="none" stroke="rgba(255,255,255,.08)" strokeWidth=".5" vectorEffect="non-scaling-stroke" />
                     <circle cx="50" cy="50" r="43" fill="none" stroke="rgba(255,255,255,.06)" strokeWidth=".5" vectorEffect="non-scaling-stroke" />
+                    <path d="M50 3v5M50 92v5M3 50h5M92 50h5" stroke="rgba(165,243,252,.22)" strokeWidth=".6" vectorEffect="non-scaling-stroke" />
                 </svg>
 
                 {plotted.map(({ point, left, top, outside }) => {
@@ -118,7 +127,9 @@ export default function WorldGuideOverlay({
                             className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1"
                             style={{ left: `${left}%`, top: `${top}%` }}
                         >
-                            <span className={`grid h-5 min-w-5 place-items-center rounded-full border px-1 text-[6px] font-black shadow-[0_4px_12px_rgba(0,0,0,.45)] ${isQuestFocus ? 'border-cyan-50 bg-cyan-100 text-slate-950 ring-4 ring-cyan-300/15' : 'border-white/35 bg-[#020806]/90 text-white'}`}>{point.shortLabel}</span>
+                            {isQuestFocus && <span className="absolute h-8 w-8 animate-ping rounded-full border border-cyan-100/45 bg-cyan-300/10" />}
+                            <span className={`relative grid h-5 min-w-5 place-items-center rounded-full border px-1 text-[6px] font-black shadow-[0_4px_12px_rgba(0,0,0,.45)] ${isQuestFocus ? 'border-cyan-50 bg-cyan-100 text-slate-950 ring-4 ring-cyan-300/15' : 'border-white/35 bg-[#020806]/90 text-white'}`}>{point.shortLabel}</span>
+                            {isQuestFocus && <span className="absolute left-1/2 top-5 max-w-28 -translate-x-1/2 truncate rounded-full border border-cyan-100/15 bg-black/75 px-2 py-1 text-[7px] font-bold text-cyan-50 shadow-lg">{point.name}</span>}
                         </div>
                     );
                 })}
@@ -126,6 +137,7 @@ export default function WorldGuideOverlay({
                 <div className="absolute left-1/2 top-1/2 z-20 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-white/90 bg-[#06111a] text-cyan-100 shadow-[0_0_0_5px_rgba(0,0,0,.4),0_0_24px_rgba(103,232,249,.38)]">
                     <PlayerHeadingArrow yaw={position.yaw} />
                 </div>
+                <div className="absolute bottom-2 right-3 z-20 flex items-end gap-1 text-[6px] font-bold uppercase tracking-[.12em] text-white/35"><span className="mb-0.5 block h-px w-8 bg-cyan-100/35" />Live radar</div>
             </div>
 
             <div className="flex items-center gap-3 bg-[linear-gradient(100deg,rgba(103,232,249,.055),transparent)] px-3 py-2.5 [@media(max-height:560px)]:py-2">
@@ -144,8 +156,8 @@ export default function WorldGuideOverlay({
             </div>
 
             {position.map === 'ZombieShooting' && (
-                <div className="border-t border-rose-300/15 bg-rose-300/[.06] px-3 py-1.5 text-center text-[9px] font-black uppercase tracking-[.16em] text-rose-100">
-                    Shoot · P or LMB
+                <div className={`border-t px-3 py-1.5 text-center text-[9px] font-black uppercase tracking-[.16em] ${shootingEnabled ? 'border-rose-300/15 bg-rose-300/[.06] text-rose-100' : 'border-emerald-300/15 bg-emerald-300/[.06] text-emerald-100'}`}>
+                    {shootingEnabled ? 'Shoot · P or LMB' : 'Arena clear · Follow EXIT'}
                 </div>
             )}
         </section>

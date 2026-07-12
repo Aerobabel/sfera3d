@@ -10,6 +10,7 @@ interface StreamPixelPlayerProps {
     mobileInputMode?: 'joystick' | 'touch';
     isMobileDevice?: boolean;
     keyboardInputEnabled?: boolean;
+    fireInputEnabled?: boolean;
     blockedKeyboardCodes?: string[];
     onBlockedKeyboardInput?: (event: KeyboardEvent) => void;
     desktopMouseMode?: 'locked' | 'hovering';
@@ -189,6 +190,7 @@ export default function StreamPixelPlayer({
     mobileInputMode = 'joystick',
     isMobileDevice = false,
     keyboardInputEnabled = true,
+    fireInputEnabled = true,
     blockedKeyboardCodes = [],
     onBlockedKeyboardInput,
     desktopMouseMode: preferredDesktopMouseMode,
@@ -198,6 +200,7 @@ export default function StreamPixelPlayer({
     const streamRef = useRef<StreamPixelStream | null>(null);
     const controllerRef = useRef<StreamPixelController | null>(null);
     const keyboardInputEnabledRef = useRef(keyboardInputEnabled);
+    const fireInputEnabledRef = useRef(fireInputEnabled);
     const blockedKeyboardCodesRef = useRef<Set<string>>(new Set());
     const onBlockedKeyboardInputRef = useRef(onBlockedKeyboardInput);
     const onPixelStreamingResponseRef = useRef(onPixelStreamingResponse);
@@ -217,11 +220,16 @@ export default function StreamPixelPlayer({
     }, [keyboardInputEnabled]);
 
     useEffect(() => {
+        fireInputEnabledRef.current = fireInputEnabled;
+    }, [fireInputEnabled]);
+
+    useEffect(() => {
         const wrapperElement = wrapperRef.current;
         if (!wrapperElement) return;
 
         const handleLeftMouseFire = (event: PointerEvent) => {
             if (event.button !== 0 || event.pointerType !== 'mouse') return;
+            if (!fireInputEnabledRef.current) return;
 
             sendStreamPixelKeyPress(streamRef.current, FIRE_KEY_CODE, 'p', 'KeyP');
         };
@@ -281,6 +289,11 @@ export default function StreamPixelPlayer({
 
     useEffect(() => {
         const stopBlockedKeysFromReachingStreamer = (event: KeyboardEvent) => {
+            if (!fireInputEnabledRef.current && event.code === 'KeyP') {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                return;
+            }
             if (!keyboardInputEnabledRef.current) return;
             if (!event.isTrusted) return;
 
