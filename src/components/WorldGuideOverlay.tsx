@@ -153,11 +153,12 @@ export default function WorldGuideOverlay({
 }
 
 function plotOnRadar(point: Landmark, position: WorldPosition, range: number) {
-    // The Unreal scene's visual forward/right frame is rotated 90° counter-
-    // clockwise from the raw XY frame. Apply the same correction to every
-    // landmark and the player arrow so the radar matches what players see.
-    const rawLeft = 50 + ((point.y - position.y) / range) * 44;
-    const rawTop = 50 + ((point.x - position.x) / range) * 44;
+    // Unreal yaw is measured from +X toward +Y. Keep the radar in that same
+    // frame: +X is screen-right and +Y is screen-up. As a calibration check,
+    // the screenshot position to the supplied 3DSFERA point has a -68 degree
+    // bearing, closely matching the live -80 degree player yaw.
+    const rawLeft = 50 + ((point.x - position.x) / range) * 44;
+    const rawTop = 50 - ((point.y - position.y) / range) * 44;
     const outside = rawLeft < 7 || rawLeft > 93 || rawTop < 10 || rawTop > 90;
     return {
         point,
@@ -170,7 +171,7 @@ function plotOnRadar(point: Landmark, position: WorldPosition, range: number) {
 function clamp(value: number, min: number, max: number) { return Math.min(max, Math.max(min, value)); }
 function PlayerHeadingArrow({ yaw }: { yaw: number }) {
     return (
-        <svg className="h-5 w-5 origin-center drop-shadow-[0_0_5px_rgba(103,232,249,.8)]" viewBox="0 0 24 24" aria-hidden="true" style={{ transform: `rotate(${-yaw - 90}deg)` }}>
+        <svg className="h-5 w-5 origin-center drop-shadow-[0_0_5px_rgba(103,232,249,.8)]" viewBox="0 0 24 24" aria-hidden="true" style={{ transform: `rotate(${-yaw}deg)` }}>
             <path d="M22 12 3.5 3.5 7.8 12l-4.3 8.5L22 12Z" fill="currentColor" stroke="white" strokeWidth="1.1" strokeLinejoin="round" />
         </svg>
     );
