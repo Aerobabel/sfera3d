@@ -75,6 +75,8 @@ const copy = {
     backToSignIn: "Back to sign in",
     newSupplier: "New supplier?",
     apply: "Apply for access",
+    newPlayer: "Need a player account?",
+    preRegister: "Pre-register",
   },
   ru: {
     visitorTab: "Доступ посетителя",
@@ -119,6 +121,8 @@ const copy = {
     backToSignIn: "Назад ко входу",
     newSupplier: "Новый поставщик?",
     apply: "Подать заявку",
+    newPlayer: "Нужен аккаунт игрока?",
+    preRegister: "Предварительная регистрация",
   },
   zh: {
     visitorTab: "访客访问",
@@ -160,6 +164,8 @@ const copy = {
     backToSignIn: "返回登录",
     newSupplier: "新供应商？",
     apply: "申请访问权限",
+    newPlayer: "需要玩家账户？",
+    preRegister: "预注册",
   },
 } as const;
 
@@ -868,10 +874,18 @@ function LoginPageContent() {
         </form>
 
         <div className="text-center text-xs text-gray-500">
+          <div>
+            {t.newPlayer}{" "}
+            <Link href="/pre-register" className="text-cyan-100 hover:underline">
+              {t.preRegister}
+            </Link>
+          </div>
+          <div className="mt-2">
           {t.newSupplier}{" "}
           <Link href="/supplier/upload" className="text-gray-300 hover:underline">
             {t.apply}
           </Link>
+          </div>
         </div>
       </div>
     </div>

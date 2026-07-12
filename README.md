@@ -19,9 +19,14 @@ NEXT_PUBLIC_SUPPLIER_INTAKE_EMAIL=suppliers@3dsfera.org
 
 Security: if the `SUPABASE_SERVICE_ROLE_KEY` was ever shared publicly, rotate it immediately in Supabase Dashboard (`Project Settings -> API`) and update all deployments.
 
-### 3. Create chat table in Supabase
+### 3. Create application tables in Supabase
 
 Run the SQL from `supabase/setup.sql` in Supabase SQL Editor.
+
+The setup includes the public pre-registration queue. Requests submitted at
+`/pre-register` are validated by `/api/pre-registration` and stored in the
+`pre_registrations` table through the server-side service role. Review pending
+rows in Supabase before creating user accounts.
 
 ### 4. Run the app
 
