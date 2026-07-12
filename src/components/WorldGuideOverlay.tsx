@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronRight, LocateFixed, Map, Navigation, X } from 'lucide-react';
+import { Check, LocateFixed, Navigation } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 export type WorldMapName = 'CityStreets' | 'Sfera' | 'ZombieShooting';
@@ -36,6 +36,12 @@ const LABELS: Record<WorldMapName, string> = {
     ZombieShooting: 'Zombie shooting',
 };
 
+const MAP_RANGE: Record<WorldMapName, number> = {
+    CityStreets: 5200,
+    Sfera: 3200,
+    ZombieShooting: 3800,
+};
+
 const ENTER_RADIUS = 180;
 const EXIT_RADIUS = 300;
 
@@ -61,12 +67,11 @@ export function parseWorldPosition(message: string): WorldPosition | null {
 }
 
 export default function WorldGuideOverlay({ position }: { position: WorldPosition }) {
-    const [open, setOpen] = useState(false);
-    const [targetId, setTargetId] = useState(() => LANDMARKS[position.map][1]?.id ?? LANDMARKS[position.map][0].id);
+    const points = LANDMARKS[position.map];
+    const [targetId, setTargetId] = useState(() => points[1]?.id ?? points[0].id);
     const [visited, setVisited] = useState<Set<string>>(new Set());
     const activeZonesRef = useRef<Set<string>>(new Set());
     const activeMapRef = useRef(position.map);
-    const points = LANDMARKS[position.map];
     const currentTargetId = points.some((point) => point.id === targetId)
         ? targetId
         : points[1]?.id ?? points[0].id;
@@ -90,8 +95,8 @@ export default function WorldGuideOverlay({ position }: { position: WorldPositio
         }
         activeZonesRef.current = nextActive;
         if (newlyEntered.length === 0) return;
-        // Unreal position packets are an external event stream; entering a
-        // zone intentionally updates the guide state here.
+        // Position packets are an external event stream; arriving at a point
+        // intentionally advances the active destination.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setVisited((current) => new Set([...current, ...newlyEntered]));
         if (!newlyEntered.includes(currentTargetId)) return;
@@ -103,45 +108,90 @@ export default function WorldGuideOverlay({ position }: { position: WorldPositio
     const target = points.find((point) => point.id === currentTargetId) ?? points[0];
     const distance = Math.hypot(target.x - position.x, target.y - position.y);
     const bearing = Math.atan2(target.y - position.y, target.x - position.x) * 180 / Math.PI;
-    const plotted = useMemo(() => plotPoints(points), [points]);
-    const player = plotPlayer(position, points);
+    const plotted = useMemo(
+        () => points.map((point) => plotOnRadar(point, position, MAP_RANGE[position.map])),
+        [points, position],
+    );
+    const targetPlot = plotted.find(({ point }) => point.id === target.id) ?? plotted[0];
 
     return (
-        <div className="pointer-events-none absolute bottom-4 left-4 z-[58] text-white sm:bottom-6 sm:left-6">
-            <button type="button" onClick={() => setOpen(true)} className="pointer-events-auto flex min-w-[15rem] items-center gap-3 rounded-2xl border border-cyan-200/20 bg-[#071018]/90 p-3 text-left shadow-[0_24px_70px_rgba(0,0,0,.48)] backdrop-blur-xl transition hover:border-cyan-200/40">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cyan-300/10 text-cyan-100"><Map className="h-5 w-5" /></span>
-                <span className="min-w-0 flex-1"><small className="block text-[9px] font-black uppercase tracking-[.18em] text-cyan-100">Live world guide</small><strong className="mt-1 block truncate text-sm">{target.name}</strong><span className="mt-0.5 block text-[10px] text-slate-400">{formatDistance(distance)} · {LABELS[position.map]}</span></span>
-                <ChevronRight className="h-4 w-4 text-slate-500" />
-            </button>
+        <section
+            className="pointer-events-auto absolute bottom-4 left-4 z-[58] w-[min(18rem,calc(100vw-2rem))] select-none overflow-hidden rounded-2xl border border-white/15 bg-[#07100d]/92 text-white shadow-[0_18px_60px_rgba(0,0,0,.62)] backdrop-blur-md [@media(max-height:560px)]:bottom-auto [@media(max-height:560px)]:top-20 [@media(max-height:560px)]:w-52 sm:bottom-6 sm:left-6"
+            aria-label={`${LABELS[position.map]} minimap`}
+        >
+            <div className="relative h-40 overflow-hidden border-b border-white/10 bg-[#08120f] [@media(max-height:560px)]:h-24">
+                <div className="absolute inset-0 opacity-45 [background-image:linear-gradient(rgba(103,232,249,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(103,232,249,.12)_1px,transparent_1px)] [background-size:24px_24px]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(103,232,249,.12),transparent_56%)]" />
+                <div className="absolute left-3 top-2 z-20 rounded-full border border-white/10 bg-black/45 px-2 py-1 text-[8px] font-black uppercase tracking-[.17em] text-cyan-100">
+                    {LABELS[position.map]}
+                </div>
 
-            {open && (
-                <div className="pointer-events-auto fixed inset-0 z-[160] grid place-items-center bg-[#02060b]/86 p-3 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label="World guide">
-                    <section className="relative grid h-[min(88vh,48rem)] w-[min(94vw,72rem)] overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#07100d] shadow-[0_50px_160px_rgba(0,0,0,.75)] lg:grid-cols-[1fr_19rem]">
-                        <button type="button" onClick={() => setOpen(false)} aria-label="Close world guide" className="absolute right-4 top-4 z-20 grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-black/35 text-slate-300"><X className="h-4 w-4" /></button>
-                        <div className="relative min-h-[28rem] overflow-hidden bg-[radial-gradient(circle_at_center,rgba(103,232,249,.09),transparent_38%),linear-gradient(145deg,#0a1512,#050908)]">
-                            <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(103,232,249,.11)_1px,transparent_1px),linear-gradient(90deg,rgba(103,232,249,.11)_1px,transparent_1px)] [background-size:42px_42px]" />
-                            <div className="absolute left-6 top-6 z-10"><p className="text-[10px] font-black uppercase tracking-[.2em] text-cyan-100">Live navigation</p><h2 className="mt-2 text-3xl font-black uppercase tracking-[-.05em] sm:text-5xl">{LABELS[position.map]}</h2><p className="mt-2 font-mono text-[10px] text-slate-500">X {Math.round(position.x)} · Y {Math.round(position.y)} · {Math.round(position.yaw)}°</p></div>
-                            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points={plotted.map((point) => `${point.left},${point.top}`).join(' ')} fill="none" stroke="rgba(103,232,249,.3)" strokeWidth=".35" strokeDasharray="1.4 1.4" vectorEffect="non-scaling-stroke" /></svg>
-                            {plotted.map(({ point, left, top }, index) => <button type="button" key={point.id} onClick={() => setTargetId(point.id)} className="absolute z-10 flex -translate-y-1/2 items-center gap-2 text-left" style={{ left: `${left}%`, top: `${top}%` }}><i className={`grid h-7 w-7 place-items-center rounded-full border text-[10px] font-black not-italic ${point.id === target.id ? 'border-cyan-100 bg-cyan-100 text-slate-950 shadow-[0_0_28px_rgba(103,232,249,.45)]' : visited.has(point.id) ? 'border-emerald-300/40 bg-emerald-300/10 text-emerald-100' : 'border-white/15 bg-black/60 text-slate-300'}`}>{visited.has(point.id) ? <Check className="h-3 w-3" /> : index + 1}</i><span className="hidden max-w-28 text-[10px] font-bold text-slate-300 sm:block">{point.name}</span></button>)}
-                            <div className="absolute z-20 grid h-10 w-10 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-white/60 bg-white text-slate-950 shadow-[0_0_0_7px_rgba(255,255,255,.07)]" style={{ left: `${player.left}%`, top: `${player.top}%`, rotate: `${position.yaw + 90}deg` }}><Navigation className="h-4 w-4" /></div>
-                        </div>
-                        <aside className="relative flex flex-col justify-end border-t border-white/10 bg-white/[.025] p-6 lg:border-l lg:border-t-0">
-                            <span className="grid h-16 w-16 place-items-center rounded-2xl border border-cyan-200/20 bg-cyan-300/10 text-cyan-100"><Navigation className="h-7 w-7" style={{ rotate: `${bearing - position.yaw + 90}deg` }} /></span>
-                            <p className="mt-8 text-[10px] font-black uppercase tracking-[.18em] text-cyan-100">Next destination</p><h3 className="mt-2 text-3xl font-black tracking-[-.05em]">{target.name}</h3><p className="mt-2 text-sm leading-6 text-slate-400">{target.note}</p>
-                            <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4 text-xs"><span className="inline-flex items-center gap-2 text-cyan-100"><LocateFixed className="h-4 w-4" />{distance <= ENTER_RADIUS ? 'You have arrived' : formatDistance(distance)}</span><span className="text-slate-500">{turnText(bearing, position.yaw)}</span></div>
-                            {position.map === 'ZombieShooting' && <div className="mt-4 rounded-xl border border-rose-300/20 bg-rose-300/[.06] p-3 text-xs font-black uppercase tracking-[.12em] text-rose-100">Shoot · P or LMB</div>}
-                        </aside>
-                    </section>
+                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <line x1="50" y1="50" x2={targetPlot.left} y2={targetPlot.top} stroke="rgba(103,232,249,.72)" strokeWidth=".8" strokeDasharray="2.5 2" vectorEffect="non-scaling-stroke" />
+                    <circle cx="50" cy="50" r="24" fill="none" stroke="rgba(255,255,255,.07)" strokeWidth=".5" vectorEffect="non-scaling-stroke" />
+                    <circle cx="50" cy="50" r="43" fill="none" stroke="rgba(255,255,255,.05)" strokeWidth=".5" vectorEffect="non-scaling-stroke" />
+                </svg>
+
+                {plotted.map(({ point, left, top, outside }) => {
+                    if (outside && point.id !== target.id) return null;
+                    const selected = point.id === target.id;
+                    return (
+                        <button
+                            type="button"
+                            key={point.id}
+                            title={`Navigate to ${point.name}`}
+                            aria-label={`Navigate to ${point.name}`}
+                            onClick={() => setTargetId(point.id)}
+                            className={`absolute z-10 grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border transition ${selected ? 'h-6 w-6 border-cyan-100 bg-cyan-100 text-slate-950 shadow-[0_0_18px_rgba(103,232,249,.7)]' : visited.has(point.id) ? 'h-4 w-4 border-emerald-200/60 bg-emerald-300/25 text-emerald-100' : 'h-4 w-4 border-white/45 bg-black/75 text-white hover:border-cyan-100'}`}
+                            style={{ left: `${left}%`, top: `${top}%` }}
+                        >
+                            {visited.has(point.id) && !selected ? <Check className="h-2.5 w-2.5" /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
+                        </button>
+                    );
+                })}
+
+                <div className="absolute left-1/2 top-1/2 z-20 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-white bg-slate-950 text-cyan-100 shadow-[0_0_0_5px_rgba(0,0,0,.38)]">
+                    <Navigation className="h-4 w-4 fill-current" style={{ rotate: `${position.yaw + 90}deg` }} />
+                </div>
+            </div>
+
+            <div className="flex items-center gap-3 px-3 py-2.5 [@media(max-height:560px)]:py-2">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-cyan-200/20 bg-cyan-300/10 text-cyan-100">
+                    <Navigation className="h-4 w-4" style={{ rotate: `${bearing - position.yaw + 90}deg` }} />
+                </span>
+                <span className="min-w-0 flex-1">
+                    <small className="block text-[8px] font-black uppercase tracking-[.17em] text-cyan-100">Next destination</small>
+                    <strong className="mt-0.5 block truncate text-sm leading-none">{target.name}</strong>
+                    <span className="mt-1 block truncate text-[9px] text-slate-400">{target.note}</span>
+                </span>
+                <span className="shrink-0 text-right">
+                    <b className="flex items-center justify-end gap-1 text-[10px] text-cyan-100"><LocateFixed className="h-3 w-3" />{distance <= ENTER_RADIUS ? 'Arrived' : formatDistance(distance)}</b>
+                    <small className="mt-1 block text-[8px] text-slate-500">{turnText(bearing, position.yaw)}</small>
+                </span>
+            </div>
+
+            {position.map === 'ZombieShooting' && (
+                <div className="border-t border-rose-300/15 bg-rose-300/[.06] px-3 py-1.5 text-center text-[9px] font-black uppercase tracking-[.16em] text-rose-100">
+                    Shoot · P or LMB
                 </div>
             )}
-        </div>
+        </section>
     );
 }
 
+function plotOnRadar(point: Landmark, position: WorldPosition, range: number) {
+    const rawLeft = 50 + ((point.x - position.x) / range) * 44;
+    const rawTop = 50 - ((point.y - position.y) / range) * 44;
+    const outside = rawLeft < 7 || rawLeft > 93 || rawTop < 10 || rawTop > 90;
+    return {
+        point,
+        left: clamp(rawLeft, 7, 93),
+        top: clamp(rawTop, 10, 90),
+        outside,
+    };
+}
+
+function clamp(value: number, min: number, max: number) { return Math.min(max, Math.max(min, value)); }
 function isWorldMapName(value: string): value is WorldMapName { return value === 'CityStreets' || value === 'Sfera' || value === 'ZombieShooting'; }
 function formatDistance(value: number) { return value >= 1000 ? `${(value / 1000).toFixed(1)} km` : `${Math.round(value)} m`; }
-function turnText(bearing: number, yaw: number) { const delta = ((bearing - yaw + 540) % 360) - 180; return Math.abs(delta) < 18 ? 'Straight ahead' : delta > 0 ? `Right ${Math.round(Math.abs(delta))}°` : `Left ${Math.round(Math.abs(delta))}°`; }
-function bounds(points: Landmark[]) { const xs = points.map((point) => point.x); const ys = points.map((point) => point.y); return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) }; }
-function plot(x: number, y: number, box: ReturnType<typeof bounds>) { return { left: 10 + ((x - box.minX) / Math.max(1, box.maxX - box.minX)) * 76, top: 18 + (1 - ((y - box.minY) / Math.max(1, box.maxY - box.minY))) * 68 }; }
-function plotPoints(points: Landmark[]) { const box = bounds(points); return points.map((point) => ({ point, ...plot(point.x, point.y, box) })); }
-function plotPlayer(position: WorldPosition, points: Landmark[]) { return plot(position.x, position.y, bounds(points)); }
+function turnText(bearing: number, yaw: number) { const delta = ((bearing - yaw + 540) % 360) - 180; return Math.abs(delta) < 18 ? 'Straight' : delta > 0 ? `Right ${Math.round(Math.abs(delta))}°` : `Left ${Math.round(Math.abs(delta))}°`; }
