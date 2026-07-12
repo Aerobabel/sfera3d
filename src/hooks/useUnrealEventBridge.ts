@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { applyQuestEvent, createInitialQuestProgress, getQuestDefinition } from '@/lib/quests';
 import { GAME_RULES } from '@/lib/unreal/gameRules';
 import type { ArenaMoment, UnrealEventBridgeState, UnrealPixelStreamingEvent, WalletTransaction } from '@/lib/unreal/types';
@@ -12,6 +12,22 @@ const MAX_ARENA_MOMENTS = 5;
 const PERSISTED_STATE_KEY = '3dsfera:player-progress:v2';
 const ARENA_KEY_PIECES = [GAME_RULES.keys.firstHalf, GAME_RULES.keys.secondHalf] as const;
 const WATER_ARENA_QUEST_ID = 'water_arena_run';
+
+type ProximityTrigger = 'terminal' | 'water' | 'arcade' | 'wheel';
+
+const PROXIMITY_ENTER_EVENTS: Readonly<Record<string, ProximityTrigger>> = {
+    terminal_nearby: 'terminal',
+    water_nearby: 'water',
+    arcade_nearby: 'arcade',
+    wheel: 'wheel',
+};
+
+const PROXIMITY_LEAVE_EVENTS: Readonly<Record<string, ProximityTrigger>> = {
+    terminal_left: 'terminal',
+    water_left: 'water',
+    arcade_left: 'arcade',
+    wheel_left: 'wheel',
+};
 
 const resolveZombieRank = (score: number) => {
     const rank = [...GAME_RULES.zombieArena.ranks]
@@ -382,6 +398,11 @@ const withQuestUpdate = (
 
 export const useUnrealEventBridge = () => {
     const [state, setState] = useState<UnrealEventBridgeState>(readPersistedBridgeState);
+    // Unreal may emit overlap events on every movement/frame while the player
+    // remains inside a trigger volume. Latch each proximity trigger until its
+    // matching `*_left` event so dismissing an overlay does not immediately
+    // reopen it while the player is walking out of the volume.
+    const activeProximityTriggersRef = useRef<Set<ProximityTrigger>>(new Set());
 
     useEffect(() => {
         persistBridgeState(state);
@@ -390,6 +411,19 @@ export const useUnrealEventBridge = () => {
     const handleUnrealResponse = useCallback((message: string): UnrealPixelStreamingEvent | null => {
         const unrealEvent = parseUnrealEvent(message);
         if (!unrealEvent) return null;
+
+        const enteringTrigger = PROXIMITY_ENTER_EVENTS[unrealEvent.event];
+        if (enteringTrigger) {
+            if (activeProximityTriggersRef.current.has(enteringTrigger)) {
+                return unrealEvent;
+            }
+            activeProximityTriggersRef.current.add(enteringTrigger);
+        }
+
+        const leavingTrigger = PROXIMITY_LEAVE_EVENTS[unrealEvent.event];
+        if (leavingTrigger) {
+            activeProximityTriggersRef.current.delete(leavingTrigger);
+        }
 
         if (process.env.NODE_ENV === 'development') {
             console.info('[UE→Web] normalized event:', unrealEvent);

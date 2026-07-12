@@ -39,6 +39,8 @@ import {
 } from "@/lib/quests";
 import { playSferaUiSound } from "@/lib/ui/sound";
 import type { WalletTransaction } from "@/lib/unreal/types";
+import WorldGuideOverlay, { parseWorldPosition, type WorldPosition } from "@/components/WorldGuideOverlay";
+import RewardVideoSequence from "@/components/RewardVideoSequence";
 
 type MobileInputMode = 'joystick' | 'touch';
 type ToStreamerHandler = (messageData?: Array<number | string>) => void;
@@ -3650,6 +3652,8 @@ export default function ExperiencePage() {
     // Pavilion Exposition State — opened when Unreal sends `entered_pavilion:<id>`.
     const [activePavilion, setActivePavilion] = useState<PavilionInfo | null>(null);
     const [isRewardTerminalOpen, setIsRewardTerminalOpen] = useState(false);
+    const [worldPosition, setWorldPosition] = useState<WorldPosition>({ map: 'CityStreets', x: 16229, y: 11830, yaw: -69 });
+    const [isPhoneRewardSequenceOpen, setIsPhoneRewardSequenceOpen] = useState(false);
     const [isArcadeOpen, setIsArcadeOpen] = useState(false);
     const [isWaterDispenserOpen, setIsWaterDispenserOpen] = useState(false);
     const [isArenaPasswordOpen, setIsArenaPasswordOpen] = useState(false);
@@ -3849,6 +3853,7 @@ export default function ExperiencePage() {
         unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'wheel_spun' }));
         sendUnrealUiInteraction({ type: 'wheel_spun' });
         playSferaUiSound('reward');
+        setIsPhoneRewardSequenceOpen(true);
     }, [unrealBridge]);
 
     const openArenaPasswordGate = useCallback(() => {
@@ -5082,6 +5087,12 @@ export default function ExperiencePage() {
     }, [videoElement, sendUnrealExitFocus]);
 
     const handlePixelStreamingResponse = (jsonString: string) => {
+        const nextWorldPosition = parseWorldPosition(jsonString);
+        if (nextWorldPosition) {
+            setWorldPosition(nextWorldPosition);
+            return;
+        }
+
         let incomingEventName = typeof jsonString === 'string'
             ? jsonString.trim().replace(/^"|"$/g, '')
             : '';
@@ -5449,6 +5460,8 @@ export default function ExperiencePage() {
                     </>
                 )}
             </div>
+
+            {showExperienceHud && <WorldGuideOverlay position={worldPosition} />}
 
             {showFastViewCutscene && (
                 <div
@@ -6423,6 +6436,10 @@ export default function ExperiencePage() {
                             onClose={() => setIsWheelOpen(false)}
                             onSpin={handleWheelSpin}
                         />
+                    )}
+
+                    {isPhoneRewardSequenceOpen && (
+                        <RewardVideoSequence onClose={() => setIsPhoneRewardSequenceOpen(false)} />
                     )}
 
                     {isArcadeOpen && (
