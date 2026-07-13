@@ -2582,16 +2582,20 @@ function WheelOverlay({
     coupon,
     onClose,
     onSpin,
+    onOpenDashboard,
 }: {
     copy: WaterFlowCopy;
     spinsRemaining: number;
     coupon: string | null;
     onClose: () => void;
     onSpin: () => void;
+    onOpenDashboard: () => void;
 }) {
     const [isSpinning, setIsSpinning] = useState(false);
     const [hasSpun, setHasSpun] = useState(false);
     const [wheelRotation, setWheelRotation] = useState(0);
+    const [showRewardSequence, setShowRewardSequence] = useState(false);
+    const rewardTransitionTimerRef = useRef<number | null>(null);
     const wheelTicks = Array.from({ length: 18 }, (_, index) => index);
     const phonePrizeRotation = 2850;
 
@@ -2603,8 +2607,18 @@ function WheelOverlay({
             setIsSpinning(false);
             setHasSpun(true);
             onSpin();
+            rewardTransitionTimerRef.current = window.setTimeout(() => {
+                setShowRewardSequence(true);
+                rewardTransitionTimerRef.current = null;
+            }, 700);
         }, 2400);
     };
+
+    useEffect(() => () => {
+        if (rewardTransitionTimerRef.current !== null) {
+            window.clearTimeout(rewardTransitionTimerRef.current);
+        }
+    }, []);
 
     return (
         <div className="absolute inset-0 z-[95] grid place-items-center bg-[#02040a]/82 p-4 text-white backdrop-blur-md pointer-events-auto" role="dialog" aria-modal="true" aria-label={copy.wheelAria}>
@@ -2639,6 +2653,9 @@ function WheelOverlay({
                         </div>
                         {hasSpun && (
                             <div className="pointer-events-none absolute inset-0">
+                                <div className="absolute inset-0 overflow-hidden rounded-full">
+                                    <span className="absolute inset-y-0 -left-1/3 w-1/3 animate-[shimmer_700ms_ease-out_forwards] bg-gradient-to-r from-transparent via-white/90 to-transparent mix-blend-screen" />
+                                </div>
                                 {wheelTicks.slice(0, 12).map((tick) => (
                                     <span
                                         key={tick}
@@ -2701,6 +2718,10 @@ function WheelOverlay({
                         {copy.closeWheel}
                     </button>
                 </div>
+
+                {showRewardSequence && (
+                    <RewardVideoSequence onClose={onClose} onOpenDashboard={onOpenDashboard} />
+                )}
             </section>
         </div>
     );
@@ -3623,7 +3644,6 @@ export default function ExperiencePage() {
     const [activePavilion, setActivePavilion] = useState<PavilionInfo | null>(null);
     const [isRewardTerminalOpen, setIsRewardTerminalOpen] = useState(false);
     const [worldPosition, setWorldPosition] = useState<WorldPosition>({ map: 'CityStreets', x: 16229, y: 11830, yaw: -69 });
-    const [isPhoneRewardSequenceOpen, setIsPhoneRewardSequenceOpen] = useState(false);
     const [isArcadeOpen, setIsArcadeOpen] = useState(false);
     const [isWaterDispenserOpen, setIsWaterDispenserOpen] = useState(false);
     const [isArenaPasswordOpen, setIsArenaPasswordOpen] = useState(false);
@@ -3824,7 +3844,6 @@ export default function ExperiencePage() {
         unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'wheel_spun' }));
         sendUnrealUiInteraction({ type: 'wheel_spun' });
         playSferaUiSound('reward');
-        setIsPhoneRewardSequenceOpen(true);
     }, [unrealBridge]);
 
     useEffect(() => {
@@ -5056,7 +5075,6 @@ export default function ExperiencePage() {
             isChatPanelOpen ||
             isChatFocused ||
             isRewardTerminalOpen ||
-            isPhoneRewardSequenceOpen ||
             isArcadeOpen ||
             isWaterDispenserOpen ||
             isArenaPasswordOpen ||
@@ -5078,7 +5096,6 @@ export default function ExperiencePage() {
         isChatPanelOpen,
         isMenuOpen,
         isMissionStatementVisible,
-        isPhoneRewardSequenceOpen,
         isQuestChecklistOpen,
         isRewardTerminalOpen,
         isStreamPixelOpen,
@@ -6535,14 +6552,8 @@ export default function ExperiencePage() {
                             coupon={unrealBridge.wheelCoupon}
                             onClose={() => setIsWheelOpen(false)}
                             onSpin={handleWheelSpin}
-                        />
-                    )}
-
-                    {isPhoneRewardSequenceOpen && (
-                        <RewardVideoSequence
-                            onClose={() => setIsPhoneRewardSequenceOpen(false)}
                             onOpenDashboard={() => {
-                                setIsPhoneRewardSequenceOpen(false);
+                                setIsWheelOpen(false);
                                 setDashboardOverlay('player');
                             }}
                         />

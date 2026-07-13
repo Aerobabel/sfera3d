@@ -1,20 +1,78 @@
 'use client';
 
-import { Check, ChevronRight, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Check, ChevronRight, Play, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+const STALL_PROMPT_DELAY_MS = 2200;
+
+const rewardVideos = [
+    '/cutscenes/afterphonewin.mp4',
+    '/cutscenes/phonewaterdelivered.mp4',
+] as const;
 
 export default function RewardVideoSequence({ onClose, onOpenDashboard }: { onClose: () => void; onOpenDashboard: () => void }) {
     const [step, setStep] = useState<1 | 2 | 3>(1);
-    const next = () => setStep((current) => current === 1 ? 2 : 3);
+    const [showPlaybackPrompt, setShowPlaybackPrompt] = useState(false);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const stallTimerRef = useRef<number | null>(null);
+    const next = () => {
+        setShowPlaybackPrompt(false);
+        setStep((current) => current === 1 ? 2 : 3);
+    };
+
+    const clearStallTimer = useCallback(() => {
+        if (stallTimerRef.current === null) return;
+        window.clearTimeout(stallTimerRef.current);
+        stallTimerRef.current = null;
+    }, []);
+
+    const requestPlayback = useCallback(async () => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        clearStallTimer();
+        try {
+            await video.play();
+            setShowPlaybackPrompt(false);
+        } catch {
+            // Browsers can reject delayed autoplay even though the spin itself
+            // started with a click. Surface a cinematic play action instead of
+            // leaving the user on an inert native controls bar.
+            setShowPlaybackPrompt(true);
+        }
+    }, [clearStallTimer]);
+
+    const handlePlaybackWaiting = useCallback(() => {
+        clearStallTimer();
+        stallTimerRef.current = window.setTimeout(() => {
+            setShowPlaybackPrompt(true);
+            stallTimerRef.current = null;
+        }, STALL_PROMPT_DELAY_MS);
+    }, [clearStallTimer]);
+
+    const handlePlaybackActive = useCallback(() => {
+        clearStallTimer();
+        setShowPlaybackPrompt(false);
+    }, [clearStallTimer]);
 
     useEffect(() => {
         if (step === 3) window.dispatchEvent(new Event('sfera:success'));
     }, [step]);
 
+    useEffect(() => {
+        if (step === 3) return;
+        const frame = window.requestAnimationFrame(() => {
+            void requestPlayback();
+        });
+
+        return () => {
+            window.cancelAnimationFrame(frame);
+            clearStallTimer();
+        };
+    }, [clearStallTimer, requestPlayback, step]);
+
     return (
-        <div className="pointer-events-auto absolute inset-0 z-[180] grid place-items-center overflow-hidden bg-[#020405]/94 p-4 text-white backdrop-blur-xl" role="dialog" aria-modal="true" aria-label="Phone reward">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 border-b border-white/[.06] bg-black/50" />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 border-t border-white/[.06] bg-black/50" />
+        <div className="pointer-events-auto absolute inset-0 z-20 grid place-items-center overflow-hidden bg-[#020405] text-white" aria-label="Phone reward cutscene">
             <div className="grain-overlay opacity-[.045]" />
             <button type="button" onClick={onClose} aria-label="Close reward video" data-sfera-sound="soft" className="absolute right-5 top-5 z-20 grid h-10 w-10 place-items-center rounded-full border border-white/12 bg-black/46 text-white/70 backdrop-blur-md transition hover:border-white/28 hover:text-white"><X className="h-4 w-4" /></button>
 
@@ -25,19 +83,50 @@ export default function RewardVideoSequence({ onClose, onOpenDashboard }: { onCl
             </div>
 
             {step < 3 ? (
-                <div className="sfera-page-enter w-[min(94vw,72rem)]">
-                    <div className="mb-4 flex items-end justify-between gap-4">
-                        <div>
-                            <p className="sfera-kicker">Chapter 0{step}</p>
-                            <h2 className="sfera-display mt-2 text-2xl sm:text-4xl">{step === 1 ? 'The reward is yours.' : 'Delivery is in motion.'}</h2>
+                <div className="sfera-page-enter absolute inset-0 overflow-hidden bg-black">
+                    <video
+                        ref={videoRef}
+                        key={step}
+                        autoPlay
+                        playsInline
+                        preload="auto"
+                        disablePictureInPicture
+                        controlsList="nodownload noplaybackrate noremoteplayback"
+                        data-cutscene-video="true"
+                        onCanPlay={() => void requestPlayback()}
+                        onPlaying={handlePlaybackActive}
+                        onWaiting={handlePlaybackWaiting}
+                        onStalled={handlePlaybackWaiting}
+                        onEnded={next}
+                        onError={next}
+                        className="cinematic-cutscene-video h-full w-full scale-[1.02] bg-black object-cover"
+                        src={rewardVideos[step - 1]}
+                    />
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,transparent_0%,transparent_48%,rgba(0,0,0,0.36)_78%,rgba(0,0,0,0.78)_100%)]" />
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/80 to-transparent" />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/90 to-transparent" />
+
+                    <div className="pointer-events-none absolute bottom-5 left-5 z-10 max-w-[min(72vw,30rem)] border-l border-cyan-100/35 bg-black/48 px-4 py-3 backdrop-blur-md">
+                        <p className="text-[9px] font-black uppercase tracking-[.24em] text-cyan-100">3DSFERA reward signal</p>
+                        <h2 className="sfera-display mt-1 text-xl sm:text-3xl">{step === 1 ? 'The reward is yours.' : 'Delivery is in motion.'}</h2>
+                        <span className="mt-3 block h-px w-full overflow-hidden bg-white/10">
+                            <span className="block h-full w-2/3 animate-[shimmer_1.4s_linear_infinite] bg-gradient-to-r from-transparent via-cyan-100 to-transparent" />
+                        </span>
+                    </div>
+
+                    {showPlaybackPrompt && (
+                        <div className="absolute inset-0 z-20 grid place-items-center bg-black/48 p-5 backdrop-blur-sm">
+                            <div className="max-w-sm text-center">
+                                <button type="button" onClick={() => void requestPlayback()} className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-cyan-100/40 bg-cyan-100 text-slate-950 shadow-[0_0_60px_rgba(131,232,220,.32)] transition hover:scale-105" aria-label="Play reward cutscene">
+                                    <Play className="ml-1 h-6 w-6" fill="currentColor" />
+                                </button>
+                                <p className="mt-4 text-xs font-black uppercase tracking-[.18em] text-white">Continue the reward cutscene</p>
+                                <button type="button" onClick={next} className="mt-3 text-[10px] font-bold uppercase tracking-[.16em] text-white/55 transition hover:text-white">Skip this scene</button>
+                            </div>
                         </div>
-                        <p className="hidden max-w-xs text-right text-xs leading-5 text-slate-500 sm:block">A verified moment from your 3DSFERA journey.</p>
-                    </div>
-                    <div className="relative overflow-hidden rounded-[1.4rem] border border-white/12 bg-black shadow-[0_45px_140px_rgba(0,0,0,.82)]">
-                        <video key={step} autoPlay controls playsInline onEnded={next} className="cinematic-cutscene-video max-h-[72vh] w-full bg-black object-contain" src={step === 1 ? '/cutscenes/afterphonewin.mp4' : '/cutscenes/phonewaterdelivered.mp4'} />
-                        <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/[.05]" />
-                    </div>
-                    <button type="button" onClick={next} data-sfera-sound="confirm" className="ml-auto mt-4 flex items-center gap-2 rounded-full border border-white/12 bg-white/[.045] px-4 py-2 text-[10px] font-black uppercase tracking-[.16em] text-slate-300 transition hover:border-cyan-100/30 hover:text-cyan-50">Continue <ChevronRight className="h-4 w-4" /></button>
+                    )}
+
+                    <button type="button" onClick={next} data-sfera-sound="confirm" className="absolute bottom-5 right-5 z-20 flex items-center gap-2 rounded-full border border-white/14 bg-black/52 px-4 py-2 text-[10px] font-black uppercase tracking-[.16em] text-slate-200 backdrop-blur-md transition hover:border-cyan-100/35 hover:text-cyan-50">Skip <ChevronRight className="h-4 w-4" /></button>
                 </div>
             ) : (
                 <div className="sfera-page-enter relative max-w-2xl px-4 text-center">

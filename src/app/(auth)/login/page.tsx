@@ -20,6 +20,8 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type AuthMethod = "password" | "otp";
 
+const AUTH_BOOTSTRAP_TIMEOUT_MS = 2500;
+
 const isInvalidOtpError = (message: string) => {
   const lower = message.toLowerCase();
   return (
@@ -207,13 +209,52 @@ const isOtpRateLimitError = (error: unknown) => {
   );
 };
 
-const isPasswordRecoveryUrl = () => {
-  if (typeof window === "undefined") return false;
+const isTransientAuthNetworkError = (error: unknown) => {
+  if (!error) return false;
 
-  const query = new URLSearchParams(window.location.search);
-  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-  return query.get("mode") === "recovery" || hash.get("type") === "recovery";
+  const message = error instanceof Error
+    ? error.message.toLowerCase()
+    : typeof error === "object" && "message" in error && typeof error.message === "string"
+      ? error.message.toLowerCase()
+      : String(error).toLowerCase();
+
+  return (
+    message.includes("failed to fetch") ||
+    message.includes("networkerror") ||
+    message.includes("network error") ||
+    message.includes("load failed") ||
+    message.includes("fetch failed") ||
+    message.includes("connection reset")
+  );
 };
+
+const waitForAuthRetry = (delayMs: number) =>
+  new Promise<void>((resolve) => window.setTimeout(resolve, delayMs));
+
+async function retryTransientAuthRequest<T extends { error: unknown }>(
+  request: () => Promise<T>
+): Promise<T> {
+  const retryDelays = [350, 900];
+  let lastThrownError: unknown;
+
+  for (let attempt = 0; attempt <= retryDelays.length; attempt += 1) {
+    try {
+      const result = await request();
+      if (!isTransientAuthNetworkError(result.error) || attempt === retryDelays.length) {
+        return result;
+      }
+    } catch (error: unknown) {
+      if (!isTransientAuthNetworkError(error) || attempt === retryDelays.length) {
+        throw error;
+      }
+      lastThrownError = error;
+    }
+
+    await waitForAuthRetry(retryDelays[attempt]);
+  }
+
+  throw lastThrownError ?? new Error("Authentication request failed.");
+}
 
 function LoginPageContent() {
   const { language } = useLanguage();
@@ -311,31 +352,41 @@ function LoginPageContent() {
 
   useEffect(() => {
     let isMounted = true;
-    let unsubscribe = () => {};
     setIsBootstrappingAuth(true);
+    let unsubscribe = () => {};
+    const bootstrapTimer = window.setTimeout(() => {
+      if (isMounted) setIsBootstrappingAuth(false);
+    }, AUTH_BOOTSTRAP_TIMEOUT_MS);
 
-    const bootstrapSession = async () => {
-      try {
-        const supabase = getSupabaseBrowserClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: authListener } = supabase.auth.onAuthStateChange((event, nextSession) => {
         if (!isMounted) return;
 
-        if (session) {
-          if (isPasswordRecoveryUrl()) {
-            setAuthMethod("password");
-            setIsPasswordResetMode(true);
-            setPassword("");
+        if (event === "INITIAL_SESSION") {
+          window.clearTimeout(bootstrapTimer);
+          if (!nextSession) {
             setIsBootstrappingAuth(false);
             return;
           }
+        }
 
-          const sessionRole = getUserRole(session.user);
-          const isSupplierLoginRequest = requestedAudience === "supplier";
+        if (event === "PASSWORD_RECOVERY") {
+          window.clearTimeout(bootstrapTimer);
+          setAuthMethod("password");
+          setIsPasswordResetMode(true);
+          setPassword("");
+          setIsBootstrappingAuth(false);
+          return;
+        }
 
-          if (isSupplierLoginRequest && sessionRole !== "supplier") {
+        if (!nextSession) return;
+
+        const nextSessionRole = getUserRole(nextSession.user);
+        const isSupplierLoginRequest = requestedAudience === "supplier";
+
+        if (isSupplierLoginRequest && nextSessionRole !== "supplier") {
+          void (async () => {
             try {
               await supabase.auth.signOut();
             } catch {
@@ -348,56 +399,30 @@ function LoginPageContent() {
               // Ignore and continue showing the supplier login form.
             }
 
-            if (isMounted) {
-              setIsBootstrappingAuth(false);
-            }
-            return;
-          }
-
-          await finishAuthentication(session);
+            if (isMounted) setIsBootstrappingAuth(false);
+          })();
           return;
         }
 
-        const { data: authListener } = supabase.auth.onAuthStateChange((event, nextSession) => {
-          if (event === "PASSWORD_RECOVERY") {
-            setAuthMethod("password");
-            setIsPasswordResetMode(true);
-            setPassword("");
-            setIsBootstrappingAuth(false);
-            return;
-          }
-
-          if (!nextSession) return;
-
-          const nextSessionRole = getUserRole(nextSession.user);
-          const isSupplierLoginRequest = requestedAudience === "supplier";
-
-          if (isSupplierLoginRequest && nextSessionRole !== "supplier") {
-            return;
-          }
-
-          void finishAuthentication(nextSession).catch(() => {
-            setErrorMessage(t.defaultError);
-            setIsSubmitting(false);
-          });
-        });
-
-        unsubscribe = () => {
-          authListener.subscription.unsubscribe();
-        };
-        setIsBootstrappingAuth(false);
-      } catch {
-        // The page already surfaces missing Supabase config during submit.
-        if (isMounted) {
+        void finishAuthentication(nextSession).catch(() => {
+          if (!isMounted) return;
+          setErrorMessage(t.defaultError);
+          setIsSubmitting(false);
           setIsBootstrappingAuth(false);
-        }
-      }
-    };
+        });
+      });
 
-    void bootstrapSession();
+      unsubscribe = () => {
+        authListener.subscription.unsubscribe();
+      };
+    } catch {
+      window.clearTimeout(bootstrapTimer);
+      setIsBootstrappingAuth(false);
+    }
 
     return () => {
       isMounted = false;
+      window.clearTimeout(bootstrapTimer);
       unsubscribe();
     };
   }, [finishAuthentication, requestedAudience, t.defaultError]);
@@ -546,10 +571,12 @@ function LoginPageContent() {
   const handlePasswordSubmit = async () => {
     const supabase = getSupabaseBrowserClient();
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error } = await retryTransientAuthRequest(() =>
+      supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      })
+    );
 
     if (error) throw error;
     await syncAndRedirect(data.session);

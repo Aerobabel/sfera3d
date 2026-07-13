@@ -45,8 +45,6 @@ export default function AuthSessionBridge() {
       });
     };
 
-    let isMounted = true;
-
     try {
       const supabase = getSupabaseBrowserClient();
       const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -55,19 +53,11 @@ export default function AuthSessionBridge() {
         }
       );
 
-      void supabase.auth.getSession().then(({ data }) => {
-        if (!isMounted) return;
-        void syncSession(data.session);
-      });
-
       return () => {
-        isMounted = false;
         authListener.subscription.unsubscribe();
       };
     } catch {
-      return () => {
-        isMounted = false;
-      };
+      return () => {};
     }
   }, []);
 
