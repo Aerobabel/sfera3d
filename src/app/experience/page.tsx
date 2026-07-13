@@ -89,6 +89,13 @@ const releaseAllInputs = () => {
     try { window.dispatchEvent(new Event('sfera:stream-input-reset')); } catch {}
 };
 
+const releasePointerForInteraction = () => {
+    releaseAllInputs();
+    try {
+        if (document.pointerLockElement) document.exitPointerLock?.();
+    } catch { /* best-effort: the overlay remains usable on browsers without pointer lock */ }
+};
+
 
 const sendUnrealUiInteraction = (descriptor: Record<string, unknown>) => {
     const psWindow = window as PixelStreamingWindow;
@@ -2044,8 +2051,8 @@ function QuestDirectorOverlay({
                                 {signalLabel}
                             </span>
                         </div>
-                        <h3 className="mt-1 truncate text-[15px] font-semibold leading-tight tracking-[-.015em]">{state.title}</h3>
-                        <p className="mt-1 line-clamp-1 text-[11px] leading-4 text-slate-400">{state.body}</p>
+                        <h3 className="mt-1 text-[15px] font-semibold leading-tight tracking-[-.015em] [overflow-wrap:anywhere]">{state.title}</h3>
+                        <p className="mt-1 text-[11px] leading-4 text-slate-400 [overflow-wrap:anywhere]">{state.body}</p>
                     </div>
                     {canOpenCode && (
                         <button
@@ -2078,7 +2085,7 @@ function ZombieHallCodePrompt({ copy, onOpenPassword }: { copy: WaterFlowCopy; o
             </span>
             <span className="min-w-0 flex-1">
                 <span className="block text-[9px] font-black uppercase tracking-[0.2em] text-amber-100">{copy.codeReady}</span>
-                <span className="mt-0.5 block truncate text-sm font-black text-white">{copy.codeReadyBody}</span>
+                <span className="mt-0.5 block text-sm font-black leading-5 text-white [overflow-wrap:anywhere]">{copy.codeReadyBody}</span>
                 <span className="mt-1 flex items-center gap-1.5 font-mono text-[11px] font-black text-slate-300">
                     <span>{GAME_RULES.keys.firstHalf}</span>
                     <span>+</span>
@@ -3698,8 +3705,7 @@ export default function ExperiencePage() {
 
     useEffect(() => {
         if (!isRewardTerminalOpen) return;
-        releaseAllInputs();
-        try { document.exitPointerLock?.(); } catch {}
+        releasePointerForInteraction();
         playSferaUiSound('open');
     }, [isRewardTerminalOpen]);
 
@@ -4790,7 +4796,7 @@ export default function ExperiencePage() {
         const product = getProductById(id);
         if (product) {
             // Gracefully unlock the mouse so the user can actually interact with the React Product UI
-            try { document.exitPointerLock?.(); } catch {}
+            releasePointerForInteraction();
 
             setActiveProduct(product);
             // Fetch supplier
@@ -5037,14 +5043,49 @@ export default function ExperiencePage() {
         return () => document.removeEventListener('keydown', handleKeyDown, true);
     }, [activeProduct, handleCloseProductCard]);
 
-    // Release all held keys/mouse buttons whenever an overlay takes focus.
-    // This prevents the "running forward forever" bug caused by keyup events
-    // being swallowed when a product card, menu, or chat input opens.
+    // Every interactive web surface must immediately own the pointer. This
+    // releases held movement/fire inputs and exits browser pointer lock so the
+    // player never has to press Escape before clicking a popup.
     useEffect(() => {
-        if (activeProduct || isMenuOpen || isCatalogueOpen || isChatFocused || activePavilion || isRewardTerminalOpen || isArcadeOpen || isWaterDispenserOpen || isArenaPasswordOpen || isWheelOpen) {
-            releaseAllInputs();
-        }
-    }, [activeProduct, isArcadeOpen, isArenaPasswordOpen, isMenuOpen, isCatalogueOpen, isChatFocused, activePavilion, isRewardTerminalOpen, isWaterDispenserOpen, isWheelOpen]);
+        const hasInteractiveSurface = Boolean(
+            activeProduct ||
+            activePavilion ||
+            dashboardOverlay ||
+            isMenuOpen ||
+            isCatalogueOpen ||
+            isChatPanelOpen ||
+            isChatFocused ||
+            isRewardTerminalOpen ||
+            isPhoneRewardSequenceOpen ||
+            isArcadeOpen ||
+            isWaterDispenserOpen ||
+            isArenaPasswordOpen ||
+            isWheelOpen ||
+            isStreamPixelOpen ||
+            isMissionStatementVisible ||
+            shouldShowPlayerModePrompt ||
+            isQuestChecklistOpen
+        );
+        if (hasInteractiveSurface) releasePointerForInteraction();
+    }, [
+        activePavilion,
+        activeProduct,
+        dashboardOverlay,
+        isArcadeOpen,
+        isArenaPasswordOpen,
+        isCatalogueOpen,
+        isChatFocused,
+        isChatPanelOpen,
+        isMenuOpen,
+        isMissionStatementVisible,
+        isPhoneRewardSequenceOpen,
+        isQuestChecklistOpen,
+        isRewardTerminalOpen,
+        isStreamPixelOpen,
+        isWaterDispenserOpen,
+        isWheelOpen,
+        shouldShowPlayerModePrompt,
+    ]);
 
     // Ensure Unreal Engine state matches React state on video connection/reconnection
     // If the user's connection dropped while inspecting, Unreal remains stuck in inspection
@@ -5138,8 +5179,7 @@ export default function ExperiencePage() {
                 if (pavilion) {
                     // Release held inputs and unlock the mouse so the overlay UI
                     // is actually interactive.
-                    releaseAllInputs();
-                    try { document.exitPointerLock?.(); } catch {}
+                    releasePointerForInteraction();
                     setActivePavilion(pavilion);
                     emitQuestEvent({
                         event: 'pavilion_entered',
@@ -5302,6 +5342,9 @@ export default function ExperiencePage() {
         unrealBridge.arenaKeyPieces.length >= 2 &&
         !isArenaPasswordOpen &&
         !isWaterDispenserOpen;
+    useEffect(() => {
+        if (shouldShowArenaCodePrompt) releasePointerForInteraction();
+    }, [shouldShowArenaCodePrompt]);
     const compactWaterQuestMilestones = waterQuestMilestones.length > 0
         ? [waterQuestMilestones.find((milestone) => !milestone.complete) ?? waterQuestMilestones[waterQuestMilestones.length - 1]]
         : [];
@@ -6036,7 +6079,7 @@ export default function ExperiencePage() {
                                         }))).map((step, index) => {
                                             const StepIcon = step.Icon;
                                             return (
-                                                <div key={step.title} className={`grid grid-cols-[2rem_1fr_auto] items-center gap-2 rounded-xl border px-2.5 py-2 ${
+                                                <div key={step.title} className={`grid grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2 rounded-xl border px-2.5 py-2 ${
                                                     step.complete
                                                         ? 'border-emerald-300/20 bg-emerald-300/[0.06]'
                                                         : index === 0 || !waterQuestMilestones[index - 1] || waterQuestMilestones[index - 1].complete
@@ -6049,8 +6092,8 @@ export default function ExperiencePage() {
                                                         {step.complete ? <CheckCircle2 className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}
                                                     </span>
                                                     <span className="min-w-0">
-                                                        <span className="block truncate text-xs font-black text-white">{step.title}</span>
-                                                        <span className="mt-0.5 block truncate text-[11px] text-slate-400">{step.body}</span>
+                                                        <span className="block text-xs font-black leading-4 text-white [overflow-wrap:anywhere]">{step.title}</span>
+                                                        <span className="mt-0.5 block text-[11px] leading-4 text-slate-400 [overflow-wrap:anywhere]">{step.body}</span>
                                                     </span>
                                                     <span className="font-mono text-[10px] font-black text-white/38">{index + 1}</span>
                                                 </div>
@@ -6081,7 +6124,7 @@ export default function ExperiencePage() {
                                                         }`}>
                                                             {objective.completed ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}
                                                         </span>
-                                                        <span className={`min-w-0 truncate ${objective.completed ? 'text-white/70 line-through decoration-white/30' : 'text-slate-200'}`}>
+                                                        <span className={`min-w-0 leading-4 [overflow-wrap:anywhere] ${objective.completed ? 'text-white/70 line-through decoration-white/30' : 'text-slate-200'}`}>
                                                             {getQuestObjectiveText(activeSceneQuest.quest, objectiveId, language)}
                                                         </span>
                                                         <span className="font-mono text-[11px] text-white/38">{objective.current}/{objective.target}</span>
@@ -6103,7 +6146,7 @@ export default function ExperiencePage() {
                                     <div className="flex items-center justify-between gap-3 border-b border-amber-300/10 bg-amber-300/[0.04] px-3 py-2.5">
                                         <div className="min-w-0">
                                             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-200">{sceneHud.quest}</p>
-                                            <h2 className="mt-0.5 truncate text-sm font-black leading-tight text-white">{activeSceneQuestText.title}</h2>
+                                            <h2 className="mt-0.5 text-sm font-black leading-tight text-white [overflow-wrap:anywhere]">{activeSceneQuestText.title}</h2>
                                             {activeSceneQuestText.sponsor && (
                                                 <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-[0.13em] text-white/40">
                                                     {activeSceneQuestText.sponsor}
@@ -6132,7 +6175,7 @@ export default function ExperiencePage() {
                                         {activeSceneQuestNextObjective && (
                                             <div className="mt-2 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-2">
                                                 <p className="text-[9px] font-black uppercase tracking-[0.15em] text-amber-100/78">{sceneHud.nextObjective}</p>
-                                                <p className="mt-1 truncate text-xs font-semibold leading-5 text-white">
+                                                <p className="mt-1 text-xs font-semibold leading-5 text-white [overflow-wrap:anywhere]">
                                                     {getQuestObjectiveText(activeSceneQuest.quest, activeSceneQuestNextObjective[0], language)}
                                                     <span className="ml-2 font-mono text-xs text-white/45">
                                                         {activeSceneQuestNextObjective[1].current}/{activeSceneQuestNextObjective[1].target}
@@ -6156,7 +6199,7 @@ export default function ExperiencePage() {
                                                     }`}>
                                                         {objective.completed ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}
                                                     </span>
-                                                    <span className={`min-w-0 truncate ${objective.completed ? 'text-white/70 line-through decoration-white/30' : 'text-slate-200'}`}>
+                                                    <span className={`min-w-0 leading-4 [overflow-wrap:anywhere] ${objective.completed ? 'text-white/70 line-through decoration-white/30' : 'text-slate-200'}`}>
                                                         {getQuestObjectiveText(activeSceneQuest.quest, objectiveId, language)}
                                                     </span>
                                                     <span className="font-mono text-[11px] text-white/38">{objective.current}/{objective.target}</span>
@@ -6164,7 +6207,7 @@ export default function ExperiencePage() {
                                             ))}
                                         </div>
                                         )}
-                                        <div className="mt-2 truncate rounded-lg border border-amber-300/16 bg-amber-300/[0.06] px-2.5 py-1.5 text-[10px] leading-5 text-amber-50">
+                                        <div className="mt-2 rounded-lg border border-amber-300/16 bg-amber-300/[0.06] px-2.5 py-1.5 text-[10px] leading-5 text-amber-50 [overflow-wrap:anywhere]">
                                             <span className="font-black uppercase tracking-[0.14em] text-amber-200">{sceneHud.reward}: </span>
                                             {getQuestRewardText(activeSceneQuest.quest.reward, activeSceneQuest.quest.id, language)}
                                         </div>
@@ -6175,17 +6218,17 @@ export default function ExperiencePage() {
                                 <button
                                     type="button"
                                     onClick={() => setIsRewardTerminalOpen(true)}
-                                    className="sfera-reward-pop mt-2 flex w-[min(92vw,22rem)] items-center gap-3 rounded-xl border border-emerald-300/24 bg-[#03100d]/72 px-3 py-2.5 text-left text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.32)] backdrop-blur-md transition hover:border-emerald-200/45 hover:bg-emerald-300/[0.08]"
+                                    className="sfera-reward-pop mt-2 flex w-[min(92vw,24rem)] items-start gap-3 rounded-xl border border-emerald-300/24 bg-[#03100d]/72 px-3 py-2.5 text-left text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.32)] backdrop-blur-md transition hover:border-emerald-200/45 hover:bg-emerald-300/[0.08]"
                                 >
                                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-emerald-300/24 bg-emerald-300/10 text-emerald-100">
                                         <Gift className="h-4 w-4" />
                                     </span>
                                     <span className="min-w-0 flex-1">
                                         <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100">{sceneHud.questComplete}</span>
-                                        <span className="mt-0.5 block truncate text-sm font-black text-white">{getQuestRewardText(latestPlayerReward, latestPlayerReward.questId, language)}</span>
-                                        <span className="mt-0.5 block truncate text-[11px] text-slate-400">{latestPlayerRewardQuestText.title}</span>
+                                        <span className="mt-0.5 block text-sm font-black leading-5 text-white [overflow-wrap:anywhere]">{getQuestRewardText(latestPlayerReward, latestPlayerReward.questId, language)}</span>
+                                        <span className="mt-0.5 block text-[11px] leading-4 text-slate-400 [overflow-wrap:anywhere]">{latestPlayerRewardQuestText.title}</span>
                                     </span>
-                                    <span className="shrink-0 rounded-full border border-emerald-300/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-100">
+                                    <span className="mt-0.5 shrink-0 rounded-full border border-emerald-300/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-100">
                                         {sceneHud.openTerminal}
                                     </span>
                                 </button>
@@ -6209,16 +6252,16 @@ export default function ExperiencePage() {
                                 </button>
                             )}
                             {unrealBridge.waterPurchased && unrealBridge.wheelCoupon && (
-                                <div className="sfera-reward-pop mt-2 flex w-[min(92vw,22rem)] items-center gap-3 rounded-xl border border-amber-300/24 bg-[#171006]/72 px-3 py-2.5 text-left text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.32)] backdrop-blur-md">
+                                <div className="sfera-reward-pop mt-2 flex w-[min(92vw,24rem)] items-start gap-3 rounded-xl border border-amber-300/24 bg-[#171006]/72 px-3 py-2.5 text-left text-slate-100 shadow-[0_18px_54px_rgba(0,0,0,0.32)] backdrop-blur-md">
                                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-amber-300/24 bg-amber-300/10 text-amber-100">
                                         <Ticket className="h-4 w-4" />
                                     </span>
                                     <span className="min-w-0 flex-1">
                                         <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-amber-100">{waterFlowCopy.wheelUnlockedToast}</span>
-                                        <span className="mt-0.5 block truncate text-sm font-black text-white">{waterFlowCopy.wheelReturnToast}</span>
+                                        <span className="mt-0.5 block text-sm font-black leading-5 text-white [overflow-wrap:anywhere]">{waterFlowCopy.wheelReturnToast}</span>
                                         <span className="mt-0.5 block truncate text-[11px] text-slate-400">{unrealBridge.wheelCoupon}</span>
                                     </span>
-                                    <span className="shrink-0 rounded-full border border-amber-300/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-amber-100">
+                                    <span className="mt-0.5 shrink-0 rounded-full border border-amber-300/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-amber-100">
                                         {unrealBridge.wheelSpinsRemaining} {waterFlowCopy.attemptUnit}
                                     </span>
                                 </div>

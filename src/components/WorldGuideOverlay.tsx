@@ -149,7 +149,7 @@ export default function WorldGuideOverlay({
                 </span>
                 <span className="min-w-0 flex-1">
                     <small className="sfera-kicker block !text-[7px]">{questObjective ? 'Active objective' : 'Nearest location'}</small>
-                    <strong className="mt-1 block truncate text-[13px] font-semibold leading-none tracking-[-.01em]">{questObjective ?? nearest.point.name}</strong>
+                    <strong className="mt-1 block text-[13px] font-semibold leading-[1.25] tracking-[-.01em] [overflow-wrap:anywhere]">{questObjective ?? nearest.point.name}</strong>
                     <span className="mt-1 block truncate font-mono text-[7px] uppercase tracking-[.12em] text-slate-500">Route synchronized</span>
                 </span>
                 <span className="shrink-0 text-right">
