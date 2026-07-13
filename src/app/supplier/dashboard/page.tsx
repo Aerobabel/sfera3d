@@ -424,7 +424,7 @@ export default function SupplierDashboard() {
 
   return (
     <div
-      className={`sfera-cinematic-shell sfera-page-enter relative min-h-screen overflow-hidden text-[#e8edf7] [font-family:var(--font-dashboard-display)]`}
+      className={`sfera-cinematic-shell sfera-page-enter relative min-h-screen overflow-x-hidden text-[#e8edf7] [font-family:var(--font-dashboard-display)]`}
     >
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-20 top-20 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_center,rgba(35,222,189,0.26),rgba(35,222,189,0)_72%)] blur-2xl" />
@@ -491,7 +491,7 @@ export default function SupplierDashboard() {
           </div>
         </aside>
 
-        <main className="flex min-h-screen flex-1 flex-col">
+        <main className="flex min-h-screen min-w-0 flex-1 flex-col">
           <header className="border-b border-white/10 bg-[#0b1222]/72 px-4 py-4 backdrop-blur-xl sm:px-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
@@ -518,9 +518,9 @@ export default function SupplierDashboard() {
             </div>
           </header>
 
-          <div className="flex-1 p-4 sm:p-6">
+          <div className="flex-1 p-3 sm:p-6">
             <div className="grid h-full gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-              <section className="min-h-0 overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(160deg,rgba(12,19,31,0.9),rgba(9,14,23,0.92))] shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
+              <section className="min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(12,19,31,0.9),rgba(9,14,23,0.92))] shadow-[0_24px_60px_rgba(0,0,0,0.4)] sm:rounded-3xl">
                 {errorMessage && (
                   <div className="m-4 rounded-xl border border-red-400/30 bg-red-500/12 px-4 py-3 text-sm text-red-200">
                     {errorMessage}
@@ -534,7 +534,7 @@ export default function SupplierDashboard() {
                   </span>
                 </div>
 
-                <div className="grid h-[min(58vh,700px)] min-h-[460px] grid-cols-1 overflow-hidden lg:grid-cols-[300px_minmax(0,1fr)]">
+                <div className="grid h-[min(58dvh,700px)] min-h-[460px] grid-cols-1 overflow-hidden lg:grid-cols-[300px_minmax(0,1fr)]">
                   {threads.length === 0 ? (
                     <div className="my-auto rounded-2xl border border-dashed border-white/20 bg-white/[0.03] px-6 py-12 text-center">
                       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-300">
@@ -675,10 +675,10 @@ export default function SupplierDashboard() {
             </div>
           </div>
 
-          <div className="border-t border-white/10 bg-[#0b1222]/72 px-4 py-4 backdrop-blur-xl sm:px-6">
+          <div className="border-t border-white/10 bg-[#0b1222]/72 px-3 py-4 backdrop-blur-xl sm:px-6">
             <div className="mx-auto max-w-5xl rounded-2xl border border-white/12 bg-white/[0.04] p-3">
               <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-slate-400">{t.composeLabel}</p>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center">
                 <input
                   type="text"
                   value={replyText}
@@ -691,16 +691,16 @@ export default function SupplierDashboard() {
                   }}
                   placeholder={t.replyPlaceholder}
                   disabled={!selectedThread || isSending}
-                  className="min-w-[220px] flex-1 rounded-xl border border-white/15 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-[#66d9cb]/60 focus:ring-2 focus:ring-[#66d9cb]/25"
+                  className="min-h-12 w-full rounded-xl border border-white/15 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-[#66d9cb]/60 focus:ring-2 focus:ring-[#66d9cb]/25 sm:min-w-[220px] sm:flex-1"
                 />
                 <button
                   onClick={() => void sendReply()}
                   disabled={!replyText.trim() || !selectedThread || isSending}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#66d9cb] px-5 py-3 text-sm font-semibold text-[#031413] transition hover:bg-[#88eade] disabled:cursor-not-allowed disabled:opacity-45"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#66d9cb] px-5 py-3 text-sm font-semibold text-[#031413] transition hover:bg-[#88eade] disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   <Send size={14} /> {t.send}
                 </button>
-                <button className="rounded-xl border border-white/20 bg-white/[0.02] px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.1]">
+                <button className="min-h-12 rounded-xl border border-white/20 bg-white/[0.02] px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.1]">
                   {t.resolve}
                 </button>
               </div>

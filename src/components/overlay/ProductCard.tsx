@@ -49,7 +49,7 @@ export default function ProductCard({ product, supplier, onClose, onAddToCart, o
 
     return (
         <div 
-            className="absolute top-20 left-3 right-3 z-50 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-[#66d9cb]/22 bg-[#0d1118]/88 p-4 text-[#f5f1e9] shadow-[0_24px_70px_rgba(0,0,0,0.52)] backdrop-blur-2xl pointer-events-auto md:top-24 md:left-8 md:right-auto md:max-h-[calc(100vh-8rem)] md:w-96 md:p-6"
+            className="pointer-events-auto absolute left-3 right-3 top-16 z-50 max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-2xl border border-[#66d9cb]/22 bg-[#0d1118]/88 p-4 text-[#f5f1e9] shadow-[0_24px_70px_rgba(0,0,0,0.52)] backdrop-blur-2xl md:left-8 md:right-auto md:top-24 md:max-h-[calc(100dvh-8rem)] md:w-96 md:p-6"
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
             onWheel={(e) => e.stopPropagation()}

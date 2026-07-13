@@ -310,9 +310,9 @@ export default function PavilionInboxPage() {
 
     return (
         <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(102,217,203,0.08),transparent_42%),linear-gradient(160deg,rgba(3,8,14,0.98),rgba(6,13,24,0.96))] text-white">
-            <div className="max-w-6xl mx-auto px-6 py-8">
+            <div className="mx-auto max-w-6xl px-3 py-5 sm:px-6 sm:py-8">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
+                <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#66d9cb]">{copy.title}</div>
                         <h1 className="mt-1 text-2xl font-semibold tracking-tight">
@@ -322,7 +322,7 @@ export default function PavilionInboxPage() {
                             <p className="mt-1 text-sm text-slate-400">{inboxSubtitle}</p>
                         )}
                     </div>
-                    <Link href="/fastview" className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold uppercase tracking-[0.2em]">
+                    <Link href="/fastview" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] hover:bg-white/10 sm:tracking-[0.2em]">
                         <ArrowLeft size={14} /> {copy.back}
                     </Link>
                 </div>
@@ -333,9 +333,9 @@ export default function PavilionInboxPage() {
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 h-[70vh]">
+                <div className="grid min-h-[70dvh] grid-cols-1 gap-4 lg:h-[70vh] lg:grid-cols-[320px_1fr]">
                     {/* Thread list */}
-                    <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-xl overflow-hidden flex flex-col">
+                    <div className={`rounded-2xl border border-white/10 bg-black/30 backdrop-blur-xl overflow-hidden flex flex-col ${selectedCounterparty ? 'hidden lg:flex' : 'min-h-[42dvh]'}`}>
                         <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
                             <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">
                                 {copy.threadsLabel(threads.length)}
@@ -388,7 +388,7 @@ export default function PavilionInboxPage() {
                     </div>
 
                     {/* Thread view */}
-                    <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-xl overflow-hidden flex flex-col">
+                    <div className={`rounded-2xl border border-white/10 bg-black/30 backdrop-blur-xl overflow-hidden flex flex-col ${selectedCounterparty ? 'min-h-[70dvh]' : 'hidden lg:flex'}`}>
                         {!selectedCounterparty ? (
                             <div className="flex-1 flex items-center justify-center text-sm text-slate-500">
                                 {copy.selectThread}
@@ -415,7 +415,7 @@ export default function PavilionInboxPage() {
                                         <X size={16} />
                                     </button>
                                 </div>
-                                <div ref={feedRef} className="flex-1 overflow-y-auto p-5 space-y-3">
+                                <div ref={feedRef} className="flex-1 space-y-3 overflow-y-auto p-3 sm:p-5">
                                     {isLoadingThread && messages.length === 0 && (
                                         <div className="text-xs text-slate-500 flex items-center gap-2">
                                             <Loader2 size={12} className="animate-spin" /> {copy.loadingMessages}
@@ -427,7 +427,7 @@ export default function PavilionInboxPage() {
                                         return (
                                             <div
                                                 key={message.id}
-                                                className={`w-fit max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                                                className={`w-fit max-w-[92%] rounded-2xl px-3 py-2.5 text-sm leading-relaxed sm:max-w-[80%] sm:px-4 ${
                                                     isMine
                                                         ? 'ml-auto bg-[#c49a6c] text-slate-950'
                                                         : 'bg-white/[0.06] text-gray-100 border border-white/10'
@@ -445,7 +445,7 @@ export default function PavilionInboxPage() {
                                         );
                                     })}
                                 </div>
-                                <div className="border-t border-white/5 bg-black/40 p-4 flex gap-2">
+                                <div className="grid gap-2 border-t border-white/5 bg-black/40 p-3 sm:flex sm:p-4">
                                     <input
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
@@ -457,13 +457,13 @@ export default function PavilionInboxPage() {
                                         }}
                                         placeholder={copy.replyPlaceholder}
                                         disabled={isSending}
-                                        className="flex-1 px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 focus:border-[#c49a6c]/50 focus:bg-white/10 outline-none text-white text-sm placeholder-slate-500"
+                                        className="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder-slate-500 focus:border-[#c49a6c]/50 focus:bg-white/10 sm:flex-1"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => void handleSend()}
                                         disabled={!input.trim() || isSending}
-                                        className="px-4 py-2.5 rounded-lg bg-[#c49a6c] hover:bg-[#d4aa7a] text-slate-950 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="min-h-11 rounded-lg bg-[#c49a6c] px-4 py-2.5 text-slate-950 transition hover:bg-[#d4aa7a] disabled:cursor-not-allowed disabled:opacity-50"
                                         aria-label={copy.send}
                                     >
                                         {isSending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
