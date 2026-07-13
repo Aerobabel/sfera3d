@@ -2719,10 +2719,11 @@ function WheelOverlay({
                     </button>
                 </div>
 
-                {showRewardSequence && (
-                    <RewardVideoSequence onClose={onClose} onOpenDashboard={onOpenDashboard} />
-                )}
             </section>
+
+            {showRewardSequence && (
+                <RewardVideoSequence onClose={onClose} onOpenDashboard={onOpenDashboard} />
+            )}
         </div>
     );
 }
