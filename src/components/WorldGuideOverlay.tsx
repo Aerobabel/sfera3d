@@ -88,13 +88,14 @@ export default function WorldGuideOverlay({
     const questFocus = focusLandmarkId
         ? plotted.find(({ point }) => point.id === focusLandmarkId) ?? null
         : null;
+    const roadPoints = plotted.map(({ left, top }) => `${left},${top}`).join(' ');
 
     return (
         <section
-            className="pointer-events-auto absolute bottom-4 left-4 z-[58] w-[min(18rem,calc(100vw-2rem))] select-none overflow-hidden rounded-2xl border border-white/15 bg-[#07100d]/92 text-white shadow-[0_18px_60px_rgba(0,0,0,.62)] backdrop-blur-md [@media(max-height:560px)]:bottom-auto [@media(max-height:560px)]:top-20 [@media(max-height:560px)]:w-52 sm:bottom-6 sm:left-6"
+            className="sfera-glass pointer-events-auto absolute bottom-4 left-4 z-[58] w-[min(17.5rem,calc(100vw-2rem))] select-none overflow-hidden rounded-[1.15rem] text-white [@media(max-height:560px)]:bottom-auto [@media(max-height:560px)]:top-20 [@media(max-height:560px)]:w-52 sm:bottom-5 sm:left-5"
             aria-label={`${LABELS[position.map]} minimap`}
         >
-            <div className="relative h-40 overflow-hidden border-b border-white/10 bg-[#071310] [@media(max-height:560px)]:h-24">
+            <div className="relative h-36 overflow-hidden border-b border-white/10 bg-[#050d0d] [@media(max-height:560px)]:h-24">
                 <div className="absolute inset-0 opacity-55 [background-image:linear-gradient(33deg,transparent_46%,rgba(146,181,171,.12)_47%,rgba(146,181,171,.12)_49%,transparent_50%),linear-gradient(147deg,transparent_46%,rgba(146,181,171,.09)_47%,rgba(146,181,171,.09)_49%,transparent_50%)] [background-size:92px_76px]" />
                 <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(103,232,249,.13)_1px,transparent_1px),linear-gradient(90deg,rgba(103,232,249,.13)_1px,transparent_1px)] [background-size:24px_24px]" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(103,232,249,.16),transparent_42%),linear-gradient(to_bottom,transparent,rgba(0,0,0,.28))]" />
@@ -111,6 +112,8 @@ export default function WorldGuideOverlay({
                     <defs>
                         <linearGradient id="radar-route" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="rgba(103,232,249,.18)" /><stop offset="1" stopColor="rgba(165,243,252,.95)" /></linearGradient>
                     </defs>
+                    <polyline points={roadPoints} fill="none" stroke="rgba(0,0,0,.58)" strokeWidth="4" vectorEffect="non-scaling-stroke" />
+                    <polyline points={roadPoints} fill="none" stroke="rgba(222,245,239,.14)" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
                     {questFocus && <><line x1="50" y1="50" x2={questFocus.left} y2={questFocus.top} stroke="rgba(0,0,0,.72)" strokeWidth="2.8" vectorEffect="non-scaling-stroke" /><line x1="50" y1="50" x2={questFocus.left} y2={questFocus.top} stroke="url(#radar-route)" strokeWidth="1.1" strokeDasharray="3 1.8" vectorEffect="non-scaling-stroke" /></>}
                     <circle cx="50" cy="50" r="24" fill="none" stroke="rgba(255,255,255,.08)" strokeWidth=".5" vectorEffect="non-scaling-stroke" />
                     <circle cx="50" cy="50" r="43" fill="none" stroke="rgba(255,255,255,.06)" strokeWidth=".5" vectorEffect="non-scaling-stroke" />
@@ -127,31 +130,31 @@ export default function WorldGuideOverlay({
                             className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1"
                             style={{ left: `${left}%`, top: `${top}%` }}
                         >
-                            {isQuestFocus && <span className="absolute h-8 w-8 animate-ping rounded-full border border-cyan-100/45 bg-cyan-300/10" />}
-                            <span className={`relative grid h-5 min-w-5 place-items-center rounded-full border px-1 text-[6px] font-black shadow-[0_4px_12px_rgba(0,0,0,.45)] ${isQuestFocus ? 'border-cyan-50 bg-cyan-100 text-slate-950 ring-4 ring-cyan-300/15' : 'border-white/35 bg-[#020806]/90 text-white'}`}>{point.shortLabel}</span>
+                            {isQuestFocus && <span className="sfera-signal-pulse absolute h-8 w-8 rounded-full border border-cyan-100/45 bg-cyan-300/10" />}
+                            <span className={`relative grid h-5 min-w-5 place-items-center rounded-full border px-1 font-mono text-[6px] font-black shadow-[0_4px_12px_rgba(0,0,0,.45)] ${isQuestFocus ? 'border-cyan-50 bg-cyan-100 text-slate-950 ring-4 ring-cyan-300/15' : 'border-white/28 bg-[#020806]/90 text-white/80'}`}>{point.shortLabel}</span>
                             {isQuestFocus && <span className="absolute left-1/2 top-5 max-w-28 -translate-x-1/2 truncate rounded-full border border-cyan-100/15 bg-black/75 px-2 py-1 text-[7px] font-bold text-cyan-50 shadow-lg">{point.name}</span>}
                         </div>
                     );
                 })}
 
-                <div className="absolute left-1/2 top-1/2 z-20 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-white/90 bg-[#06111a] text-cyan-100 shadow-[0_0_0_5px_rgba(0,0,0,.4),0_0_24px_rgba(103,232,249,.38)]">
+                <div className="absolute left-1/2 top-1/2 z-20 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-white/90 bg-[#06111a] text-cyan-100 shadow-[0_0_0_5px_rgba(0,0,0,.42),0_0_25px_rgba(103,232,249,.34)]">
                     <PlayerHeadingArrow yaw={position.yaw} />
                 </div>
                 <div className="absolute bottom-2 right-3 z-20 flex items-end gap-1 text-[6px] font-bold uppercase tracking-[.12em] text-white/35"><span className="mb-0.5 block h-px w-8 bg-cyan-100/35" />Live radar</div>
             </div>
 
-            <div className="flex items-center gap-3 bg-[linear-gradient(100deg,rgba(103,232,249,.055),transparent)] px-3 py-2.5 [@media(max-height:560px)]:py-2">
+            <div className="flex items-center gap-3 bg-[linear-gradient(100deg,rgba(131,232,220,.06),transparent)] px-3 py-2.5 [@media(max-height:560px)]:py-2">
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-cyan-200/20 bg-cyan-300/10 text-cyan-100">
                     <MapPin className="h-4 w-4" />
                 </span>
                 <span className="min-w-0 flex-1">
-                    <small className="block text-[8px] font-black uppercase tracking-[.17em] text-cyan-100">{questObjective ? 'Current quest' : 'Nearest location'}</small>
-                    <strong className="mt-0.5 block truncate text-sm leading-none">{questObjective ?? nearest.point.name}</strong>
-                    <span className="mt-1 block truncate font-mono text-[8px] text-slate-500">X {Math.round(position.x)} · Y {Math.round(position.y)} · {Math.round(position.yaw)}°</span>
+                    <small className="sfera-kicker block !text-[7px]">{questObjective ? 'Active objective' : 'Nearest location'}</small>
+                    <strong className="mt-1 block truncate text-[13px] font-semibold leading-none tracking-[-.01em]">{questObjective ?? nearest.point.name}</strong>
+                    <span className="mt-1 block truncate font-mono text-[7px] uppercase tracking-[.12em] text-slate-500">Route synchronized</span>
                 </span>
                 <span className="shrink-0 text-right">
                     <b className="flex items-center justify-end gap-1 text-[10px] text-cyan-100"><LocateFixed className="h-3 w-3" />{formatDistance(questFocus ? Math.hypot(questFocus.point.x - position.x, questFocus.point.y - position.y) : nearest.distance)}</b>
-                    <small className="mt-1 block text-[8px] uppercase tracking-[.12em] text-slate-500">{questFocus ? questFocus.point.name : 'Live position'}</small>
+                    <small className="mt-1 block max-w-20 truncate text-[7px] uppercase tracking-[.12em] text-slate-500">{questFocus ? questFocus.point.name : 'Live position'}</small>
                 </span>
             </div>
 

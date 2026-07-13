@@ -5,7 +5,7 @@ export const revalidate = 0;
 
 export default function PlayerDashboardPage() {
     return (
-        <main className="min-h-screen bg-[#020711] p-0 md:p-4">
+        <main className="sfera-cinematic-shell min-h-screen p-0 md:p-4">
             <GamerDashboard />
         </main>
     );

@@ -346,7 +346,7 @@ export default function OnboardingPage() {
 
   return (
     <div
-      className={`relative min-h-screen overflow-x-clip bg-[#090b10] text-[#f5f1e9] [font-family:var(--font-body)] print:bg-white print:text-black`}
+      className={`sfera-cinematic-shell sfera-page-enter relative min-h-screen overflow-x-clip text-[#f5f1e9] [font-family:var(--font-body)] print:bg-white print:text-black`}
     >
       <div className="pointer-events-none absolute inset-0 print:hidden">
         <div className="absolute -left-28 top-20 h-[26rem] w-[26rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(93,233,214,0.2),rgba(93,233,214,0)_70%)] blur-2xl" />

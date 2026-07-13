@@ -270,6 +270,9 @@ export default function PixelStreamingPlayer({
             reload: 'Set & Reload',
             tryHint: 'Try:',
             live: 'Live',
+            preparing: 'Preparing the live world',
+            preparingBody: 'Synchronizing visuals, controls, and your session.',
+            retry: 'Retry connection',
         },
         ru: {
             initializing: 'Инициализация...',
@@ -284,6 +287,9 @@ export default function PixelStreamingPlayer({
             reload: 'Применить и перезагрузить',
             tryHint: 'Пример:',
             live: 'Поток',
+            preparing: 'Подготавливаем мир',
+            preparingBody: 'Синхронизируем изображение, управление и вашу сессию.',
+            retry: 'Повторить подключение',
         },
         zh: {
             initializing: '初始化中...',
@@ -298,6 +304,9 @@ export default function PixelStreamingPlayer({
             reload: '设置并刷新',
             tryHint: '可尝试：',
             live: '在线',
+            preparing: '正在准备实时世界',
+            preparingBody: '正在同步画面、控制和您的会话。',
+            retry: '重试连接',
         },
     }[language];
     const textRef = useRef(text);
@@ -1014,31 +1023,24 @@ export default function PixelStreamingPlayer({
         <div className="relative w-full h-full bg-black group">
             {/* Visual Status Overlay */}
             {!isConnected && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-20 bg-black/80 p-4">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white mb-4"></div>
-                    <p className="font-mono text-sm">{status}</p>
-                    {error && <p className="text-red-400 mt-2 text-xs max-w-md text-center">{error}</p>}
-
-                    {/* Debug: Manual URL Input */}
-                    <div className="mt-8 flex flex-col gap-2 pointer-events-auto items-center">
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={url}
-                                onChange={(e) => setUrl(e.target.value)}
-                                className="bg-white/10 border border-white/20 rounded px-2 py-1 text-xs w-64 text-white"
-                            />
-                            <button
-                                onClick={() => window.location.reload()}
-                                className="bg-indigo-600 px-3 py-1 rounded text-xs hover:bg-indigo-500"
-                            >
-                                {text.reload}
-                            </button>
-                        </div>
-                        <p className="text-xs text-gray-400">
-                            {text.tryHint} <code>ws://127.0.0.1</code> / <code>wss://127.0.0.1</code>
-                        </p>
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center overflow-hidden bg-[#030506]/94 p-6 text-center text-white">
+                    <div className="grain-overlay opacity-[.04]" />
+                    <div className="absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-200/[.07] blur-3xl" />
+                    <div className="relative h-16 w-16">
+                        <div className="absolute inset-0 rounded-full border border-white/10" />
+                        <div className="absolute inset-0 animate-spin rounded-full border border-transparent border-t-cyan-100/90 border-r-cyan-100/30" />
+                        <div className="absolute inset-[.7rem] rounded-full border border-cyan-100/20 bg-cyan-100/[.055]" />
                     </div>
+                    <p className="sfera-kicker relative mt-7">3DSFERA / Live session</p>
+                    <h2 className="sfera-display relative mt-3 text-3xl sm:text-5xl">{text.preparing}</h2>
+                    <p className="relative mt-3 max-w-md text-sm leading-6 text-slate-400">{text.preparingBody}</p>
+                    <div className="relative mt-6 h-px w-44 overflow-hidden bg-white/10"><span className="scan-line absolute inset-y-0 w-14 bg-gradient-to-r from-transparent via-cyan-100 to-transparent" /></div>
+                    <p className="sr-only" aria-live="polite">{status}</p>
+                    {error && (
+                        <button onClick={() => window.location.reload()} data-sfera-sound="confirm" className="relative mt-5 rounded-full border border-white/14 bg-white/[.05] px-5 py-2.5 text-[10px] font-black uppercase tracking-[.14em] text-slate-200 transition hover:border-cyan-100/30 hover:text-white">
+                            {text.retry}
+                        </button>
+                    )}
                 </div>
             )}
 

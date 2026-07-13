@@ -542,7 +542,7 @@ export default function RoleSelectionPage() {
     }, [hasStartedGameCutscene, isGameCutsceneVisible]);
 
     return (
-        <main className="min-h-screen overflow-hidden bg-[#080b10] text-white">
+        <main className="sfera-cinematic-shell sfera-page-enter min-h-screen overflow-hidden text-white">
             {isIntroVisible && (
                 <div className="fixed inset-0 z-50 bg-black">
                     <header className="absolute inset-x-0 top-0 z-[80] border-b border-white/15 bg-[#090b10]/95 shadow-[0_16px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl">
@@ -670,7 +670,7 @@ export default function RoleSelectionPage() {
                     <div className="flex flex-1 flex-col justify-center gap-5 py-8 sm:py-10">
                         <header className="mx-auto max-w-4xl text-center">
                             <p className="fade-up text-sm font-medium text-slate-200 sm:text-base">{copy.eyebrow}</p>
-                            <h1 className="fade-up delay-1 mt-2 break-words text-5xl font-semibold leading-none text-[#f3dfb4] drop-shadow-[0_18px_40px_rgba(0,0,0,0.55)] sm:text-6xl lg:text-7xl">
+                            <h1 className="sfera-display fade-up delay-1 mt-2 break-words text-5xl leading-none text-[#f3dfb4] drop-shadow-[0_18px_40px_rgba(0,0,0,0.55)] sm:text-6xl lg:text-7xl">
                                 3DSFERA
                             </h1>
                             <p className="fade-up delay-2 mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">

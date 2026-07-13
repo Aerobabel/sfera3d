@@ -409,7 +409,7 @@ export default function SupplierDashboard() {
   if (!authReady) {
     return (
       <div
-        className={`min-h-screen bg-[#070b14] px-4 text-center text-slate-200 [font-family:var(--font-dashboard-display)]`}
+        className={`sfera-cinematic-shell min-h-screen px-4 text-center text-slate-200 [font-family:var(--font-dashboard-display)]`}
       >
         <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center">
           <div className="w-full rounded-3xl border border-white/10 bg-white/[0.04] p-8 backdrop-blur-xl">
@@ -424,7 +424,7 @@ export default function SupplierDashboard() {
 
   return (
     <div
-      className={`relative min-h-screen overflow-hidden bg-[#070b14] text-[#e8edf7] [font-family:var(--font-dashboard-display)]`}
+      className={`sfera-cinematic-shell sfera-page-enter relative min-h-screen overflow-hidden text-[#e8edf7] [font-family:var(--font-dashboard-display)]`}
     >
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-20 top-20 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_center,rgba(35,222,189,0.26),rgba(35,222,189,0)_72%)] blur-2xl" />

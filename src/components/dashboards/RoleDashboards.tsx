@@ -1142,8 +1142,8 @@ const toneStyles: Record<Tone, { icon: string; ring: string; accent: string; bar
     },
 };
 
-const panel = 'rounded-xl border border-white/10 bg-[#10161f]/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl';
-const compactPanel = 'rounded-lg border border-white/10 bg-[#0c121a] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]';
+const panel = 'sfera-glass rounded-2xl';
+const compactPanel = 'rounded-xl border border-white/[.08] bg-[#091017]/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl';
 const metricGrid = 'grid gap-3 sm:grid-cols-2 xl:grid-cols-4';
 const threeCardGrid = 'grid gap-3 md:grid-cols-3';
 const dashboardSideGrid = 'grid gap-4 md:grid-cols-2 xl:grid-cols-3';
@@ -1530,7 +1530,7 @@ function DashboardFrame({
         : `lg:grid-cols-[3.75rem_minmax(0,1fr)] ${sidebar ? 'xl:grid-cols-[3.75rem_12.75rem_minmax(0,1fr)]' : ''}`;
 
     return (
-        <section className={`relative overflow-hidden border border-white/10 bg-[#090d14] text-white shadow-[0_40px_140px_rgba(0,0,0,0.5)] ${embedded ? 'rounded-2xl' : 'md:rounded-xl'}`}>
+        <section className={`sfera-page-enter relative overflow-hidden border border-white/[.08] bg-[#070b10] text-white shadow-[0_40px_140px_rgba(0,0,0,0.58)] ${embedded ? 'rounded-2xl' : 'md:rounded-2xl'}`}>
             <div className="pointer-events-none absolute inset-0" style={{ background: modeGlow }} />
             <div className="pointer-events-none absolute inset-0 opacity-[0.055] [background-image:linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:48px_48px]" />
             <div className={`relative grid ${embedded ? 'min-h-0' : 'min-h-screen'} ${gridColumns}`}>

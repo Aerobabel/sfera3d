@@ -4,11 +4,12 @@ import "./globals.css";
 import AuthSessionBridge from "@/components/auth/AuthSessionBridge";
 import { LanguageProvider } from "@/components/i18n/LanguageProvider";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+import CinematicInterface from "@/components/CinematicInterface";
 import { getDefaultLanguageForHostname, toHtmlLanguageTag } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "3DSFERA",
-  description: "Иммерсивное цифровое пространство для покупателей и поставщиков",
+  description: "An immersive playable commerce world for exploration, rewards, and real products.",
 };
 
 const normalizeHostname = (host: string | null) => {
@@ -40,6 +41,7 @@ export default async function RootLayout({
       >
         <LanguageProvider defaultLanguage={defaultLanguage}>
           <AuthSessionBridge />
+          <CinematicInterface />
           <LanguageSwitcher />
           {children}
         </LanguageProvider>

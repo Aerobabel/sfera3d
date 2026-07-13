@@ -743,7 +743,7 @@ export default function LandingPage() {
 
   return (
     <div
-      className={`relative min-h-screen overflow-x-clip bg-[#090b10] text-[#f5f1e9] [font-family:var(--font-body)] selection:bg-[#66d9cb] selection:text-[#090b10]`}
+      className={`sfera-cinematic-shell sfera-page-enter relative min-h-screen overflow-x-clip text-[#f5f1e9] [font-family:var(--font-body)] selection:bg-[#66d9cb] selection:text-[#090b10]`}
     >
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute inset-0 bg-[linear-gradient(180deg,#07080c_0%,#0b1116_44%,#07080c_100%)]" />
@@ -751,7 +751,7 @@ export default function LandingPage() {
         <div className="absolute inset-x-0 top-0 h-48 bg-[linear-gradient(180deg,rgba(102,217,203,0.13),transparent)]" />
       </div>
 
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#090b10]/85 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-white/[.08] bg-[#05080b]/78 backdrop-blur-2xl">
         <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-3 py-2 sm:px-6 lg:px-8">
           <div className="fade-up flex min-w-0 items-center">
             <BrandLogo size="md" priority />

@@ -642,7 +642,7 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#090b10] px-4 text-white">
+    <div className="sfera-cinematic-shell sfera-page-enter relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 text-white">
       <div className="absolute inset-0 z-0">
         <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-[#66d9cb]/20 blur-3xl mix-blend-screen animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-[#f6ba4f]/18 blur-3xl mix-blend-screen animate-pulse delay-700" />

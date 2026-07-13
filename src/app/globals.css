@@ -1,23 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --sfera-bg: #090b10;
-  --sfera-surface: #0f141d;
-  --sfera-surface-elevated: #141b27;
-  --sfera-border: rgba(255, 255, 255, 0.12);
-  --sfera-text: #f5f1e9;
-  --sfera-text-muted: #b8b2a7;
-  --sfera-accent: #66d9cb;
-  --sfera-accent-2: #f6ba4f;
+  --sfera-bg: #05070a;
+  --sfera-surface: #0a0f15;
+  --sfera-surface-elevated: #101720;
+  --sfera-border: rgba(221, 245, 241, 0.12);
+  --sfera-border-strong: rgba(221, 245, 241, 0.2);
+  --sfera-text: #f3f4ef;
+  --sfera-text-muted: #9ba7ad;
+  --sfera-accent: #83e8dc;
+  --sfera-accent-2: #e7bd68;
+  --sfera-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --sfera-radius: 18px;
   --background: var(--sfera-bg);
   --foreground: var(--sfera-text);
-  --font-geist-sans: Arial, Helvetica, sans-serif;
-  --font-geist-mono: "Courier New", Courier, monospace;
-  --font-display: Georgia, "Times New Roman", serif;
-  --font-body: Arial, Helvetica, sans-serif;
-  --font-mono: "Courier New", Courier, monospace;
-  --font-dashboard-display: Arial, Helvetica, sans-serif;
-  --font-dashboard-mono: "Courier New", Courier, monospace;
+  --font-geist-sans: "Segoe UI Variable", "Aptos", "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-geist-mono: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  --font-display: "Bahnschrift", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-dashboard-display: var(--font-display);
+  --font-dashboard-mono: var(--font-mono);
 }
 
 @theme inline {
@@ -31,6 +34,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  text-rendering: geometricPrecision;
 }
 
 html,
@@ -57,6 +61,26 @@ input,
 textarea,
 select {
   -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  transition-timing-function: var(--sfera-ease) !important;
+}
+
+:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--sfera-accent) 82%, white 18%);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--sfera-accent) 36%, transparent);
+  color: white;
+}
+
+* {
+  scrollbar-color: rgba(131, 232, 220, 0.34) rgba(255, 255, 255, 0.035);
+  scrollbar-width: thin;
 }
 
 @keyframes riseIn {
@@ -152,6 +176,34 @@ select {
   }
 }
 
+@keyframes sferaPageReveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes sferaAmbientShift {
+  0%, 100% { transform: translate3d(-2%, -1%, 0) scale(1); }
+  50% { transform: translate3d(2%, 1%, 0) scale(1.04); }
+}
+
+@keyframes sferaHintDepart {
+  0%, 68% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-6px); visibility: hidden; }
+}
+
+@keyframes sferaSignalPulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
 .exhibit-reveal {
   opacity: 0;
   transform: translateY(18px);
@@ -169,7 +221,106 @@ select {
 }
 
 .sfera-quest-glow {
-  animation: sferaQuestGlow 2.6s ease-in-out infinite;
+  animation: sferaQuestGlow 3.8s ease-in-out infinite;
+}
+
+.sfera-page-enter {
+  animation: sferaPageReveal 0.8s var(--sfera-ease) both;
+}
+
+.sfera-cinematic-shell {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 14% 10%, rgba(131, 232, 220, 0.12), transparent 30rem),
+    radial-gradient(circle at 88% 86%, rgba(231, 189, 104, 0.09), transparent 32rem),
+    linear-gradient(145deg, #040608, #080d13 58%, #05080b);
+}
+
+.sfera-cinematic-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.16;
+  background-image:
+    linear-gradient(rgba(213, 246, 240, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(213, 246, 240, 0.055) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(circle at 50% 35%, black, transparent 78%);
+}
+
+.sfera-cinematic-shell::after {
+  content: "";
+  position: fixed;
+  inset: -18%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(131, 232, 220, 0.055), transparent 56%);
+  animation: sferaAmbientShift 18s ease-in-out infinite;
+}
+
+.sfera-cinematic-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 130px rgba(0, 0, 0, 0.46),
+    inset 0 -80px 100px rgba(0, 0, 0, 0.2);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='.34'/></svg>");
+  background-size: 180px 180px;
+  opacity: 0.12;
+  mix-blend-mode: soft-light;
+}
+
+.sfera-glass {
+  border: 1px solid var(--sfera-border);
+  background:
+    linear-gradient(145deg, rgba(16, 24, 31, 0.84), rgba(6, 10, 14, 0.74));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 24px 80px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(22px) saturate(1.08);
+}
+
+.sfera-glass-premium {
+  border: 1px solid var(--sfera-border-strong);
+  background:
+    radial-gradient(circle at 84% 0%, rgba(131, 232, 220, 0.11), transparent 34%),
+    linear-gradient(152deg, rgba(15, 22, 29, 0.94), rgba(5, 9, 13, 0.9));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 34px 110px rgba(0, 0, 0, 0.54);
+  backdrop-filter: blur(28px) saturate(1.1);
+}
+
+.sfera-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--sfera-accent) 82%, white 18%);
+}
+
+.sfera-display {
+  font-family: var(--font-display);
+  font-stretch: condensed;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.sfera-context-instruction,
+.sfera-training-hint {
+  animation: sferaHintDepart 14s var(--sfera-ease) forwards;
+}
+
+.sfera-signal-pulse {
+  animation: sferaSignalPulse 2.4s ease-in-out infinite;
 }
 
 /* Editorial display serif class for pavilion/catalogue headings. */
@@ -224,12 +375,13 @@ select {
 
 .sfera-card {
   border: 1px solid var(--sfera-border);
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--sfera-surface-elevated) 90%, transparent),
-    color-mix(in srgb, var(--sfera-surface) 92%, transparent)
-  );
-  backdrop-filter: blur(18px);
+  background:
+    radial-gradient(circle at 88% 2%, rgba(131, 232, 220, 0.09), transparent 34%),
+    linear-gradient(155deg, rgba(15, 22, 30, 0.94), rgba(6, 10, 14, 0.92));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.055),
+    0 32px 100px rgba(0,0,0,0.48);
+  backdrop-filter: blur(24px) saturate(1.08);
 }
 
 .sfera-pill {
@@ -271,6 +423,15 @@ select {
 
 .sfera-muted {
   color: var(--sfera-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @media print {

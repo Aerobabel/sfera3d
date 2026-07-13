@@ -83,6 +83,7 @@ export default function PreRegisterPage() {
             const payload = await response.json() as { success?: boolean; error?: string };
             if (!response.ok || !payload.success) throw new Error(payload.error || t.error);
             setIsComplete(true);
+            window.dispatchEvent(new Event('sfera:success'));
         } catch (requestError) {
             setError(requestError instanceof Error ? requestError.message : t.error);
         } finally {
@@ -91,17 +92,17 @@ export default function PreRegisterPage() {
     };
 
     return (
-        <main className="relative min-h-screen overflow-hidden bg-[#06090d] px-4 py-8 text-white sm:grid sm:place-items-center sm:py-12">
+        <main className="sfera-cinematic-shell sfera-page-enter relative min-h-screen overflow-hidden px-4 py-8 text-white sm:grid sm:place-items-center sm:py-12">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_12%,rgba(102,217,203,.2),transparent_30%),radial-gradient(circle_at_88%_82%,rgba(246,186,79,.15),transparent_32%),linear-gradient(145deg,#05070b,#0b1219)]" />
             <div className="pointer-events-none absolute inset-0 opacity-[.12] [background-image:linear-gradient(rgba(255,255,255,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.08)_1px,transparent_1px)] [background-size:52px_52px]" />
 
-            <div className="relative mx-auto grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-[#091018]/92 shadow-[0_38px_140px_rgba(0,0,0,.65)] backdrop-blur-xl lg:grid-cols-[.82fr_1.18fr]">
+            <div className="sfera-glass-premium relative mx-auto grid w-full max-w-5xl overflow-hidden rounded-[1.75rem] lg:grid-cols-[.82fr_1.18fr]">
                 <aside className="relative overflow-hidden border-b border-white/10 bg-[linear-gradient(155deg,rgba(102,217,203,.15),rgba(5,10,15,.55))] p-7 lg:border-b-0 lg:border-r lg:p-10">
                     <div className="absolute -left-24 top-24 h-64 w-64 rounded-full bg-cyan-300/10 blur-3xl" />
                     <div className="relative">
                         <BrandLogo size="lg" priority />
                         <p className="mt-12 text-[10px] font-black uppercase tracking-[.28em] text-cyan-100">{t.eyebrow}</p>
-                        <h1 className="mt-4 text-4xl font-black leading-[.98] tracking-[-.055em] sm:text-5xl">{t.title}</h1>
+                        <h1 className="sfera-display mt-4 text-4xl leading-[.98] sm:text-5xl">{t.title}</h1>
                         <p className="mt-5 text-sm leading-7 text-slate-300">{t.body}</p>
                         <div className="mt-9 grid gap-3 text-xs text-slate-200">
                             <span className="flex items-center gap-3"><ShieldCheck className="h-4 w-4 text-cyan-100" />{t.secure}</span>
@@ -115,7 +116,7 @@ export default function PreRegisterPage() {
                     {isComplete ? (
                         <div className="flex min-h-[30rem] flex-col items-center justify-center text-center">
                             <span className="grid h-20 w-20 place-items-center rounded-full border border-emerald-200/30 bg-emerald-300/10 text-emerald-100 shadow-[0_0_45px_rgba(110,231,183,.15)]"><CheckCircle2 className="h-9 w-9" /></span>
-                            <h2 className="mt-7 text-3xl font-black tracking-[-.04em]">{t.successTitle}</h2>
+                            <h2 className="sfera-display mt-7 text-3xl">{t.successTitle}</h2>
                             <p className="mt-3 max-w-md text-sm leading-7 text-slate-300">{t.successBody}</p>
                             <button type="button" onClick={() => setIsComplete(false)} className="mt-7 rounded-full border border-white/15 px-5 py-3 text-sm font-bold transition hover:bg-white/10">{t.again}</button>
                             <Link href="/login?role=player" className="mt-4 inline-flex items-center gap-2 text-sm text-cyan-100 hover:underline"><ArrowLeft className="h-4 w-4" />{t.back}</Link>

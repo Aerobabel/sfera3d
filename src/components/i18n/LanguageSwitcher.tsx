@@ -37,7 +37,7 @@ export default function LanguageSwitcher() {
     >
       <div className="pointer-events-auto flex flex-col items-end gap-2">
         {isOpen && (
-          <div className="rounded-2xl border border-white/15 bg-black/85 p-1 backdrop-blur-xl shadow-[0_14px_28px_rgba(0,0,0,0.4)]">
+          <div className="sfera-glass rounded-2xl p-1">
             <div className="flex flex-col gap-1">
               {OPTIONS.map((option) => (
                 <button
@@ -62,7 +62,7 @@ export default function LanguageSwitcher() {
 
         <button
           onClick={() => setIsOpen((previous) => !previous)}
-          className="flex items-center gap-2 rounded-full border border-white/20 bg-black/75 px-3 py-2 text-xs font-semibold tracking-wide text-white shadow-lg backdrop-blur-xl transition hover:bg-black/90"
+          className="sfera-glass flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold tracking-wide text-white transition hover:border-cyan-100/30"
           aria-label="Open language menu"
         >
           <Globe2 size={14} />

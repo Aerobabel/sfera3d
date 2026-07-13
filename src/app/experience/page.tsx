@@ -2012,16 +2012,10 @@ function SupplierEvidenceBoard({ pieces, compact = false, copy }: { pieces: stri
 
 function QuestDirectorOverlay({
     state,
-    pieces,
-    walletBalanceCents,
-    coupon,
     copy,
     onOpenPassword,
 }: {
     state: QuestDirectorState;
-    pieces: string[];
-    walletBalanceCents: number;
-    coupon: string | null;
     copy: WaterFlowCopy;
     onOpenPassword: () => void;
 }) {
@@ -2034,14 +2028,13 @@ function QuestDirectorOverlay({
     }[state.signal];
     const signalLabel = copy.signalLabels[state.signal];
     const canOpenCode = state.action === copy.mission.enterCode;
-    const canAffordWater = walletBalanceCents >= GAME_RULES.water.bottlePriceCoins;
 
     return (
-        <div className="pointer-events-auto w-[min(92vw,21rem)] overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#031018]/72 text-white shadow-[0_18px_58px_rgba(0,0,0,0.34)] backdrop-blur-md">
-            <div className="relative p-3">
+        <div className="sfera-glass pointer-events-auto w-[min(92vw,30rem)] overflow-hidden rounded-2xl text-white">
+            <div className="relative px-4 py-3">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(102,217,203,0.22),transparent_38%),linear-gradient(135deg,rgba(255,255,255,0.055),transparent_42%)]" />
                 <div className="relative flex items-start gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-cyan-300/24 bg-cyan-300/10 text-cyan-100 shadow-[0_0_30px_rgba(102,217,203,0.18)]">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-300/24 bg-cyan-300/10 text-cyan-100 shadow-[0_0_30px_rgba(102,217,203,0.18)]">
                         <Activity className="h-5 w-5" />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -2051,54 +2044,23 @@ function QuestDirectorOverlay({
                                 {signalLabel}
                             </span>
                         </div>
-                        <h3 className="mt-1 truncate text-base font-black leading-tight">{state.title}</h3>
-                        <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-slate-300">{state.body}</p>
+                        <h3 className="mt-1 truncate text-[15px] font-semibold leading-tight tracking-[-.015em]">{state.title}</h3>
+                        <p className="mt-1 line-clamp-1 text-[11px] leading-4 text-slate-400">{state.body}</p>
                     </div>
+                    {canOpenCode && (
+                        <button
+                            type="button"
+                            onClick={onOpenPassword}
+                            data-sfera-sound="confirm"
+                            className="shrink-0 rounded-xl border border-amber-200/28 bg-amber-200/12 px-3 py-2 text-[10px] font-black uppercase tracking-[.12em] text-amber-100 transition hover:bg-amber-200/20"
+                        >
+                            {state.action}
+                        </button>
+                    )}
                 </div>
-                <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div className="relative mt-3 h-1 overflow-hidden rounded-full bg-white/10">
                     <div className="h-full rounded-full bg-[linear-gradient(90deg,#66d9cb,#f5c766,#a78bfa)] shadow-[0_0_18px_rgba(102,217,203,0.42)] transition-all duration-700" style={{ width: `${state.progress}%` }} />
                 </div>
-            </div>
-
-            <div className="grid gap-2 border-t border-white/10 p-2.5">
-                <div className="grid grid-cols-3 gap-1.5">
-                    <div className={`rounded-xl border px-2 py-2 ${pieces.length >= 2 ? 'border-emerald-300/24 bg-emerald-300/[0.07]' : 'border-white/10 bg-white/[0.035]'}`}>
-                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">{copy.fragmentsShort}</p>
-                        <p className="mt-1 font-mono text-sm font-black">{pieces.length}/2</p>
-                    </div>
-                    <div className={`rounded-xl border px-2 py-2 ${canAffordWater ? 'border-emerald-300/24 bg-emerald-300/[0.07]' : 'border-white/10 bg-white/[0.035]'}`}>
-                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">{copy.coinsShort}</p>
-                        <p className="mt-1 truncate font-mono text-sm font-black">{Math.min(walletBalanceCents, GAME_RULES.water.bottlePriceCoins)}/{GAME_RULES.water.bottlePriceCoins}</p>
-                    </div>
-                    <div className={`rounded-xl border px-2 py-2 ${coupon ? 'border-amber-300/24 bg-amber-300/[0.07]' : 'border-white/10 bg-white/[0.035]'}`}>
-                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">{copy.prizeShort}</p>
-                        <p className="mt-1 truncate font-mono text-sm font-black">{coupon ? copy.phoneShort : copy.pendingShort}</p>
-                    </div>
-                </div>
-
-                {canOpenCode && (
-                    <div className="rounded-xl border border-amber-300/22 bg-amber-300/[0.075] px-3 py-2">
-                        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-amber-100">{copy.codeConsole}</p>
-                        <div className="mt-1 flex items-center gap-2 font-mono text-sm font-black text-white">
-                            <span>{GAME_RULES.keys.firstHalf}</span>
-                            <span className="text-slate-500">+</span>
-                            <span>{GAME_RULES.keys.secondHalf}</span>
-                            <span className="text-slate-500">=</span>
-                            <span className="text-amber-100">{GAME_RULES.keys.arenaPassword}</span>
-                        </div>
-                    </div>
-                )}
-
-                {canOpenCode && (
-                    <button
-                        type="button"
-                        onClick={onOpenPassword}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#f5c766,#66d9cb)] px-3 py-2.5 text-xs font-black uppercase tracking-[0.13em] text-slate-950 shadow-[0_18px_44px_rgba(245,199,102,0.16)] transition hover:scale-[1.01]"
-                    >
-                        <KeyRound className="h-4 w-4" />
-                        {state.action}
-                    </button>
-                )}
             </div>
         </div>
     );
@@ -3860,7 +3822,9 @@ export default function ExperiencePage() {
     }, [unrealBridge]);
 
     useEffect(() => {
-        if (isZombieArenaCleared) releaseAllInputs();
+        if (!isZombieArenaCleared) return;
+        releaseAllInputs();
+        window.dispatchEvent(new Event('sfera:success'));
     }, [isZombieArenaCleared]);
 
     const openArenaPasswordGate = useCallback(() => {
@@ -5501,7 +5465,7 @@ export default function ExperiencePage() {
     }, [sendUnrealExitFocus]);
 
     return (
-        <div className="relative h-dvh w-full overflow-hidden bg-[radial-gradient(circle_at_top,rgba(102,217,203,0.16),transparent_42%),linear-gradient(160deg,#04070d,#09111c)] font-sans">
+        <div className="sfera-cinematic-frame relative h-dvh w-full overflow-hidden bg-[radial-gradient(circle_at_top,rgba(102,217,203,0.16),transparent_42%),linear-gradient(160deg,#04070d,#09111c)] font-sans">
             {/* Video Container (Pixel Streaming) */}
             <div id="player-container" className="absolute inset-0 z-0">
                 {isFastViewRoute ? (
@@ -5731,12 +5695,9 @@ export default function ExperiencePage() {
             )}
 
             {shouldShowQuestDirector && questDirectorState && (
-                <div className="pointer-events-none absolute bottom-24 right-3 z-[82] sm:bottom-6 sm:right-5">
+                <div key={`${questDirectorState.title}-${questDirectorState.progress}`} className="sfera-context-instruction pointer-events-none absolute bottom-24 left-1/2 z-[82] -translate-x-1/2 sm:bottom-6">
                     <QuestDirectorOverlay
                         state={questDirectorState}
-                        pieces={unrealBridge.arenaKeyPieces}
-                        walletBalanceCents={walletBalanceCents}
-                        coupon={unrealBridge.wheelCoupon}
                         copy={waterFlowCopy}
                         onOpenPassword={() => setIsArenaPasswordOpen(true)}
                     />
@@ -5945,7 +5906,7 @@ export default function ExperiencePage() {
                         (z-50), so the 3DSFERA logo remains crisp on top. */}
                     <div
                         aria-hidden="true"
-                        className="absolute top-0 left-0 pointer-events-none z-[2] w-[clamp(22rem,48vw,56rem)] h-[clamp(6rem,14vh,10rem)] backdrop-blur-md"
+                        className="absolute top-0 left-0 pointer-events-none z-[2] h-[clamp(5rem,11vh,7.5rem)] w-[clamp(20rem,34vw,38rem)] backdrop-blur-md"
                         style={{
                             background:
                                 'linear-gradient(135deg, rgba(3,8,14,0.97) 0%, rgba(4,10,18,0.9) 45%, rgba(6,13,24,0.55) 75%, rgba(6,13,24,0) 100%)',
@@ -5997,7 +5958,7 @@ export default function ExperiencePage() {
                             </div>
 
                             {/* System Status Indicator */}
-                            <div className="flex items-center gap-2 mt-2 px-3 py-1 bg-black/35 border border-white/5 rounded-full w-fit backdrop-blur-md">
+                            <div className="hidden items-center gap-2 mt-2 px-3 py-1 bg-black/35 border border-white/5 rounded-full w-fit backdrop-blur-md">
                                 <div className="relative flex h-2 w-2">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -6005,7 +5966,7 @@ export default function ExperiencePage() {
                                 <span className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em]">{ui.statusOnline}</span>
                             </div>
 
-                            <div className="mt-2 grid w-fit max-w-[min(92vw,22rem)] gap-2 rounded-xl border border-white/10 bg-black/30 p-2 text-[11px] text-slate-200 shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur-md">
+                            <div className={`mt-2 w-fit max-w-[min(92vw,20rem)] gap-2 rounded-xl border border-white/10 bg-black/38 p-2 text-[11px] text-slate-200 shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur-md ${unrealBridge.currentGame === 'ZombieArena' ? 'grid' : 'hidden'}`}>
                                 <div className="flex flex-wrap gap-2">
                                     <span className="rounded-full bg-[#66d9cb]/15 px-3 py-1 font-semibold text-[#66d9cb]">
                                         {effectiveSceneMode === 'player' ? sceneHud.playerMode : sceneHud.shopperMode}
@@ -6030,7 +5991,7 @@ export default function ExperiencePage() {
                                 )}
                             </div>
                             {isZombieArenaActive && (
-                                <div className="mt-2 w-[min(92vw,22rem)] rounded-xl border border-rose-300/28 bg-[linear-gradient(145deg,rgba(69,10,10,0.86),rgba(8,13,22,0.78))] p-3 text-white shadow-[0_20px_60px_rgba(127,29,29,0.28)] backdrop-blur-md">
+                                <div className="sfera-training-hint mt-2 w-[min(92vw,20rem)] rounded-xl border border-rose-300/24 bg-[linear-gradient(145deg,rgba(47,8,10,0.8),rgba(7,11,16,0.76))] p-3 text-white shadow-[0_20px_60px_rgba(0,0,0,0.38)] backdrop-blur-md">
                                     <div className="flex items-center gap-2">
                                         <Gamepad2 className="h-4 w-4 shrink-0 text-rose-100" />
                                         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-100">{sceneHud.arenaTrainingTitle}</p>
@@ -6044,7 +6005,7 @@ export default function ExperiencePage() {
                                     </div>
                                 </div>
                             )}
-                            {activeSceneQuest && (
+                            {activeSceneQuest && waterQuestMilestones.length > 0 && (
                                 <div className="sfera-guide-enter mt-2 w-[min(92vw,24rem)] overflow-hidden rounded-xl border border-cyan-300/22 bg-[#041018]/78 text-slate-100 shadow-[0_24px_70px_rgba(0,0,0,0.34)] backdrop-blur-md">
                                     <div className="border-b border-cyan-300/10 bg-cyan-300/[0.055] px-3 py-2.5">
                                         <div className="flex items-center justify-between gap-3">
@@ -6062,7 +6023,6 @@ export default function ExperiencePage() {
                                                 <span className="rounded-full border border-cyan-300/18 px-2 py-1 font-mono text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100">{activeSceneQuestPercent}%</span>
                                             </div>
                                         </div>
-                                        <p className="mt-1 text-xs leading-5 text-slate-300">{sceneHud.guideBody}</p>
                                         <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
                                             <div className="h-full rounded-full bg-[linear-gradient(90deg,#66d9cb,#f5c766)] shadow-[0_0_18px_rgba(102,217,203,0.45)]" style={{ width: `${activeSceneQuestPercent}%` }} />
                                         </div>
@@ -6264,14 +6224,14 @@ export default function ExperiencePage() {
                                 </div>
                             )}
                             {showLiveActivityToasts && (
-                                <div className="mt-2 flex w-[min(92vw,22rem)] flex-col gap-1.5" aria-live="polite">
-                                    {liveActivityToasts.map((toast, index) => (
+                                <div className="absolute right-3 top-20 flex w-[min(20rem,calc(100vw-1.5rem))] flex-col gap-1.5 md:right-4" aria-live="polite">
+                                    {liveActivityToasts.slice(0, 2).map((toast, index) => (
                                         <div
                                             key={toast.id}
-                                            className={`overflow-hidden rounded-xl border border-white/10 bg-[#03080e]/64 px-3 py-2.5 text-white shadow-[0_16px_46px_rgba(0,0,0,0.28)] backdrop-blur-md transition ${
+                                            className={`overflow-hidden rounded-xl border border-white/[.08] bg-[#03080e]/54 px-3 py-2 text-white shadow-[0_16px_46px_rgba(0,0,0,0.24)] backdrop-blur-lg transition ${
                                                 index > 1 ? 'hidden md:block' : ''
                                             }`}
-                                            style={{ opacity: Math.max(0.68, 1 - index * 0.14) }}
+                                            style={{ opacity: Math.max(0.62, 0.86 - index * 0.14) }}
                                         >
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="flex min-w-0 items-center gap-2">
@@ -6286,7 +6246,7 @@ export default function ExperiencePage() {
                                             </div>
                                             <div className="mt-1.5 flex items-start gap-2.5">
                                                 <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${LIVE_ACTIVITY_ACCENTS[toast.kind]}`} />
-                                                <p className="min-w-0 text-xs font-medium leading-5 text-slate-100">
+                                                <p className="min-w-0 text-[11px] font-medium leading-5 text-slate-200">
                                                     {toast.message}
                                                 </p>
                                             </div>
@@ -6297,13 +6257,14 @@ export default function ExperiencePage() {
                         </div>
 
                         <div className="flex items-start gap-3 pointer-events-auto">
-                            <p className="hidden max-w-[34rem] pt-1 text-right text-[10px] uppercase tracking-[0.14em] text-[#9fcfdf] md:block">
+                            <p className="sfera-context-instruction hidden max-w-[34rem] pt-1 text-right font-mono text-[9px] uppercase tracking-[0.16em] text-[#b9d6d7]/70 md:block">
                                 {sceneInstruction}
                             </p>
 
                             <button
                                 onClick={toggleChatPanel}
-                                className="group relative px-4 py-2 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-md border border-white/5 rounded-lg transition overflow-hidden"
+                                data-sfera-sound="soft"
+                                className="sfera-glass group relative overflow-hidden rounded-full px-4 py-2 transition hover:border-cyan-100/25"
                             >
                                 <span className="text-[10px] font-mono text-gray-400 group-hover:text-emerald-300 uppercase tracking-wider transition">
                                     {isChatPanelOpen ? ui.chatToggleHide : ui.chatToggleShow}
@@ -6316,7 +6277,8 @@ export default function ExperiencePage() {
                             {/* Menu Button */}
                             <button
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                className="group relative p-3 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-md border border-white/5 rounded-full transition overflow-hidden"
+                                data-sfera-sound="soft"
+                                className="sfera-glass group relative overflow-hidden rounded-full p-3 transition hover:border-cyan-100/25"
                             >
                                 <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition duration-300" />
                                 {isMenuOpen ? <X size={20} className="text-white relative z-10" /> : <Menu size={20} className="text-white relative z-10" />}
@@ -6327,7 +6289,7 @@ export default function ExperiencePage() {
                     {/* Side Menu (Conditional). Products/About-Supplier removed —
                         they weren't wired to anything and confused visitors. */}
                     {isMenuOpen && (
-                        <div className="absolute top-24 right-6 pointer-events-auto w-64 p-4 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl space-y-2 animate-in slide-in-from-right-10 fade-in duration-200">
+                        <div className="sfera-glass-premium absolute right-5 top-20 w-72 space-y-2 rounded-2xl p-4 pointer-events-auto animate-in slide-in-from-right-10 fade-in duration-300">
                             <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">{ui.menuNavigation}</div>
                             {!isFastViewRoute && (
                                 <button
@@ -6382,7 +6344,7 @@ export default function ExperiencePage() {
 
 
                     {dashboardOverlay && (
-                        <div className="absolute inset-0 z-[85] overflow-y-auto bg-[#02060b]/76 p-2 text-white backdrop-blur-sm pointer-events-auto md:p-5" role="dialog" aria-modal="true" aria-label="Dashboard overlay">
+                        <div className="absolute inset-0 z-[85] overflow-y-auto bg-[#020405]/86 p-2 text-white backdrop-blur-xl pointer-events-auto md:p-5" role="dialog" aria-modal="true" aria-label="Dashboard overlay">
                             <div className="sticky top-3 z-10 mx-auto mb-3 flex max-w-6xl justify-end">
                                 <button
                                     type="button"
