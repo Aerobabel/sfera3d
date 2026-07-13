@@ -6034,7 +6034,7 @@ export default function ExperiencePage() {
                                 )}
                             </div>
                             {isZombieArenaActive && (
-                                <div className="sfera-training-hint mt-2 w-[min(92vw,20rem)] rounded-xl border border-rose-300/24 bg-[linear-gradient(145deg,rgba(47,8,10,0.8),rgba(7,11,16,0.76))] p-3 text-white shadow-[0_20px_60px_rgba(0,0,0,0.38)] backdrop-blur-md">
+                                <div className="mt-2 w-[min(92vw,20rem)] rounded-xl border border-rose-300/24 bg-[linear-gradient(145deg,rgba(47,8,10,0.8),rgba(7,11,16,0.76))] p-3 text-white shadow-[0_20px_60px_rgba(0,0,0,0.38)] backdrop-blur-md">
                                     <div className="flex items-center gap-2">
                                         <Gamepad2 className="h-4 w-4 shrink-0 text-rose-100" />
                                         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-100">{sceneHud.arenaTrainingTitle}</p>
@@ -6300,7 +6300,7 @@ export default function ExperiencePage() {
                         </div>
 
                         <div className="flex items-start gap-3 pointer-events-auto">
-                            <p className="sfera-context-instruction hidden max-w-[34rem] pt-1 text-right font-mono text-[9px] uppercase tracking-[0.16em] text-[#b9d6d7]/70 md:block">
+                            <p className="hidden max-w-[36rem] rounded-full border border-white/[.08] bg-black/32 px-4 py-2 text-right font-mono text-[9px] font-semibold uppercase leading-4 tracking-[0.14em] text-[#d3ecec]/82 shadow-[0_12px_36px_rgba(0,0,0,.24)] backdrop-blur-md md:block">
                                 {sceneInstruction}
                             </p>
 

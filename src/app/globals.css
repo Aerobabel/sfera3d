@@ -314,8 +314,7 @@ a {
   text-wrap: balance;
 }
 
-.sfera-context-instruction,
-.sfera-training-hint {
+.sfera-context-instruction {
   animation: sferaHintDepart 14s var(--sfera-ease) forwards;
 }
 
