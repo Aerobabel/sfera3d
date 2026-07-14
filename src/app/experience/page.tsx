@@ -40,7 +40,6 @@ import {
 import { playSferaUiSound } from "@/lib/ui/sound";
 import type { WalletTransaction } from "@/lib/unreal/types";
 import WorldGuideOverlay, { parseWorldPosition, type WorldPosition } from "@/components/WorldGuideOverlay";
-import RewardVideoSequence from "@/components/RewardVideoSequence";
 import { CutsceneCinematicOverlay, CutsceneSiteHeader } from "@/components/CutscenePresentation";
 
 type MobileInputMode = 'joystick' | 'touch';
@@ -918,6 +917,7 @@ const FASTVIEW_START_CUTSCENE_PLAYLIST: Record<AppLanguage, string[]> = {
     zh: ['/cutscenes/gameagain.MOV'],
 };
 const WATER_WIN_CUTSCENE_SRC = '/cutscenes/wincut.MOV';
+const PHONE_REWARD_CUTSCENE_SRC = '/cutscenes/phone-reward-sequence.mp4';
 const FASTVIEW_CUTSCENE_FADE_MS = 700;
 const WATER_FLOW_COPY = {
     en: {
@@ -2534,19 +2534,18 @@ function WheelOverlay({
     coupon,
     onClose,
     onSpin,
-    onOpenDashboard,
+    onRewardCutscene,
 }: {
     copy: WaterFlowCopy;
     spinsRemaining: number;
     coupon: string | null;
     onClose: () => void;
     onSpin: () => void;
-    onOpenDashboard: () => void;
+    onRewardCutscene: () => void;
 }) {
     const [isSpinning, setIsSpinning] = useState(false);
     const [hasSpun, setHasSpun] = useState(false);
     const [wheelRotation, setWheelRotation] = useState(0);
-    const [showRewardSequence, setShowRewardSequence] = useState(false);
     const rewardTransitionTimerRef = useRef<number | null>(null);
     const wheelTicks = Array.from({ length: 18 }, (_, index) => index);
     const phonePrizeRotation = 2850;
@@ -2560,8 +2559,8 @@ function WheelOverlay({
             setHasSpun(true);
             onSpin();
             rewardTransitionTimerRef.current = window.setTimeout(() => {
-                setShowRewardSequence(true);
                 rewardTransitionTimerRef.current = null;
+                onRewardCutscene();
             }, 700);
         }, 2400);
     };
@@ -2672,10 +2671,6 @@ function WheelOverlay({
                 </div>
 
             </section>
-
-            {showRewardSequence && (
-                <RewardVideoSequence onClose={onClose} onOpenDashboard={onOpenDashboard} />
-            )}
         </div>
     );
 }
@@ -3569,8 +3564,11 @@ export default function ExperiencePage() {
     const sferaHallCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const [isWaterWinCutsceneVisible, setIsWaterWinCutsceneVisible] = useState(false);
     const [hasStartedWaterWinCutsceneSound, setHasStartedWaterWinCutsceneSound] = useState(false);
+    const [isPhoneRewardCutsceneVisible, setIsPhoneRewardCutsceneVisible] = useState(false);
+    const [hasStartedPhoneRewardCutsceneSound, setHasStartedPhoneRewardCutsceneSound] = useState(false);
     const [waterPurchaseCeremonyBalance, setWaterPurchaseCeremonyBalance] = useState<number | null>(null);
     const waterWinCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
+    const phoneRewardCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const fastViewCutsceneExitTimerRef = useRef<number | null>(null);
     const waterPurchaseCeremonyTimerRef = useRef<number | null>(null);
     const fastViewCutscenePlaylist = FASTVIEW_START_CUTSCENE_PLAYLIST[language] ?? FASTVIEW_START_CUTSCENE_PLAYLIST.en;
@@ -4042,6 +4040,18 @@ export default function ExperiencePage() {
         });
     }, []);
 
+    const handleStartPhoneRewardCutsceneWithSound = useCallback(() => {
+        const video = phoneRewardCutsceneVideoRef.current;
+        if (!video) return;
+
+        setHasStartedPhoneRewardCutsceneSound(true);
+        video.muted = false;
+        resetCutsceneAudio(video);
+        video.play().catch(() => {
+            setHasStartedPhoneRewardCutsceneSound(false);
+        });
+    }, []);
+
     const closeWaterWinCutscene = useCallback(() => {
         const video = waterWinCutsceneVideoRef.current;
         if (video) {
@@ -4054,6 +4064,21 @@ export default function ExperiencePage() {
 
         setIsWaterWinCutsceneVisible(false);
         setHasStartedWaterWinCutsceneSound(false);
+    }, []);
+
+    const closePhoneRewardCutscene = useCallback(() => {
+        const video = phoneRewardCutsceneVideoRef.current;
+        if (video) {
+            video.pause();
+            try {
+                video.currentTime = 0;
+            } catch { /* best-effort */ }
+            resetCutsceneAudio(video);
+        }
+
+        setIsPhoneRewardCutsceneVisible(false);
+        setHasStartedPhoneRewardCutsceneSound(false);
+        window.dispatchEvent(new Event('sfera:success'));
     }, []);
 
     const completeSferaHallCutsceneClose = useCallback(() => {
@@ -4113,6 +4138,20 @@ export default function ExperiencePage() {
     }, [hasStartedExperience, isWaterWinCutsceneVisible]);
 
     useEffect(() => {
+        if (!isPhoneRewardCutsceneVisible) return;
+
+        isStreamAudioSuppressedRef.current = true;
+        setNonCutsceneMediaMuted(true);
+
+        return () => {
+            isStreamAudioSuppressedRef.current = false;
+            if (hasStartedExperience) {
+                setNonCutsceneMediaMuted(false);
+            }
+        };
+    }, [hasStartedExperience, isPhoneRewardCutsceneVisible]);
+
+    useEffect(() => {
         if (!isFastViewRoute || hasCompletedFastViewCutscene || fastViewError || hasStartedFastViewCutscene) return;
         const startFromKey = (event: KeyboardEvent) => {
             if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -4141,6 +4180,16 @@ export default function ExperiencePage() {
         window.addEventListener('keydown', startFromKey);
         return () => window.removeEventListener('keydown', startFromKey);
     }, [handleStartWaterWinCutsceneWithSound, hasStartedWaterWinCutsceneSound, isWaterWinCutsceneVisible]);
+
+    useEffect(() => {
+        if (!isPhoneRewardCutsceneVisible || hasStartedPhoneRewardCutsceneSound) return;
+        const startFromKey = (event: KeyboardEvent) => {
+            if (event.metaKey || event.ctrlKey || event.altKey) return;
+            handleStartPhoneRewardCutsceneWithSound();
+        };
+        window.addEventListener('keydown', startFromKey);
+        return () => window.removeEventListener('keydown', startFromKey);
+    }, [handleStartPhoneRewardCutsceneWithSound, hasStartedPhoneRewardCutsceneSound, isPhoneRewardCutsceneVisible]);
 
     const handleSkipFastViewCutscene = useCallback(() => {
         if (!isFastViewRoute || hasCompletedFastViewCutscene) return;
@@ -5392,7 +5441,8 @@ export default function ExperiencePage() {
         !isWheelOpen &&
         waterPurchaseCeremonyBalance === null &&
         !isSferaHallCutsceneVisible &&
-        !isWaterWinCutsceneVisible;
+        !isWaterWinCutsceneVisible &&
+        !isPhoneRewardCutsceneVisible;
     const shouldShowFrontendCinematic =
         Boolean(frontendCinematic) &&
         showExperienceHud &&
@@ -5608,6 +5658,50 @@ export default function ExperiencePage() {
                         }}
                         startLabel={!hasStartedWaterWinCutsceneSound ? cutsceneCopy.startWithSound : undefined}
                         onStart={!hasStartedWaterWinCutsceneSound ? handleStartWaterWinCutsceneWithSound : undefined}
+                    />
+                </div>
+            )}
+
+            {isPhoneRewardCutsceneVisible && showExperienceHud && (
+                <div className="absolute inset-0 z-[127] bg-[#05070b]">
+                    <div className="absolute inset-0 overflow-hidden bg-black">
+                        <video
+                            ref={phoneRewardCutsceneVideoRef}
+                            className="cinematic-cutscene-video h-full w-full scale-[1.04] bg-black object-cover"
+                            src={PHONE_REWARD_CUTSCENE_SRC}
+                            data-cutscene-video="true"
+                            muted={!hasStartedPhoneRewardCutsceneSound}
+                            playsInline
+                            preload="auto"
+                            onTimeUpdate={(event) => softenCutsceneAudioTail(event.currentTarget)}
+                            onEnded={closePhoneRewardCutscene}
+                            onError={closePhoneRewardCutscene}
+                        />
+                        <CutsceneCinematicOverlay tone="water" label={waterFlowCopy.phonePrize} copy={waterFlowCopy.cutscene} />
+                    </div>
+                    {!hasStartedPhoneRewardCutsceneSound && (
+                        <div className="absolute inset-x-4 bottom-0 top-16 z-10 flex flex-col items-center justify-center sm:top-20">
+                            <button
+                                type="button"
+                                onClick={handleStartPhoneRewardCutsceneWithSound}
+                                className="inline-flex max-w-full items-center justify-center gap-2 rounded-2xl border border-[#66d9cb]/35 bg-black/55 px-5 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-md transition hover:border-[#66d9cb]/60 hover:bg-[#66d9cb]/[0.16] sm:px-6"
+                            >
+                                <Play className="h-4 w-4 shrink-0 text-[#66d9cb]" />
+                                <span className="truncate">{cutsceneCopy.pressAnyKey}</span>
+                                <Volume2 className="h-4 w-4 shrink-0 text-[#66d9cb]" />
+                            </button>
+                            <p className="mt-3 max-w-md text-center text-xs font-semibold uppercase tracking-[0.16em] text-slate-300/80">{cutsceneCopy.soundHint}</p>
+                        </div>
+                    )}
+                    <CutsceneSiteHeader
+                        statusOnline={ui.statusOnline}
+                        instruction={waterFlowCopy.prizeReveal}
+                        skipLabel={cutsceneCopy.skip}
+                        onSkip={() => {
+                            fadeOutCutsceneAudio(phoneRewardCutsceneVideoRef.current, closePhoneRewardCutscene);
+                        }}
+                        startLabel={!hasStartedPhoneRewardCutsceneSound ? cutsceneCopy.startWithSound : undefined}
+                        onStart={!hasStartedPhoneRewardCutsceneSound ? handleStartPhoneRewardCutsceneWithSound : undefined}
                     />
                 </div>
             )}
@@ -6443,9 +6537,10 @@ export default function ExperiencePage() {
                             coupon={unrealBridge.wheelCoupon}
                             onClose={() => setIsWheelOpen(false)}
                             onSpin={handleWheelSpin}
-                            onOpenDashboard={() => {
+                            onRewardCutscene={() => {
                                 setIsWheelOpen(false);
-                                setDashboardOverlay('player');
+                                setHasStartedPhoneRewardCutsceneSound(false);
+                                setIsPhoneRewardCutsceneVisible(true);
                             }}
                         />
                     )}
