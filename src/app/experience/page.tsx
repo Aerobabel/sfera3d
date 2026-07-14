@@ -1670,9 +1670,10 @@ const resolveFrontendCinematic = (event: unknown, language: AppLanguage): Omit<F
 
     if (payload.event === 'portal_entered' && payload.portal === 'SferaHall') return null;
 
-    if (payload.event === 'game_entered' && payload.game === 'ZombieArena') {
-        return { ...copy.zombieArena, destinationKicker: copy.destinationKicker };
-    }
+    // The streamed arena is already interactive when this event arrives.
+    // A full-screen web transition can obscure live combat, especially when
+    // Unreal repeats its entrance overlap event, so enter directly into HUD.
+    if (payload.event === 'game_entered' && payload.game === 'ZombieArena') return null;
 
     if (payload.event === 'returned_to_city') {
         return { ...copy.city, destinationKicker: copy.destinationKicker };
@@ -3290,7 +3291,9 @@ export default function ExperiencePage() {
     const isZombieArenaActive =
         unrealBridge.currentGame === 'ZombieArena' ||
         unrealBridge.currentLocation === 'zombieArena';
-    const isZombieArenaCleared = isZombieArenaActive && unrealBridge.zombieKills >= 5;
+    const isZombieArenaCleared =
+        isZombieArenaActive &&
+        unrealBridge.zombieKills >= GAME_RULES.zombieArena.zombiesPerRun;
     const sceneInstruction = isZombieArenaActive ? ui.zombieInstruction : ui.instruction;
     const emitQuestEvent = useCallback((event: QuestEventInput) => {
         unrealBridge.handleUnrealResponse(JSON.stringify(event));
@@ -3374,7 +3377,16 @@ export default function ExperiencePage() {
 
     useEffect(() => {
         const cinematic = resolveFrontendCinematic(unrealBridge.lastUnrealEvent, language);
-        if (!cinematic) return;
+        if (!cinematic) {
+            if (
+                unrealBridge.lastUnrealEvent?.event === 'game_entered' &&
+                'game' in unrealBridge.lastUnrealEvent &&
+                unrealBridge.lastUnrealEvent.game === 'ZombieArena'
+            ) {
+                setFrontendCinematic(null);
+            }
+            return;
+        }
 
         const isSferaHallPortal = unrealBridge.lastUnrealEvent &&
             typeof unrealBridge.lastUnrealEvent === 'object' &&
@@ -6014,6 +6026,7 @@ export default function ExperiencePage() {
                             shotSequence={zombieShotSequence}
                             dryFireSequence={zombieDryFireSequence}
                             confirmedKills={unrealBridge.zombieKills}
+                            damageSequence={unrealBridge.playerHits}
                             isCleared={isZombieArenaCleared}
                             language={language}
                         />

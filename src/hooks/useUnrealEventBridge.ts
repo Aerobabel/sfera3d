@@ -106,11 +106,28 @@ type PersistedBridgeState = Pick<
 const hasWaterArenaPayout = (questRewards: UnrealEventBridgeState['questRewards']) =>
     questRewards.some((reward) => reward.questId === WATER_ARENA_QUEST_ID && reward.kind === 'coins');
 
-const hasClearedWaterArena = (questProgress: UnrealEventBridgeState['questProgress']) => {
-    const progress = questProgress.find((candidate) => candidate.questId === WATER_ARENA_QUEST_ID);
-    const clearZombies = progress?.objectives.clear_zombies;
-    return Boolean(clearZombies && clearZombies.current >= clearZombies.target);
-};
+const resetUnfinishedArenaKillProgress = (
+    questProgress: UnrealEventBridgeState['questProgress']
+) => questProgress.map((progress) => {
+    if (progress.questId !== WATER_ARENA_QUEST_ID) return progress;
+
+    const clearZombies = progress.objectives.clear_zombies;
+    if (!clearZombies) return progress;
+
+    return {
+        ...progress,
+        status: 'active' as const,
+        completedAt: undefined,
+        objectives: {
+            ...progress.objectives,
+            clear_zombies: {
+                ...clearZombies,
+                current: 0,
+                completed: false,
+            },
+        },
+    };
+});
 
 const normalizePersistedRewards = (questRewards: UnrealEventBridgeState['questRewards']) =>
     questRewards.filter((reward) => reward.questId !== 'player_arena_trial' && reward.questId !== 'city_token_hunt');
@@ -191,8 +208,11 @@ const readPersistedBridgeState = (): UnrealEventBridgeState => {
             Boolean(parsed.hasArenaAccess) &&
             ARENA_KEY_PIECES.every((piece) => arenaKeyPieces.includes(piece));
         const questRewards = normalizePersistedRewards(parsed.questRewards ?? INITIAL_STATE.questRewards);
-        const questProgress = normalizePersistedQuestProgress(parsed.questProgress ?? INITIAL_STATE.questProgress);
         const hasArenaPayout = hasWaterArenaPayout(questRewards);
+        const normalizedQuestProgress = normalizePersistedQuestProgress(parsed.questProgress ?? INITIAL_STATE.questProgress);
+        const questProgress = hasArenaPayout
+            ? normalizedQuestProgress
+            : resetUnfinishedArenaKillProgress(normalizedQuestProgress);
         const waterPurchased = Boolean(parsed.waterPurchased) && hasArenaPayout;
         const wallet = normalizePersistedWallet(
             questRewards,
@@ -217,9 +237,7 @@ const readPersistedBridgeState = (): UnrealEventBridgeState => {
             lastDogMood: parsed.lastDogMood ?? INITIAL_STATE.lastDogMood,
         };
 
-        return hasClearedWaterArena(restoredState.questProgress)
-            ? grantWaterArenaPayout(restoredState)
-            : restoredState;
+        return restoredState;
     } catch {
         return INITIAL_STATE;
     }
@@ -463,6 +481,16 @@ export const useUnrealEventBridge = () => {
                     if (unrealEvent.game !== 'ZombieArena') {
                         return withQuestUpdate(nextBase, unrealEvent);
                     }
+                    // Unreal entrance volumes may emit the same event on every
+                    // overlap frame. Once the arena is active, ignore repeats so
+                    // they cannot reset combat state or restart web transitions.
+                    if (
+                        previous.currentGame === 'ZombieArena' &&
+                        previous.currentLocation === 'zombieArena' &&
+                        previous.isInGame
+                    ) {
+                        return previous;
+                    }
                     if (!previous.hasArenaAccess || !hasAllArenaKeyPieces(previous.arenaKeyPieces)) {
                         const deniedEvent = {
                             event: 'game_access_denied',
@@ -480,6 +508,9 @@ export const useUnrealEventBridge = () => {
                     }
                     return withQuestUpdate({
                         ...nextBase,
+                        questProgress: hasWaterArenaPayout(previous.questRewards)
+                            ? previous.questProgress
+                            : resetUnfinishedArenaKillProgress(previous.questProgress),
                         currentLocation: 'zombieArena',
                         currentGame: 'ZombieArena',
                         isInGame: true,
@@ -493,7 +524,7 @@ export const useUnrealEventBridge = () => {
                         zombieCoins: 0,
                         zombieThreatLevel: 1,
                         zombieRank: resolveZombieRank(0),
-                        arenaMoments: withArenaMoment(previous.arenaMoments, {
+                        arenaMoments: withArenaMoment([], {
                             kind: 'rank',
                             title: 'Arena run started',
                             description: 'Build a combo streak, protect your health, and climb the survivor rank.',
@@ -522,7 +553,7 @@ export const useUnrealEventBridge = () => {
                     const zombieScore = previous.zombieScore + pointsEarned;
                     const zombieRank = resolveZombieRank(zombieScore);
                     const rankedUp = zombieRank !== previous.zombieRank;
-                    const arenaCleared = zombieKills >= 5;
+                    const arenaCleared = zombieKills >= GAME_RULES.zombieArena.zombiesPerRun;
                     const moment = arenaCleared
                         ? {
                             kind: 'game_over' as const,
@@ -564,23 +595,23 @@ export const useUnrealEventBridge = () => {
                     return arenaCleared ? grantWaterArenaPayout(updatedState) : updatedState;
                 }
                 case 'player_hit': {
-                    const zombieHealth = Math.max(0, previous.zombieHealth - GAME_RULES.zombieArena.playerHitDamage);
-                    const zombieGameOver = zombieHealth <= 0;
+                    // The current Unreal arena has no player-death state. Keep
+                    // the frontend health display non-lethal and use hits only
+                    // to break the combo and drive the damage feedback.
+                    const zombieHealth = Math.max(1, previous.zombieHealth - GAME_RULES.zombieArena.playerHitDamage);
                     return withQuestUpdate({
                         ...nextBase,
                         zombieHealth,
-                        zombieGameOver,
+                        zombieGameOver: false,
                         playerHits: previous.playerHits + 1,
                         zombieCombo: 0,
-                        accessDeniedMessage: zombieGameOver ? 'You were overwhelmed' : null,
+                        accessDeniedMessage: null,
                         arenaMoments: withArenaMoment(previous.arenaMoments, {
-                            kind: zombieGameOver ? 'game_over' : 'hit',
-                            title: zombieGameOver ? 'You were overwhelmed' : 'Combo broken',
-                            description: zombieGameOver
-                                ? `Final score ${previous.zombieScore}. Max combo ${previous.maxZombieCombo}x.`
-                                : `-${GAME_RULES.zombieArena.playerHitDamage} health. Dodge the next attack to rebuild your streak.`,
+                            kind: 'hit',
+                            title: 'Combo broken',
+                            description: `-${GAME_RULES.zombieArena.playerHitDamage} health. Dodge the next attack to rebuild your streak.`,
                         }),
-                        recentActivity: withActivity(previous.recentActivity, zombieGameOver ? 'You were overwhelmed' : 'Player hit — combo reset'),
+                        recentActivity: withActivity(previous.recentActivity, 'Player hit — combo reset'),
                     }, unrealEvent);
                 }
                 case 'returned_to_city':
@@ -665,6 +696,9 @@ export const useUnrealEventBridge = () => {
                     }, unrealEvent);
                 }
                 case 'arena_completed':
+                    if (previous.zombieKills < GAME_RULES.zombieArena.zombiesPerRun) {
+                        return previous;
+                    }
                     return grantWaterArenaPayout(withQuestUpdate({
                         ...nextBase,
                         recentActivity: withActivity(previous.recentActivity, `Zombie Arena cleared: water payout ready for ${GAME_RULES.water.bottleName}`),

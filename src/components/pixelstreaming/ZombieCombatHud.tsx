@@ -8,6 +8,7 @@ type ZombieCombatHudProps = {
     shotSequence: number;
     dryFireSequence: number;
     confirmedKills: number;
+    damageSequence: number;
     isCleared: boolean;
     language: AppLanguage;
 };
@@ -36,7 +37,7 @@ const COPY = {
     },
 } as const;
 
-const AMMO_SEGMENTS = 13;
+const AMMO_SEGMENTS = 16;
 
 export default function ZombieCombatHud({
     ammo,
@@ -44,6 +45,7 @@ export default function ZombieCombatHud({
     shotSequence,
     dryFireSequence,
     confirmedKills,
+    damageSequence,
     isCleared,
     language,
 }: ZombieCombatHudProps) {
@@ -59,6 +61,15 @@ export default function ZombieCombatHud({
 
     return (
         <div className="pointer-events-none absolute inset-0 z-30 select-none overflow-hidden" aria-live="polite">
+            {damageSequence > 0 && (
+                <div key={`damage-${damageSequence}`} className="absolute inset-0">
+                    <div className="zombie-damage-flash absolute inset-0" />
+                    <div className="zombie-damage-vignette absolute inset-0" />
+                    <div className="zombie-damage-slash zombie-damage-slash-left absolute left-[12%] top-[8%] h-[68%] w-1.5 -rotate-[24deg] rounded-full bg-gradient-to-b from-transparent via-rose-200/75 to-transparent blur-[1px]" />
+                    <div className="zombie-damage-slash zombie-damage-slash-right absolute right-[16%] top-[18%] h-[58%] w-1 -rotate-[18deg] rounded-full bg-gradient-to-b from-transparent via-red-200/65 to-transparent blur-[1px]" />
+                </div>
+            )}
+
             {shotSequence > 0 && (
                 <div key={`shot-fx-${shotSequence}`} className="absolute inset-0">
                     <div className="zombie-shot-flash absolute inset-0" />
