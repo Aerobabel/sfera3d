@@ -11,6 +11,7 @@ interface StreamPixelPlayerProps {
     isMobileDevice?: boolean;
     keyboardInputEnabled?: boolean;
     fireInputEnabled?: boolean;
+    onFireAttempt?: () => boolean;
     blockedKeyboardCodes?: string[];
     onBlockedKeyboardInput?: (event: KeyboardEvent) => void;
     desktopMouseMode?: 'locked' | 'hovering';
@@ -191,6 +192,7 @@ export default function StreamPixelPlayer({
     isMobileDevice = false,
     keyboardInputEnabled = true,
     fireInputEnabled = true,
+    onFireAttempt,
     blockedKeyboardCodes = [],
     onBlockedKeyboardInput,
     desktopMouseMode: preferredDesktopMouseMode,
@@ -201,6 +203,7 @@ export default function StreamPixelPlayer({
     const controllerRef = useRef<StreamPixelController | null>(null);
     const keyboardInputEnabledRef = useRef(keyboardInputEnabled);
     const fireInputEnabledRef = useRef(fireInputEnabled);
+    const onFireAttemptRef = useRef(onFireAttempt);
     const blockedKeyboardCodesRef = useRef<Set<string>>(new Set());
     const onBlockedKeyboardInputRef = useRef(onBlockedKeyboardInput);
     const onPixelStreamingResponseRef = useRef(onPixelStreamingResponse);
@@ -224,12 +227,17 @@ export default function StreamPixelPlayer({
     }, [fireInputEnabled]);
 
     useEffect(() => {
+        onFireAttemptRef.current = onFireAttempt;
+    }, [onFireAttempt]);
+
+    useEffect(() => {
         const wrapperElement = wrapperRef.current;
         if (!wrapperElement) return;
 
         const handleLeftMouseFire = (event: PointerEvent) => {
             if (event.button !== 0 || event.pointerType !== 'mouse') return;
             if (!fireInputEnabledRef.current) return;
+            if (onFireAttemptRef.current?.() === false) return;
 
             sendStreamPixelKeyPress(streamRef.current, FIRE_KEY_CODE, 'p', 'KeyP');
         };
@@ -289,10 +297,17 @@ export default function StreamPixelPlayer({
 
     useEffect(() => {
         const stopBlockedKeysFromReachingStreamer = (event: KeyboardEvent) => {
-            if (!fireInputEnabledRef.current && event.code === 'KeyP') {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                return;
+            if (event.code === 'KeyP' && keyboardInputEnabledRef.current) {
+                const isBlocked = !fireInputEnabledRef.current || (
+                    event.type === 'keydown' &&
+                    event.isTrusted &&
+                    onFireAttemptRef.current?.() === false
+                );
+                if (isBlocked) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    return;
+                }
             }
             if (!keyboardInputEnabledRef.current) return;
             if (!event.isTrusted) return;

@@ -18,6 +18,7 @@ import BrandLogo from "@/components/BrandLogo";
 import { getPavilionById, parseEnterPavilionMessage, type Pavilion as PavilionInfo } from "@/lib/pavilions";
 import MobileControls from "@/components/pixelstreaming/MobileControls";
 import MarketplaceCrosshair from "@/components/pixelstreaming/MarketplaceCrosshair";
+import ZombieCombatHud from "@/components/pixelstreaming/ZombieCombatHud";
 import SensitivitySlider from "@/components/pixelstreaming/SensitivitySlider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { clearServerAuthSession } from "@/lib/auth/browser";
@@ -3549,6 +3550,11 @@ export default function ExperiencePage() {
     // Video Element Reference for Mobile Controls
     const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
     const [hasStartedExperience, setHasStartedExperience] = useState(false);
+    const [zombieAmmo, setZombieAmmo] = useState<number>(GAME_RULES.zombieArena.startingAmmo);
+    const [zombieShotSequence, setZombieShotSequence] = useState(0);
+    const [zombieDryFireSequence, setZombieDryFireSequence] = useState(0);
+    const zombieAmmoRef = useRef<number>(GAME_RULES.zombieArena.startingAmmo);
+    const wasZombieArenaActiveRef = useRef(false);
     const [needsFastViewAudioUnlock, setNeedsFastViewAudioUnlock] = useState(false);
     // True once UE is actually producing video frames — used to keep a
     // transition overlay visible between the user's "enter" click and the
@@ -3573,6 +3579,42 @@ export default function ExperiencePage() {
     const waterPurchaseCeremonyTimerRef = useRef<number | null>(null);
     const fastViewCutscenePlaylist = FASTVIEW_START_CUTSCENE_PLAYLIST[language] ?? FASTVIEW_START_CUTSCENE_PLAYLIST.en;
     const fastViewCutsceneSrc = fastViewCutscenePlaylist[fastViewCutsceneIndex] ?? fastViewCutscenePlaylist[0];
+
+    const resetZombieAmmo = useCallback(() => {
+        zombieAmmoRef.current = GAME_RULES.zombieArena.startingAmmo;
+        setZombieAmmo(GAME_RULES.zombieArena.startingAmmo);
+        setZombieShotSequence(0);
+        setZombieDryFireSequence(0);
+    }, []);
+
+    useEffect(() => {
+        const enteredArena = isZombieArenaActive && !wasZombieArenaActiveRef.current;
+        const gameEnteredEvent = unrealBridge.lastUnrealEvent?.event === 'game_entered' &&
+            'game' in unrealBridge.lastUnrealEvent &&
+            unrealBridge.lastUnrealEvent.game === 'ZombieArena';
+
+        if (enteredArena || gameEnteredEvent) {
+            resetZombieAmmo();
+        }
+        wasZombieArenaActiveRef.current = isZombieArenaActive;
+    }, [isZombieArenaActive, resetZombieAmmo, unrealBridge.lastUnrealEvent]);
+
+    const handleZombieFireAttempt = useCallback(() => {
+        if (!isZombieArenaActive) return true;
+        if (isZombieArenaCleared) return false;
+
+        const remainingAmmo = zombieAmmoRef.current;
+        if (remainingAmmo <= 0) {
+            setZombieDryFireSequence((current) => current + 1);
+            return false;
+        }
+
+        const nextAmmo = remainingAmmo - 1;
+        zombieAmmoRef.current = nextAmmo;
+        setZombieAmmo(nextAmmo);
+        setZombieShotSequence((current) => current + 1);
+        return true;
+    }, [isZombieArenaActive, isZombieArenaCleared]);
 
     useEffect(() => {
         if (!hasStartedExperience || !unrealBridge.lastUnrealEvent) return;
@@ -5480,6 +5522,7 @@ export default function ExperiencePage() {
                         isMobileDevice={isMobile}
                         keyboardInputEnabled={!isChatFocused && !isArcadeOpen && !isWaterDispenserOpen && !isArenaPasswordOpen && !isWheelOpen}
                         fireInputEnabled={!isZombieArenaCleared}
+                        onFireAttempt={handleZombieFireAttempt}
                         blockedKeyboardCodes={blockedUnrealKeyboardCodes}
                         onBlockedKeyboardInput={handleBlockedStreamKeyboardInput}
                         mouseSensitivity={mouseSensitivity}
@@ -5495,6 +5538,7 @@ export default function ExperiencePage() {
                             isMobileDevice={isMobile}
                             keyboardInputEnabled={!isChatFocused && !isArcadeOpen && !isWaterDispenserOpen && !isArenaPasswordOpen && !isWheelOpen}
                             fireInputEnabled={!isZombieArenaCleared}
+                            onFireAttempt={handleZombieFireAttempt}
                             blockedKeyboardCodes={blockedUnrealKeyboardCodes}
                             onBlockedKeyboardInput={handleBlockedStreamKeyboardInput}
                             mouseSensitivity={mouseSensitivity}
@@ -5963,7 +6007,19 @@ export default function ExperiencePage() {
                         }}
                     />
 
-                    <MarketplaceCrosshair />
+                    {isZombieArenaActive ? (
+                        <ZombieCombatHud
+                            ammo={zombieAmmo}
+                            maxAmmo={GAME_RULES.zombieArena.startingAmmo}
+                            shotSequence={zombieShotSequence}
+                            dryFireSequence={zombieDryFireSequence}
+                            confirmedKills={unrealBridge.zombieKills}
+                            isCleared={isZombieArenaCleared}
+                            language={language}
+                        />
+                    ) : (
+                        <MarketplaceCrosshair />
+                    )}
                     {shouldShowPlayerModePrompt && (
                         <div className="absolute left-1/2 top-1/2 z-[70] w-[min(calc(100vw-2rem),26rem)] -translate-x-1/2 -translate-y-1/2 pointer-events-auto" role="dialog" aria-live="assertive" aria-label={isArenaKeyAccessDenied ? 'Arena key required' : sceneHud.playerModeRequired}>
                             <div className="rounded-3xl border border-amber-300/35 bg-slate-950/90 p-5 text-white shadow-[0_30px_90px_rgba(0,0,0,0.55)] backdrop-blur-xl">
@@ -6734,7 +6790,12 @@ export default function ExperiencePage() {
 
             {/* Mobile Controls (Z-Index 50 - Topmost) */}
             {showExperienceHud && isMobile && isLandscape && mobileInputMode === 'joystick' && (
-                <MobileControls videoElement={videoElement} lookSensitivity={mouseSensitivity} />
+                <MobileControls
+                    videoElement={videoElement}
+                    lookSensitivity={mouseSensitivity}
+                    shootingEnabled={isZombieArenaActive && !isZombieArenaCleared}
+                    onFireAttempt={handleZombieFireAttempt}
+                />
             )}
 
             {isMobile && !isLandscape && (

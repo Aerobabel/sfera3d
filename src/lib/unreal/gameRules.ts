@@ -1,6 +1,7 @@
 export const GAME_RULES = {
     zombieArena: {
         startingHealth: 150,
+        startingAmmo: 26,
         zombieKillPoints: 10,
         playerHitDamage: 8,
         coinsPerKill: 2,

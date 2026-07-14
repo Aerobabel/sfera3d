@@ -7,6 +7,8 @@ import { useLanguage } from '@/components/i18n/LanguageProvider';
 interface MobileControlsProps {
     videoElement: HTMLVideoElement | null;
     lookSensitivity?: number;
+    shootingEnabled?: boolean;
+    onFireAttempt?: () => boolean;
 }
 
 type ToStreamerHandler = (messageData?: Array<number | string>) => void;
@@ -36,7 +38,8 @@ const KEY_DEFINITIONS = {
     a: { code: 'KeyA', keyCode: 65 },
     s: { code: 'KeyS', keyCode: 83 },
     d: { code: 'KeyD', keyCode: 68 },
-    f: { code: 'KeyF', keyCode: 70 }
+    f: { code: 'KeyF', keyCode: 70 },
+    p: { code: 'KeyP', keyCode: 80 }
 } as const;
 
 const applyLookCurve = (value: number) => {
@@ -49,13 +52,19 @@ const applyLookCurve = (value: number) => {
     return Math.sign(value) * curved;
 };
 
-export default function MobileControls({ videoElement, lookSensitivity = 0.7 }: MobileControlsProps) {
+export default function MobileControls({
+    videoElement,
+    lookSensitivity = 0.7,
+    shootingEnabled = false,
+    onFireAttempt,
+}: MobileControlsProps) {
     const { language } = useLanguage();
     const text = {
         en: { move: 'MOVE', look: 'LOOK', interact: 'INTERACT' },
         ru: { move: 'ДВИЖЕНИЕ', look: 'ОБЗОР', interact: 'ВЗАИМОДЕЙСТВИЕ' },
         zh: { move: '移动', look: '视角', interact: '交互' },
     }[language];
+    const fireText = { en: 'FIRE', ru: 'ОГОНЬ', zh: '射击' }[language];
     const activeKeys = useRef<Set<string>>(new Set());
 
     // --- Keyboard Simulation Helper(Left Stick) ---
@@ -269,6 +278,21 @@ export default function MobileControls({ videoElement, lookSensitivity = 0.7 }: 
         tapKey('f');
     }, [getToStreamerHandler, tapKey]);
 
+    const handleFirePress = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        if (onFireAttempt?.() === false) return;
+
+        const keyDownHandler = getToStreamerHandler('KeyDown');
+        const keyUpHandler = getToStreamerHandler('KeyUp');
+        if (keyDownHandler && keyUpHandler) {
+            keyDownHandler([80, 0]);
+            keyUpHandler([80]);
+            return;
+        }
+
+        tapKey('p');
+    }, [getToStreamerHandler, onFireAttempt, tapKey]);
+
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (!document.hidden) return;
@@ -345,7 +369,7 @@ export default function MobileControls({ videoElement, lookSensitivity = 0.7 }: 
 
             {/* Center Action Button - send the Unreal interact key */}
             <div
-                className="absolute left-1/2 -translate-x-1/2 pointer-events-auto"
+                className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2 pointer-events-auto"
                 style={{
                     bottom: 'max(16px, calc(env(safe-area-inset-bottom) + 6px))'
                 }}
@@ -356,6 +380,14 @@ export default function MobileControls({ videoElement, lookSensitivity = 0.7 }: 
                 >
                     {text.interact}
                 </button>
+                {shootingEnabled && (
+                    <button
+                        onPointerDown={handleFirePress}
+                        className="rounded-full border border-rose-300/45 bg-rose-400/15 px-5 py-2 text-[11px] font-black tracking-[0.18em] text-rose-100 shadow-[0_0_24px_rgba(251,113,133,0.3)] backdrop-blur active:scale-95"
+                    >
+                        {fireText}
+                    </button>
+                )}
             </div>
         </div>
     );
