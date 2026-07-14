@@ -22,6 +22,7 @@ import {
     Gift,
     Globe2,
     Home,
+    Info,
     LineChart,
     LockKeyhole,
     Map,
@@ -136,7 +137,7 @@ type DashboardText = {
         zonesSub: string;
         zones: { title: string; text: string; action: string; tone: Tone; icon: LucideIcon }[];
         rewardQueueTitle: string;
-        rewardQueue: string[];
+        rewardQueueInfo: string;
         deliveryFormTitle: string;
         deliveryFormSub: string;
         deliveryName: string;
@@ -501,12 +502,8 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
                 { title: 'Racing Zone', text: 'Compete in timed city circuits with sponsored weekly prize pools.', action: 'Queue race', tone: 'cyan', icon: Activity },
                 { title: 'Treasure Hunt', text: 'Find product coupons and marketplace gifts hidden across pavilions.', action: 'View hunt', tone: 'amber', icon: Gift },
             ],
-            rewardQueueTitle: 'Reward and delivery queue',
-            rewardQueue: [
-                'Gaming headset reward - unlocked, delivery location needed',
-                'Zombie Arena coin payout - pending match settlement',
-                'Sfera Hall merch drop - ready to claim in marketplace',
-            ],
+            rewardQueueTitle: 'Rewards and delivery',
+            rewardQueueInfo: 'This section is informational only. Reward availability and delivery details are confirmed separately by the Sfera team.',
             deliveryFormTitle: 'Accept delivery',
             deliveryFormSub: 'Confirm where the physical reward should be sent.',
             deliveryName: 'Recipient name',
@@ -719,11 +716,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
                 { title: 'Treasure Hunt', text: 'Ищите купоны и подарки маркетплейса, спрятанные в павильонах.', action: 'Смотреть', tone: 'amber', icon: Gift },
             ],
             rewardQueueTitle: 'Награды и доставка',
-            rewardQueue: [
-                'Игровая гарнитура - открыта, нужен адрес доставки',
-                'Монеты Zombie Arena - ожидают расчета матча',
-                'Мерч Sfera Hall - готов к получению в маркетплейсе',
-            ],
+            rewardQueueInfo: 'Этот раздел носит информационный характер. Доступность наград и детали доставки отдельно подтверждаются командой Sfera.',
             deliveryFormTitle: 'Принять доставку',
             deliveryFormSub: 'Подтвердите, куда отправить физическую награду.',
             deliveryName: 'Имя получателя',
@@ -935,12 +928,8 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
                 { title: 'Racing Zone', text: '参加城市计时赛，赢取每周赞助奖池。', action: '排队', tone: 'cyan', icon: Activity },
                 { title: 'Treasure Hunt', text: '在展馆中寻找隐藏的商品优惠券和市场礼物。', action: '查看', tone: 'amber', icon: Gift },
             ],
-            rewardQueueTitle: '奖励与配送队列',
-            rewardQueue: [
-                '游戏耳机奖励 - 已解锁，需要配送地址',
-                'Zombie Arena 金币结算 - 等待比赛结算',
-                'Sfera Hall 周边 - 可在市场领取',
-            ],
+            rewardQueueTitle: '奖励与配送',
+            rewardQueueInfo: '此区域仅供参考。奖励资格和配送详情将由 Sfera 团队另行确认。',
             deliveryFormTitle: '接受配送',
             deliveryFormSub: '确认实体奖励的收件信息。',
             deliveryName: '收件人姓名',
@@ -1648,6 +1637,33 @@ function ListPanel({
                         <p className="text-xs leading-5 text-slate-300">{item}</p>
                     </div>
                 ))}
+            </div>
+        </section>
+    );
+}
+
+function InformationPanel({
+    title,
+    text,
+    icon: Icon,
+    tone = 'cyan',
+}: {
+    title: string;
+    text: string;
+    icon: LucideIcon;
+    tone?: Tone;
+}) {
+    return (
+        <section className={`${panel} p-3`}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">{title}</h2>
+                <span className={`flex h-8 w-8 items-center justify-center rounded-lg border ${toneStyles[tone].icon}`}>
+                    <Icon className="h-4 w-4" />
+                </span>
+            </div>
+            <div className="flex gap-3 rounded-lg border border-white/10 bg-black/20 p-3">
+                <Info className={`mt-0.5 h-4 w-4 shrink-0 ${toneStyles[tone].accent}`} />
+                <p className="text-xs leading-5 text-slate-300">{text}</p>
             </div>
         </section>
     );
@@ -2411,8 +2427,6 @@ export function GamerDashboard({ bridge: bridgeProp, embedded = false }: Dashboa
     const eventItems = recentActivity.length > 0
         ? recentActivity
         : [`${copy.player.currentLocation}: ${currentLocation}`, `${copy.player.currentGame}: ${currentGame}`, ...copy.player.recentFallback];
-    const rewardItems = copy.player.rewardQueue;
-
     return (
         <DashboardFrame mode="player" sidebar={<PlayerSidebar copy={copy} />} embedded={embedded}>
             {!embedded && <DashboardBackNav />}
@@ -2459,7 +2473,7 @@ export function GamerDashboard({ bridge: bridgeProp, embedded = false }: Dashboa
                                 />
                                 <RewardTerminalPanel rewards={bridge.questRewards} language={language} walletBalanceCents={bridge.walletBalanceCents} />
                                 <DeliveryAcceptancePanel copy={copy.player} />
-                                <ListPanel title={copy.player.rewardQueueTitle} icon={Truck} tone="amber" items={rewardItems} />
+                                <InformationPanel title={copy.player.rewardQueueTitle} icon={Truck} tone="amber" text={copy.player.rewardQueueInfo} />
                             </div>
                         )}
 

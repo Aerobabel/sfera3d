@@ -4078,6 +4078,7 @@ export default function ExperiencePage() {
 
         setIsPhoneRewardCutsceneVisible(false);
         setHasStartedPhoneRewardCutsceneSound(false);
+        setDashboardOverlay('player');
         window.dispatchEvent(new Event('sfera:success'));
     }, []);
 
