@@ -26,6 +26,7 @@ import { getUserRole, type AppAuthRole } from "@/lib/auth/shared";
 import { AppLanguage, getLocalizedProduct } from "@/lib/i18n";
 import { readSupplierChatApiResponse } from "@/lib/supplierChat";
 import { useUnrealEventBridge } from "@/hooks/useUnrealEventBridge";
+import { useViewportScrollLock } from "@/hooks/useViewportScrollLock";
 import { GamerDashboard, ShopperDashboard, SupplierDashboard } from "@/components/dashboards/RoleDashboards";
 import { GAME_RULES } from "@/lib/unreal/gameRules";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -3288,6 +3289,7 @@ export default function ExperiencePage() {
               ? '\u8FD4\u56DE\u573A\u666F'
               : 'Back to scene';
     const unrealBridge = useUnrealEventBridge();
+    useViewportScrollLock();
     const isZombieArenaActive =
         unrealBridge.currentGame === 'ZombieArena' ||
         unrealBridge.currentLocation === 'zombieArena';
@@ -5570,7 +5572,7 @@ export default function ExperiencePage() {
 
             {showFastViewCutscene && (
                 <div
-                    className={`absolute inset-0 z-[130] bg-[#05070b] transition-opacity duration-700 ${
+                    className={`absolute inset-0 z-[130] h-dvh max-h-dvh overflow-hidden overscroll-none bg-[#05070b] transition-opacity duration-700 ${
                         isFastViewCutsceneExiting ? 'opacity-0 pointer-events-none' : 'opacity-100'
                     }`}
                     onClick={hasStartedFastViewCutscene ? undefined : handleStartFastViewCutscene}
@@ -5631,7 +5633,7 @@ export default function ExperiencePage() {
             )}
 
             {isSferaHallCutsceneVisible && showExperienceHud && (
-                <div className="absolute inset-0 z-[125] bg-[#05070b]">
+                <div className="absolute inset-0 z-[125] h-dvh max-h-dvh overflow-hidden overscroll-none bg-[#05070b]">
                     <div className="absolute inset-x-0 bottom-0 top-16 overflow-hidden bg-black sm:top-20">
                         <video
                             ref={sferaHallCutsceneVideoRef}
@@ -5676,7 +5678,7 @@ export default function ExperiencePage() {
             )}
 
             {isWaterWinCutsceneVisible && showExperienceHud && (
-                <div className="absolute inset-0 z-[126] bg-[#05070b]">
+                <div className="absolute inset-0 z-[126] h-dvh max-h-dvh overflow-hidden overscroll-none bg-[#05070b]">
                     <div className="absolute inset-0 overflow-hidden bg-black">
                         <video
                             ref={waterWinCutsceneVideoRef}
@@ -5720,7 +5722,7 @@ export default function ExperiencePage() {
             )}
 
             {isPhoneRewardCutsceneVisible && showExperienceHud && (
-                <div className="absolute inset-0 z-[127] bg-[#05070b]">
+                <div className="absolute inset-0 z-[127] h-dvh max-h-dvh overflow-hidden overscroll-none bg-[#05070b]">
                     <div className="absolute inset-0 overflow-hidden bg-black">
                         <video
                             ref={phoneRewardCutsceneVideoRef}
@@ -5814,18 +5816,13 @@ export default function ExperiencePage() {
 
             {/* FastView launch overlay */}
             {showFastViewLaunchOverlay && (
-                // Scrollable container — on small phones the welcome panel
-                // is taller than the viewport, so we need overflow-y-auto on
-                // the wrapper. items-start (instead of items-center) keeps
-                // the panel anchored to the top so the user can scroll down
-                // through the controls + pedestal hint.
-                <div className="absolute inset-0 z-[120] flex items-start sm:items-center justify-center overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(102,217,203,0.16),transparent_42%),linear-gradient(160deg,rgba(3,8,14,0.92),rgba(6,13,24,0.78))] px-4 py-6">
+                <div className="absolute inset-0 z-[120] flex h-dvh max-h-dvh items-center justify-center overflow-hidden overscroll-none bg-[radial-gradient(circle_at_top,rgba(102,217,203,0.16),transparent_42%),linear-gradient(160deg,rgba(3,8,14,0.92),rgba(6,13,24,0.78))] p-3 sm:p-4">
                     {/* Ambient animated glows behind the panel */}
                     <div className="pointer-events-none absolute -top-32 -left-32 w-[32rem] h-[32rem] rounded-full bg-[#66d9cb]/10 blur-[120px] drift" />
                     <div className="pointer-events-none absolute -bottom-32 -right-32 w-[28rem] h-[28rem] rounded-full bg-fuchsia-500/5 blur-[120px] drift" />
 
-                    <div className="relative w-full max-w-2xl overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(160deg,rgba(5,10,18,0.94),rgba(10,18,31,0.86))] shadow-[0_32px_120px_rgba(0,0,0,0.5)] backdrop-blur-xl">
-                        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 sm:px-8">
+                    <div className="stream-launch-panel relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(5,10,18,0.94),rgba(10,18,31,0.86))] shadow-[0_32px_120px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-[30px]">
+                        <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3 sm:px-8 sm:py-4">
                             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#66d9cb]">
                                 {fastViewLaunch.eyebrow}
                             </p>
@@ -5838,7 +5835,7 @@ export default function ExperiencePage() {
                                 </div>
                             )}
                         </div>
-                        <div className="px-6 py-6 sm:px-8 sm:py-8">
+                        <div className="min-h-0 overflow-hidden px-4 py-4 sm:px-8 sm:py-6">
                             {fastViewError ? (
                                 <>
                                     <div className="flex items-start gap-4">
@@ -5882,7 +5879,7 @@ export default function ExperiencePage() {
                                         progress={canEnterFastView ? 1 : null}
                                     />
 
-                                    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                                    <div className="mt-4 flex flex-col gap-3 sm:mt-6 sm:flex-row">
                                         <button
                                             type="button"
                                             onClick={() => handleStartExperience()}

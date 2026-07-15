@@ -99,7 +99,7 @@ const COPY: Record<AppLanguage, Copy> = {
 // A single keycap glyph — used for WASD / F / T / X.
 const KeyCap = ({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) => (
     <span
-        className={`inline-flex items-center justify-center ${wide ? 'px-3 min-w-[3rem]' : 'w-8'} h-8 rounded-md border border-white/20 bg-gradient-to-b from-white/15 to-white/[0.04] text-[11px] font-bold uppercase tracking-wider text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.35),0_2px_6px_rgba(0,0,0,0.4)]`}
+        className={`inline-flex items-center justify-center ${wide ? 'min-w-[2.5rem] px-2 sm:min-w-[3rem] sm:px-3' : 'h-7 w-7 sm:h-8 sm:w-8'} h-7 rounded-md border border-white/20 bg-gradient-to-b from-white/15 to-white/[0.04] text-[10px] font-bold uppercase tracking-wider text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.35),0_2px_6px_rgba(0,0,0,0.4)] sm:h-8 sm:text-[11px]`}
     >
         {children}
     </span>
@@ -114,11 +114,11 @@ const ControlRow = ({
     label: string;
     hint: string;
 }) => (
-    <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5 transition hover:bg-white/[0.06] hover:border-white/15">
-        <div className="flex items-center justify-center min-w-[4.5rem] gap-1">{visual}</div>
+    <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-white/[0.03] px-2 py-2 transition hover:bg-white/[0.06] hover:border-white/15 sm:gap-3 sm:px-3 sm:py-2.5">
+        <div className="flex min-w-[2.75rem] items-center justify-center gap-1 sm:min-w-[4.5rem]">{visual}</div>
         <div className="min-w-0">
-            <div className="text-[11px] font-bold uppercase tracking-[0.15em] text-white">{label}</div>
-            <div className="text-[10px] text-gray-400 leading-tight mt-0.5">{hint}</div>
+            <div className="text-[9px] font-bold uppercase tracking-[0.1em] text-white sm:text-[11px] sm:tracking-[0.15em]">{label}</div>
+            <div className="mt-0.5 hidden text-[10px] leading-tight text-gray-400 sm:block">{hint}</div>
         </div>
     </div>
 );
@@ -138,15 +138,15 @@ export default function WelcomeControls({ progress = null, title, subtitle }: We
     const pct = progress === null ? null : Math.max(0, Math.min(1, progress));
 
     return (
-        <div className="relative flex flex-col gap-5">
+        <div className="stream-launch-welcome relative flex flex-col gap-3 sm:gap-5">
             {/* Animated hero */}
-            <div className="relative flex flex-col gap-4">
-                <BrandLogo size="sm" imageClassName="h-10 w-[9.5rem]" />
+            <div className="relative flex items-center gap-3 sm:flex-col sm:items-start sm:gap-4">
+                <BrandLogo size="sm" imageClassName="h-8 w-[8.25rem] sm:h-10 sm:w-[9.5rem]" />
                 <div className="min-w-0">
-                    <h3 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">
+                    <h3 className="text-lg font-semibold tracking-tight text-white sm:text-2xl">
                         {title ?? copy.heading}
                     </h3>
-                    <p className="mt-1 text-sm text-slate-300">{subtitle ?? copy.subheading}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-slate-300 sm:text-sm">{subtitle ?? copy.subheading}</p>
                 </div>
             </div>
 
@@ -163,11 +163,11 @@ export default function WelcomeControls({ progress = null, title, subtitle }: We
             </div>
 
             {/* Controls grid */}
-            <div>
+            <div className="stream-launch-controls">
                 <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.28em] text-gray-400">
                     {copy.controls}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                     <ControlRow
                         visual={
                             <div className="flex flex-col items-center gap-1">
@@ -220,7 +220,7 @@ export default function WelcomeControls({ progress = null, title, subtitle }: We
                 Mirrors the in-game trigger (a bright white cylindrical
                 pedestal at each pavilion entrance) so first-time users know
                 exactly what to look for. */}
-            <div className="relative overflow-hidden rounded-2xl border border-[#66d9cb]/25 bg-[linear-gradient(135deg,rgba(102,217,203,0.08),rgba(102,217,203,0.02))] p-4">
+            <div className="stream-launch-pedestal relative hidden overflow-hidden rounded-2xl border border-[#66d9cb]/25 bg-[linear-gradient(135deg,rgba(102,217,203,0.08),rgba(102,217,203,0.02))] p-4 sm:block">
                 <div className="flex items-center gap-5">
                     {/* Animated pedestal */}
                     <div className="relative shrink-0 w-20 h-24 flex flex-col items-center justify-end">

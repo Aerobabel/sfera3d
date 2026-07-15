@@ -499,6 +499,77 @@ a {
 .zombie-damage-slash { animation: zombieDamageSlash 620ms ease-out both; }
 .zombie-damage-slash-right { animation-delay: 45ms; }
 
+@media (max-height: 850px) and (min-width: 768px) {
+  .role-selection-content {
+    gap: 0.75rem;
+    padding-block: 0.75rem;
+  }
+
+  .role-selection-footer,
+  .role-selection-card-proof {
+    display: none !important;
+  }
+
+  .role-selection-card {
+    min-height: 0 !important;
+  }
+
+  .role-selection-card-description {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}
+
+@media (max-height: 700px) and (min-width: 640px) {
+  .role-selection-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .role-selection-subtitle,
+  .role-selection-card-metrics,
+  .role-selection-card-proof,
+  .role-selection-footer {
+    display: none !important;
+  }
+
+  .role-selection-content {
+    gap: 0.6rem;
+    padding-block: 0.5rem;
+  }
+
+  .role-selection-card {
+    min-height: 0 !important;
+    padding: 0.75rem;
+  }
+}
+
+@media (max-height: 760px) {
+  .stream-launch-pedestal {
+    display: none !important;
+  }
+}
+
+@media (max-height: 560px) and (min-width: 640px) {
+  .role-selection-card-description {
+    display: none !important;
+  }
+
+  .role-selection-header > p {
+    display: none;
+  }
+
+  .stream-launch-controls,
+  .stream-launch-pedestal {
+    display: none !important;
+  }
+
+  .stream-launch-welcome {
+    gap: 0.75rem;
+  }
+}
+
 @media print {
   @page {
     size: auto;

@@ -25,6 +25,7 @@ import BrandLogo from '@/components/BrandLogo';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import type { AppLanguage } from '@/lib/i18n';
 import { fadeOutCutsceneAudio, resetCutsceneAudio, softenCutsceneAudioTail } from '@/lib/ui/cutsceneAudio';
+import { useViewportScrollLock } from '@/hooks/useViewportScrollLock';
 
 type RoleTone = 'player' | 'shopper' | 'business';
 
@@ -381,29 +382,33 @@ function RoleCard({
                 onSelect(base.href);
             }}
             style={{ animationDelay: `${index * 95}ms` }}
-            className={`fade-up group relative isolate flex min-h-[20.5rem] flex-col overflow-hidden rounded-lg border ${tone.panel} p-4 shadow-[0_30px_95px_rgba(0,0,0,0.42)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-black/72 hover:shadow-[0_38px_120px_rgba(0,0,0,0.5)] sm:p-5 ${tone.border}`}
+            className={`role-selection-card fade-up group relative isolate flex min-h-0 flex-col overflow-hidden rounded-lg border ${tone.panel} p-3 shadow-[0_30px_95px_rgba(0,0,0,0.42)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-black/72 hover:shadow-[0_38px_120px_rgba(0,0,0,0.5)] sm:min-h-[17rem] sm:p-4 lg:min-h-[19rem] lg:p-5 ${tone.border}`}
         >
             <span className={`absolute inset-x-0 top-0 h-px ${tone.accent}`} />
             <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.1),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),transparent_40%)]" />
             <span className="pointer-events-none absolute inset-x-6 top-20 h-px bg-white/10" />
 
             <div className="relative flex items-center justify-between gap-4">
-                <span className={`flex h-12 w-12 items-center justify-center rounded-full border ${tone.icon}`}>
+                <span className={`flex h-10 w-10 items-center justify-center rounded-full border sm:h-12 sm:w-12 ${tone.icon}`}>
                     <Icon className="h-5 w-5" strokeWidth={1.8} />
                 </span>
-                <span className={`inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[11px] font-semibold ${tone.text}`}>
+                <div className="min-w-0 flex-1 sm:hidden">
+                    <p className={`text-[9px] font-semibold uppercase ${tone.text}`}>{text.label}</p>
+                    <h2 className="mt-0.5 truncate text-lg font-semibold leading-tight text-white">{text.title}</h2>
+                </div>
+                <span className={`hidden items-center gap-1.5 rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[11px] font-semibold sm:inline-flex ${tone.text}`}>
                     {base.tone === 'player' && <LockKeyhole className="h-3.5 w-3.5" />}
                     {rolePath}
                 </span>
             </div>
 
-            <div className="relative mt-8 min-w-0">
-                <p className={`text-xs font-semibold uppercase ${tone.text}`}>{text.label}</p>
-                <h2 className="mt-2 break-words text-2xl font-semibold leading-tight text-white sm:text-3xl">{text.title}</h2>
-                <p className="mt-3 max-w-md text-sm leading-6 text-slate-300/88">{text.description}</p>
+            <div className="relative mt-3 hidden min-w-0 sm:mt-5 sm:block lg:mt-7">
+                <p className={`text-[10px] font-semibold uppercase sm:text-xs ${tone.text}`}>{text.label}</p>
+                <h2 className="mt-1 break-words text-xl font-semibold leading-tight text-white sm:mt-2 sm:text-2xl lg:text-3xl">{text.title}</h2>
+                <p className="role-selection-card-description mt-2 hidden max-w-md text-sm leading-5 text-slate-300/88 sm:block lg:leading-6">{text.description}</p>
             </div>
 
-            <div className="relative mt-5 grid grid-cols-2 divide-x divide-white/10 border-y border-white/10 py-2.5">
+            <div className="role-selection-card-metrics relative mt-3 hidden grid-cols-2 divide-x divide-white/10 border-y border-white/10 py-2 sm:grid lg:mt-4 lg:py-2.5">
                 {text.metrics.map((metric) => (
                     <div key={metric.label} className="px-3 first:pl-0 last:pr-0">
                         <p className="text-2xl font-semibold text-white">{metric.value}</p>
@@ -412,7 +417,7 @@ function RoleCard({
                 ))}
             </div>
 
-            <div className="relative mt-3 flex min-h-10 flex-wrap content-start gap-2">
+            <div className="role-selection-card-proof relative mt-3 hidden min-h-8 flex-wrap content-start gap-2 lg:flex">
                 {text.proof.map((item) => (
                     <span key={item} className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300">
                         {item}
@@ -420,8 +425,8 @@ function RoleCard({
                 ))}
             </div>
 
-            <div className="relative mt-auto pt-4">
-                <span className={`inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border px-3 py-3 text-center text-sm font-semibold uppercase transition ${tone.button}`}>
+            <div className="relative mt-auto pt-3 sm:pt-4">
+                <span className={`inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border px-3 py-2 text-center text-xs font-semibold uppercase transition sm:min-h-11 sm:text-sm ${tone.button}`}>
                     {text.action}
                     <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                 </span>
@@ -449,6 +454,7 @@ export default function RoleSelectionPage() {
     const currentIntroCutsceneSrcs = ROLE_INTRO_CUTSCENE_SRCS[language];
     const currentIntroCutsceneSrc = currentIntroCutsceneSrcs[introCutsceneIndex];
     const currentGameCutsceneSrc = GAME_SELECTION_CUTSCENE_SRCS[language];
+    useViewportScrollLock();
 
     const playIntroVideo = () => {
         const video = introVideoRef.current;
@@ -542,9 +548,9 @@ export default function RoleSelectionPage() {
     }, [hasStartedGameCutscene, isGameCutsceneVisible]);
 
     return (
-        <main className="sfera-cinematic-shell sfera-page-enter min-h-screen overflow-hidden text-white">
+        <main className="sfera-cinematic-shell sfera-page-enter h-dvh max-h-dvh overflow-hidden text-white">
             {isIntroVisible && (
-                <div className="fixed inset-0 z-50 bg-black">
+                <div className="fixed inset-0 z-50 h-dvh max-h-dvh overflow-hidden overscroll-none bg-black">
                     <header className="absolute inset-x-0 top-0 z-[80] border-b border-white/15 bg-[#090b10]/95 shadow-[0_16px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl">
                         <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-3 py-2 sm:min-h-20 sm:px-6 lg:px-8">
                             <Link href="/" className="flex min-w-0 items-center">
@@ -604,7 +610,7 @@ export default function RoleSelectionPage() {
             )}
 
             {isGameCutsceneVisible && (
-                <div className="fixed inset-0 z-50 bg-black">
+                <div className="fixed inset-0 z-50 h-dvh max-h-dvh overflow-hidden overscroll-none bg-black">
                     <video
                         ref={gameCutsceneVideoRef}
                         className={`cinematic-cutscene-video h-full w-full object-cover transition duration-500 ${isEnteringScene ? 'scale-[1.045] brightness-50' : 'scale-[1.025]'}`}
@@ -628,7 +634,7 @@ export default function RoleSelectionPage() {
                 </div>
             )}
 
-            <section className="relative min-h-screen overflow-hidden px-4 pb-6 pt-4 sm:px-6 lg:px-8">
+            <section className="relative h-dvh max-h-dvh overflow-hidden px-3 py-3 sm:px-5 sm:py-4 lg:px-8">
                 <video
                     className="fixed inset-0 h-full w-full object-cover opacity-45"
                     src="/cutscenes/cityvideo.mp4"
@@ -642,7 +648,7 @@ export default function RoleSelectionPage() {
                 <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.82),rgba(0,0,0,0.38)_48%,rgba(0,0,0,0.84)),linear-gradient(180deg,rgba(0,0,0,0.76),rgba(0,0,0,0.2)_36%,rgba(0,0,0,0.86))]" />
                 <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(217,181,110,0.18),transparent_32%),radial-gradient(circle_at_20%_70%,rgba(56,189,248,0.12),transparent_28%)]" />
 
-                <div className="relative mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-7xl flex-col">
+                <div className="relative mx-auto flex h-full min-h-0 max-w-7xl flex-col">
                     <nav className="flex min-h-12 items-center justify-between gap-3">
                         <Link href={returnToScene ? '/fastview?resume=scene' : '/'} className="flex min-w-0 items-center">
                             <BrandLogo size="sm" imageClassName="h-8 w-[9.4rem]" />
@@ -667,18 +673,18 @@ export default function RoleSelectionPage() {
                         </div>
                     </nav>
 
-                    <div className="flex flex-1 flex-col justify-center gap-5 py-8 sm:py-10">
-                        <header className="mx-auto max-w-4xl text-center">
-                            <p className="fade-up text-sm font-medium text-slate-200 sm:text-base">{copy.eyebrow}</p>
-                            <h1 className="sfera-display fade-up delay-1 mt-2 break-words text-5xl leading-none text-[#f3dfb4] drop-shadow-[0_18px_40px_rgba(0,0,0,0.55)] sm:text-6xl lg:text-7xl">
+                    <div className="role-selection-content flex min-h-0 flex-1 flex-col justify-center gap-3 py-3 sm:gap-4 sm:py-5 lg:gap-5 lg:py-6">
+                        <header className="role-selection-header mx-auto max-w-4xl text-center">
+                            <p className="fade-up text-xs font-medium text-slate-200 sm:text-sm lg:text-base">{copy.eyebrow}</p>
+                            <h1 className="sfera-display fade-up delay-1 mt-1 break-words text-3xl leading-none text-[#f3dfb4] drop-shadow-[0_18px_40px_rgba(0,0,0,0.55)] sm:mt-2 sm:text-5xl lg:text-6xl">
                                 3DSFERA
                             </h1>
-                            <p className="fade-up delay-2 mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
+                            <p className="role-selection-subtitle fade-up delay-2 mx-auto mt-2 hidden max-w-2xl text-sm leading-5 text-slate-300 sm:block lg:text-base lg:leading-6">
                                 {copy.subtitle}
                             </p>
                         </header>
 
-                        <section className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                        <section className="role-selection-grid grid min-h-0 gap-2 sm:gap-3 md:grid-cols-2 lg:grid-cols-3 lg:gap-5">
                             {roleBases.map((base, index) => (
                                 <RoleCard
                                     key={base.tone}
@@ -691,7 +697,7 @@ export default function RoleSelectionPage() {
                             ))}
                         </section>
 
-                        <section className="fade-up delay-3 grid gap-3 rounded-lg border border-white/10 bg-black/42 p-4 shadow-[0_28px_90px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:grid-cols-2 lg:grid-cols-4">
+                        <section className="role-selection-footer fade-up delay-3 hidden gap-3 rounded-lg border border-white/10 bg-black/42 p-3 shadow-[0_28px_90px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:grid sm:grid-cols-2 lg:grid-cols-4 lg:p-4">
                             {copy.footerInsights.map(({ title, text, icon: InsightIcon }) => (
                                 <div key={title} className="flex min-w-0 gap-3 border-white/10 lg:border-r lg:pr-4 lg:last:border-r-0 lg:last:pr-0">
                                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#f3dfb4]">
