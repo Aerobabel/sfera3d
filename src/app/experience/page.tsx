@@ -2370,14 +2370,15 @@ function WaterDispenserOverlay({
 
     return (
         <div className="absolute inset-0 z-[94] grid place-items-center bg-[#01040a]/78 p-3 text-white backdrop-blur-md pointer-events-auto sm:p-4" role="dialog" aria-modal="true" aria-label={copy.dispenserAria}>
-            <section className="sfera-reward-pop grid max-h-[calc(100dvh-1.25rem)] w-[min(100%,74rem)] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#071018]/96 shadow-[0_44px_150px_rgba(0,0,0,0.72)] lg:overflow-hidden lg:grid-cols-[1fr_1.18fr]">
-                <div className="relative min-h-0 overflow-visible border-b border-white/10 p-4 lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r lg:p-5" onWheel={(event) => event.stopPropagation()}>
+            <section className="sfera-reward-pop grid h-[calc(100dvh-1.25rem)] max-h-[calc(100dvh-1.25rem)] w-[min(100%,74rem)] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#071018]/96 shadow-[0_44px_150px_rgba(0,0,0,0.72)] lg:grid-rows-1 lg:overflow-hidden lg:grid-cols-[1fr_1.18fr]">
+                <div className="relative flex min-h-0 flex-col overflow-hidden border-b border-white/10 lg:border-b-0 lg:border-r">
                     <button type="button" onClick={onClose} className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/35 text-slate-300 transition hover:text-white" aria-label={copy.close}>
                         <X className="h-4 w-4" />
                     </button>
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_12%,rgba(102,217,203,0.24),transparent_34%),radial-gradient(circle_at_75%_70%,rgba(244,63,94,0.13),transparent_32%),linear-gradient(160deg,rgba(255,255,255,0.05),transparent_45%)]" />
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-[linear-gradient(to_top,rgba(102,217,203,0.1),transparent)]" />
-                    <div className="relative flex h-full flex-col">
+                    <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 lg:p-5" onWheel={(event) => event.stopPropagation()}>
+                    <div className="flex min-h-full flex-col">
                         <div className="flex items-start gap-4 pr-8">
                             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-100 shadow-[0_0_34px_rgba(102,217,203,0.22)]">
                                 <Droplets className="h-6 w-6" />
@@ -2453,6 +2454,9 @@ function WaterDispenserOverlay({
                                 {purchaseNotice ?? lockHint}
                             </p>
                         )}
+                    </div>
+                    </div>
+                    <div className="relative z-20 shrink-0 border-t border-white/10 bg-[#071018]/96 p-3 shadow-[0_-18px_42px_rgba(2,6,12,0.88)] lg:p-4">
                         <button
                             type="button"
                             onClick={() => {
@@ -2467,7 +2471,7 @@ function WaterDispenserOverlay({
                                 if (canBuy) onBuy();
                             }}
                             disabled={waterPurchased}
-                            className="sticky bottom-0 z-20 mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.13em] text-slate-950 shadow-[0_-14px_34px_rgba(7,16,24,0.92),0_18px_48px_rgba(102,217,203,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.13em] text-slate-950 shadow-[0_18px_48px_rgba(102,217,203,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45"
                         >
                             <ShoppingCart className="h-4 w-4" />
                             {waterPurchased ? copy.waterBought : !isQuestProductSelected ? copy.comingSoon : canBuy ? copy.buyBottle : copy.tryToBuy}
