@@ -2346,6 +2346,8 @@ function WaterDispenserOverlay({
 }) {
     const [selectedProductId, setSelectedProductId] = useState(WATER_PRODUCTS[0]?.id ?? '');
     const [purchaseNotice, setPurchaseNotice] = useState<string | null>(null);
+    const [purchaseFeedback, setPurchaseFeedback] = useState<{ kind: 'blocked' | 'unavailable'; id: number } | null>(null);
+    const purchaseFeedbackTimerRef = useRef<number | null>(null);
     const selectedProductIndex = Math.max(0, WATER_PRODUCTS.findIndex((product) => product.id === selectedProductId));
     const selectedProduct = WATER_PRODUCTS[selectedProductIndex] ?? WATER_PRODUCTS[0];
     const isQuestProductSelected = selectedProductIndex === 0;
@@ -2367,6 +2369,24 @@ function WaterDispenserOverlay({
             ? copy.needMoreCoins(GAME_RULES.water.bottlePriceCoins - walletBalanceCents)
             : copy.enoughReady;
     const selectedProductTier = localizeWaterProductLabel(copy.productTiers, selectedProduct.tier);
+
+    useEffect(() => () => {
+        if (purchaseFeedbackTimerRef.current !== null) {
+            window.clearTimeout(purchaseFeedbackTimerRef.current);
+        }
+    }, []);
+
+    const showPurchaseFeedback = (kind: 'blocked' | 'unavailable') => {
+        if (purchaseFeedbackTimerRef.current !== null) {
+            window.clearTimeout(purchaseFeedbackTimerRef.current);
+        }
+        setPurchaseFeedback({ kind, id: Date.now() });
+        playSferaUiSound('warning');
+        purchaseFeedbackTimerRef.current = window.setTimeout(() => {
+            setPurchaseFeedback(null);
+            purchaseFeedbackTimerRef.current = null;
+        }, 2200);
+    };
 
     return (
         <div className="absolute inset-0 z-[94] grid place-items-center bg-[#01040a]/78 p-3 text-white backdrop-blur-md pointer-events-auto sm:p-4" role="dialog" aria-modal="true" aria-label={copy.dispenserAria}>
@@ -2457,24 +2477,51 @@ function WaterDispenserOverlay({
                     </div>
                     </div>
                     <div className="relative z-20 shrink-0 border-t border-white/10 bg-[#071018]/96 p-3 shadow-[0_-18px_42px_rgba(2,6,12,0.88)] lg:p-4">
+                        <div className="min-h-[1.5rem]" aria-live="polite" aria-atomic="true">
+                            {purchaseFeedback && (
+                                <p
+                                    key={purchaseFeedback.id}
+                                    className="water-purchase-feedback mb-2 flex items-center justify-center gap-2 rounded-lg border border-amber-300/25 bg-amber-300/10 px-3 py-1.5 text-center text-xs font-bold text-amber-100"
+                                >
+                                    <LockKeyhole className="h-3.5 w-3.5 shrink-0" />
+                                    {purchaseFeedback.kind === 'unavailable' ? copy.productUnavailable : copy.purchaseBlocked}
+                                </p>
+                            )}
+                        </div>
                         <button
                             type="button"
                             onClick={() => {
                                 if (!isQuestProductSelected) {
                                     setPurchaseNotice(copy.productUnavailable);
+                                    showPurchaseFeedback('unavailable');
                                     return;
                                 }
                                 if (!canBuy) {
                                     setPurchaseNotice(copy.purchaseBlocked);
+                                    showPurchaseFeedback('blocked');
                                 }
                                 onAttempt();
                                 if (canBuy) onBuy();
                             }}
                             disabled={waterPurchased}
-                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.13em] text-slate-950 shadow-[0_18px_48px_rgba(102,217,203,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45"
+                            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-black uppercase tracking-[0.13em] shadow-[0_18px_48px_rgba(102,217,203,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45 ${
+                                purchaseFeedback
+                                    ? 'water-purchase-button-blocked border-amber-200/45 bg-[linear-gradient(135deg,#b45309,#ef4444)] text-white shadow-[0_18px_48px_rgba(239,68,68,0.24)]'
+                                    : 'border-transparent bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] text-slate-950'
+                            }`}
                         >
-                            <ShoppingCart className="h-4 w-4" />
-                            {waterPurchased ? copy.waterBought : !isQuestProductSelected ? copy.comingSoon : canBuy ? copy.buyBottle : copy.tryToBuy}
+                            {purchaseFeedback ? <LockKeyhole className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
+                            {waterPurchased
+                                ? copy.waterBought
+                                : purchaseFeedback?.kind === 'blocked'
+                                    ? copy.locked
+                                    : purchaseFeedback?.kind === 'unavailable'
+                                        ? copy.comingSoon
+                                        : !isQuestProductSelected
+                                            ? copy.comingSoon
+                                            : canBuy
+                                                ? copy.buyBottle
+                                                : copy.tryToBuy}
                         </button>
                     </div>
                 </div>

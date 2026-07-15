@@ -570,6 +570,33 @@ a {
   }
 }
 
+@keyframes water-purchase-feedback-in {
+  0% {
+    opacity: 0;
+    transform: translateY(0.35rem) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes water-purchase-button-blocked {
+  0%, 100% { transform: translateX(0); }
+  18% { transform: translateX(-0.32rem); }
+  36% { transform: translateX(0.32rem); }
+  54% { transform: translateX(-0.2rem); }
+  72% { transform: translateX(0.2rem); }
+}
+
+.water-purchase-feedback {
+  animation: water-purchase-feedback-in 180ms ease-out both;
+}
+
+.water-purchase-button-blocked {
+  animation: water-purchase-button-blocked 420ms ease-out;
+}
+
 @media print {
   @page {
     size: auto;
