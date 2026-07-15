@@ -2370,8 +2370,8 @@ function WaterDispenserOverlay({
 
     return (
         <div className="absolute inset-0 z-[94] grid place-items-center bg-[#01040a]/78 p-3 text-white backdrop-blur-md pointer-events-auto sm:p-4" role="dialog" aria-modal="true" aria-label={copy.dispenserAria}>
-            <section className="sfera-reward-pop grid max-h-[calc(100vh-1.25rem)] w-[min(100%,74rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#071018]/96 shadow-[0_44px_150px_rgba(0,0,0,0.72)] lg:grid-cols-[1fr_1.18fr]">
-                <div className="relative overflow-hidden border-b border-white/10 p-5 lg:border-b-0 lg:border-r lg:p-6">
+            <section className="sfera-reward-pop grid max-h-[calc(100dvh-1.25rem)] w-[min(100%,74rem)] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#071018]/96 shadow-[0_44px_150px_rgba(0,0,0,0.72)] lg:overflow-hidden lg:grid-cols-[1fr_1.18fr]">
+                <div className="relative min-h-0 overflow-visible border-b border-white/10 p-4 lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r lg:p-5" onWheel={(event) => event.stopPropagation()}>
                     <button type="button" onClick={onClose} className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/35 text-slate-300 transition hover:text-white" aria-label={copy.close}>
                         <X className="h-4 w-4" />
                     </button>
@@ -2467,7 +2467,7 @@ function WaterDispenserOverlay({
                                 if (canBuy) onBuy();
                             }}
                             disabled={waterPurchased}
-                            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.13em] text-slate-950 shadow-[0_18px_48px_rgba(102,217,203,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45"
+                            className="sticky bottom-0 z-20 mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-4 py-3 text-sm font-black uppercase tracking-[0.13em] text-slate-950 shadow-[0_-14px_34px_rgba(7,16,24,0.92),0_18px_48px_rgba(102,217,203,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-45"
                         >
                             <ShoppingCart className="h-4 w-4" />
                             {waterPurchased ? copy.waterBought : !isQuestProductSelected ? copy.comingSoon : canBuy ? copy.buyBottle : copy.tryToBuy}
@@ -4475,6 +4475,20 @@ export default function ExperiencePage() {
         isPlayerModeAccessDenied &&
         !isPlayerModePromptDismissed &&
         (effectiveSceneMode !== 'player' || isArenaKeyAccessDenied);
+    const shouldShowWorldGuide =
+        showExperienceHud &&
+        !activeProduct &&
+        !activePavilion &&
+        !isCatalogueOpen &&
+        !isMenuOpen &&
+        !isRewardTerminalOpen &&
+        !isArcadeOpen &&
+        !isWaterDispenserOpen &&
+        !isArenaPasswordOpen &&
+        !isWheelOpen &&
+        !isStreamPixelOpen &&
+        !dashboardOverlay &&
+        !shouldShowPlayerModePrompt;
 
     useEffect(() => {
         if (!isPlayerModeAccessDenied || effectiveSceneMode !== 'player') return;
@@ -5561,7 +5575,7 @@ export default function ExperiencePage() {
                 )}
             </div>
 
-            {showExperienceHud && (
+            {shouldShowWorldGuide && (
                 <WorldGuideOverlay
                     position={worldPosition}
                     questObjective={mapQuestGuidance.objective}
