@@ -78,6 +78,10 @@ const GAME_SELECTION_CUTSCENE_SRCS: Record<AppLanguage, string> = {
     zh: '/cutscenes/gamecutscene-zh.MOV',
 };
 
+const ROLE_BACKGROUND_PLAYBACK_RATE = 0.7;
+const ROLE_BACKGROUND_FADE_AT_SECONDS = 7.1;
+const ROLE_BACKGROUND_LOOP_AT_SECONDS = 8;
+
 function RoleCutsceneOverlay({ label }: { label: string }) {
     return (
         <>
@@ -643,16 +647,26 @@ export default function RoleSelectionPage() {
                     muted
                     playsInline
                     preload="metadata"
+                    onLoadedMetadata={(event) => {
+                        event.currentTarget.playbackRate = ROLE_BACKGROUND_PLAYBACK_RATE;
+                    }}
+                    onPlay={(event) => {
+                        event.currentTarget.playbackRate = ROLE_BACKGROUND_PLAYBACK_RATE;
+                    }}
                     onTimeUpdate={(event) => {
                         const video = event.currentTarget;
-                        const remaining = video.duration - video.currentTime;
-                        // The source film's Russian end-card begins around 4s.
-                        // Start the permanent matte well before those frames.
-                        setIsRoleBackgroundEndFaded(Number.isFinite(remaining) && remaining <= 7.5);
+                        if (video.currentTime >= ROLE_BACKGROUND_FADE_AT_SECONDS) {
+                            setIsRoleBackgroundEndFaded(true);
+                        }
+                        if (video.currentTime >= ROLE_BACKGROUND_LOOP_AT_SECONDS) {
+                            video.currentTime = 0;
+                            void video.play().catch(() => undefined);
+                        }
                     }}
+                    onSeeked={() => setIsRoleBackgroundEndFaded(false)}
                     aria-hidden="true"
                 />
-                <div className={`pointer-events-none fixed inset-0 bg-black transition-opacity duration-500 ${isRoleBackgroundEndFaded ? 'opacity-100' : 'opacity-0'}`} />
+                <div className={`pointer-events-none fixed inset-0 bg-black transition-opacity duration-700 ${isRoleBackgroundEndFaded ? 'opacity-100' : 'opacity-0'}`} />
                 <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.82),rgba(0,0,0,0.38)_48%,rgba(0,0,0,0.84)),linear-gradient(180deg,rgba(0,0,0,0.76),rgba(0,0,0,0.2)_36%,rgba(0,0,0,0.86))]" />
                 <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(217,181,110,0.18),transparent_32%),radial-gradient(circle_at_20%_70%,rgba(56,189,248,0.12),transparent_28%)]" />
 
