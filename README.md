@@ -16,7 +16,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 NEXT_PUBLIC_SUPPLIER_INTAKE_EMAIL=suppliers@3dsfera.org
 RESEND_API_KEY=your_resend_api_key
-PRE_REGISTRATION_EMAIL_FROM="3DSFERA <access@3dsfera.org>"
+PRE_REGISTRATION_EMAIL_FROM="3DSFERA <admin@3dsfera.org>"
 ```
 
 Security: if the `SUPABASE_SERVICE_ROLE_KEY` was ever shared publicly, rotate it immediately in Supabase Dashboard (`Project Settings -> API`) and update all deployments.

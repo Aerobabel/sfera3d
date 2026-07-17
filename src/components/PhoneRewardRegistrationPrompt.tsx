@@ -7,9 +7,9 @@ import type { AppLanguage } from '@/lib/i18n';
 
 const COPY = {
     en: {
-        eyebrow: 'Founding access unlocked',
-        title: 'Claim your place in the first 100',
-        body: 'The first 100 registered participants receive complimentary access to 3DSFERA. Registration will become paid in the future, so reserve your place now.',
+        eyebrow: 'Limited-time free registration',
+        title: 'Register before August 1, 2026',
+        body: 'Everyone who registers by August 1, 2026 receives free lifetime access to 3DSFERA. Registration will become paid afterward, so secure your access now.',
         email: 'Launch dates, access updates, and important platform news will be sent to the email used during registration.',
         secure: 'Your password is stored securely and is never shown in email.',
         linkLabel: 'Pre-registration link',
@@ -20,9 +20,9 @@ const COPY = {
         close: 'Close registration offer',
     },
     zh: {
-        eyebrow: '创始体验资格已解锁',
-        title: '成为首批 100 位参与者',
-        body: '前 100 位完成注册的参与者可免费体验 3DSFERA。未来注册将转为付费，请立即预留您的名额。',
+        eyebrow: '限时免费注册',
+        title: '请在 2026 年 8 月 1 日前注册',
+        body: '所有在 2026 年 8 月 1 日前完成注册的用户都将获得 3DSFERA 终身免费访问权限。之后注册将转为付费，请立即锁定您的资格。',
         email: '上线日期、访问更新和重要平台消息将发送到您注册时填写的邮箱。',
         secure: '您的密码会被安全保存，绝不会通过邮件明文显示。',
         linkLabel: '预注册链接',

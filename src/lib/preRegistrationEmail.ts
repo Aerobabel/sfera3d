@@ -26,15 +26,14 @@ export async function sendPreRegistrationConfirmation(args: PreRegistrationEmail
     }
 
     const from = process.env.PRE_REGISTRATION_EMAIL_FROM?.trim()
-        || process.env.PAVILION_EMAIL_FROM?.trim()
-        || '3DSFERA <notifications@3dsfera.app>';
+        || '3DSFERA <admin@3dsfera.org>';
     const isChinese = args.locale === 'zh';
     const valueOrDash = (value: string) => value || '—';
     const subject = isChinese
         ? '您已成功注册 3DSFERA'
-        : 'You are successfully registered for 3DSFERA';
+        : 'Your 3DSFERA registration is confirmed';
     const accessLine = args.complimentaryAccess
-        ? (isChinese ? '您已预留首批 100 位参与者的免费体验资格。' : 'Your complimentary place among the first 100 participants has been reserved.')
+        ? (isChinese ? '您的 3DSFERA 终身免费访问资格已预留。' : 'Your free lifetime access to 3DSFERA has been reserved.')
         : (isChinese ? '您的预注册已记录；付费访问详情将在上线前发送。' : 'Your pre-registration is recorded; paid-access details will be sent before launch.');
     const labels = isChinese
         ? { name: '姓名', login: '登录账号', password: '密码', phone: '电话', company: '公司', comment: '备注' }
@@ -44,8 +43,8 @@ export async function sendPreRegistrationConfirmation(args: PreRegistrationEmail
         ? `恭喜，${args.fullName}！您已成功注册 3dsfera.org。`
         : `Congratulations, ${args.fullName}! You have successfully registered at 3dsfera.org.`;
     const outro = isChinese
-        ? '有关平台变更和上线时间的消息，我们会通过此邮箱另行通知。'
-        : 'We will send all platform changes and launch-timing updates to this email address.';
+        ? '3DSFERA 正式开放时，我们会向此邮箱另行发送通知。平台变更和上线时间也会通过此邮箱告知。'
+        : 'As soon as 3DSFERA opens, we will notify you in a separate email. Platform changes and launch timing will also be sent to this address.';
 
     const rows = [
         [labels.name, args.fullName],
@@ -64,6 +63,7 @@ export async function sendPreRegistrationConfirmation(args: PreRegistrationEmail
         '',
         outro,
         '',
+        '3DSFERA: https://3dsfera.org/',
         'https://3dsfera.org/login?role=player',
     ].join('\n');
     const htmlRows = rows.map(([label, value]) => `
@@ -73,6 +73,9 @@ export async function sendPreRegistrationConfirmation(args: PreRegistrationEmail
         </tr>`).join('');
     const html = `
         <div style="font-family:Arial,Helvetica,sans-serif;background:#071018;color:#edf7f7;padding:32px;border-radius:20px;max-width:620px;margin:0 auto;">
+            <a href="https://3dsfera.org/" style="display:inline-block;margin-bottom:18px;text-decoration:none;" aria-label="Open 3DSFERA">
+                <img src="https://3dsfera.org/3dsfera-logo-mark.png" width="64" height="67" alt="3DSFERA" style="display:block;width:64px;height:67px;object-fit:contain;border:0;" />
+            </a>
             <div style="font-size:10px;font-weight:800;letter-spacing:.28em;text-transform:uppercase;color:#66d9cb;margin-bottom:14px;">3DSFERA · EARLY ACCESS</div>
             <h1 style="font-size:25px;line-height:1.2;margin:0 0 16px;color:#fff;">${escapeHtml(subject)}</h1>
             <p style="font-size:14px;line-height:1.7;color:#c8d6e1;margin:0 0 12px;">${escapeHtml(intro)}</p>
@@ -89,7 +92,14 @@ export async function sendPreRegistrationConfirmation(args: PreRegistrationEmail
                 Authorization: `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ from, to: [args.to], subject, html, text }),
+            body: JSON.stringify({
+                from,
+                to: [args.to],
+                reply_to: 'admin@3dsfera.org',
+                subject,
+                html,
+                text,
+            }),
         });
 
         if (!response.ok) {

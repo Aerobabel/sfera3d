@@ -19,6 +19,7 @@ type PreRegistrationBody = {
 
 const ACCOUNT_TYPES = new Set(['player', 'visitor', 'supplier']);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const FREE_REGISTRATION_DEADLINE = Date.parse('2026-08-01T23:59:59+03:00');
 const trim = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
 const jsonError = (status: number, error: string) =>
     NextResponse.json({ success: false, error }, { status });
@@ -60,14 +61,13 @@ export async function POST(request: Request) {
     if (company.length > 160) return jsonError(400, 'Company name is too long.');
     if (message.length > 1500) return jsonError(400, 'Message is too long.');
     if (payload.consent !== true) return jsonError(400, 'Consent is required.');
+    if (Date.now() > FREE_REGISTRATION_DEADLINE) {
+        return jsonError(403, 'Free registration has closed. Paid registration information will be announced soon.');
+    }
 
     try {
         const supabase = getSupabaseAdminClient();
-        const { count } = await supabase
-            .from('pre_registrations')
-            .select('id', { count: 'exact', head: true });
-        const registrationNumber = (count ?? 0) + 1;
-        const complimentaryAccess = registrationNumber <= 100;
+        const complimentaryAccess = true;
         const role = accountType === 'supplier' ? 'supplier' : 'buyer';
 
         const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -82,7 +82,8 @@ export async function POST(request: Request) {
                 role,
                 early_access: true,
                 complimentary_access: complimentaryAccess,
-                registration_number: registrationNumber,
+                complimentary_access_type: 'lifetime',
+                free_registration_deadline: '2026-08-01',
                 registration_source: source,
             },
         });
