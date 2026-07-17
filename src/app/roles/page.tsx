@@ -641,17 +641,18 @@ export default function RoleSelectionPage() {
                     src="/cutscenes/cityvideo.mp4"
                     autoPlay
                     muted
-                    loop
                     playsInline
                     preload="metadata"
                     onTimeUpdate={(event) => {
                         const video = event.currentTarget;
                         const remaining = video.duration - video.currentTime;
-                        setIsRoleBackgroundEndFaded(Number.isFinite(remaining) && remaining <= 2.4);
+                        // The source film's Russian end-card begins around 4s.
+                        // Start the permanent matte well before those frames.
+                        setIsRoleBackgroundEndFaded(Number.isFinite(remaining) && remaining <= 7.5);
                     }}
                     aria-hidden="true"
                 />
-                <div className={`pointer-events-none fixed inset-0 bg-black transition-opacity duration-700 ${isRoleBackgroundEndFaded ? 'opacity-90' : 'opacity-0'}`} />
+                <div className={`pointer-events-none fixed inset-0 bg-black transition-opacity duration-500 ${isRoleBackgroundEndFaded ? 'opacity-100' : 'opacity-0'}`} />
                 <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.82),rgba(0,0,0,0.38)_48%,rgba(0,0,0,0.84)),linear-gradient(180deg,rgba(0,0,0,0.76),rgba(0,0,0,0.2)_36%,rgba(0,0,0,0.86))]" />
                 <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(217,181,110,0.18),transparent_32%),radial-gradient(circle_at_20%_70%,rgba(56,189,248,0.12),transparent_28%)]" />
 
