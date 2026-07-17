@@ -180,7 +180,7 @@ export async function POST(request: Request) {
     };
     const text = typeof payload.text === 'string' ? payload.text.trim() : '';
     const productId = typeof payload.productId === 'string' ? payload.productId : undefined;
-    const language = isAppLanguage(payload.language) ? payload.language : 'ru';
+    const language = isAppLanguage(payload.language) ? payload.language : 'en';
     const authenticatedUser = await authenticateAppRequest(request);
 
     if (!authenticatedUser) {

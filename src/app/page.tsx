@@ -1054,7 +1054,7 @@ export default function LandingPage() {
               loop
               playsInline
             >
-              <source src="/cutscenes/maincutscene-ru.MP4" type="video/mp4" />
+              <source src="/cutscenes/maincutscene.MOV" type="video/quicktime" />
             </video>
             <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,12,16,0.96),rgba(8,12,16,0.78),rgba(8,12,16,0.92))]" />
             <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">

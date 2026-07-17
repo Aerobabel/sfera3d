@@ -1,6 +1,6 @@
 import { AppLanguage, isAppLanguage } from "./i18n";
 
-export const CHAT_TRANSLATION_LANGUAGES: AppLanguage[] = ["en", "ru", "zh"];
+export const CHAT_TRANSLATION_LANGUAGES: AppLanguage[] = ["en", "zh"];
 
 const CHAT_LANGUAGE_LABELS: Record<AppLanguage, string> = {
   en: "English",
@@ -99,7 +99,7 @@ const requestTranslationsFromOpenAI = async (
       model: OPENAI_TRANSLATION_MODEL,
       instructions: [
         "You translate short B2B marketplace chat messages.",
-        "Return only valid JSON with the keys en, ru, zh.",
+        "Return only valid JSON with the keys en and zh.",
         `The source language is ${CHAT_LANGUAGE_LABELS[sourceLanguage]}.`,
         "For the source language, copy the original message exactly.",
         "Translate naturally for business chat.",

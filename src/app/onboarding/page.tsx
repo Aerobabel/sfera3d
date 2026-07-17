@@ -41,8 +41,8 @@ const ONBOARDING_PDFS = {
     filename: "english_onboarding.pdf",
   },
   ru: {
-    href: "/api/onboarding-pdf?lang=ru",
-    filename: "russian_onboarding.pdf",
+    href: "/api/onboarding-pdf?lang=en",
+    filename: "english_onboarding.pdf",
   },
   zh: {
     href: "/api/onboarding-pdf?lang=zh",

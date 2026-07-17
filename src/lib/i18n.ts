@@ -7,7 +7,7 @@ export const CHINA_HOSTNAME = "china.3dsfera.org";
 export const LANGUAGE_STORAGE_KEY = "3dsfera_language";
 
 export const isAppLanguage = (value: unknown): value is AppLanguage =>
-  value === "ru" || value === "zh" || value === "en";
+  value === "zh" || value === "en";
 
 export const getDefaultLanguageForHostname = (hostname: string | null | undefined): AppLanguage =>
   hostname?.toLowerCase() === CHINA_HOSTNAME ? "zh" : DEFAULT_LANGUAGE;

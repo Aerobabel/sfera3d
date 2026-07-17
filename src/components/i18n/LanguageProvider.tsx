@@ -70,7 +70,10 @@ export function LanguageProvider({
 
   const setLanguage = useCallback((nextLanguage: AppLanguage) => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
+    window.localStorage.setItem(
+      LANGUAGE_STORAGE_KEY,
+      isAppLanguage(nextLanguage) ? nextLanguage : DEFAULT_LANGUAGE
+    );
     window.dispatchEvent(new Event(LANGUAGE_EVENT_NAME));
   }, []);
 

@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 
 const FILES = {
   en: "english_onboarding.pdf",
-  ru: "russian_onboarding.pdf",
   zh: "chinese_onboarding.pdf",
 } as const;
 
@@ -14,7 +13,7 @@ export const runtime = "nodejs";
 
 const resolveLanguage = (request: Request): SupportedLanguage => {
   const lang = new URL(request.url).searchParams.get("lang");
-  if (lang === "ru" || lang === "zh" || lang === "en") {
+  if (lang === "zh" || lang === "en") {
     return lang;
   }
   return "en";

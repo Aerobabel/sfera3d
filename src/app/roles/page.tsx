@@ -68,13 +68,13 @@ type RolePageText = {
 
 const ROLE_INTRO_CUTSCENE_SRCS: Record<AppLanguage, string[]> = {
     en: ['/cutscenes/maincutscene.MOV'],
-    ru: ['/cutscenes/maincutscene-ru.MP4'],
+    ru: ['/cutscenes/maincutscene.MOV'],
     zh: ['/cutscenes/maincutscene-zh.MP4'],
 };
 
 const GAME_SELECTION_CUTSCENE_SRCS: Record<AppLanguage, string> = {
     en: '/cutscenes/gamecutscene.MOV',
-    ru: '/cutscenes/gamecutscene-ru.MOV',
+    ru: '/cutscenes/gamecutscene.MOV',
     zh: '/cutscenes/gamecutscene-zh.MOV',
 };
 
@@ -448,6 +448,7 @@ export default function RoleSelectionPage() {
     const [isGameCutsceneVisible, setIsGameCutsceneVisible] = useState(false);
     const [hasStartedGameCutscene, setHasStartedGameCutscene] = useState(false);
     const [isEnteringScene, setIsEnteringScene] = useState(false);
+    const [isRoleBackgroundEndFaded, setIsRoleBackgroundEndFaded] = useState(false);
     const [gameCutsceneHref, setGameCutsceneHref] = useState<string | null>(null);
     const introVideoRef = useRef<HTMLVideoElement | null>(null);
     const gameCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -643,8 +644,14 @@ export default function RoleSelectionPage() {
                     loop
                     playsInline
                     preload="metadata"
+                    onTimeUpdate={(event) => {
+                        const video = event.currentTarget;
+                        const remaining = video.duration - video.currentTime;
+                        setIsRoleBackgroundEndFaded(Number.isFinite(remaining) && remaining <= 2.4);
+                    }}
                     aria-hidden="true"
                 />
+                <div className={`pointer-events-none fixed inset-0 bg-black transition-opacity duration-700 ${isRoleBackgroundEndFaded ? 'opacity-90' : 'opacity-0'}`} />
                 <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.82),rgba(0,0,0,0.38)_48%,rgba(0,0,0,0.84)),linear-gradient(180deg,rgba(0,0,0,0.76),rgba(0,0,0,0.2)_36%,rgba(0,0,0,0.86))]" />
                 <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(217,181,110,0.18),transparent_32%),radial-gradient(circle_at_20%_70%,rgba(56,189,248,0.12),transparent_28%)]" />
 

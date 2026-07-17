@@ -2,61 +2,61 @@
 
 import { FormEvent, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, Send, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, KeyRound, Mail, Send, ShieldCheck, Users } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 
 type AccountType = 'player' | 'visitor' | 'supplier';
 
-const copy = {
+const COPY = {
     en: {
-        eyebrow: 'Early access',
+        eyebrow: 'Founding early access',
         title: 'Pre-register for 3DSFERA',
-        body: 'Leave your details and the Sfera team will review your request. This does not create an account automatically.',
-        name: 'Full name', email: 'Email address', phone: 'Phone or Telegram', company: 'Company (optional)',
+        body: 'The first 100 registered participants receive complimentary platform access. Registration will become paid in the future, so reserve your login now.',
+        name: 'Full name', email: 'Email / login', phone: 'Phone', company: 'Company',
+        password: 'Create password', confirmPassword: 'Confirm password', passwordHint: 'Use 8–72 characters.', passwordMismatch: 'Passwords do not match.',
         accountType: 'I want access as', player: 'Player', visitor: 'Visitor / buyer', supplier: 'Supplier',
-        message: 'What would you like to do in 3DSFERA? (optional)',
-        consent: 'I agree that 3DSFERA may store these details and contact me about access.',
-        submit: 'Request early access', submitting: 'Saving request…', back: 'Back to sign in',
-        successTitle: 'You are on the list', successBody: 'Your request was saved. The Sfera team will contact you after review.',
-        again: 'Submit another request', error: 'We could not save your request. Please try again.',
-        secure: 'Saved securely', review: 'Reviewed by the team', noAccount: 'No account is created yet',
-    },
-    ru: {
-        eyebrow: 'Ранний доступ',
-        title: 'Предварительная регистрация в 3DSFERA',
-        body: 'Оставьте данные, и команда Sfera рассмотрит заявку. Аккаунт не создаётся автоматически.',
-        name: 'Имя и фамилия', email: 'Email', phone: 'Телефон или Telegram', company: 'Компания (необязательно)',
-        accountType: 'Мне нужен доступ как', player: 'Игрок', visitor: 'Посетитель / покупатель', supplier: 'Поставщик',
-        message: 'Что вы хотите делать в 3DSFERA? (необязательно)',
-        consent: 'Я согласен(на), что 3DSFERA сохранит эти данные и свяжется со мной по вопросу доступа.',
-        submit: 'Запросить ранний доступ', submitting: 'Сохраняем заявку…', back: 'Вернуться ко входу',
-        successTitle: 'Заявка принята', successBody: 'Заявка сохранена. Команда Sfera свяжется с вами после рассмотрения.',
-        again: 'Отправить ещё одну заявку', error: 'Не удалось сохранить заявку. Попробуйте ещё раз.',
-        secure: 'Безопасное хранение', review: 'Проверка командой', noAccount: 'Аккаунт пока не создаётся',
+        message: 'Comment (optional)',
+        consent: 'I agree that 3DSFERA may store these details and email me about access, platform changes, and launch timing.',
+        submit: 'Create early-access account', submitting: 'Creating account…', back: 'Back to sign in',
+        successTitle: 'Registration complete',
+        successBody: 'Your 3DSFERA login has been created. Use the email and password you entered to sign in.',
+        successFree: 'Your complimentary place among the first 100 participants has been reserved.',
+        emailSent: 'A confirmation was sent to your email.',
+        emailPending: 'Your account is ready. Email delivery is pending; save your login details now.',
+        signIn: 'Sign in to 3DSFERA', again: 'Register another participant', error: 'We could not create your registration. Please try again.',
+        secure: 'Password stored securely', review: 'First 100 enter free', updates: 'Updates sent by email', loginLabel: 'Your login',
     },
     zh: {
-        eyebrow: '抢先体验',
+        eyebrow: '创始抢先体验',
         title: '预注册 3DSFERA',
-        body: '请留下您的信息，Sfera 团队将审核申请。提交申请不会自动创建账户。',
-        name: '姓名', email: '邮箱地址', phone: '电话或 Telegram', company: '公司（选填）',
+        body: '前 100 位完成注册的参与者可免费使用平台。未来注册将转为付费，请立即预留您的登录账号。',
+        name: '姓名', email: '邮箱 / 登录账号', phone: '电话', company: '公司',
+        password: '创建密码', confirmPassword: '确认密码', passwordHint: '请输入 8–72 个字符。', passwordMismatch: '两次输入的密码不一致。',
         accountType: '申请身份', player: '玩家', visitor: '访客 / 买家', supplier: '供应商',
-        message: '您希望在 3DSFERA 中做什么？（选填）',
-        consent: '我同意 3DSFERA 存储这些信息，并就访问权限与我联系。',
-        submit: '申请抢先体验', submitting: '正在保存申请…', back: '返回登录',
-        successTitle: '申请已提交', successBody: '您的申请已保存。Sfera 团队审核后会与您联系。',
-        again: '提交其他申请', error: '无法保存申请，请重试。',
-        secure: '安全保存', review: '团队审核', noAccount: '暂不创建账户',
+        message: '备注（选填）',
+        consent: '我同意 3DSFERA 保存这些信息，并通过邮件通知访问权限、平台变更和上线时间。',
+        submit: '创建抢先体验账号', submitting: '正在创建账号…', back: '返回登录',
+        successTitle: '注册完成',
+        successBody: '您的 3DSFERA 登录账号已创建。请使用刚才填写的邮箱和密码登录。',
+        successFree: '您已预留首批 100 位参与者的免费体验资格。',
+        emailSent: '确认邮件已发送到您的邮箱。',
+        emailPending: '账号已可使用。确认邮件仍在等待发送，请先保存登录信息。',
+        signIn: '登录 3DSFERA', again: '注册其他参与者', error: '无法创建注册，请重试。',
+        secure: '密码安全保存', review: '前 100 位免费', updates: '通过邮件接收更新', loginLabel: '您的登录账号',
     },
 } as const;
 
 export default function PreRegisterPage() {
     const { language } = useLanguage();
-    const t = copy[language];
+    const t = language === 'zh' ? COPY.zh : COPY.en;
     const [accountType, setAccountType] = useState<AccountType>('player');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
     const [error, setError] = useState('');
+    const [emailWasSent, setEmailWasSent] = useState(false);
+    const [complimentaryAccess, setComplimentaryAccess] = useState(false);
+    const [registeredLogin, setRegisteredLogin] = useState('');
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -64,6 +64,14 @@ export default function PreRegisterPage() {
         setError('');
 
         const form = new FormData(event.currentTarget);
+        const password = String(form.get('password') ?? '');
+        const confirmPassword = String(form.get('confirmPassword') ?? '');
+        if (password !== confirmPassword) {
+            setError(t.passwordMismatch);
+            setIsSubmitting(false);
+            return;
+        }
+
         try {
             const response = await fetch('/api/pre-registration', {
                 method: 'POST',
@@ -71,17 +79,29 @@ export default function PreRegisterPage() {
                 body: JSON.stringify({
                     fullName: form.get('fullName'),
                     email: form.get('email'),
+                    password,
+                    confirmPassword,
                     phone: form.get('phone'),
                     company: form.get('company'),
                     accountType,
                     message: form.get('message'),
                     website: form.get('website'),
-                    locale: language,
+                    source: new URLSearchParams(window.location.search).get('source'),
+                    locale: language === 'zh' ? 'zh' : 'en',
                     consent: form.get('consent') === 'on',
                 }),
             });
-            const payload = await response.json() as { success?: boolean; error?: string };
+            const payload = await response.json() as {
+                success?: boolean;
+                error?: string;
+                emailSent?: boolean;
+                complimentaryAccess?: boolean;
+                login?: string;
+            };
             if (!response.ok || !payload.success) throw new Error(payload.error || t.error);
+            setEmailWasSent(Boolean(payload.emailSent));
+            setComplimentaryAccess(Boolean(payload.complimentaryAccess));
+            setRegisteredLogin(payload.login ?? String(form.get('email') ?? ''));
             setIsComplete(true);
             window.dispatchEvent(new Event('sfera:success'));
         } catch (requestError) {
@@ -92,43 +112,52 @@ export default function PreRegisterPage() {
     };
 
     return (
-        <main className="sfera-cinematic-shell sfera-page-enter relative min-h-screen overflow-hidden px-4 py-8 text-white sm:grid sm:place-items-center sm:py-12">
+        <main className="sfera-cinematic-shell sfera-page-enter relative min-h-dvh overflow-x-hidden px-4 py-6 text-white sm:grid sm:place-items-center sm:py-10">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_12%,rgba(102,217,203,.2),transparent_30%),radial-gradient(circle_at_88%_82%,rgba(246,186,79,.15),transparent_32%),linear-gradient(145deg,#05070b,#0b1219)]" />
             <div className="pointer-events-none absolute inset-0 opacity-[.12] [background-image:linear-gradient(rgba(255,255,255,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.08)_1px,transparent_1px)] [background-size:52px_52px]" />
 
             <div className="sfera-glass-premium relative mx-auto grid w-full max-w-5xl overflow-hidden rounded-[1.75rem] lg:grid-cols-[.82fr_1.18fr]">
-                <aside className="relative overflow-hidden border-b border-white/10 bg-[linear-gradient(155deg,rgba(102,217,203,.15),rgba(5,10,15,.55))] p-7 lg:border-b-0 lg:border-r lg:p-10">
+                <aside className="relative overflow-hidden border-b border-white/10 bg-[linear-gradient(155deg,rgba(102,217,203,.15),rgba(5,10,15,.55))] p-6 lg:border-b-0 lg:border-r lg:p-9">
                     <div className="absolute -left-24 top-24 h-64 w-64 rounded-full bg-cyan-300/10 blur-3xl" />
                     <div className="relative">
                         <BrandLogo size="lg" priority />
-                        <p className="mt-12 text-[10px] font-black uppercase tracking-[.28em] text-cyan-100">{t.eyebrow}</p>
+                        <p className="mt-9 text-[10px] font-black uppercase tracking-[.28em] text-cyan-100">{t.eyebrow}</p>
                         <h1 className="sfera-display mt-4 text-4xl leading-[.98] sm:text-5xl">{t.title}</h1>
                         <p className="mt-5 text-sm leading-7 text-slate-300">{t.body}</p>
-                        <div className="mt-9 grid gap-3 text-xs text-slate-200">
+                        <div className="mt-8 grid gap-3 text-xs text-slate-200">
                             <span className="flex items-center gap-3"><ShieldCheck className="h-4 w-4 text-cyan-100" />{t.secure}</span>
-                            <span className="flex items-center gap-3"><Users className="h-4 w-4 text-cyan-100" />{t.review}</span>
-                            <span className="flex items-center gap-3"><Sparkles className="h-4 w-4 text-amber-200" />{t.noAccount}</span>
+                            <span className="flex items-center gap-3"><Users className="h-4 w-4 text-amber-200" />{t.review}</span>
+                            <span className="flex items-center gap-3"><Mail className="h-4 w-4 text-cyan-100" />{t.updates}</span>
                         </div>
                     </div>
                 </aside>
 
-                <section className="p-6 sm:p-8 lg:p-10">
+                <section className="p-5 sm:p-7 lg:p-9">
                     {isComplete ? (
                         <div className="flex min-h-[30rem] flex-col items-center justify-center text-center">
                             <span className="grid h-20 w-20 place-items-center rounded-full border border-emerald-200/30 bg-emerald-300/10 text-emerald-100 shadow-[0_0_45px_rgba(110,231,183,.15)]"><CheckCircle2 className="h-9 w-9" /></span>
                             <h2 className="sfera-display mt-7 text-3xl">{t.successTitle}</h2>
                             <p className="mt-3 max-w-md text-sm leading-7 text-slate-300">{t.successBody}</p>
-                            <button type="button" onClick={() => setIsComplete(false)} className="mt-7 rounded-full border border-white/15 px-5 py-3 text-sm font-bold transition hover:bg-white/10">{t.again}</button>
-                            <Link href="/login?role=player" className="mt-4 inline-flex items-center gap-2 text-sm text-cyan-100 hover:underline"><ArrowLeft className="h-4 w-4" />{t.back}</Link>
+                            {complimentaryAccess && <p className="mt-3 max-w-md text-sm font-bold leading-6 text-amber-100">{t.successFree}</p>}
+                            <div className="mt-5 w-full max-w-md rounded-xl border border-cyan-200/18 bg-cyan-200/[.06] px-4 py-3 text-left">
+                                <p className="text-[9px] font-black uppercase tracking-[.18em] text-slate-400">{t.loginLabel}</p>
+                                <p className="mt-1 break-all font-mono text-sm font-bold text-cyan-50">{registeredLogin}</p>
+                            </div>
+                            <p className={`mt-4 max-w-md text-xs leading-5 ${emailWasSent ? 'text-emerald-100' : 'text-amber-100'}`}>{emailWasSent ? t.emailSent : t.emailPending}</p>
+                            <Link href="/login?role=player" className="mt-7 inline-flex min-h-12 items-center gap-2 rounded-full bg-cyan-200 px-6 py-3 text-sm font-black text-slate-950 transition hover:scale-[1.02]"><KeyRound className="h-4 w-4" />{t.signIn}</Link>
+                            <button type="button" onClick={() => setIsComplete(false)} className="mt-4 text-sm text-slate-400 transition hover:text-white">{t.again}</button>
                         </div>
                     ) : (
-                        <form onSubmit={handleSubmit} className="grid gap-5">
+                        <form onSubmit={handleSubmit} className="grid gap-4">
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <Field label={t.name}><input name="fullName" required minLength={2} maxLength={120} autoComplete="name" className={inputClass} /></Field>
                                 <Field label={t.email}><input name="email" required type="email" maxLength={254} autoComplete="email" className={inputClass} /></Field>
-                                <Field label={t.phone}><input name="phone" maxLength={40} autoComplete="tel" className={inputClass} /></Field>
-                                <Field label={t.company}><input name="company" maxLength={160} autoComplete="organization" className={inputClass} /></Field>
+                                <Field label={t.phone}><input name="phone" required maxLength={40} autoComplete="tel" className={inputClass} /></Field>
+                                <Field label={t.company}><input name="company" required maxLength={160} autoComplete="organization" className={inputClass} /></Field>
+                                <Field label={t.password}><input name="password" required type="password" minLength={8} maxLength={72} autoComplete="new-password" className={inputClass} /></Field>
+                                <Field label={t.confirmPassword}><input name="confirmPassword" required type="password" minLength={8} maxLength={72} autoComplete="new-password" className={inputClass} /></Field>
                             </div>
+                            <p className="-mt-1 text-[11px] text-slate-500">{t.passwordHint}</p>
 
                             <fieldset>
                                 <legend className="mb-2 text-[10px] font-black uppercase tracking-[.18em] text-slate-400">{t.accountType}</legend>
@@ -141,7 +170,7 @@ export default function PreRegisterPage() {
                                 </div>
                             </fieldset>
 
-                            <Field label={t.message}><textarea name="message" maxLength={1500} rows={4} className={`${inputClass} resize-none`} /></Field>
+                            <Field label={t.message}><textarea name="message" maxLength={1500} rows={3} className={`${inputClass} resize-none`} /></Field>
                             <input name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px] h-px w-px opacity-0" />
 
                             <label className="flex cursor-pointer items-start gap-3 text-xs leading-5 text-slate-300">
@@ -151,7 +180,7 @@ export default function PreRegisterPage() {
 
                             {error && <p role="alert" className="rounded-xl border border-rose-300/20 bg-rose-300/[.08] px-4 py-3 text-sm text-rose-100">{error}</p>}
 
-                            <button disabled={isSubmitting} type="submit" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-5 py-3 text-sm font-black uppercase tracking-[.12em] text-slate-950 transition hover:scale-[1.01] disabled:cursor-wait disabled:opacity-60">
+                            <button disabled={isSubmitting} type="submit" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-5 py-3 text-sm font-black uppercase tracking-[.1em] text-slate-950 transition hover:scale-[1.01] disabled:cursor-wait disabled:opacity-60">
                                 {isSubmitting ? t.submitting : t.submit}<Send className="h-4 w-4" />
                             </button>
                             <Link href="/login?role=player" className="mx-auto inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"><ArrowLeft className="h-4 w-4" />{t.back}</Link>

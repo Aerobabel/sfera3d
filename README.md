@@ -15,6 +15,8 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 NEXT_PUBLIC_SUPPLIER_INTAKE_EMAIL=suppliers@3dsfera.org
+RESEND_API_KEY=your_resend_api_key
+PRE_REGISTRATION_EMAIL_FROM="3DSFERA <access@3dsfera.org>"
 ```
 
 Security: if the `SUPABASE_SERVICE_ROLE_KEY` was ever shared publicly, rotate it immediately in Supabase Dashboard (`Project Settings -> API`) and update all deployments.
@@ -23,10 +25,11 @@ Security: if the `SUPABASE_SERVICE_ROLE_KEY` was ever shared publicly, rotate it
 
 Run the SQL from `supabase/setup.sql` in Supabase SQL Editor.
 
-The setup includes the public pre-registration queue. Requests submitted at
-`/pre-register` are validated by `/api/pre-registration` and stored in the
-`pre_registrations` table through the server-side service role. Review pending
-rows in Supabase before creating user accounts.
+The setup includes the public pre-registration queue. Registrations submitted at
+`/pre-register` are validated by `/api/pre-registration`, create a Supabase Auth
+account, are stored in `pre_registrations`, and receive a transactional confirmation
+through Resend. Passwords are handled by Supabase Auth and are never stored in the
+queue or included in email.
 
 For deployments where the migration has not reached production yet, the API
 durably stores requests in the existing private `pavilion_contact_requests`

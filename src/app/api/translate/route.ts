@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     if (text.length > 2000) return jsonError(400, 'text too long.');
 
     const targetLanguage = (payload.targetLanguage ?? '').trim();
-    if (!isAppLanguage(targetLanguage)) return jsonError(400, 'targetLanguage must be en, ru, or zh.');
+    if (!isAppLanguage(targetLanguage)) return jsonError(400, 'targetLanguage must be en or zh.');
 
     const rawSource = (payload.sourceLanguage ?? '').trim();
     const sourceLanguage: AppLanguage | undefined = isAppLanguage(rawSource)

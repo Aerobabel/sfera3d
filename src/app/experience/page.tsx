@@ -43,6 +43,7 @@ import { playSferaUiSound } from "@/lib/ui/sound";
 import type { WalletTransaction } from "@/lib/unreal/types";
 import WorldGuideOverlay, { parseWorldPosition, type WorldPosition } from "@/components/WorldGuideOverlay";
 import { CutsceneCinematicOverlay, CutsceneSiteHeader } from "@/components/CutscenePresentation";
+import PhoneRewardRegistrationPrompt from "@/components/PhoneRewardRegistrationPrompt";
 
 type MobileInputMode = 'joystick' | 'touch';
 type ToStreamerHandler = (messageData?: Array<number | string>) => void;
@@ -910,7 +911,7 @@ const resolveDefaultSignalingUrl = () => {
 const DEFAULT_FASTVIEW_APP_ID = '69d615b641d102927ca911f3';
 const SFERA_HALL_CUTSCENE_SRC: Record<AppLanguage, string> = {
     en: '/cutscenes/englishsphere.MP4',
-    ru: '/cutscenes/russiansphere.MP4',
+    ru: '/cutscenes/englishsphere.MP4',
     zh: '/cutscenes/chinesesphere.MOV',
 };
 const FASTVIEW_START_CUTSCENE_PLAYLIST: Record<AppLanguage, string[]> = {
@@ -3637,6 +3638,7 @@ export default function ExperiencePage() {
     const [hasStartedWaterWinCutsceneSound, setHasStartedWaterWinCutsceneSound] = useState(false);
     const [isPhoneRewardCutsceneVisible, setIsPhoneRewardCutsceneVisible] = useState(false);
     const [hasStartedPhoneRewardCutsceneSound, setHasStartedPhoneRewardCutsceneSound] = useState(false);
+    const [isPhoneRewardRegistrationVisible, setIsPhoneRewardRegistrationVisible] = useState(false);
     const [waterPurchaseCeremonyBalance, setWaterPurchaseCeremonyBalance] = useState<number | null>(null);
     const waterWinCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
     const phoneRewardCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -4185,8 +4187,13 @@ export default function ExperiencePage() {
 
         setIsPhoneRewardCutsceneVisible(false);
         setHasStartedPhoneRewardCutsceneSound(false);
-        setDashboardOverlay('player');
+        setIsPhoneRewardRegistrationVisible(true);
         window.dispatchEvent(new Event('sfera:success'));
+    }, []);
+
+    const closePhoneRewardRegistration = useCallback(() => {
+        setIsPhoneRewardRegistrationVisible(false);
+        setDashboardOverlay('player');
     }, []);
 
     const completeSferaHallCutsceneClose = useCallback(() => {
@@ -4538,6 +4545,7 @@ export default function ExperiencePage() {
         !isArenaPasswordOpen &&
         !isWheelOpen &&
         !isStreamPixelOpen &&
+        !isPhoneRewardRegistrationVisible &&
         !dashboardOverlay &&
         !shouldShowPlayerModePrompt;
 
@@ -5142,6 +5150,7 @@ export default function ExperiencePage() {
             isArenaPasswordOpen ||
             isWheelOpen ||
             isStreamPixelOpen ||
+            isPhoneRewardRegistrationVisible ||
             isMissionStatementVisible ||
             shouldShowPlayerModePrompt ||
             isQuestChecklistOpen
@@ -5160,6 +5169,7 @@ export default function ExperiencePage() {
         isMissionStatementVisible,
         isQuestChecklistOpen,
         isRewardTerminalOpen,
+        isPhoneRewardRegistrationVisible,
         isStreamPixelOpen,
         isWaterDispenserOpen,
         isWheelOpen,
@@ -5564,7 +5574,8 @@ export default function ExperiencePage() {
         waterPurchaseCeremonyBalance === null &&
         !isSferaHallCutsceneVisible &&
         !isWaterWinCutsceneVisible &&
-        !isPhoneRewardCutsceneVisible;
+        !isPhoneRewardCutsceneVisible &&
+        !isPhoneRewardRegistrationVisible;
     const shouldShowFrontendCinematic =
         Boolean(frontendCinematic) &&
         showExperienceHud &&
@@ -5828,6 +5839,13 @@ export default function ExperiencePage() {
                         onStart={!hasStartedPhoneRewardCutsceneSound ? handleStartPhoneRewardCutsceneWithSound : undefined}
                     />
                 </div>
+            )}
+
+            {isPhoneRewardRegistrationVisible && showExperienceHud && (
+                <PhoneRewardRegistrationPrompt
+                    language={language}
+                    onClose={closePhoneRewardRegistration}
+                />
             )}
 
             {frontendCinematic && shouldShowFrontendCinematic && (

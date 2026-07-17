@@ -7,9 +7,8 @@ import { AppLanguage } from "@/lib/i18n";
 import { useLanguage } from "./LanguageProvider";
 
 const OPTIONS: Array<{ value: AppLanguage; label: string }> = [
-  { value: "ru", label: "RU" },
-  { value: "zh", label: "ZH" },
   { value: "en", label: "EN" },
+  { value: "zh", label: "ZH" },
 ];
 
 export default function LanguageSwitcher() {
