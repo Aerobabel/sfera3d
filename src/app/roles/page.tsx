@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     ArrowRight,
@@ -456,13 +456,12 @@ export default function RoleSelectionPage() {
     const [gameCutsceneHref, setGameCutsceneHref] = useState<string | null>(null);
     const introVideoRef = useRef<HTMLVideoElement | null>(null);
     const gameCutsceneVideoRef = useRef<HTMLVideoElement | null>(null);
-    const roleBackgroundVideoRef = useRef<HTMLVideoElement | null>(null);
     const currentIntroCutsceneSrcs = ROLE_INTRO_CUTSCENE_SRCS[language];
     const currentIntroCutsceneSrc = currentIntroCutsceneSrcs[introCutsceneIndex];
     const currentGameCutsceneSrc = GAME_SELECTION_CUTSCENE_SRCS[language];
     useViewportScrollLock();
 
-    const syncRoleBackgroundVideo = useCallback((video: HTMLVideoElement) => {
+    const syncRoleBackgroundVideo = (video: HTMLVideoElement) => {
         video.playbackRate = ROLE_BACKGROUND_PLAYBACK_RATE;
 
         if (video.currentTime >= ROLE_BACKGROUND_FADE_AT_SECONDS) {
@@ -475,19 +474,7 @@ export default function RoleSelectionPage() {
             video.currentTime = 0;
             void video.play().catch(() => undefined);
         }
-    }, []);
-
-    useEffect(() => {
-        let animationFrame = 0;
-        const monitorFrame = () => {
-            const video = roleBackgroundVideoRef.current;
-            if (video) syncRoleBackgroundVideo(video);
-            animationFrame = window.requestAnimationFrame(monitorFrame);
-        };
-
-        animationFrame = window.requestAnimationFrame(monitorFrame);
-        return () => window.cancelAnimationFrame(animationFrame);
-    }, [syncRoleBackgroundVideo]);
+    };
 
     const playIntroVideo = () => {
         const video = introVideoRef.current;
@@ -669,7 +656,6 @@ export default function RoleSelectionPage() {
 
             <section className="relative h-dvh max-h-dvh overflow-hidden px-3 py-3 sm:px-5 sm:py-4 lg:px-8">
                 <video
-                    ref={roleBackgroundVideoRef}
                     className="fixed inset-0 h-full w-full object-cover opacity-45"
                     src="/cutscenes/cityvideo.mp4"
                     autoPlay
