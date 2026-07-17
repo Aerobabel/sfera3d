@@ -13,7 +13,7 @@ const COPY = {
         eyebrow: 'Founding early access',
         title: 'Pre-register for 3DSFERA',
         body: 'Register by August 1, 2026 to receive free lifetime access to 3DSFERA. Registration will become paid afterward, so create your login now.',
-        name: 'Full name', email: 'Email / login', phone: 'Phone', company: 'Company',
+        name: 'Full name', email: 'Email / login', phone: 'Phone', company: 'Company (optional)',
         password: 'Create password', confirmPassword: 'Confirm password', passwordHint: 'Use 8–72 characters.', passwordMismatch: 'Passwords do not match.', passwordMatch: 'Passwords match.',
         showPassword: 'Show password', hidePassword: 'Hide password',
         accountType: 'I want access as', player: 'Player', visitor: 'Visitor / buyer', supplier: 'Supplier',
@@ -32,7 +32,7 @@ const COPY = {
         eyebrow: '创始抢先体验',
         title: '预注册 3DSFERA',
         body: '在 2026 年 8 月 1 日前注册，即可获得 3DSFERA 终身免费访问权限。之后注册将转为付费，请立即创建您的登录账号。',
-        name: '姓名', email: '邮箱 / 登录账号', phone: '电话', company: '公司',
+        name: '姓名', email: '邮箱 / 登录账号', phone: '电话', company: '公司（选填）',
         password: '创建密码', confirmPassword: '确认密码', passwordHint: '请输入 8–72 个字符。', passwordMismatch: '两次输入的密码不一致。', passwordMatch: '两次密码一致。',
         showPassword: '显示密码', hidePassword: '隐藏密码',
         accountType: '申请身份', player: '玩家', visitor: '访客 / 买家', supplier: '供应商',
@@ -163,7 +163,7 @@ export default function PreRegisterPage() {
                                 <Field label={t.name}><input name="fullName" required minLength={2} maxLength={120} autoComplete="name" className={inputClass} /></Field>
                                 <Field label={t.email}><input name="email" required type="email" maxLength={254} autoComplete="email" className={inputClass} /></Field>
                                 <Field label={t.phone}><input name="phone" required maxLength={40} autoComplete="tel" className={inputClass} /></Field>
-                                <Field label={t.company}><input name="company" required maxLength={160} autoComplete="organization" className={inputClass} /></Field>
+                                <Field label={t.company}><input name="company" maxLength={160} autoComplete="organization" className={inputClass} /></Field>
                                 <PasswordField
                                     id="registration-password"
                                     name="password"

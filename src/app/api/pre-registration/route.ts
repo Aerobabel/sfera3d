@@ -57,7 +57,6 @@ export async function POST(request: Request) {
     if (!ACCOUNT_TYPES.has(accountType)) return jsonError(400, 'Choose an account type.');
     if (phone.length < 3) return jsonError(400, 'Enter your phone number.');
     if (phone.length > 40) return jsonError(400, 'Phone number is too long.');
-    if (company.length < 2) return jsonError(400, 'Enter your company name.');
     if (company.length > 160) return jsonError(400, 'Company name is too long.');
     if (message.length > 1500) return jsonError(400, 'Message is too long.');
     if (payload.consent !== true) return jsonError(400, 'Consent is required.');
