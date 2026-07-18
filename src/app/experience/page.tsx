@@ -681,7 +681,7 @@ const EXPERIENCE_COPY: Record<
         focusedPrompt: 'Ask for specs or compatibility details.',
         statusOnline: 'System Online',
         instruction: 'Long press T to speak with avatars, press F to open doors, X to exit inspection mode. Press ESC to switch to cursor control.',
-        zombieInstruction: 'Zombie Arena: move with WASD, aim with mouse, left-click/LMB or press P to fire, use the return portal to leave.',
+        zombieInstruction: 'Zombie Arena: move with WASD, aim with mouse, left-click/LMB or press P to fire, press R to reload, use the return portal to leave.',
         chatToggleShow: 'Chat',
         chatToggleHide: 'Hide Chat',
         menuNavigation: 'Navigation',
@@ -717,7 +717,7 @@ const EXPERIENCE_COPY: Record<
         focusedPrompt: 'Спросите характеристики или совместимость.',
         statusOnline: 'Система онлайн',
         instruction: 'Удерживайте T для разговора с аватарами, F для открытия дверей, X для выхода из режима осмотра. Чтобы переключить управление на курсор, нажмите ESC.',
-        zombieInstruction: 'Zombie Arena: WASD \u0434\u043B\u044F \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F, \u043C\u044B\u0448\u044C\u044E \u0446\u0435\u043B\u044C\u0442\u0435\u0441\u044C, LMB/P \u0434\u043B\u044F \u0441\u0442\u0440\u0435\u043B\u044C\u0431\u044B, \u0432\u044B\u0445\u043E\u0434 \u0447\u0435\u0440\u0435\u0437 \u043F\u043E\u0440\u0442\u0430\u043B.',
+        zombieInstruction: 'Zombie Arena: WASD \u0434\u043B\u044F \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F, \u043C\u044B\u0448\u044C\u044E \u0446\u0435\u043B\u044C\u0442\u0435\u0441\u044C, LMB/P \u0434\u043B\u044F \u0441\u0442\u0440\u0435\u043B\u044C\u0431\u044B, R \u0434\u043B\u044F \u043F\u0435\u0440\u0435\u0437\u0430\u0440\u044F\u0434\u043A\u0438, \u0432\u044B\u0445\u043E\u0434 \u0447\u0435\u0440\u0435\u0437 \u043F\u043E\u0440\u0442\u0430\u043B.',
         chatToggleShow: 'Чат',
         chatToggleHide: 'Скрыть чат',
         menuNavigation: 'Навигация',
@@ -753,7 +753,7 @@ const EXPERIENCE_COPY: Record<
         focusedPrompt: '可继续询问规格参数或兼容性。',
         statusOnline: '系统在线',
         instruction: '长按 T 与角色对话，按 F 开门，按 X 退出检视模式。按 ESC 切换到光标控制。',
-        zombieInstruction: 'Zombie Arena: WASD \u79FB\u52A8, \u9F20\u6807\u7784\u51C6, \u6309 LMB/P \u5C04\u51FB, \u4F7F\u7528\u4F20\u9001\u95E8\u79BB\u5F00.',
+        zombieInstruction: 'Zombie Arena: WASD \u79FB\u52A8, \u9F20\u6807\u7784\u51C6, \u6309 LMB/P \u5C04\u51FB, \u6309 R \u6362\u5F39, \u4F7F\u7528\u4F20\u9001\u95E8\u79BB\u5F00.',
         chatToggleShow: '聊天',
         chatToggleHide: '隐藏聊天',
         menuNavigation: '导航',
@@ -1564,6 +1564,7 @@ const BLOCKED_UNREAL_KEY_CODES = [
 ];
 const ARENA_UNLOCK_KEY_CODES = ['KeyG', 'g', '71'];
 const ARCADE_CONTROL_KEY_CODES = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'];
+const ZOMBIE_RELOAD_KEY_CODES = ['KeyR', 'r', '82'];
 
 
 type FrontendCinematic = {
@@ -3619,7 +3620,11 @@ export default function ExperiencePage() {
     const [zombieAmmo, setZombieAmmo] = useState<number>(GAME_RULES.zombieArena.startingAmmo);
     const [zombieShotSequence, setZombieShotSequence] = useState(0);
     const [zombieDryFireSequence, setZombieDryFireSequence] = useState(0);
+    const [zombieReloadSequence, setZombieReloadSequence] = useState(0);
+    const [isZombieReloading, setIsZombieReloading] = useState(false);
     const zombieAmmoRef = useRef<number>(GAME_RULES.zombieArena.startingAmmo);
+    const zombieReloadingRef = useRef(false);
+    const zombieReloadTimerRef = useRef<number | null>(null);
     const wasZombieArenaActiveRef = useRef(false);
     const [needsFastViewAudioUnlock, setNeedsFastViewAudioUnlock] = useState(false);
     // True once UE is actually producing video frames — used to keep a
@@ -3648,11 +3653,40 @@ export default function ExperiencePage() {
     const fastViewCutsceneSrc = fastViewCutscenePlaylist[fastViewCutsceneIndex] ?? fastViewCutscenePlaylist[0];
 
     const resetZombieAmmo = useCallback(() => {
+        if (zombieReloadTimerRef.current !== null) {
+            window.clearTimeout(zombieReloadTimerRef.current);
+            zombieReloadTimerRef.current = null;
+        }
+        zombieReloadingRef.current = false;
+        setIsZombieReloading(false);
         zombieAmmoRef.current = GAME_RULES.zombieArena.startingAmmo;
         setZombieAmmo(GAME_RULES.zombieArena.startingAmmo);
         setZombieShotSequence(0);
         setZombieDryFireSequence(0);
+        setZombieReloadSequence(0);
     }, []);
+
+    const handleZombieReload = useCallback(() => {
+        if (!isZombieArenaActive || isZombieArenaCleared) return false;
+        if (zombieReloadingRef.current) return false;
+        if (zombieAmmoRef.current >= GAME_RULES.zombieArena.startingAmmo) return false;
+
+        zombieReloadingRef.current = true;
+        setIsZombieReloading(true);
+        setZombieReloadSequence((current) => current + 1);
+        playSferaUiSound('progress');
+
+        zombieReloadTimerRef.current = window.setTimeout(() => {
+            zombieAmmoRef.current = GAME_RULES.zombieArena.startingAmmo;
+            setZombieAmmo(GAME_RULES.zombieArena.startingAmmo);
+            zombieReloadingRef.current = false;
+            setIsZombieReloading(false);
+            zombieReloadTimerRef.current = null;
+            playSferaUiSound('open');
+        }, GAME_RULES.zombieArena.reloadDurationMs);
+
+        return true;
+    }, [isZombieArenaActive, isZombieArenaCleared]);
 
     useEffect(() => {
         const enteredArena = isZombieArenaActive && !wasZombieArenaActiveRef.current;
@@ -3669,6 +3703,7 @@ export default function ExperiencePage() {
     const handleZombieFireAttempt = useCallback(() => {
         if (!isZombieArenaActive) return true;
         if (isZombieArenaCleared) return false;
+        if (zombieReloadingRef.current) return false;
 
         const remainingAmmo = zombieAmmoRef.current;
         if (remainingAmmo <= 0) {
@@ -3681,6 +3716,22 @@ export default function ExperiencePage() {
         setZombieAmmo(nextAmmo);
         setZombieShotSequence((current) => current + 1);
         return true;
+    }, [isZombieArenaActive, isZombieArenaCleared]);
+
+    useEffect(() => () => {
+        if (zombieReloadTimerRef.current !== null) {
+            window.clearTimeout(zombieReloadTimerRef.current);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (isZombieArenaActive && !isZombieArenaCleared) return;
+        if (zombieReloadTimerRef.current !== null) {
+            window.clearTimeout(zombieReloadTimerRef.current);
+            zombieReloadTimerRef.current = null;
+        }
+        zombieReloadingRef.current = false;
+        setIsZombieReloading(false);
     }, [isZombieArenaActive, isZombieArenaCleared]);
 
     useEffect(() => {
@@ -3880,12 +3931,25 @@ export default function ExperiencePage() {
             ...BLOCKED_UNREAL_KEY_CODES,
             ...(isArcadeOpen ? ARCADE_CONTROL_KEY_CODES : []),
             ...(shouldBlockManualArenaUnlockKey ? ARENA_UNLOCK_KEY_CODES : []),
+            ...(isZombieArenaActive ? ZOMBIE_RELOAD_KEY_CODES : []),
         ],
-        [isArcadeOpen, shouldBlockManualArenaUnlockKey]
+        [isArcadeOpen, isZombieArenaActive, shouldBlockManualArenaUnlockKey]
     );
 
     const handleBlockedStreamKeyboardInput = useCallback((event: KeyboardEvent) => {
-        if (!shouldBlockManualArenaUnlockKey || event.type !== 'keydown') return;
+        if (event.type !== 'keydown') return;
+
+        const isReloadKey =
+            event.code === 'KeyR' ||
+            event.key.toLowerCase() === 'r' ||
+            String(event.keyCode) === '82';
+        if (isZombieArenaActive && isReloadKey) {
+            event.preventDefault();
+            handleZombieReload();
+            return;
+        }
+
+        if (!shouldBlockManualArenaUnlockKey) return;
 
         const isArenaUnlockKey =
             event.code === 'KeyG' ||
@@ -3896,7 +3960,7 @@ export default function ExperiencePage() {
 
         event.preventDefault();
         openArenaPasswordGate();
-    }, [openArenaPasswordGate, shouldBlockManualArenaUnlockKey]);
+    }, [handleZombieReload, isZombieArenaActive, openArenaPasswordGate, shouldBlockManualArenaUnlockKey]);
 
 
     useEffect(() => {
@@ -5611,7 +5675,7 @@ export default function ExperiencePage() {
                         mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
                         isMobileDevice={isMobile}
                         keyboardInputEnabled={!isChatFocused && !isArcadeOpen && !isWaterDispenserOpen && !isArenaPasswordOpen && !isWheelOpen}
-                        fireInputEnabled={!isZombieArenaCleared}
+                        fireInputEnabled={!isZombieArenaCleared && !isZombieReloading}
                         onFireAttempt={handleZombieFireAttempt}
                         blockedKeyboardCodes={blockedUnrealKeyboardCodes}
                         onBlockedKeyboardInput={handleBlockedStreamKeyboardInput}
@@ -5627,7 +5691,7 @@ export default function ExperiencePage() {
                             mobileInputMode={isMobile ? mobileInputMode : 'joystick'}
                             isMobileDevice={isMobile}
                             keyboardInputEnabled={!isChatFocused && !isArcadeOpen && !isWaterDispenserOpen && !isArenaPasswordOpen && !isWheelOpen}
-                            fireInputEnabled={!isZombieArenaCleared}
+                            fireInputEnabled={!isZombieArenaCleared && !isZombieReloading}
                             onFireAttempt={handleZombieFireAttempt}
                             blockedKeyboardCodes={blockedUnrealKeyboardCodes}
                             onBlockedKeyboardInput={handleBlockedStreamKeyboardInput}
@@ -6105,6 +6169,10 @@ export default function ExperiencePage() {
                             maxAmmo={GAME_RULES.zombieArena.startingAmmo}
                             shotSequence={zombieShotSequence}
                             dryFireSequence={zombieDryFireSequence}
+                            reloadSequence={zombieReloadSequence}
+                            isReloading={isZombieReloading}
+                            reloadDurationMs={GAME_RULES.zombieArena.reloadDurationMs}
+                            onReload={handleZombieReload}
                             confirmedKills={unrealBridge.zombieKills}
                             damageSequence={unrealBridge.playerHits}
                             isCleared={isZombieArenaCleared}
@@ -6886,8 +6954,11 @@ export default function ExperiencePage() {
                 <MobileControls
                     videoElement={videoElement}
                     lookSensitivity={mouseSensitivity}
-                    shootingEnabled={isZombieArenaActive && !isZombieArenaCleared}
+                    shootingEnabled={isZombieArenaActive && !isZombieArenaCleared && !isZombieReloading}
                     onFireAttempt={handleZombieFireAttempt}
+                    reloadEnabled={isZombieArenaActive && !isZombieArenaCleared && zombieAmmo < GAME_RULES.zombieArena.startingAmmo}
+                    isReloading={isZombieReloading}
+                    onReload={handleZombieReload}
                 />
             )}
 

@@ -7,6 +7,10 @@ type ZombieCombatHudProps = {
     maxAmmo: number;
     shotSequence: number;
     dryFireSequence: number;
+    reloadSequence: number;
+    isReloading: boolean;
+    reloadDurationMs: number;
+    onReload: () => boolean;
     confirmedKills: number;
     damageSequence: number;
     isCleared: boolean;
@@ -18,32 +22,45 @@ const COPY = {
         ammo: 'Ammo',
         live: 'Live fire',
         empty: 'Magazine empty',
-        emptyHint: 'Leave and restart the arena to reload',
+        emptyHint: 'Press R or use Reload',
+        reload: 'Reload',
+        reloading: 'Reloading',
+        reloadHint: 'R',
         cleared: 'Arena clear',
     },
     ru: {
-        ammo: 'Патроны',
-        live: 'Боевой режим',
-        empty: 'Магазин пуст',
-        emptyHint: 'Выйдите и перезапустите арену для перезарядки',
-        cleared: 'Арена очищена',
+        ammo: 'Ammo',
+        live: 'Live fire',
+        empty: 'Magazine empty',
+        emptyHint: 'Press R or use Reload',
+        reload: 'Reload',
+        reloading: 'Reloading',
+        reloadHint: 'R',
+        cleared: 'Arena clear',
     },
     zh: {
         ammo: '弹药',
         live: '战斗模式',
         empty: '弹匣已空',
-        emptyHint: '离开并重新进入竞技场即可装填',
+        emptyHint: '按 R 或点击换弹',
+        reload: '换弹',
+        reloading: '正在换弹',
+        reloadHint: 'R',
         cleared: '竞技场已清理',
     },
 } as const;
 
-const AMMO_SEGMENTS = 16;
+const AMMO_SEGMENTS = 18;
 
 export default function ZombieCombatHud({
     ammo,
     maxAmmo,
     shotSequence,
     dryFireSequence,
+    reloadSequence,
+    isReloading,
+    reloadDurationMs,
+    onReload,
     confirmedKills,
     damageSequence,
     isCleared,
@@ -79,7 +96,10 @@ export default function ZombieCombatHud({
             )}
 
             <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 md:h-28 md:w-28">
-                <div key={`reticle-${shotSequence}`} className={shotSequence > 0 ? 'zombie-reticle-recoil absolute inset-0' : 'absolute inset-0'}>
+                <div
+                    key={`reticle-${isReloading ? `reload-${reloadSequence}` : `shot-${shotSequence}`}`}
+                    className={isReloading ? 'zombie-reticle-reload absolute inset-0' : shotSequence > 0 ? 'zombie-reticle-recoil absolute inset-0' : 'absolute inset-0'}
+                >
                     <div className="absolute inset-[21%] rounded-full border border-cyan-100/25 shadow-[0_0_24px_rgba(103,232,249,0.2),inset_0_0_16px_rgba(103,232,249,0.1)]" />
                     <div className="absolute left-1/2 top-0 h-[28%] w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-cyan-100/75 to-transparent" />
                     <div className="absolute bottom-0 left-1/2 h-[28%] w-px -translate-x-1/2 bg-gradient-to-t from-transparent via-cyan-100/75 to-transparent" />
@@ -98,17 +118,29 @@ export default function ZombieCombatHud({
                 )}
             </div>
 
-            {dryFireSequence > 0 && ammo === 0 && !isCleared && (
+            {dryFireSequence > 0 && ammo === 0 && !isCleared && !isReloading && (
                 <div key={`dry-${dryFireSequence}`} className="zombie-dry-fire absolute left-1/2 top-[calc(50%+4.5rem)] -translate-x-1/2 rounded-full border border-rose-300/35 bg-black/70 px-4 py-2 text-center shadow-[0_14px_40px_rgba(0,0,0,0.45)] backdrop-blur-md">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-200">{copy.empty}</p>
                     <p className="mt-0.5 hidden text-[9px] text-slate-300 sm:block">{copy.emptyHint}</p>
                 </div>
             )}
 
+            {isReloading && !isCleared && (
+                <div key={`reload-${reloadSequence}`} className="zombie-reload-prompt absolute left-1/2 top-[calc(50%+4.5rem)] w-48 -translate-x-1/2 rounded-full border border-cyan-200/35 bg-black/75 px-4 py-2.5 text-center shadow-[0_14px_40px_rgba(0,0,0,0.45)] backdrop-blur-md">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100">{copy.reloading}</p>
+                    <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/10">
+                        <span
+                            className="zombie-reload-progress block h-full origin-left rounded-full bg-gradient-to-r from-cyan-300 to-white"
+                            style={{ animationDuration: `${reloadDurationMs}ms` }}
+                        />
+                    </div>
+                </div>
+            )}
+
             <div className="absolute right-3 top-24 w-[min(11.5rem,38vw)] rounded-2xl border border-white/12 bg-[linear-gradient(145deg,rgba(3,8,14,0.86),rgba(12,18,28,0.66))] p-3 text-white shadow-[0_20px_70px_rgba(0,0,0,0.42)] backdrop-blur-md md:right-5 md:top-auto md:bottom-5 md:w-52">
                 <div className="flex items-center justify-between gap-3">
                     <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-400">{isCleared ? copy.cleared : copy.live}</p>
+                        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-400">{isCleared ? copy.cleared : isReloading ? copy.reloading : copy.live}</p>
                         <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-200">{copy.ammo}</p>
                     </div>
                     <div className={`font-mono text-2xl font-black tabular-nums leading-none ${accentClass}`}>
@@ -130,6 +162,17 @@ export default function ZombieCombatHud({
                         />
                     ))}
                 </div>
+                {!isCleared && (
+                    <button
+                        type="button"
+                        onClick={onReload}
+                        disabled={isReloading || ammo >= maxAmmo}
+                        className="pointer-events-auto mt-3 flex min-h-8 w-full items-center justify-center gap-2 rounded-lg border border-cyan-200/20 bg-cyan-200/[0.07] px-2 text-[9px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-200/[0.14] disabled:cursor-not-allowed disabled:border-white/8 disabled:bg-white/[0.025] disabled:text-slate-600"
+                    >
+                        <span className="grid h-5 min-w-5 place-items-center rounded border border-current/30 px-1 font-mono">{copy.reloadHint}</span>
+                        {isReloading ? copy.reloading : copy.reload}
+                    </button>
+                )}
             </div>
         </div>
     );

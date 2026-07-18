@@ -9,6 +9,9 @@ interface MobileControlsProps {
     lookSensitivity?: number;
     shootingEnabled?: boolean;
     onFireAttempt?: () => boolean;
+    reloadEnabled?: boolean;
+    isReloading?: boolean;
+    onReload?: () => boolean;
 }
 
 type ToStreamerHandler = (messageData?: Array<number | string>) => void;
@@ -57,6 +60,9 @@ export default function MobileControls({
     lookSensitivity = 0.7,
     shootingEnabled = false,
     onFireAttempt,
+    reloadEnabled = false,
+    isReloading = false,
+    onReload,
 }: MobileControlsProps) {
     const { language } = useLanguage();
     const text = {
@@ -65,6 +71,7 @@ export default function MobileControls({
         zh: { move: '移动', look: '视角', interact: '交互' },
     }[language];
     const fireText = { en: 'FIRE', ru: 'ОГОНЬ', zh: '射击' }[language];
+    const reloadText = language === 'zh' ? '换弹' : 'RELOAD';
     const activeKeys = useRef<Set<string>>(new Set());
 
     // --- Keyboard Simulation Helper(Left Stick) ---
@@ -386,6 +393,19 @@ export default function MobileControls({
                         className="rounded-full border border-rose-300/45 bg-rose-400/15 px-5 py-2 text-[11px] font-black tracking-[0.18em] text-rose-100 shadow-[0_0_24px_rgba(251,113,133,0.3)] backdrop-blur active:scale-95"
                     >
                         {fireText}
+                    </button>
+                )}
+                {(reloadEnabled || isReloading) && (
+                    <button
+                        type="button"
+                        onPointerDown={(event) => {
+                            event.preventDefault();
+                            if (!isReloading) onReload?.();
+                        }}
+                        disabled={isReloading}
+                        className="rounded-full border border-cyan-300/45 bg-cyan-400/15 px-4 py-2 text-[11px] font-black tracking-[0.16em] text-cyan-100 shadow-[0_0_24px_rgba(34,211,238,0.25)] backdrop-blur active:scale-95 disabled:animate-pulse disabled:opacity-70"
+                    >
+                        {isReloading ? `${reloadText}...` : reloadText}
                     </button>
                 )}
             </div>
