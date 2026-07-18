@@ -26,10 +26,11 @@ Security: if the `SUPABASE_SERVICE_ROLE_KEY` was ever shared publicly, rotate it
 Run the SQL from `supabase/setup.sql` in Supabase SQL Editor.
 
 The setup includes the public pre-registration queue. Registrations submitted at
-`/pre-register` are validated by `/api/pre-registration`, create a Supabase Auth
-account, are stored in `pre_registrations`, and receive a transactional confirmation
-through Resend. Passwords are handled by Supabase Auth and are never stored in the
-queue or included in email.
+`/pre-register` are validated by `/api/pre-registration`, stored in
+`pre_registrations`, and receive a transactional confirmation through Resend. No
+Supabase Auth account or password is created during pre-registration. When access
+opens, participants should receive a secure activation link that lets them create
+their password and activate their account.
 
 For deployments where the migration has not reached production yet, the API
 durably stores requests in the existing private `pavilion_contact_requests`

@@ -30,26 +30,25 @@ export async function sendPreRegistrationConfirmation(args: PreRegistrationEmail
     const isChinese = args.locale === 'zh';
     const valueOrDash = (value: string) => value || '—';
     const subject = isChinese
-        ? '您已成功注册 3DSFERA'
-        : 'Your 3DSFERA registration is confirmed';
+        ? '您的 3DSFERA 预注册已确认'
+        : 'Your 3DSFERA pre-registration is confirmed';
     const accessLine = args.complimentaryAccess
         ? (isChinese ? '您的 3DSFERA 终身免费访问资格已预留。' : 'Your free lifetime access to 3DSFERA has been reserved.')
         : (isChinese ? '您的预注册已记录；付费访问详情将在上线前发送。' : 'Your pre-registration is recorded; paid-access details will be sent before launch.');
     const labels = isChinese
-        ? { name: '姓名', login: '登录账号', password: '密码', phone: '电话', company: '公司', comment: '备注' }
-        : { name: 'Name', login: 'Login', password: 'Password', phone: 'Phone', company: 'Company', comment: 'Comment' };
-    const passwordValue = isChinese ? '您在注册时创建的密码（为安全起见，邮件中不显示）' : 'The password you created during registration (hidden from email for security)';
+        ? { name: '姓名', email: '邮箱', phone: '电话', company: '公司', comment: '备注', status: '账号状态' }
+        : { name: 'Name', email: 'Email', phone: 'Phone', company: 'Company', comment: 'Comment', status: 'Account status' };
     const intro = isChinese
-        ? `恭喜，${args.fullName}！您已成功注册 3dsfera.org。`
-        : `Congratulations, ${args.fullName}! You have successfully registered at 3dsfera.org.`;
+        ? `恭喜，${args.fullName}！您已成功预注册 3dsfera.org。`
+        : `Congratulations, ${args.fullName}! Your pre-registration at 3dsfera.org is confirmed.`;
     const outro = isChinese
-        ? '3DSFERA 正式开放时，我们会向此邮箱另行发送通知。平台变更和上线时间也会通过此邮箱告知。'
-        : 'As soon as 3DSFERA opens, we will notify you in a separate email. Platform changes and launch timing will also be sent to this address.';
+        ? '目前尚未创建登录账号。3DSFERA 正式开放时，我们会向此邮箱发送安全激活链接，您可通过该链接创建密码并激活账号。'
+        : 'No login account has been created yet. When 3DSFERA opens, we will send a secure activation link to this email so you can create a password and activate your account.';
 
     const rows = [
         [labels.name, args.fullName],
-        [labels.login, args.to],
-        [labels.password, passwordValue],
+        [labels.email, args.to],
+        [labels.status, isChinese ? '预注册；等待激活' : 'Pre-registered; awaiting activation'],
         [labels.phone, valueOrDash(args.phone)],
         [labels.company, valueOrDash(args.company)],
         [labels.comment, valueOrDash(args.comment)],
@@ -64,7 +63,7 @@ export async function sendPreRegistrationConfirmation(args: PreRegistrationEmail
         outro,
         '',
         '3DSFERA: https://3dsfera.org/',
-        'https://3dsfera.org/login?role=player',
+        'https://3dsfera.org/',
     ].join('\n');
     const htmlRows = rows.map(([label, value]) => `
         <tr>
@@ -82,7 +81,7 @@ export async function sendPreRegistrationConfirmation(args: PreRegistrationEmail
             <p style="font-size:14px;line-height:1.7;color:#ffe1a3;margin:0 0 22px;">${escapeHtml(accessLine)}</p>
             <table role="presentation" style="width:100%;border-collapse:collapse;background:#03080d;border:1px solid #1c3540;border-radius:12px;overflow:hidden;">${htmlRows}</table>
             <p style="font-size:13px;line-height:1.7;color:#9fb3c7;margin:22px 0 0;">${escapeHtml(outro)}</p>
-            <a href="https://3dsfera.org/login?role=player" style="display:inline-block;margin-top:22px;background:#66d9cb;color:#04110f;padding:12px 20px;border-radius:999px;font-weight:800;text-decoration:none;font-size:12px;letter-spacing:.12em;text-transform:uppercase;">3DSFERA LOGIN</a>
+            <a href="https://3dsfera.org/" style="display:inline-block;margin-top:22px;background:#66d9cb;color:#04110f;padding:12px 20px;border-radius:999px;font-weight:800;text-decoration:none;font-size:12px;letter-spacing:.12em;text-transform:uppercase;">OPEN 3DSFERA</a>
         </div>`;
 
     try {

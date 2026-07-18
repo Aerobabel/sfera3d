@@ -5,8 +5,6 @@ import { sendPreRegistrationConfirmation } from '@/lib/preRegistrationEmail';
 type PreRegistrationBody = {
     fullName?: string;
     email?: string;
-    password?: string;
-    confirmPassword?: string;
     phone?: string;
     company?: string;
     accountType?: string;
@@ -40,8 +38,6 @@ export async function POST(request: Request) {
 
     const fullName = trim(payload.fullName);
     const email = trim(payload.email).toLowerCase();
-    const password = typeof payload.password === 'string' ? payload.password : '';
-    const confirmPassword = typeof payload.confirmPassword === 'string' ? payload.confirmPassword : '';
     const phone = trim(payload.phone);
     const company = trim(payload.company);
     const accountType = trim(payload.accountType).toLowerCase();
@@ -51,9 +47,6 @@ export async function POST(request: Request) {
 
     if (fullName.length < 2 || fullName.length > 120) return jsonError(400, 'Enter your full name.');
     if (!EMAIL_PATTERN.test(email) || email.length > 254) return jsonError(400, 'Enter a valid email address.');
-    if (password.length < 8) return jsonError(400, 'Password must contain at least 8 characters.');
-    if (password.length > 72) return jsonError(400, 'Password must contain no more than 72 characters.');
-    if (password !== confirmPassword) return jsonError(400, 'Passwords do not match.');
     if (!ACCOUNT_TYPES.has(accountType)) return jsonError(400, 'Choose an account type.');
     if (phone.length < 3) return jsonError(400, 'Enter your phone number.');
     if (phone.length > 40) return jsonError(400, 'Phone number is too long.');
@@ -67,36 +60,6 @@ export async function POST(request: Request) {
     try {
         const supabase = getSupabaseAdminClient();
         const complimentaryAccess = true;
-        const role = accountType === 'supplier' ? 'supplier' : 'buyer';
-
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-            email,
-            password,
-            email_confirm: true,
-            user_metadata: {
-                full_name: fullName,
-                phone: phone || null,
-                company: company || null,
-                account_type: accountType,
-                role,
-                early_access: true,
-                complimentary_access: complimentaryAccess,
-                complimentary_access_type: 'lifetime',
-                free_registration_deadline: '2026-08-01',
-                registration_source: source,
-            },
-        });
-
-        if (authError || !authData.user) {
-            const duplicate = authError?.message.toLowerCase().includes('already')
-                || authError?.message.toLowerCase().includes('registered');
-            return jsonError(
-                duplicate ? 409 : 500,
-                duplicate
-                    ? 'An account already exists for this email. Use the sign-in page or reset your password.'
-                    : 'We could not create your account. Please try again.'
-            );
-        }
 
         const { data, error } = await supabase
             .from('pre_registrations')
@@ -110,7 +73,7 @@ export async function POST(request: Request) {
                 locale,
                 consent_at: new Date().toISOString(),
                 source,
-                status: 'converted',
+                status: 'pending',
                 updated_at: new Date().toISOString(),
             }, { onConflict: 'email' })
             .select('id, status, created_at')
@@ -139,12 +102,11 @@ export async function POST(request: Request) {
 
             if (fallbackError) {
                 console.error('[pre-registration] Fallback write failed:', fallbackError.message);
-                await supabase.auth.admin.deleteUser(authData.user.id).catch(() => undefined);
                 return jsonError(500, 'We could not save your registration. Please try again.');
             }
 
             storage = 'contact_queue_fallback';
-            registration = { status: 'converted' };
+            registration = { status: 'pending' };
         }
 
         const emailSent = await sendPreRegistrationConfirmation({
@@ -163,7 +125,8 @@ export async function POST(request: Request) {
             storage,
             emailSent,
             complimentaryAccess,
-            login: email,
+            email,
+            accountCreated: false,
         });
     } catch (error) {
         console.error('[pre-registration] Request failed:', error);
