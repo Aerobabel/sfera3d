@@ -17,7 +17,11 @@ import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import { clearServerAuthSession } from '@/lib/auth/browser';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import type { PavilionMessage, PavilionThreadSummary } from '@/lib/pavilionChat';
+import {
+  getPavilionChatChannelName,
+  type PavilionMessage,
+  type PavilionThreadSummary,
+} from '@/lib/pavilionChat';
 import { getPavilionById } from '@/lib/pavilions';
 import TranslatableText from '@/components/chat/TranslatableText';
 
@@ -550,6 +554,7 @@ export default function SupplierDashboard() {
                           const key = getThreadKey(thread);
                           const isActive = key === selectedThreadKey;
                           const pavilion = getPavilionById(thread.pavilionId.replace(/^pav_/, ''));
+                          const channelName = pavilion?.name || getPavilionChatChannelName(thread.pavilionId) || thread.pavilionId;
                           const name = thread.counterpartyDisplayName || thread.counterpartyEmail || 'Guest';
                           const lastSender = thread.lastMessage.senderKind === 'pavilion' ? 'Supplier' : 'Visitor';
                           return (
@@ -561,7 +566,7 @@ export default function SupplierDashboard() {
                             >
                               <div className="mb-1 flex items-center justify-between gap-2">
                                 <span className="truncate text-[10px] font-black uppercase tracking-[0.16em] text-[#66d9cb]">
-                                  {pavilion?.name || thread.pavilionId}
+                                  {channelName}
                                 </span>
                                 <span className="shrink-0 text-[10px] text-slate-500">
                                   {thread.messageCount}
@@ -585,7 +590,7 @@ export default function SupplierDashboard() {
                             {selectedThread?.counterpartyDisplayName || selectedThread?.counterpartyEmail || 'Guest'}
                           </p>
                           <p className="mt-1 text-[11px] text-slate-400">
-                            {selectedPavilion?.name || selectedThread?.pavilionId || 'Pavilion'}
+                            {selectedPavilion?.name || getPavilionChatChannelName(selectedThread?.pavilionId ?? '') || selectedThread?.pavilionId || 'Pavilion'}
                           </p>
                         </div>
                         <div className="flex-1 space-y-4 overflow-y-auto p-3 sm:p-6">

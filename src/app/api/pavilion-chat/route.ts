@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { authenticateAppRequest } from '@/lib/auth/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
-import { isPavilionId, getPavilionById } from '@/lib/pavilions';
+import { getPavilionById } from '@/lib/pavilions';
 import {
     getSupplierStaffPavilionIds,
+    isPavilionChatChannelId,
     type PavilionMessage,
     type PavilionMessageSenderKind,
 } from '@/lib/pavilionChat';
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const pavilionId = (url.searchParams.get('pavilionId') ?? '').trim().toLowerCase();
     const requestedCounterparty = (url.searchParams.get('counterpartyUserId') ?? '').trim();
-    if (!isPavilionId(pavilionId)) return jsonError(400, 'Unknown pavilion.');
+    if (!isPavilionChatChannelId(pavilionId)) return jsonError(400, 'Unknown pavilion.');
 
     const staffFor = getSupplierStaffPavilionIds(user.user, user.role);
     // Only pavilion staff for THIS pavilion can read arbitrary threads.
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
 
     const pavilionId = (payload.pavilionId ?? '').trim().toLowerCase();
     const body = (payload.body ?? '').trim();
-    if (!isPavilionId(pavilionId)) return jsonError(400, 'Unknown pavilion.');
+    if (!isPavilionChatChannelId(pavilionId)) return jsonError(400, 'Unknown pavilion.');
     if (!body) return jsonError(400, 'Message body is required.');
     if (body.length > 4000) return jsonError(400, 'Message too long.');
 

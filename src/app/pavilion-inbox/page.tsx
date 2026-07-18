@@ -8,7 +8,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Inbox, Loader2, Send, X } from 'lucide-react';
-import type { PavilionMessage, PavilionThreadSummary } from '@/lib/pavilionChat';
+import {
+    getPavilionChatChannelName,
+    type PavilionMessage,
+    type PavilionThreadSummary,
+} from '@/lib/pavilionChat';
 import { getPavilionById, type Pavilion } from '@/lib/pavilions';
 import { useLanguage } from '@/components/i18n/LanguageProvider';
 import type { AppLanguage } from '@/lib/i18n';
@@ -348,6 +352,7 @@ export default function PavilionInboxPage() {
                             )}
                             {threads.map((thread) => {
                                 const threadPavilion = getPavilionById(thread.pavilionId.replace(/^pav_/, ''));
+                                const channelName = threadPavilion?.name || getPavilionChatChannelName(thread.pavilionId);
                                 const isActive = thread.counterpartyUserId === selectedCounterparty && thread.pavilionId === selectedPavilionId;
                                 const name = thread.counterpartyDisplayName || thread.counterpartyEmail || copy.visitor;
                                 return (
@@ -359,9 +364,9 @@ export default function PavilionInboxPage() {
                                         }}
                                         className={`w-full text-left px-4 py-3 border-b border-white/5 transition ${isActive ? 'bg-cyan-500/10' : 'hover:bg-white/5'}`}
                                     >
-                                        {threadPavilion && assignedPavilions.length > 1 && (
+                                        {channelName && (assignedPavilions.length > 1 || !threadPavilion) && (
                                             <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#66d9cb]">
-                                                {threadPavilion.name}
+                                                {channelName}
                                             </div>
                                         )}
                                         <div className="flex items-baseline justify-between gap-2">

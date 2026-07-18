@@ -25,6 +25,7 @@ import {
     Info,
     LineChart,
     LockKeyhole,
+    Loader2,
     Map,
     MessageSquare,
     PackageCheck,
@@ -147,8 +148,10 @@ type DashboardText = {
         deliveryPhonePlaceholder: string;
         deliveryAddressPlaceholder: string;
         acceptDelivery: string;
+        deliverySubmitting: string;
         deliveryReady: string;
         deliveryAccepted: string;
+        deliveryFailed: string;
         messagesTitle: string;
         messages: string[];
         recentTitle: string;
@@ -513,8 +516,10 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             deliveryPhonePlaceholder: '+1 555 010 2048',
             deliveryAddressPlaceholder: 'Street, city, region, postal code',
             acceptDelivery: 'Accept delivery',
+            deliverySubmitting: 'Sending securely',
             deliveryReady: 'Delivery submitted',
-            deliveryAccepted: 'You will receive an email or SMS notification.',
+            deliveryAccepted: 'Your details were sent to the Nonagon prize-delivery team.',
+            deliveryFailed: 'We could not send your delivery details. Please sign in and try again.',
             messagesTitle: 'Player messages',
             messages: [
                 'Arena host opened the weekly survival tournament.',
@@ -726,8 +731,10 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             deliveryPhonePlaceholder: '+7 900 000 00 00',
             deliveryAddressPlaceholder: 'Улица, город, регион, индекс',
             acceptDelivery: 'Принять доставку',
+            deliverySubmitting: 'Безопасная отправка',
             deliveryReady: 'Доставка оформлена',
-            deliveryAccepted: 'Вам придёт уведомление на почту или смс.',
+            deliveryAccepted: 'Данные отправлены команде Nonagon по доставке призов.',
+            deliveryFailed: 'Не удалось отправить данные доставки. Войдите в аккаунт и повторите попытку.',
             messagesTitle: 'Сообщения игрока',
             messages: [
                 'Организатор арены открыл еженедельный турнир.',
@@ -939,8 +946,10 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             deliveryPhonePlaceholder: '+86 138 0000 0000',
             deliveryAddressPlaceholder: '街道、城市、省份、邮编',
             acceptDelivery: '接受配送',
+            deliverySubmitting: '正在安全发送',
             deliveryReady: '配送已提交',
-            deliveryAccepted: '你将收到邮件或短信通知。',
+            deliveryAccepted: '您的资料已发送给 Nonagon 奖品配送团队。',
+            deliveryFailed: '无法发送配送资料。请登录后重试。',
             messagesTitle: '玩家消息',
             messages: [
                 '竞技场主办方开启了每周生存赛。',
@@ -2119,15 +2128,48 @@ function DeliveryAcceptancePanel({ copy }: { copy: DashboardText['player'] }) {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [deliveryAddress, setDeliveryAddress] = useState('');
     const [isAccepted, setIsAccepted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
     const hasDeliveryDetails =
         recipientName.trim().length > 0 &&
         phoneNumber.trim().length > 0 &&
         deliveryAddress.trim().length > 0;
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!hasDeliveryDetails) return;
-        setIsAccepted(true);
+        if (!hasDeliveryDetails || isSubmitting) return;
+
+        setIsSubmitting(true);
+        setSubmitError('');
+        setIsAccepted(false);
+
+        const body = [
+            'PRIZE DELIVERY REQUEST',
+            `Recipient: ${recipientName.trim()}`,
+            `Phone: ${phoneNumber.trim()}`,
+            'Delivery address:',
+            deliveryAddress.trim(),
+        ].join('\n');
+
+        try {
+            const response = await fetch('/api/pavilion-chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pavilionId: 'rewards',
+                    body,
+                }),
+            });
+            const result = await response.json() as { success?: boolean; error?: string };
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || copy.deliveryFailed);
+            }
+            setIsAccepted(true);
+        } catch (error) {
+            setSubmitError(error instanceof Error && error.message ? error.message : copy.deliveryFailed);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -2150,6 +2192,7 @@ function DeliveryAcceptancePanel({ copy }: { copy: DashboardText['player'] }) {
                         onChange={(event) => {
                             setRecipientName(event.target.value);
                             setIsAccepted(false);
+                            setSubmitError('');
                         }}
                         required
                         autoComplete="name"
@@ -2165,6 +2208,7 @@ function DeliveryAcceptancePanel({ copy }: { copy: DashboardText['player'] }) {
                         onChange={(event) => {
                             setPhoneNumber(event.target.value);
                             setIsAccepted(false);
+                            setSubmitError('');
                         }}
                         required
                         type="tel"
@@ -2181,6 +2225,7 @@ function DeliveryAcceptancePanel({ copy }: { copy: DashboardText['player'] }) {
                         onChange={(event) => {
                             setDeliveryAddress(event.target.value);
                             setIsAccepted(false);
+                            setSubmitError('');
                         }}
                         required
                         autoComplete="street-address"
@@ -2192,12 +2237,18 @@ function DeliveryAcceptancePanel({ copy }: { copy: DashboardText['player'] }) {
 
                 <button
                     type="submit"
-                    disabled={!hasDeliveryDetails}
+                    disabled={!hasDeliveryDetails || isSubmitting}
                     className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-emerald-300/25 bg-emerald-300/12 px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-emerald-100 transition hover:bg-emerald-300/18 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.04] disabled:text-slate-500"
                 >
-                    <PackageCheck className="h-4 w-4" />
-                    {copy.acceptDelivery}
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackageCheck className="h-4 w-4" />}
+                    {isSubmitting ? copy.deliverySubmitting : copy.acceptDelivery}
                 </button>
+
+                {submitError && (
+                    <p role="alert" className="rounded-lg border border-rose-300/20 bg-rose-300/[0.07] p-2.5 text-xs leading-5 text-rose-100">
+                        {submitError}
+                    </p>
+                )}
 
                 {isAccepted && (
                     <div className="flex gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/[0.07] p-2.5">

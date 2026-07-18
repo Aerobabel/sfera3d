@@ -9,7 +9,7 @@
 // counterparty is always a real auth.users row.
 
 import type { User } from '@supabase/supabase-js';
-import { PAVILION_IDS } from './pavilions';
+import { isPavilionId, PAVILION_IDS } from './pavilions';
 
 export type PavilionMessageSenderKind = 'visitor' | 'pavilion';
 
@@ -44,7 +44,20 @@ export type PavilionThreadSummary = {
 const STAFF_METADATA_KEYS = ['pavilion_staff_for', 'pavilion_id'];
 const KNOWN_PAVILION_SUPPLIER_IDS = new Set(PAVILION_IDS.map((id) => `pav_${id}`));
 const CENTRAL_SUPPLIER_EMAIL_LOCAL_PARTS = new Set(['nonagon']);
-const ALL_PAVILION_SUPPLIER_IDS = PAVILION_IDS.map((id) => `pav_${id}`);
+export const PRIZE_DELIVERY_CHAT_ID = 'rewards';
+export const PRIZE_DELIVERY_PAVILION_ID = `pav_${PRIZE_DELIVERY_CHAT_ID}`;
+const ALL_CENTRAL_SUPPLIER_CHANNEL_IDS = [
+    ...PAVILION_IDS.map((id) => `pav_${id}`),
+    PRIZE_DELIVERY_PAVILION_ID,
+];
+
+export const isPavilionChatChannelId = (value: string) =>
+    isPavilionId(value) || value === PRIZE_DELIVERY_CHAT_ID;
+
+export const getPavilionChatChannelName = (value: string) =>
+    value === PRIZE_DELIVERY_PAVILION_ID || value === PRIZE_DELIVERY_CHAT_ID
+        ? 'Prize Delivery'
+        : null;
 
 const normalizeStaffPavilionId = (value: string): string | null => {
     const trimmed = value.trim().toLowerCase();
@@ -110,7 +123,7 @@ export const getSupplierStaffPavilionIds = (
 
     const localPart = user.email.trim().toLowerCase().split('@')[0] ?? '';
     return CENTRAL_SUPPLIER_EMAIL_LOCAL_PARTS.has(localPart)
-        ? ALL_PAVILION_SUPPLIER_IDS
+        ? ALL_CENTRAL_SUPPLIER_CHANNEL_IDS
         : explicitPavilionIds;
 };
 
