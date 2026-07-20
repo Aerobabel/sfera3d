@@ -54,6 +54,7 @@ import {
 } from '@/lib/quests';
 import { GAME_RULES } from '@/lib/unreal/gameRules';
 import type { AppLanguage } from '@/lib/i18n';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { UnrealEventBridgeState, WalletTransaction } from '@/lib/unreal/types';
 
 type DashboardProps = {
@@ -2152,9 +2153,17 @@ function DeliveryAcceptancePanel({ copy }: { copy: DashboardText['player'] }) {
         ].join('\n');
 
         try {
+            const supabase = getSupabaseBrowserClient();
+            const {
+                data: { session },
+            } = await supabase.auth.getSession();
+            const accessToken = session?.access_token;
             const response = await fetch('/api/pavilion-chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                },
                 body: JSON.stringify({
                     pavilionId: 'rewards',
                     body,
