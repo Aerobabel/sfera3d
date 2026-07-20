@@ -5,6 +5,7 @@ import { sendPreRegistrationConfirmation } from '@/lib/preRegistrationEmail';
 type PreRegistrationBody = {
     fullName?: string;
     email?: string;
+    username?: string;
     phone?: string;
     company?: string;
     address?: string;
@@ -18,6 +19,7 @@ type PreRegistrationBody = {
 
 const ACCOUNT_TYPES = new Set(['player', 'visitor', 'supplier']);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{2,31}$/;
 const FREE_REGISTRATION_DEADLINE = Date.parse('2026-08-01T23:59:59+03:00');
 const trim = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
 const jsonError = (status: number, error: string) =>
@@ -39,6 +41,7 @@ export async function POST(request: Request) {
 
     const fullName = trim(payload.fullName);
     const email = trim(payload.email).toLowerCase();
+    const username = trim(payload.username).toLowerCase();
     const phone = trim(payload.phone);
     const company = trim(payload.company);
     const address = trim(payload.address);
@@ -49,6 +52,7 @@ export async function POST(request: Request) {
 
     if (fullName.length < 2 || fullName.length > 120) return jsonError(400, 'Enter your full name.');
     if (!EMAIL_PATTERN.test(email) || email.length > 254) return jsonError(400, 'Enter a valid email address.');
+    if (!USERNAME_PATTERN.test(username)) return jsonError(400, 'Enter a valid username using 3–32 letters, numbers, dots, hyphens, or underscores.');
     if (!ACCOUNT_TYPES.has(accountType)) return jsonError(400, 'Choose an account type.');
     if (phone.length < 3) return jsonError(400, 'Enter your phone number.');
     if (phone.length > 40) return jsonError(400, 'Phone number is too long.');
@@ -70,6 +74,7 @@ export async function POST(request: Request) {
             .upsert({
                 full_name: fullName,
                 email,
+                username,
                 phone: phone || null,
                 company: company || null,
                 address,
@@ -84,12 +89,20 @@ export async function POST(request: Request) {
             .select('id, status, created_at')
             .single();
 
+        if (registrationWrite.error?.code === '23505') {
+            return jsonError(409, 'This username is already reserved. Choose another username.');
+        }
+
         let storage = 'pre_registrations';
         if (
             registrationWrite.error &&
-            /address|schema cache/i.test(registrationWrite.error.message)
+            (
+                registrationWrite.error.code === 'PGRST204' ||
+                /schema cache|column .*(address|username).* does not exist/i.test(registrationWrite.error.message)
+            )
         ) {
             const legacyMessage = [
+                `Reserved username: ${username}`,
                 `Probable delivery location: ${address}`,
                 message ? `Comment: ${message}` : null,
             ].filter(Boolean).join('\n');
@@ -127,6 +140,7 @@ export async function POST(request: Request) {
                     phone: phone || null,
                     message: [
                         `Account type: ${accountType}`,
+                        `Reserved username: ${username}`,
                         `Locale: ${locale}`,
                         `Source: ${source}`,
                         `Complimentary access: ${complimentaryAccess ? 'yes' : 'no'}`,
@@ -147,6 +161,7 @@ export async function POST(request: Request) {
         const emailSent = await sendPreRegistrationConfirmation({
             to: email,
             fullName,
+            username,
             phone,
             company,
             address,
@@ -162,6 +177,7 @@ export async function POST(request: Request) {
             emailSent,
             complimentaryAccess,
             email,
+            username,
             accountCreated: false,
         });
     } catch (error) {

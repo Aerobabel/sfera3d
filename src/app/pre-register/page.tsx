@@ -13,7 +13,7 @@ const COPY = {
         eyebrow: 'Founding early access',
         title: 'Pre-register for 3DSFERA',
         body: 'Pre-register by August 1, 2026 to reserve free lifetime access to 3DSFERA. No login account will be created until access opens.',
-        name: 'Full name', email: 'Email address', phone: 'Phone', company: 'Company (optional)',
+        name: 'Full name', email: 'Email address', username: 'Username', usernamePlaceholder: '3–32 letters, numbers, dots, hyphens, or underscores', phone: 'Phone', company: 'Company (optional)',
         address: 'Probable delivery location', addressPlaceholder: 'Country, region, city, postal code, street address',
         accountType: 'I want access as', player: 'Player', visitor: 'Visitor / buyer', supplier: 'Supplier',
         message: 'Comment (optional)',
@@ -27,13 +27,13 @@ const COPY = {
         emailHelp: 'Check your inbox and spam folder. If the confirmation does not arrive, contact',
         activation: 'When access opens, we will email a secure link that lets you create your password and activate your account.',
         returnHome: 'Return to 3DSFERA', again: 'Register another participant', error: 'We could not save your pre-registration. Please try again.',
-        secure: 'No account created yet', review: 'Free lifetime access', updates: 'Secure activation by email', loginLabel: 'Registration email',
+        secure: 'No account created yet', review: 'Free lifetime access', updates: 'Secure activation by email', loginLabel: 'Registration details', usernameLabel: 'Reserved username', emailLabel: 'Registration email',
     },
     zh: {
         eyebrow: '创始抢先体验',
         title: '预注册 3DSFERA',
         body: '在 2026 年 8 月 1 日前预注册，即可预留 3DSFERA 终身免费访问资格。开放访问前不会创建登录账号。',
-        name: '姓名', email: '邮箱地址', phone: '电话', company: '公司（选填）',
+        name: '姓名', email: '邮箱地址', username: '用户名', usernamePlaceholder: '3–32 位字母、数字、点、连字符或下划线', phone: '电话', company: '公司（选填）',
         address: '预计配送地址', addressPlaceholder: '国家、省/州、城市、邮编、街道地址',
         accountType: '申请身份', player: '玩家', visitor: '访客 / 买家', supplier: '供应商',
         message: '备注（选填）',
@@ -47,7 +47,7 @@ const COPY = {
         emailHelp: '请检查收件箱和垃圾邮件文件夹。如果仍未收到确认邮件，请联系',
         activation: '开放访问时，我们会发送安全链接，供您创建密码并激活账号。',
         returnHome: '返回 3DSFERA', again: '注册其他参与者', error: '无法保存预注册，请重试。',
-        secure: '暂不创建账号', review: '终身免费访问', updates: '通过邮件安全激活', loginLabel: '预注册邮箱',
+        secure: '暂不创建账号', review: '终身免费访问', updates: '通过邮件安全激活', loginLabel: '注册信息', usernameLabel: '已预留用户名', emailLabel: '预注册邮箱',
     },
 } as const;
 
@@ -61,6 +61,7 @@ export default function PreRegisterPage() {
     const [emailWasSent, setEmailWasSent] = useState(false);
     const [complimentaryAccess, setComplimentaryAccess] = useState(false);
     const [registeredEmail, setRegisteredEmail] = useState('');
+    const [registeredUsername, setRegisteredUsername] = useState('');
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -82,6 +83,7 @@ export default function PreRegisterPage() {
                 body: JSON.stringify({
                     fullName: form.get('fullName'),
                     email: form.get('email'),
+                    username: form.get('username'),
                     phone: form.get('phone'),
                     company: form.get('company'),
                     address: form.get('address'),
@@ -104,6 +106,7 @@ export default function PreRegisterPage() {
             setEmailWasSent(Boolean(payload.emailSent));
             setComplimentaryAccess(Boolean(payload.complimentaryAccess));
             setRegisteredEmail(payload.email ?? String(form.get('email') ?? ''));
+            setRegisteredUsername(String(form.get('username') ?? ''));
             try {
                 window.sessionStorage.removeItem('sfera:pre-registration-source');
             } catch {
@@ -148,7 +151,16 @@ export default function PreRegisterPage() {
                             {complimentaryAccess && <p className="mt-3 max-w-md text-sm font-bold leading-6 text-amber-100">{t.successFree}</p>}
                             <div className="mt-5 w-full max-w-md rounded-xl border border-cyan-200/18 bg-cyan-200/[.06] px-4 py-3 text-left">
                                 <p className="text-[9px] font-black uppercase tracking-[.18em] text-slate-400">{t.loginLabel}</p>
-                                <p className="mt-1 break-all font-mono text-sm font-bold text-cyan-50">{registeredEmail}</p>
+                                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                    <div>
+                                        <p className="text-[9px] font-black uppercase tracking-[.14em] text-slate-500">{t.usernameLabel}</p>
+                                        <p className="mt-1 break-all font-mono text-sm font-bold text-cyan-50">{registeredUsername}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-black uppercase tracking-[.14em] text-slate-500">{t.emailLabel}</p>
+                                        <p className="mt-1 break-all font-mono text-sm font-bold text-cyan-50">{registeredEmail}</p>
+                                    </div>
+                                </div>
                             </div>
                             <p className={`mt-4 max-w-md text-xs leading-5 ${emailWasSent ? 'text-emerald-100' : 'text-amber-100'}`}>{emailWasSent ? t.emailSent : t.emailPending}</p>
                             <p className="mt-2 max-w-md text-xs leading-5 text-slate-300">
@@ -166,6 +178,19 @@ export default function PreRegisterPage() {
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <Field label={t.name}><input name="fullName" required minLength={2} maxLength={120} autoComplete="name" className={inputClass} /></Field>
                                 <Field label={t.email}><input name="email" required type="email" maxLength={254} autoComplete="email" className={inputClass} /></Field>
+                                <Field label={t.username}>
+                                    <input
+                                        name="username"
+                                        required
+                                        minLength={3}
+                                        maxLength={32}
+                                        pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,31}"
+                                        autoComplete="username"
+                                        spellCheck={false}
+                                        placeholder={t.usernamePlaceholder}
+                                        className={inputClass}
+                                    />
+                                </Field>
                                 <Field label={t.phone}><input name="phone" required maxLength={40} autoComplete="tel" className={inputClass} /></Field>
                                 <Field label={t.company}><input name="company" maxLength={160} autoComplete="organization" className={inputClass} /></Field>
                             </div>

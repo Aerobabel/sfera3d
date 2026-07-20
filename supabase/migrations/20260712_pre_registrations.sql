@@ -2,6 +2,7 @@ create table if not exists public.pre_registrations (
     id uuid primary key default gen_random_uuid(),
     full_name text not null,
     email text not null unique,
+    username text,
     phone text,
     company text,
     address text,
@@ -17,5 +18,9 @@ create table if not exists public.pre_registrations (
 
 create index if not exists pre_registrations_status_created_idx
     on public.pre_registrations (status, created_at desc);
+
+create unique index if not exists pre_registrations_username_ci_unique
+    on public.pre_registrations (lower(username))
+    where username is not null;
 
 alter table public.pre_registrations enable row level security;

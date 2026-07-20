@@ -1,6 +1,7 @@
 type PreRegistrationEmailArgs = {
     to: string;
     fullName: string;
+    username: string;
     phone: string;
     company: string;
     address: string;
@@ -37,8 +38,8 @@ export async function sendPreRegistrationConfirmation(args: PreRegistrationEmail
         ? (isChinese ? '您的 3DSFERA 终身免费访问资格已预留。' : 'Your free lifetime access to 3DSFERA has been reserved.')
         : (isChinese ? '您的预注册已记录；付费访问详情将在上线前发送。' : 'Your pre-registration is recorded; paid-access details will be sent before launch.');
     const labels = isChinese
-        ? { name: '姓名', email: '邮箱', phone: '电话', company: '公司', address: '预计配送地址', comment: '备注', status: '账号状态' }
-        : { name: 'Name', email: 'Email', phone: 'Phone', company: 'Company', address: 'Probable delivery location', comment: 'Comment', status: 'Account status' };
+        ? { name: '姓名', email: '邮箱', username: '用户名', phone: '电话', company: '公司', address: '预计配送地址', comment: '备注', status: '账号状态' }
+        : { name: 'Name', email: 'Email', username: 'Username', phone: 'Phone', company: 'Company', address: 'Probable delivery location', comment: 'Comment', status: 'Account status' };
     const intro = isChinese
         ? `恭喜，${args.fullName}！您已成功预注册 3dsfera.org。`
         : `Congratulations, ${args.fullName}! Your pre-registration at 3dsfera.org is confirmed.`;
@@ -49,6 +50,7 @@ export async function sendPreRegistrationConfirmation(args: PreRegistrationEmail
     const rows = [
         [labels.name, args.fullName],
         [labels.email, args.to],
+        [labels.username, args.username],
         [labels.status, isChinese ? '预注册；等待激活' : 'Pre-registered; awaiting activation'],
         [labels.phone, valueOrDash(args.phone)],
         [labels.company, valueOrDash(args.company)],
