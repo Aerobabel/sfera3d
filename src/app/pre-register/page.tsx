@@ -24,6 +24,7 @@ const COPY = {
         successFree: 'Your free lifetime access to 3DSFERA has been reserved.',
         emailSent: 'A confirmation was sent to your email.',
         emailPending: 'Your details are saved. Confirmation email delivery is still pending.',
+        emailHelp: 'Check your inbox and spam folder. If the confirmation does not arrive, contact',
         activation: 'When access opens, we will email a secure link that lets you create your password and activate your account.',
         returnHome: 'Return to 3DSFERA', again: 'Register another participant', error: 'We could not save your pre-registration. Please try again.',
         secure: 'No account created yet', review: 'Free lifetime access', updates: 'Secure activation by email', loginLabel: 'Registration email',
@@ -43,6 +44,7 @@ const COPY = {
         successFree: '您的 3DSFERA 终身免费访问资格已预留。',
         emailSent: '确认邮件已发送到您的邮箱。',
         emailPending: '您的资料已保存。确认邮件仍在等待发送。',
+        emailHelp: '请检查收件箱和垃圾邮件文件夹。如果仍未收到确认邮件，请联系',
         activation: '开放访问时，我们会发送安全链接，供您创建密码并激活账号。',
         returnHome: '返回 3DSFERA', again: '注册其他参与者', error: '无法保存预注册，请重试。',
         secure: '暂不创建账号', review: '终身免费访问', updates: '通过邮件安全激活', loginLabel: '预注册邮箱',
@@ -149,6 +151,12 @@ export default function PreRegisterPage() {
                                 <p className="mt-1 break-all font-mono text-sm font-bold text-cyan-50">{registeredEmail}</p>
                             </div>
                             <p className={`mt-4 max-w-md text-xs leading-5 ${emailWasSent ? 'text-emerald-100' : 'text-amber-100'}`}>{emailWasSent ? t.emailSent : t.emailPending}</p>
+                            <p className="mt-2 max-w-md text-xs leading-5 text-slate-300">
+                                {t.emailHelp}{' '}
+                                <a className="font-bold text-cyan-100 underline decoration-cyan-100/40 underline-offset-2 transition hover:text-white" href="mailto:admin@3dsfera.org">
+                                    admin@3dsfera.org
+                                </a>.
+                            </p>
                             <p className="mt-3 max-w-md text-xs leading-5 text-slate-300">{t.activation}</p>
                             <Link href="/" className="mt-7 inline-flex min-h-12 items-center gap-2 rounded-full bg-cyan-200 px-6 py-3 text-sm font-black text-slate-950 transition hover:scale-[1.02]"><ArrowLeft className="h-4 w-4" />{t.returnHome}</Link>
                             <button type="button" onClick={() => setIsComplete(false)} className="mt-4 text-sm text-slate-400 transition hover:text-white">{t.again}</button>
