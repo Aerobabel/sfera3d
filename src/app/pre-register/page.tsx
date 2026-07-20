@@ -14,6 +14,7 @@ const COPY = {
         title: 'Pre-register for 3DSFERA',
         body: 'Pre-register by August 1, 2026 to reserve free lifetime access to 3DSFERA. No login account will be created until access opens.',
         name: 'Full name', email: 'Email address', phone: 'Phone', company: 'Company (optional)',
+        address: 'Probable delivery location', addressPlaceholder: 'Country, region, city, postal code, street address',
         accountType: 'I want access as', player: 'Player', visitor: 'Visitor / buyer', supplier: 'Supplier',
         message: 'Comment (optional)',
         consent: 'I agree that 3DSFERA may store these details and email me about access, platform changes, and launch timing.',
@@ -32,6 +33,7 @@ const COPY = {
         title: '预注册 3DSFERA',
         body: '在 2026 年 8 月 1 日前预注册，即可预留 3DSFERA 终身免费访问资格。开放访问前不会创建登录账号。',
         name: '姓名', email: '邮箱地址', phone: '电话', company: '公司（选填）',
+        address: '预计配送地址', addressPlaceholder: '国家、省/州、城市、邮编、街道地址',
         accountType: '申请身份', player: '玩家', visitor: '访客 / 买家', supplier: '供应商',
         message: '备注（选填）',
         consent: '我同意 3DSFERA 保存这些信息，并通过邮件通知访问权限、平台变更和上线时间。',
@@ -64,6 +66,12 @@ export default function PreRegisterPage() {
         setError('');
 
         const form = new FormData(event.currentTarget);
+        let registrationSource: string | null = null;
+        try {
+            registrationSource = window.sessionStorage.getItem('sfera:pre-registration-source');
+        } catch {
+            // Source tracking is optional.
+        }
 
         try {
             const response = await fetch('/api/pre-registration', {
@@ -74,10 +82,11 @@ export default function PreRegisterPage() {
                     email: form.get('email'),
                     phone: form.get('phone'),
                     company: form.get('company'),
+                    address: form.get('address'),
                     accountType,
                     message: form.get('message'),
                     website: form.get('website'),
-                    source: new URLSearchParams(window.location.search).get('source'),
+                    source: registrationSource,
                     locale: language === 'zh' ? 'zh' : 'en',
                     consent: form.get('consent') === 'on',
                 }),
@@ -93,6 +102,11 @@ export default function PreRegisterPage() {
             setEmailWasSent(Boolean(payload.emailSent));
             setComplimentaryAccess(Boolean(payload.complimentaryAccess));
             setRegisteredEmail(payload.email ?? String(form.get('email') ?? ''));
+            try {
+                window.sessionStorage.removeItem('sfera:pre-registration-source');
+            } catch {
+                // Source tracking is optional.
+            }
             setIsComplete(true);
             window.dispatchEvent(new Event('sfera:success'));
         } catch (requestError) {
@@ -147,6 +161,18 @@ export default function PreRegisterPage() {
                                 <Field label={t.phone}><input name="phone" required maxLength={40} autoComplete="tel" className={inputClass} /></Field>
                                 <Field label={t.company}><input name="company" maxLength={160} autoComplete="organization" className={inputClass} /></Field>
                             </div>
+                            <Field label={t.address}>
+                                <textarea
+                                    name="address"
+                                    required
+                                    minLength={5}
+                                    maxLength={1000}
+                                    rows={3}
+                                    autoComplete="street-address"
+                                    placeholder={t.addressPlaceholder}
+                                    className={`${inputClass} resize-y`}
+                                />
+                            </Field>
 
                             <fieldset>
                                 <legend className="mb-2 text-[10px] font-black uppercase tracking-[.18em] text-slate-400">{t.accountType}</legend>

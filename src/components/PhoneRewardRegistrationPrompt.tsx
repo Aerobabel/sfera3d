@@ -44,13 +44,21 @@ export default function PhoneRewardRegistrationPrompt({
     const t = language === 'zh' ? COPY.zh : COPY.en;
     const [isCopied, setIsCopied] = useState(false);
     const linkRef = useRef<HTMLInputElement | null>(null);
-    const registrationPath = '/pre-register?source=phone-reward';
+    const registrationPath = '/pre-register';
     const displayUrl = 'https://3dsfera.org/pre-register';
+
+    const markRewardRegistrationSource = () => {
+        try {
+            window.sessionStorage.setItem('sfera:pre-registration-source', 'phone_reward');
+        } catch {
+            // Tracking is optional; the public registration URL must stay clean.
+        }
+    };
 
     const copyLink = async () => {
         const url = typeof window === 'undefined'
             ? displayUrl
-            : new URL(registrationPath, window.location.origin).toString();
+            : new URL('/pre-register', window.location.origin).toString();
 
         try {
             await navigator.clipboard.writeText(url);
@@ -100,7 +108,7 @@ export default function PhoneRewardRegistrationPrompt({
                         </div>
 
                         <div className="mt-5 grid gap-2 sm:grid-cols-[1fr_auto]">
-                            <Link href={registrationPath} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-5 py-3 text-sm font-black uppercase tracking-[.1em] text-slate-950 transition hover:scale-[1.01]">
+                            <Link href={registrationPath} onClick={markRewardRegistrationSource} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#66d9cb,#d8fff9)] px-5 py-3 text-sm font-black uppercase tracking-[.1em] text-slate-950 transition hover:scale-[1.01]">
                                 {t.action}<ExternalLink className="h-4 w-4" />
                             </Link>
                             <button type="button" onClick={onClose} className="min-h-12 rounded-xl border border-white/12 px-4 py-3 text-xs font-bold text-slate-300 transition hover:bg-white/[.07] hover:text-white">{t.later}</button>

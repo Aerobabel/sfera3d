@@ -7,6 +7,7 @@ type PreRegistrationBody = {
     email?: string;
     phone?: string;
     company?: string;
+    address?: string;
     accountType?: string;
     message?: string;
     locale?: string;
@@ -40,10 +41,11 @@ export async function POST(request: Request) {
     const email = trim(payload.email).toLowerCase();
     const phone = trim(payload.phone);
     const company = trim(payload.company);
+    const address = trim(payload.address);
     const accountType = trim(payload.accountType).toLowerCase();
     const message = trim(payload.message);
     const locale: 'en' | 'zh' = trim(payload.locale) === 'zh' ? 'zh' : 'en';
-    const source = trim(payload.source) === 'phone-reward' ? 'phone_reward_pre_registration' : 'public_pre_registration';
+    const source = trim(payload.source) === 'phone_reward' ? 'phone_reward_pre_registration' : 'public_pre_registration';
 
     if (fullName.length < 2 || fullName.length > 120) return jsonError(400, 'Enter your full name.');
     if (!EMAIL_PATTERN.test(email) || email.length > 254) return jsonError(400, 'Enter a valid email address.');
@@ -51,6 +53,8 @@ export async function POST(request: Request) {
     if (phone.length < 3) return jsonError(400, 'Enter your phone number.');
     if (phone.length > 40) return jsonError(400, 'Phone number is too long.');
     if (company.length > 160) return jsonError(400, 'Company name is too long.');
+    if (address.length < 5) return jsonError(400, 'Enter your probable delivery location.');
+    if (address.length > 1000) return jsonError(400, 'Delivery location is too long.');
     if (message.length > 1500) return jsonError(400, 'Message is too long.');
     if (payload.consent !== true) return jsonError(400, 'Consent is required.');
     if (Date.now() > FREE_REGISTRATION_DEADLINE) {
@@ -61,13 +65,14 @@ export async function POST(request: Request) {
         const supabase = getSupabaseAdminClient();
         const complimentaryAccess = true;
 
-        const { data, error } = await supabase
+        let registrationWrite = await supabase
             .from('pre_registrations')
             .upsert({
                 full_name: fullName,
                 email,
                 phone: phone || null,
                 company: company || null,
+                address,
                 account_type: accountType,
                 message: message || null,
                 locale,
@@ -80,6 +85,35 @@ export async function POST(request: Request) {
             .single();
 
         let storage = 'pre_registrations';
+        if (
+            registrationWrite.error &&
+            /address|schema cache/i.test(registrationWrite.error.message)
+        ) {
+            const legacyMessage = [
+                `Probable delivery location: ${address}`,
+                message ? `Comment: ${message}` : null,
+            ].filter(Boolean).join('\n');
+            registrationWrite = await supabase
+                .from('pre_registrations')
+                .upsert({
+                    full_name: fullName,
+                    email,
+                    phone: phone || null,
+                    company: company || null,
+                    account_type: accountType,
+                    message: legacyMessage,
+                    locale,
+                    consent_at: new Date().toISOString(),
+                    source,
+                    status: 'pending',
+                    updated_at: new Date().toISOString(),
+                }, { onConflict: 'email' })
+                .select('id, status, created_at')
+                .single();
+            if (!registrationWrite.error) storage = 'pre_registrations_address_in_message';
+        }
+
+        const { data, error } = registrationWrite;
         let registration: unknown = data;
         if (error) {
             console.warn('[pre-registration] Primary table unavailable, using contact queue:', error.message);
@@ -96,6 +130,7 @@ export async function POST(request: Request) {
                         `Locale: ${locale}`,
                         `Source: ${source}`,
                         `Complimentary access: ${complimentaryAccess ? 'yes' : 'no'}`,
+                        `Probable delivery location: ${address}`,
                         message ? `Message: ${message}` : 'Message: —',
                     ].join('\n'),
                 });
@@ -114,6 +149,7 @@ export async function POST(request: Request) {
             fullName,
             phone,
             company,
+            address,
             comment: message,
             locale,
             complimentaryAccess,

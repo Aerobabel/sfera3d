@@ -4,6 +4,7 @@ create table if not exists public.pre_registrations (
     email text not null unique,
     phone text,
     company text,
+    address text,
     account_type text not null check (account_type in ('player', 'visitor', 'supplier')),
     message text,
     locale text not null default 'en' check (locale in ('en', 'ru', 'zh')),
