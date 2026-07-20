@@ -117,14 +117,19 @@ export const getSupplierStaffPavilionIds = (
     role: string | null | undefined
 ): string[] => {
     const explicitPavilionIds = getPavilionStaffPavilionIds(user);
-    if (explicitPavilionIds.length > 0 || role !== 'supplier' || !user?.email) {
+    if (role !== 'supplier' || !user?.email) {
         return explicitPavilionIds;
     }
 
     const localPart = user.email.trim().toLowerCase().split('@')[0] ?? '';
-    return CENTRAL_SUPPLIER_EMAIL_LOCAL_PARTS.has(localPart)
-        ? ALL_CENTRAL_SUPPLIER_CHANNEL_IDS
-        : explicitPavilionIds;
+    if (!CENTRAL_SUPPLIER_EMAIL_LOCAL_PARTS.has(localPart)) {
+        return explicitPavilionIds;
+    }
+
+    return Array.from(new Set([
+        ...explicitPavilionIds,
+        ...ALL_CENTRAL_SUPPLIER_CHANNEL_IDS,
+    ]));
 };
 
 export const getPavilionStaffFor = (
