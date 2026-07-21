@@ -426,6 +426,10 @@ export const useUnrealEventBridge = () => {
         persistBridgeState(state);
     }, [state]);
 
+    const resetProximityTrigger = useCallback((trigger: ProximityTrigger) => {
+        activeProximityTriggersRef.current.delete(trigger);
+    }, []);
+
     const handleUnrealResponse = useCallback((message: string): UnrealPixelStreamingEvent | null => {
         const unrealEvent = parseUnrealEvent(message);
         if (!unrealEvent) return null;
@@ -767,7 +771,7 @@ export const useUnrealEventBridge = () => {
         return unrealEvent;
     }, []);
 
-    return useMemo(() => ({ ...state, handleUnrealResponse }), [state, handleUnrealResponse]);
+    return useMemo(() => ({ ...state, handleUnrealResponse, resetProximityTrigger }), [state, handleUnrealResponse, resetProximityTrigger]);
 };
 
 export const useUnrealPixelStreamingEvents = useUnrealEventBridge;
