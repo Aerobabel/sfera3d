@@ -3889,6 +3889,11 @@ export default function ExperiencePage() {
         playSferaUiSound('reward');
     }, [unrealBridge]);
 
+    const closeWheelOverlay = useCallback(() => {
+        unrealBridge.resetProximityTrigger('wheel');
+        setIsWheelOpen(false);
+    }, [unrealBridge]);
+
     const handleWheelSpin = useCallback(() => {
         unrealBridge.handleUnrealResponse(JSON.stringify({ event: 'wheel_spun' }));
         sendUnrealUiInteraction({ type: 'wheel_spun' });
@@ -6753,10 +6758,10 @@ export default function ExperiencePage() {
                             copy={waterFlowCopy}
                             spinsRemaining={unrealBridge.wheelSpinsRemaining}
                             coupon={unrealBridge.wheelCoupon}
-                            onClose={() => setIsWheelOpen(false)}
+                            onClose={closeWheelOverlay}
                             onSpin={handleWheelSpin}
                             onRewardCutscene={() => {
-                                setIsWheelOpen(false);
+                                closeWheelOverlay();
                                 setHasStartedPhoneRewardCutsceneSound(false);
                                 setIsPhoneRewardCutsceneVisible(true);
                             }}
