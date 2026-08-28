@@ -10,23 +10,19 @@ import { clearServerAuthSession } from "@/lib/auth/browser";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const playerIntroLoginHref = "/login?role=player&next=%2Froles%3Fintro%3Dcity";
-const HERO_VIDEO_FADE_START_TIME_SECONDS = 5.25;
-const HERO_VIDEO_STOP_TIME_SECONDS = 6.55;
+const HERO_VIDEO_FADE_OFFSET_SECONDS = 1.25;
 
 const syncHeroVideoOutro = (
   event: SyntheticEvent<HTMLVideoElement>,
   fadeHeroVideo: () => void,
 ) => {
   const video = event.currentTarget;
-
-  if (video.currentTime >= HERO_VIDEO_FADE_START_TIME_SECONDS) {
+  if (
+    Number.isFinite(video.duration) &&
+    video.currentTime >= Math.max(0, video.duration - HERO_VIDEO_FADE_OFFSET_SECONDS)
+  ) {
     fadeHeroVideo();
   }
-
-  if (video.currentTime < HERO_VIDEO_STOP_TIME_SECONDS) return;
-
-  video.pause();
-  video.currentTime = HERO_VIDEO_STOP_TIME_SECONDS;
 };
 
 const copy = {
@@ -40,6 +36,8 @@ const copy = {
     signOut: "Sign out",
     stages: ["Explore", "Play", "Shop"],
     live: "World online",
+    trailer: "Watch the 3DSFERA trailer",
+    trailerMeta: "Official film · 25 sec",
   },
   ru: {
     eyebrow: "Добро пожаловать в 3DSFERA",
@@ -51,6 +49,8 @@ const copy = {
     signOut: "Выйти",
     stages: ["Исследуйте", "Играйте", "Покупайте"],
     live: "Мир онлайн",
+    trailer: "Смотреть трейлер 3DSFERA",
+    trailerMeta: "Официальное видео · 25 сек",
   },
   zh: {
     eyebrow: "欢迎来到 3DSFERA",
@@ -62,6 +62,8 @@ const copy = {
     signOut: "退出",
     stages: ["探索", "游玩", "购物"],
     live: "世界在线",
+    trailer: "观看 3DSFERA 预告片",
+    trailerMeta: "官方影片 · 25 秒",
   },
 } as const;
 
@@ -112,7 +114,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="sfera-cinematic-shell sfera-page-enter relative min-h-screen overflow-hidden bg-[#010203] text-[#f5f1e9] [font-family:var(--font-body)] selection:bg-[#66d9cb] selection:text-[#090b10]">
+    <div className="sfera-cinematic-shell sfera-page-enter relative min-h-screen overflow-x-hidden bg-[#010203] text-[#f5f1e9] [font-family:var(--font-body)] selection:bg-[#66d9cb] selection:text-[#090b10]">
       <div className="absolute inset-0 md:hidden">
         <Image src="/sferapic.png" alt="" fill priority className="object-cover opacity-20 brightness-75" sizes="100vw" />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,6,9,0.64),rgba(4,6,9,0.94)_58%,#040609)]" />
@@ -137,6 +139,7 @@ export default function Home() {
           autoPlay
           muted
           playsInline
+          preload="metadata"
           poster="/sferapic.png"
           onEnded={(event) => syncHeroVideoOutro(event, () => setIsHeroVideoFaded(true))}
           onTimeUpdate={(event) => syncHeroVideoOutro(event, () => setIsHeroVideoFaded(true))}
@@ -199,14 +202,14 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto flex min-h-[calc(100svh-4rem)] max-w-[90rem] items-end px-4 pb-8 pt-24 sm:px-6 md:items-center md:pb-12 lg:px-10">
-        <div className="grid w-full grid-cols-[auto_1fr] gap-4 sm:gap-8">
+      <main className="relative z-10 mx-auto flex min-h-[calc(100svh-4rem)] max-w-[90rem] items-end px-4 pb-12 pt-24 sm:px-6 md:items-center lg:px-10 xl:pb-12">
+        <div className="grid w-full grid-cols-[auto_1fr] gap-4 sm:gap-8 xl:grid-cols-[auto_minmax(0,1fr)_minmax(420px,0.85fr)] xl:items-center xl:gap-10">
           <div className="fade-up hidden flex-col items-center pt-1 sm:flex">
             <span className="text-[9px] font-bold tracking-[0.24em] text-[#f6ba4f] [writing-mode:vertical-rl]">WORLD / 01</span>
             <span className="mt-4 h-20 w-px bg-gradient-to-b from-[#f6ba4f] to-[#66d9cb]/10" />
           </div>
 
-          <div className="max-w-3xl">
+          <div className="max-w-3xl xl:max-w-[46rem]">
             <div className="fade-up flex items-center gap-3">
               <span className="h-px w-10 bg-[#66d9cb]" />
               <p className="[font-family:var(--font-mono)] text-[10px] font-bold uppercase tracking-[0.32em] text-[#66d9cb] sm:text-xs">
@@ -214,7 +217,7 @@ export default function Home() {
               </p>
             </div>
 
-            <h1 className="fade-up delay-1 mt-6 text-[clamp(3rem,7.2vw,7.25rem)] font-semibold leading-[0.84] tracking-[-0.055em] [font-family:var(--font-display)]">
+            <h1 className="fade-up delay-1 mt-6 text-[clamp(3rem,6.2vw,6.5rem)] font-semibold leading-[0.84] tracking-[-0.055em] [font-family:var(--font-display)]">
               <span className="block text-white">{t.title}</span>
               <span className="mt-3 block text-[#f6ba4f]">{t.accent}</span>
             </h1>
@@ -250,6 +253,31 @@ export default function Home() {
               ))}
             </div>
           </div>
+
+          <aside className="fade-up delay-2 col-span-2 mt-10 sm:col-start-2 xl:col-span-1 xl:col-start-3 xl:row-start-1 xl:mt-0">
+            <div
+              className="overflow-hidden border border-white/20 bg-[#05070a]/95 shadow-[0_30px_100px_rgba(0,0,0,0.7)]"
+              style={{ clipPath: "polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px))" }}
+            >
+              <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <span className="h-2 w-2 rounded-full bg-[#f6ba4f] shadow-[0_0_12px_rgba(246,186,79,0.8)]" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white sm:text-xs">{t.trailer}</p>
+                </div>
+                <span className="text-[9px] uppercase tracking-[0.15em] text-white/45">{t.trailerMeta}</span>
+              </div>
+              <video
+                className="aspect-video w-full bg-black object-contain"
+                controls
+                playsInline
+                preload="metadata"
+                poster="/cutscenes/webrolik-poster.jpg"
+                aria-label={t.trailer}
+              >
+                <source src="/cutscenes/webrolik.mp4" type="video/mp4" />
+              </video>
+            </div>
+          </aside>
         </div>
       </main>
 
