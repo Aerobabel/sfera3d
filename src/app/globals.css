@@ -1,4 +1,8 @@
-@import "tailwindcss";
+/* The repository also contains multi-gigabyte Blender/runtime asset trees.
+   Disable Tailwind 4's repository-wide automatic detection and scan only the
+   actual web/native-overlay source tree. */
+@import "tailwindcss" source(none);
+@source "../";
 
 :root {
   --sfera-bg: #05070a;
@@ -10,13 +14,17 @@
   --sfera-text-muted: #9ba7ad;
   --sfera-accent: #83e8dc;
   --sfera-accent-2: #e7bd68;
+  --sfera-marketing-orange: #ff5a19;
+  --sfera-marketing-purple: #8b5cf6;
+  --sfera-marketing-cyan: #54dce6;
+  --sfera-marketing-bg: #03050a;
   --sfera-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --sfera-radius: 18px;
   --background: var(--sfera-bg);
   --foreground: var(--sfera-text);
-  --font-geist-sans: "Segoe UI Variable", "Aptos", "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-geist-sans: var(--font-manrope), var(--font-noto-sans-sc), "Segoe UI Variable", "Aptos", "Helvetica Neue", Arial, sans-serif;
   --font-geist-mono: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
-  --font-display: "Bahnschrift", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-unbounded), var(--font-noto-sans-sc), "Bahnschrift", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   --font-body: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-dashboard-display: var(--font-display);
@@ -33,7 +41,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
   text-rendering: geometricPrecision;
 }
 
@@ -42,6 +50,11 @@ body {
   width: 100%;
   max-width: 100%;
   overflow-x: clip;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
 }
 
 * {
@@ -228,6 +241,105 @@ a {
   animation: sferaPageReveal 0.8s var(--sfera-ease) both;
 }
 
+.marketing-scroll-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 70;
+  height: 2px;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.marketing-scroll-progress > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(var(--marketing-scroll-progress, 0));
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--sfera-marketing-orange), var(--sfera-marketing-purple), var(--sfera-marketing-cyan));
+  box-shadow: 0 0 14px rgba(84, 220, 230, 0.45);
+  transition: transform 90ms linear;
+}
+
+.marketing-header {
+  transition:
+    background-color 320ms var(--sfera-ease),
+    border-color 320ms var(--sfera-ease),
+    box-shadow 320ms var(--sfera-ease);
+}
+
+body[data-marketing-scrolled] .marketing-header {
+  border-color: rgba(84, 220, 230, 0.16);
+  background-color: rgba(3, 5, 10, 0.82);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.32);
+}
+
+[data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 30px, 0);
+  filter: blur(5px);
+  transition:
+    opacity 780ms var(--sfera-ease) var(--reveal-delay, 0ms),
+    transform 780ms var(--sfera-ease) var(--reveal-delay, 0ms),
+    filter 780ms var(--sfera-ease) var(--reveal-delay, 0ms);
+}
+
+[data-reveal="left"] {
+  transform: translate3d(-34px, 0, 0);
+}
+
+[data-reveal="right"] {
+  transform: translate3d(34px, 0, 0);
+}
+
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  filter: blur(0);
+}
+
+.marketing-reveal-grid > [data-reveal]:nth-child(2) { --reveal-delay: 80ms; }
+.marketing-reveal-grid > [data-reveal]:nth-child(3) { --reveal-delay: 160ms; }
+.marketing-reveal-grid > [data-reveal]:nth-child(4) { --reveal-delay: 80ms; }
+.marketing-reveal-grid > [data-reveal]:nth-child(5) { --reveal-delay: 160ms; }
+.marketing-reveal-grid > [data-reveal]:nth-child(6) { --reveal-delay: 240ms; }
+
+[data-parallax] {
+  transform: translate3d(0, var(--marketing-parallax, 0), 0);
+  will-change: transform;
+}
+
+.marketing-interactive {
+  position: relative;
+  isolation: isolate;
+  transition:
+    translate 420ms var(--sfera-ease),
+    border-color 300ms var(--sfera-ease),
+    box-shadow 420ms var(--sfera-ease);
+}
+
+.marketing-interactive::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(340px circle at var(--pointer-x, 50%) var(--pointer-y, 50%), rgba(84, 220, 230, 0.13), transparent 64%);
+  mix-blend-mode: screen;
+  transition: opacity 300ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .marketing-interactive:hover {
+    translate: 0 -6px;
+  }
+
+  .marketing-interactive:hover::after {
+    opacity: 1;
+  }
+}
+
 .sfera-cinematic-shell {
   isolation: isolate;
   background:
@@ -308,7 +420,6 @@ a {
 
 .sfera-display {
   font-family: var(--font-display);
-  font-stretch: condensed;
   font-weight: 700;
   letter-spacing: -0.045em;
   text-wrap: balance;
@@ -322,10 +433,9 @@ a {
   animation: sferaSignalPulse 2.4s ease-in-out infinite;
 }
 
-/* Editorial display serif class for pavilion/catalogue headings. */
+/* Branded display face for short, high-impact headings. */
 .font-display {
-  font-family: var(--font-display), "Playfair Display", "Cormorant Garamond",
-    Georgia, serif;
+  font-family: var(--font-display);
   font-feature-settings: "liga", "dlig", "lnum";
 }
 
