@@ -1,33 +1,45 @@
 'use client';
 
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import BrandLogo from "@/components/BrandLogo";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 const copy = {
-  en: { questions: "Still have questions?", about: "About", partner: "Partner onboarding" },
-  ru: { questions: "Остались вопросы?", about: "О нас", partner: "Онбординг партнёров" },
-  zh: { questions: "还有疑问？", about: "关于", partner: "合作伙伴入驻" },
+  en: { explore: "Explore", play: "Play", discover: "Discover", about: "About", contact: "Contact", rights: "All rights reserved." },
+  ru: { explore: "Исследовать", play: "Играть", discover: "Открывать", about: "О нас", contact: "Контакты", rights: "Все права защищены." },
+  zh: { explore: "探索", play: "游玩", discover: "发现", about: "关于", contact: "联系", rights: "版权所有。" },
 } as const;
+
+const links = [
+  ["/#about", "about"],
+  ["/#explore", "explore"],
+  ["/#play", "play"],
+  ["/#discover", "discover"],
+] as const;
 
 export default function MarketingFooter() {
   const { language } = useLanguage();
   const t = copy[language];
 
   return (
-    <footer className="relative z-10 border-t border-white/10 bg-[#03050a]/90">
-      <div className="mx-auto flex max-w-[92rem] flex-col gap-5 px-4 py-8 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-10">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--sfera-marketing-orange)]">{t.questions}</p>
-          <a href="mailto:help@3dsfera.com" className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-white/75 transition hover:text-white">
-            <Mail className="h-4 w-4 text-[var(--sfera-marketing-cyan)]" /> help@3dsfera.com
-          </a>
-        </div>
-        <div className="flex flex-wrap gap-x-6 gap-y-3 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
-          <Link href="/" className="transition hover:text-white">3DSFERA</Link>
-          <Link href="/about" className="transition hover:text-white">{t.about}</Link>
-          <Link href="/onboarding" className="transition hover:text-white">{t.partner}</Link>
-        </div>
+    <footer className="relative z-10 border-t border-white/10 bg-[#02050b]/95">
+      <div className="mx-auto flex max-w-[1460px] flex-col gap-6 px-5 py-8 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:px-12">
+        <Link href="/#explore" className="flex items-center gap-4" aria-label="3DSFERA home">
+          <BrandLogo size="md" />
+          <span className="text-sm font-medium tracking-[0.38em] text-white/90">3DSFERA</span>
+        </Link>
+
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/45" aria-label="Footer navigation">
+          {links.map(([href, key]) => (
+            <span key={href} className="flex items-center gap-4"><Link href={href} className="transition hover:text-white">{t[key]}</Link><span className="text-white/20">|</span></span>
+          ))}
+          <Link href="/#contact" className="transition hover:text-white">Partners</Link><span className="text-white/20">|</span>
+          <Link href="/#contact" className="transition hover:text-white">Contact</Link><span className="text-white/20">|</span>
+          <Link href="/privacy" className="transition hover:text-white">Privacy</Link><span className="text-white/20">|</span>
+          <Link href="/terms" className="transition hover:text-white">Terms</Link>
+        </nav>
+
+        <p className="text-xs text-white/35">© 2026 3DSFERA. {t.rights}</p>
       </div>
     </footer>
   );

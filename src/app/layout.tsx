@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope, Noto_Sans_SC, Unbounded } from "next/font/google";
+import { Bebas_Neue, Manrope, Noto_Sans_SC, Unbounded } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 import AuthSessionBridge from "@/components/auth/AuthSessionBridge";
@@ -17,6 +17,13 @@ const manrope = Manrope({
 const unbounded = Unbounded({
   variable: "--font-unbounded",
   subsets: ["cyrillic", "latin"],
+  display: "swap",
+});
+
+const bebasNeue = Bebas_Neue({
+  variable: "--font-bebas-neue",
+  subsets: ["latin"],
+  weight: "400",
   display: "swap",
 });
 
@@ -57,7 +64,7 @@ export default async function RootLayout({
   return (
     <html
       lang={toHtmlLanguageTag(defaultLanguage)}
-      className={`${manrope.variable} ${unbounded.variable} ${notoSansSC.variable}`}
+      className={`${manrope.variable} ${unbounded.variable} ${bebasNeue.variable} ${notoSansSC.variable}`}
     >
       <body className="antialiased">
         <LanguageProvider defaultLanguage={defaultLanguage}>
