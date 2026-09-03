@@ -45,12 +45,12 @@ export default function Home() {
     <div className="relative min-h-screen overflow-x-clip bg-[#01040a] text-white [font-family:var(--font-body)]">
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
         <Image
-          src="/visuals/3dsfera-city-hero.png"
+          src="/visuals/3dsfera-city-reference-bg.png"
           alt=""
           fill
           priority
           loading="eager"
-          className="object-cover object-[70%_center] brightness-[1.04] contrast-[1.08] saturate-[1.48] sm:object-[62%_center] lg:object-center"
+          className="object-cover object-[80%_center] brightness-[1.04] contrast-[1.08] saturate-[1.48] sm:object-[70%_center] lg:object-center"
           sizes="100vw"
         />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,3,9,0.02),rgba(0,3,9,0.08)_48%,rgba(0,3,9,0.2)),radial-gradient(circle_at_78%_20%,rgba(0,145,255,0.18),transparent_40%),radial-gradient(circle_at_20%_72%,rgba(255,83,15,0.14),transparent_38%)]" />
