@@ -49,8 +49,8 @@ export default function MarketingHeader() {
   return (
     <>
       <MarketingMotion />
-      <header className="marketing-header sticky top-3 z-50 mx-auto w-[calc(100%_-_1rem)] max-w-[1600px] rounded-[1.6rem] border border-sky-100/30 bg-[#050914]/78 shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:top-5 sm:w-[calc(100%_-_2.5rem)]">
-        <div className="flex min-h-20 items-center justify-between gap-4 px-4 sm:px-7 lg:min-h-24 lg:px-9">
+      <header className="marketing-header sticky top-2 z-50 mx-auto w-[calc(100%_-_1rem)] rounded-[1.25rem] border border-sky-100/30 bg-[#050914]/78 shadow-[0_18px_70px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:top-5 sm:w-[calc(100%_-_2.5rem)] sm:rounded-[1.6rem] lg:w-[calc(100%_-_4.5rem)]">
+        <div className="flex min-h-16 items-center justify-between gap-3 px-3 sm:min-h-20 sm:px-7 lg:min-h-24 lg:px-9">
           <Link href="/#explore" className="group flex shrink-0 items-center gap-3 sm:gap-5" aria-label="3DSFERA home">
             <BrandLogo size="lg" priority imageClassName="transition duration-500 group-hover:drop-shadow-[0_0_22px_rgba(255,139,45,0.5)]" />
             <span className="hidden text-sm font-medium tracking-[0.42em] text-white sm:block lg:text-xl">3DSFERA</span>
@@ -70,18 +70,18 @@ export default function MarketingHeader() {
 
           <Link
             href="/pre-register"
-            className="marketing-cta-glow inline-flex min-h-12 shrink-0 items-center justify-center rounded-[14px] border border-orange-100 bg-[linear-gradient(135deg,#ff4d00,#ff861c)] px-4 text-[10px] font-bold text-white shadow-[0_0_30px_rgba(255,94,20,0.5)] transition hover:-translate-y-0.5 hover:brightness-110 sm:px-6 sm:text-xs lg:min-h-14 lg:px-9 lg:text-base"
+            className="marketing-cta-glow inline-flex min-h-10 shrink-0 items-center justify-center rounded-[12px] border border-orange-100 bg-[linear-gradient(135deg,#ff4d00,#ff861c)] px-3 text-[10px] font-bold text-white shadow-[0_0_30px_rgba(255,94,20,0.5)] transition hover:-translate-y-0.5 hover:brightness-110 sm:min-h-12 sm:rounded-[14px] sm:px-6 sm:text-xs lg:min-h-14 lg:px-9 lg:text-base"
           >
             {t.earlyAccess}
           </Link>
         </div>
 
-        <nav className="flex items-center gap-1 overflow-x-auto border-t border-white/[0.07] px-3 py-2 lg:hidden" aria-label="Mobile navigation">
+        <nav className="grid grid-cols-5 items-center border-t border-white/[0.07] px-1.5 py-1.5 sm:px-3 sm:py-2 lg:hidden" aria-label="Mobile navigation">
           {routes.map((route) => (
             <Link
               key={route.href}
               href={route.href}
-              className="shrink-0 rounded-full px-3 py-2 text-[10px] font-bold text-white/55 transition hover:bg-white/[0.06] hover:text-white"
+              className="min-w-0 rounded-full px-1 py-2 text-center text-[9px] font-bold text-white/60 transition hover:bg-white/[0.06] hover:text-white sm:px-3 sm:text-[10px]"
             >
               {t[route.key]}
             </Link>
