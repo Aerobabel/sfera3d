@@ -22,7 +22,7 @@ export default function MarketingFooter() {
   const t = copy[language];
 
   return (
-    <footer className="relative z-10 border-t border-white/10 bg-[#02050b]/95">
+    <footer className="relative z-10 border-t border-sky-200/20 bg-[#02050b]/68 backdrop-blur-2xl">
       <div className="mx-auto flex max-w-[1460px] flex-col gap-6 px-5 py-8 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:px-12">
         <Link href="/#explore" className="flex items-center gap-4" aria-label="3DSFERA home">
           <BrandLogo size="md" />
