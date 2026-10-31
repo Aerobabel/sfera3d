@@ -20,7 +20,6 @@ type PreRegistrationBody = {
 const ACCOUNT_TYPES = new Set(['player', 'visitor', 'supplier']);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{2,31}$/;
-const FREE_REGISTRATION_DEADLINE = Date.parse('2026-08-01T23:59:59+03:00');
 const trim = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
 const jsonError = (status: number, error: string) =>
     NextResponse.json({ success: false, error }, { status });
@@ -61,10 +60,6 @@ export async function POST(request: Request) {
     if (address.length > 1000) return jsonError(400, 'Delivery location is too long.');
     if (message.length > 1500) return jsonError(400, 'Message is too long.');
     if (payload.consent !== true) return jsonError(400, 'Consent is required.');
-    if (Date.now() > FREE_REGISTRATION_DEADLINE) {
-        return jsonError(403, 'Free registration has closed. Paid registration information will be announced soon.');
-    }
-
     try {
         const supabase = getSupabaseAdminClient();
         const complimentaryAccess = true;
