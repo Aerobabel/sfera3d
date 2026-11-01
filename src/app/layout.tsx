@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, Manrope, Noto_Sans_SC, Unbounded } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 import AuthSessionBridge from "@/components/auth/AuthSessionBridge";
@@ -7,32 +6,6 @@ import { LanguageProvider } from "@/components/i18n/LanguageProvider";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import CinematicInterface from "@/components/CinematicInterface";
 import { getDefaultLanguageForHostname, toHtmlLanguageTag } from "@/lib/i18n";
-
-const manrope = Manrope({
-  variable: "--font-manrope",
-  subsets: ["cyrillic", "latin"],
-  display: "swap",
-});
-
-const unbounded = Unbounded({
-  variable: "--font-unbounded",
-  subsets: ["cyrillic", "latin"],
-  display: "swap",
-});
-
-const bebasNeue = Bebas_Neue({
-  variable: "--font-bebas-neue",
-  subsets: ["latin"],
-  weight: "400",
-  display: "swap",
-});
-
-const notoSansSC = Noto_Sans_SC({
-  variable: "--font-noto-sans-sc",
-  weight: "variable",
-  display: "swap",
-  preload: false,
-});
 
 export const metadata: Metadata = {
   title: "3DSFERA",
@@ -62,10 +35,7 @@ export default async function RootLayout({
   const defaultLanguage = getDefaultLanguageForHostname(hostname);
 
   return (
-    <html
-      lang={toHtmlLanguageTag(defaultLanguage)}
-      className={`${manrope.variable} ${unbounded.variable} ${bebasNeue.variable} ${notoSansSC.variable}`}
-    >
+    <html lang={toHtmlLanguageTag(defaultLanguage)}>
       <body className="antialiased">
         <LanguageProvider defaultLanguage={defaultLanguage}>
           <AuthSessionBridge />
