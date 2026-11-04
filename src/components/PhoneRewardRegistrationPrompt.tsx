@@ -7,9 +7,9 @@ import type { AppLanguage } from '@/lib/i18n';
 
 const COPY = {
     en: {
-        eyebrow: 'Free lifetime access',
+        eyebrow: 'Free early access',
         title: 'Pre-register for 3DSFERA',
-        body: 'Pre-register for free lifetime access to 3DSFERA. Your account will not be created until access becomes available.',
+        body: 'Pre-register for free early access to 3DSFERA. Your account will not be created until access becomes available.',
         email: 'Launch dates, access updates, and important platform news will be sent to the email used during registration.',
         secure: 'No login account is created yet. A secure password-setup link will be emailed when access opens.',
         linkLabel: 'Pre-registration link',
@@ -20,9 +20,9 @@ const COPY = {
         close: 'Close registration offer',
     },
     zh: {
-        eyebrow: '免费终身访问',
+        eyebrow: '免费抢先体验',
         title: '预注册 3DSFERA',
-        body: '预注册即可获得 3DSFERA 免费终身访问权限。开放访问前不会创建您的账号。',
+        body: '预注册即可获得 3DSFERA 免费抢先体验。开放访问前不会创建您的账号。',
         email: '上线日期、访问更新和重要平台消息将发送到您注册时填写的邮箱。',
         secure: '目前不会创建登录账号。开放访问时，我们会通过邮件发送安全的密码设置链接。',
         linkLabel: '预注册链接',

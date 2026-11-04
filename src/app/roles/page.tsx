@@ -158,33 +158,33 @@ const rolePageCopy: Record<AppLanguage, RolePageText> = {
         },
         insights: [
             { icon: ShieldCheck, title: 'Protected player access', text: 'Player dashboard opens behind email and password authentication.' },
-            { icon: MessageSquare, title: 'Real work surfaces', text: 'Dashboards focus on orders, leads, rewards, delivery, and messages.' },
+            { icon: MessageSquare, title: 'Real work surfaces', text: 'Dashboards focus on showroom visits, leads, product enquiries and messages.' },
             { icon: Truck, title: 'Responsive by default', text: 'Layouts adapt inside scene menus and full browser pages.' },
         ],
         footerInsights: [
-            { icon: Trophy, title: 'Game economy', text: 'Player rewards connect to coins, coupons, and real delivery actions.' },
+            { icon: Trophy, title: 'Guided experiences', text: 'Interactive scenarios help visitors understand products in context.' },
             { icon: PackageCheck, title: 'Buyer operations', text: 'Shopping dashboards track saved products, supplier replies, and delivery state.' },
             { icon: Store, title: 'Pavilion growth', text: 'Business workflows cover product readiness, leads, analytics, and fulfilment.' },
             { icon: BadgeCheck, title: 'Premium polish', text: 'Screens use restrained controls, stronger hierarchy, and real illustrative assets.' },
         ],
         roles: {
             player: {
-                title: 'Player',
-                label: 'Signed player dashboard',
-                description: 'Enter a private command center for game zones, quests, rewards, coin balance, delivery, and player messages.',
+                title: 'Visitor',
+                label: 'Signed visitor dashboard',
+                description: 'Enter a private dashboard for guided experiences, product information and messages.',
                 action: 'Login and enter scene',
-                proof: ['Password access', 'Rewards wallet', 'Arena activity'],
+                proof: ['Password access', 'Guided experiences', 'Product activity'],
                 metrics: [
-                    { value: '24', label: 'player level' },
+                    { value: '24', label: 'showroom visits' },
                     { value: '3', label: 'live zones' },
                 ],
             },
             shopper: {
                 title: 'Shopper',
-                label: 'Marketplace workspace',
-                description: 'Browse pavilions, compare products, monitor supplier replies, track delivery, and keep real orders moving.',
+                label: 'Showroom workspace',
+                description: 'Browse pavilions, compare products, monitor brand replies and manage direct product enquiries.',
                 action: 'Open shopper dashboard',
-                proof: ['Saved products', 'Supplier chat', 'Delivery queue'],
+                proof: ['Saved products', 'Brand chat', 'Enquiry queue'],
                 metrics: [
                     { value: '12', label: 'saved items' },
                     { value: '5', label: 'supplier replies' },

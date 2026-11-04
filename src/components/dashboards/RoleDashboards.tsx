@@ -344,7 +344,7 @@ const ensureDashboardWaterArenaReward = (
             questId: quest.id,
             kind: quest.reward.kind,
             value: quest.reward.value,
-            status: 'earned' as const,
+            status: 'received' as const,
             earnedAt: Date.now(),
         },
     ];
@@ -491,12 +491,12 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
             health: 'Health',
             healthHelper: 'Regenerates before next run',
             coins: 'Coin balance',
-            coinsHelper: '+320 earned today',
+            coinsHelper: '+320 collected today',
             score: 'Arena score',
             scoreHelper: 'Top 18 percent this week',
             quests: 'Quest progress',
             questsHelper: (done) => `${done} of 22 tasks complete`,
-            rewards: 'Rewards earned',
+            rewards: 'Rewards received',
             rewardsHelper: 'Coupons, gifts, and drops',
             threat: 'Threat level',
             zonesTitle: 'Where to go next',
@@ -537,7 +537,7 @@ const dashboardCopy: Record<AppLanguage, DashboardText> = {
                 { label: 'Rewards', className: 'bottom-[16%] right-[12%] border-amber-300/45 text-amber-100' },
             ],
             eventTitle: 'Double coin event',
-            eventText: 'Earn 2X coins in all player zones.',
+            eventText: 'Receive 2X points in all visitor zones.',
         },
         shopper: {
             mode: 'Buyer role',
@@ -1213,7 +1213,7 @@ const localizeDashboardActivity = (value: string, language: AppLanguage) => {
             'Mode changed to Shopper Mode': 'Включен режим покупателя',
             'Zombie Hall locked: supplier code required': 'Зомби-холл закрыт: нужен код поставщиков',
             'Zombie Arena locked: key required': 'Zombie Arena закрыта: нужен ключ',
-            'Zombie Hall cleared: arena payout earned for water': 'Зомби-холл очищен: выплата на воду получена',
+            'Zombie Hall cleared: arena credit received for water': 'Зомби-холл очищен: награда на воду получена',
             'Zombie killed': 'Зомби уничтожен',
             'You were overwhelmed': 'Вас окружили',
             'Reward ATM opened': 'Открыт банкомат наград',
@@ -1242,7 +1242,7 @@ const localizeDashboardActivity = (value: string, language: AppLanguage) => {
             'Mode changed to Shopper Mode': '已切换到买家模式',
             'Zombie Hall locked: supplier code required': 'Zombie Hall 已锁定：需要供应商代码',
             'Zombie Arena locked: key required': 'Zombie Arena 已锁定：需要钥匙',
-            'Zombie Hall cleared: arena payout earned for water': 'Zombie Hall 已清理：已获得买水奖励',
+            'Zombie Hall cleared: arena credit received for water': 'Zombie Hall 已清理：已获得买水奖励',
             'Zombie killed': '已清理一个僵尸',
             'You were overwhelmed': '你被击败了',
             'Reward ATM opened': '奖励 ATM 已打开',
@@ -1279,7 +1279,7 @@ const localizeDashboardActivity = (value: string, language: AppLanguage) => {
         return value;
     }
 
-    if (value.startsWith('Zombie Arena cleared: enough coins earned for') || value.startsWith('Zombie Arena cleared: water payout ready for')) {
+    if (value.startsWith('Zombie Arena cleared: enough points received for') || value.startsWith('Zombie Arena cleared: water reward ready for')) {
         if (language === 'ru') return `Zombie Arena очищена: монеты на ${GAME_RULES.water.bottleName} получены`;
         if (language === 'zh') return `Zombie Arena 已清理：已获得购买 ${GAME_RULES.water.bottleName} 的金币`;
         return value;

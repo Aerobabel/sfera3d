@@ -56,8 +56,8 @@ export async function POST(request: Request) {
     if (phone.length < 3) return jsonError(400, 'Enter your phone number.');
     if (phone.length > 40) return jsonError(400, 'Phone number is too long.');
     if (company.length > 160) return jsonError(400, 'Company name is too long.');
-    if (address.length < 5) return jsonError(400, 'Enter your probable delivery location.');
-    if (address.length > 1000) return jsonError(400, 'Delivery location is too long.');
+    if (address.length < 2) return jsonError(400, 'Enter your country.');
+    if (address.length > 120) return jsonError(400, 'Country is too long.');
     if (message.length > 1500) return jsonError(400, 'Message is too long.');
     if (payload.consent !== true) return jsonError(400, 'Consent is required.');
     try {
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
         ) {
             const legacyMessage = [
                 `Reserved username: ${username}`,
-                `Probable delivery location: ${address}`,
+                `Country: ${address}`,
                 message ? `Comment: ${message}` : null,
             ].filter(Boolean).join('\n');
             registrationWrite = await supabase
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
                         `Locale: ${locale}`,
                         `Source: ${source}`,
                         `Complimentary access: ${complimentaryAccess ? 'yes' : 'no'}`,
-                        `Probable delivery location: ${address}`,
+                        `Country: ${address}`,
                         message ? `Message: ${message}` : 'Message: —',
                     ].join('\n'),
                 });

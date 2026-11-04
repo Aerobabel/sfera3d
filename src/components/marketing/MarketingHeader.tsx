@@ -10,7 +10,7 @@ export const PLAYER_ENTRY_HREF = "/login?role=player&next=%2Froles%3Fintro%3Dcit
 const copy = {
   en: {
     explore: "Explore",
-    play: "Play",
+    experience: "Experience",
     discover: "Discover",
     about: "About",
     contact: "Contact",
@@ -18,7 +18,7 @@ const copy = {
   },
   ru: {
     explore: "Исследовать",
-    play: "Играть",
+    experience: "Опыт",
     discover: "Открывать",
     about: "О нас",
     contact: "Контакты",
@@ -26,7 +26,7 @@ const copy = {
   },
   zh: {
     explore: "探索",
-    play: "游玩",
+    experience: "体验",
     discover: "发现",
     about: "关于",
     contact: "联系",
@@ -36,7 +36,7 @@ const copy = {
 
 const routes = [
   { href: "/#explore", key: "explore" as const },
-  { href: "/#play", key: "play" as const },
+  { href: "/#experience", key: "experience" as const },
   { href: "/#discover", key: "discover" as const },
   { href: "/#about", key: "about" as const },
   { href: "/#contact", key: "contact" as const },

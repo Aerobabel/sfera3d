@@ -2,32 +2,32 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Gamepad2, Globe2, PackageSearch, Rocket, Store, Users } from "lucide-react";
+import { ArrowRight, Globe2, PackageSearch, Rocket, Store, Users } from "lucide-react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
 import MarketingHeader from "@/components/marketing/MarketingHeader";
 
-const icons = [Globe2, Gamepad2, PackageSearch];
+const icons = [Globe2, PackageSearch, Users];
 
 const copy = {
   en: {
     eyebrow: "About 3DSFERA",
-    title: "A living 3D world for play, discovery, and real possibilities.",
-    description: "3DSFERA is an international platform where digital spaces, interactive experiences, and real-world products come together in a new kind of online journey.",
+    title: "About 3DSFERA",
+    description: "3DSFERA is developed by 3DSPHERE International Limited, a technology company based in Hong Kong. We build our own 3D engine and web platform connecting brands with their audience through interactive showrooms.",
     access: "App and browser access available at launch.",
     cards: [
-      { title: "Explore", text: "Move through immersive city districts, pavilions, and live digital spaces." },
-      { title: "Play", text: "Complete challenges, join arcade experiences, and earn rewards along the way." },
-      { title: "Discover", text: "Experience selected real products inside the world before deciding what matters to you." },
+      { title: "Explore", text: "Walk a free 3D city with showrooms, exhibitions and events." },
+      { title: "Experience", text: "Try products inside interactive scenarios and challenges." },
+      { title: "Connect", text: "Request info, book a meeting or buy directly from the brand." },
     ],
     earlyEyebrow: "Founding access",
     earlyTitle: "Join while the world is still being built.",
-    earlyText: "Pre-register to secure early access, follow launch updates, and be among the first players invited into 3DSFERA.",
+    earlyText: "Pre-register for early access, follow launch updates, and be among the first visitors invited into 3DSFERA.",
     earlyButton: "Pre-register now",
-    steps: ["Create your account", "Complete early-access onboarding", "Receive launch access"],
-    partnerEyebrow: "For brands and suppliers",
-    partnerTitle: "Bring products into a world people want to explore.",
-    partnerText: "We create 3D spaces for selected products and help early partners test a more interactive path from attention to discovery.",
+    steps: ["Submit your details", "Receive early-access updates", "Enter when access opens"],
+    partnerEyebrow: "For Brands",
+    partnerTitle: "Your product, brought to life",
+    partnerText: "3DSFERA builds and hosts your interactive pavilion, places your product in guided experiences and delivers qualified leads with clear analytics. Brands pay a pavilion and marketing service fee.",
     partnerButton: "Build your pavilion",
     signals: ["International platform", "Real products in 3D", "Early partner opportunities"],
   },

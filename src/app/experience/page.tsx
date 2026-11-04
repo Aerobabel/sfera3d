@@ -223,7 +223,7 @@ const LIVE_ACTIVITY_MESSAGE_LABELS: Record<AppLanguage, Record<string, string>> 
         'Entered Zombie Arena': 'Entered Zombie Arena',
         'Zombie Arena locked: key required': 'Zombie Arena locked: key required',
         'Game access denied: Player Mode needed': 'Game access denied: Player Mode needed',
-        'Zombie Hall cleared: arena payout earned for water': 'Zombie Hall cleared: arena payout earned for water',
+        'Zombie Hall cleared: arena credit received for water': 'Zombie Hall cleared: arena credit received for water',
         'Zombie killed': 'Zombie killed',
         'You were overwhelmed': 'You were overwhelmed',
         'Returned to city': 'Returned to city',
@@ -251,7 +251,7 @@ const LIVE_ACTIVITY_MESSAGE_LABELS: Record<AppLanguage, Record<string, string>> 
         'Entered Zombie Arena': 'Вход в Zombie Arena',
         'Zombie Arena locked: key required': 'Zombie Arena закрыта: нужен ключ',
         'Game access denied: Player Mode needed': 'Доступ к игре закрыт: нужен режим игрока',
-        'Zombie Hall cleared: arena payout earned for water': 'Зомби-холл очищен: выплата на воду получена',
+        'Zombie Hall cleared: arena credit received for water': 'Зомби-холл очищен: награда на воду получена',
         'Zombie killed': 'Зомби уничтожен',
         'You were overwhelmed': 'Вас окружили',
         'Returned to city': 'Возврат в город',
@@ -279,7 +279,7 @@ const LIVE_ACTIVITY_MESSAGE_LABELS: Record<AppLanguage, Record<string, string>> 
         'Entered Zombie Arena': '进入 Zombie Arena',
         'Zombie Arena locked: key required': 'Zombie Arena 已锁定：需要钥匙',
         'Game access denied: Player Mode needed': '无法进入游戏：需要玩家模式',
-        'Zombie Hall cleared: arena payout earned for water': 'Zombie Hall 已清理：已获得买水奖励',
+        'Zombie Hall cleared: arena credit received for water': 'Zombie Hall 已清理：已获得买水奖励',
         'Zombie killed': '已清理一个僵尸',
         'You were overwhelmed': '你被击败了',
         'Returned to city': '返回城市',
@@ -320,7 +320,7 @@ const localizeLiveActivityMessage = (value: string, language: AppLanguage) => {
         return value;
     }
 
-    if (value.startsWith('Zombie Arena cleared: enough coins earned for') || value.startsWith('Zombie Arena cleared: water payout ready for')) {
+    if (value.startsWith('Zombie Arena cleared: enough points received for') || value.startsWith('Zombie Arena cleared: water reward ready for')) {
         if (language === 'ru') return `Zombie Arena очищена: монеты на ${GAME_RULES.water.bottleName} получены`;
         if (language === 'zh') return `Zombie Arena 已清理：已获得购买 ${GAME_RULES.water.bottleName} 的金币`;
         return value;
@@ -435,7 +435,7 @@ const SCENE_HUD_COPY: Record<AppLanguage, {
         nextObjective: 'Next objective',
         reward: 'Reward',
         questComplete: 'Quest complete',
-        earnedReward: 'Earned reward',
+        earnedReward: 'Reward received',
         rewardTerminal: 'Reward ATM',
         openTerminal: 'Open terminal',
         withdrawalUnavailable: 'Withdrawal unavailable',
@@ -975,7 +975,7 @@ const WATER_FLOW_COPY = {
         dispenserAria: 'Water dispenser',
         hydrationTerminal: '3DSFERA hydration terminal',
         buyEvian: 'Buy EVIAN',
-        dispenserBody: 'The machine accepts coins only. You can earn them now as the quest reward.',
+        dispenserBody: 'The machine accepts in-world points only. You can receive them as a quest reward.',
         cheapestItem: 'Quest item',
         coins: 'coins',
         railDispenser: 'Dispenser found',
@@ -989,7 +989,7 @@ const WATER_FLOW_COPY = {
         useSupplierCode: 'Use the supplier code at the hall entrance.',
         payoutTitle: '5 zombies and coins',
         payoutReceived: 'Zombie Hall payout received for EVIAN.',
-        clearZombiesForMoney: 'Clear 5 zombies to earn enough money.',
+        clearZombiesForMoney: 'Clear 5 zombies to receive enough in-world points.',
         ready: 'ready',
         locked: 'locked',
         balance: 'Balance',
@@ -1097,7 +1097,7 @@ const WATER_FLOW_COPY = {
             clearHallTitle: 'Clear Zombie Hall',
             clearHallBody: (coins: number) => {
                 void coins;
-                return 'The gate accepted the supplier code. Clear 5 zombies to earn the arena payout.';
+                return 'The gate accepted the supplier code. Clear 5 zombies to receive the arena reward.';
             },
             codeReadyTitle: 'Code ready for Zombie Hall',
             codeReadyBody: (first: string, second: string) => `Combine ${first} and ${second}, then unlock the hall gate.`,

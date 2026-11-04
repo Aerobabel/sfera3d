@@ -5,15 +5,15 @@ import BrandLogo from "@/components/BrandLogo";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 const copy = {
-  en: { explore: "Explore", play: "Play", discover: "Discover", about: "About", contact: "Contact", rights: "All rights reserved." },
-  ru: { explore: "Исследовать", play: "Играть", discover: "Открывать", about: "О нас", contact: "Контакты", rights: "Все права защищены." },
-  zh: { explore: "探索", play: "游玩", discover: "发现", about: "关于", contact: "联系", rights: "版权所有。" },
+  en: { explore: "Explore", experience: "Experience", discover: "Discover", about: "About" },
+  ru: { explore: "Исследовать", experience: "Опыт", discover: "Открывать", about: "О нас" },
+  zh: { explore: "探索", experience: "体验", discover: "发现", about: "关于" },
 } as const;
 
 const links = [
   ["/#about", "about"],
   ["/#explore", "explore"],
-  ["/#play", "play"],
+  ["/#experience", "experience"],
   ["/#discover", "discover"],
 ] as const;
 
@@ -39,7 +39,7 @@ export default function MarketingFooter() {
           <Link href="/terms" className="transition hover:text-white">Terms</Link>
         </nav>
 
-        <p className="text-xs text-white/35">© 2026 3DSFERA. {t.rights}</p>
+        <p className="max-w-md text-xs leading-relaxed text-white/35">© 2026 3DSPHERE International Limited · Company No. 80291271 · Unit A7, 12/F, Astoria Building, 34 Ashley Road, Tsim Sha Tsui, Hong Kong</p>
       </div>
     </footer>
   );

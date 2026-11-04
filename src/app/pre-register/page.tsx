@@ -12,42 +12,42 @@ const COPY = {
     en: {
         eyebrow: 'Founding early access',
         title: 'Pre-register for 3DSFERA',
-        body: 'Pre-register for free lifetime access to 3DSFERA. Your account will not be created until access becomes available.',
+        body: 'Pre-register for free early access to 3DSFERA. Your account will not be created until access becomes available.',
         name: 'Full name', email: 'Email address', username: 'Username', usernamePlaceholder: '3–32 letters, numbers, dots, hyphens, or underscores', phone: 'Phone', company: 'Company (optional)',
-        address: 'Probable delivery location', addressPlaceholder: 'Country, region, city, postal code, street address',
+        address: 'Country', addressPlaceholder: 'Country',
         accountType: 'I want access as', player: 'Player', visitor: 'Visitor / buyer', supplier: 'Supplier',
         message: 'Comment (optional)',
         consent: 'I agree that 3DSFERA may store these details and email me about access, platform changes, and launch timing.',
         submit: 'Reserve early access', submitting: 'Saving pre-registration…', back: 'Back to 3DSFERA',
         successTitle: 'Pre-registration complete',
         successBody: 'Your details are saved. No login account has been created yet.',
-        successFree: 'Your free lifetime access to 3DSFERA has been reserved.',
+        successFree: 'Your free early access to 3DSFERA has been reserved.',
         emailSent: 'A confirmation was sent to your email.',
         emailPending: 'Your details are saved. Confirmation email delivery is still pending.',
         emailHelp: 'Check your inbox and spam folder. If the confirmation does not arrive, contact',
         activation: 'When access opens, we will email a secure link that lets you create your password and activate your account.',
         returnHome: 'Return to 3DSFERA', again: 'Register another participant', error: 'We could not save your pre-registration. Please try again.',
-        secure: 'No account created yet', review: 'Free lifetime access', updates: 'Secure activation by email', loginLabel: 'Registration details', usernameLabel: 'Reserved username', emailLabel: 'Registration email',
+        secure: 'No account created yet', review: 'Free early access', updates: 'Secure activation by email', loginLabel: 'Registration details', usernameLabel: 'Reserved username', emailLabel: 'Registration email',
     },
     zh: {
         eyebrow: '创始抢先体验',
         title: '预注册 3DSFERA',
-        body: '预注册即可获得 3DSFERA 免费终身访问权限。开放访问前不会创建您的账号。',
+        body: '预注册即可获得 3DSFERA 免费抢先体验。开放访问前不会创建您的账号。',
         name: '姓名', email: '邮箱地址', username: '用户名', usernamePlaceholder: '3–32 位字母、数字、点、连字符或下划线', phone: '电话', company: '公司（选填）',
-        address: '预计配送地址', addressPlaceholder: '国家、省/州、城市、邮编、街道地址',
+        address: '国家', addressPlaceholder: '国家',
         accountType: '申请身份', player: '玩家', visitor: '访客 / 买家', supplier: '供应商',
         message: '备注（选填）',
         consent: '我同意 3DSFERA 保存这些信息，并通过邮件通知访问权限、平台变更和上线时间。',
         submit: '预留抢先体验资格', submitting: '正在保存预注册…', back: '返回 3DSFERA',
         successTitle: '预注册完成',
         successBody: '您的资料已保存。目前尚未创建登录账号。',
-        successFree: '您的 3DSFERA 终身免费访问资格已预留。',
+        successFree: '您的 3DSFERA 免费抢先体验资格已预留。',
         emailSent: '确认邮件已发送到您的邮箱。',
         emailPending: '您的资料已保存。确认邮件仍在等待发送。',
         emailHelp: '请检查收件箱和垃圾邮件文件夹。如果仍未收到确认邮件，请联系',
         activation: '开放访问时，我们会发送安全链接，供您创建密码并激活账号。',
         returnHome: '返回 3DSFERA', again: '注册其他参与者', error: '无法保存预注册，请重试。',
-        secure: '暂不创建账号', review: '终身免费访问', updates: '通过邮件安全激活', loginLabel: '注册信息', usernameLabel: '已预留用户名', emailLabel: '预注册邮箱',
+        secure: '暂不创建账号', review: '免费抢先体验', updates: '通过邮件安全激活', loginLabel: '注册信息', usernameLabel: '已预留用户名', emailLabel: '预注册邮箱',
     },
 } as const;
 
@@ -195,15 +195,14 @@ export default function PreRegisterPage() {
                                 <Field label={t.company}><input name="company" maxLength={160} autoComplete="organization" className={inputClass} /></Field>
                             </div>
                             <Field label={t.address}>
-                                <textarea
+                                <input
                                     name="address"
                                     required
-                                    minLength={5}
-                                    maxLength={1000}
-                                    rows={3}
-                                    autoComplete="street-address"
+                                    minLength={2}
+                                    maxLength={120}
+                                    autoComplete="country-name"
                                     placeholder={t.addressPlaceholder}
-                                    className={`${inputClass} resize-y`}
+                                    className={inputClass}
                                 />
                             </Field>
 
@@ -223,7 +222,7 @@ export default function PreRegisterPage() {
 
                             <label className="flex cursor-pointer items-start gap-3 text-xs leading-5 text-slate-300">
                                 <input name="consent" required type="checkbox" className="mt-1 h-4 w-4 accent-[#66d9cb]" />
-                                <span>{t.consent}</span>
+                                <span>{t.consent} <Link href="/privacy" className="font-bold text-cyan-100 underline decoration-cyan-100/40 underline-offset-2">Privacy Policy</Link>.</span>
                             </label>
 
                             {error && <p role="alert" className="rounded-xl border border-rose-300/20 bg-rose-300/[.08] px-4 py-3 text-sm text-rose-100">{error}</p>}

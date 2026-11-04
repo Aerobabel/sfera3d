@@ -9,7 +9,7 @@ import { getDefaultLanguageForHostname, toHtmlLanguageTag } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "3DSFERA",
-  description: "Explore, play, earn rewards, and discover real-world products inside one living 3D city.",
+  description: "Interactive 3D showroom where brands present real products and visitors explore them in an immersive city.",
 };
 
 const normalizeHostname = (host: string | null) => {

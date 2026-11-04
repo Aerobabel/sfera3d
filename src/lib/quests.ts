@@ -56,7 +56,7 @@ export type QuestRewardState = {
     questId: string;
     kind: QuestRewardKind;
     value: string | number;
-    status: 'earned' | 'claimed';
+    status: 'received' | 'claimed';
     earnedAt: number;
 };
 
@@ -139,7 +139,7 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
                 event: 'zombie_killed',
                 count: 5,
                 label: {
-                    en: 'Clear 5 zombies and earn enough coins',
+                    en: 'Clear 5 zombies and receive enough points',
                     ru: 'Уничтожить 5 зомби и заработать монеты',
                     zh: '清理 5 个僵尸并赚到足够金币',
                 },
@@ -474,7 +474,7 @@ const createRewardState = (quest: QuestDefinition): QuestRewardState => ({
     questId: quest.id,
     kind: quest.reward.kind,
     value: quest.reward.value,
-    status: 'earned',
+    status: 'received',
     earnedAt: Date.now(),
 });
 

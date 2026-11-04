@@ -354,7 +354,7 @@ function grantWaterArenaPayout(state: UnrealEventBridgeState): UnrealEventBridge
                 questId: quest.id,
                 kind: quest.reward.kind,
                 value: quest.reward.value,
-                status: 'earned',
+                status: 'received',
                 earnedAt,
             },
         ],
@@ -593,7 +593,7 @@ export const useUnrealEventBridge = () => {
                         zombieThreatLevel: resolveThreatLevel(zombieKills),
                         zombieRank,
                         arenaMoments: withArenaMoment(previous.arenaMoments, moment),
-                        recentActivity: withActivity(previous.recentActivity, arenaCleared ? 'Zombie Hall cleared: arena payout earned for water' : comboBonusUnlocked ? `Zombie killed — ${zombieCombo}x combo` : 'Zombie killed'),
+                        recentActivity: withActivity(previous.recentActivity, arenaCleared ? 'Zombie Hall cleared: arena credit received for water' : comboBonusUnlocked ? `Zombie killed — ${zombieCombo}x combo` : 'Zombie killed'),
                     }, unrealEvent);
 
                     return arenaCleared ? grantWaterArenaPayout(updatedState) : updatedState;
